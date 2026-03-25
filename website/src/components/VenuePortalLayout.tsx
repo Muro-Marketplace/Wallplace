@@ -1,0 +1,144 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const navItems = [
+  { label: "Dashboard", href: "/venue-portal" },
+  { label: "Browse Portfolios", href: "/browse" },
+  { label: "Browse Gallery", href: "/galleries" },
+  { label: "Saved Artists", href: "/venue-portal/saved" },
+  { label: "My Enquiries", href: "/venue-portal/enquiries" },
+  { label: "My Orders", href: "/venue-portal/orders" },
+  { label: "Venue Profile", href: "/venue-portal/profile" },
+  { label: "Premium Tools", href: "/venue-portal/premium" },
+  { label: "Settings", href: "/venue-portal/settings" },
+];
+
+const bottomItems = [
+  { label: "Browse Site", href: "/" },
+  { label: "Logout", href: "/login" },
+];
+
+interface VenuePortalLayoutProps {
+  children: React.ReactNode;
+  activePath?: string;
+}
+
+export default function VenuePortalLayout({
+  children,
+}: VenuePortalLayoutProps) {
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  function isActive(href: string) {
+    if (href === "/venue-portal") return pathname === "/venue-portal";
+    return pathname === href;
+  }
+
+  const NavContent = () => (
+    <nav className="flex flex-col h-full">
+      <div className="px-4 py-5 border-b border-border">
+        <p className="text-xs font-medium uppercase tracking-widest text-muted">
+          Venue Portal
+        </p>
+      </div>
+      <div className="flex-1 overflow-y-auto py-3">
+        <ul className="space-y-0.5">
+          {navItems.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-150 rounded-sm mx-1 ${
+                  isActive(item.href)
+                    ? "bg-accent/10 text-accent font-medium"
+                    : "text-foreground/70 hover:text-foreground hover:bg-background"
+                }`}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <div className="mx-4 my-3 border-t border-border" />
+        <ul className="space-y-0.5">
+          {bottomItems.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-150 rounded-sm mx-1 ${
+                  item.label === "Logout"
+                    ? "text-muted hover:text-foreground hover:bg-background"
+                    : "text-muted hover:text-foreground hover:bg-background"
+                }`}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </nav>
+  );
+
+  return (
+    <div className="flex min-h-[calc(100vh-3.5rem)] lg:min-h-[calc(100vh-4rem)] bg-background">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex flex-col w-56 shrink-0 bg-white border-r border-border sticky top-14 lg:top-16 self-start h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)]">
+        <NavContent />
+      </aside>
+
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Mobile drawer */}
+      <aside
+        className={`lg:hidden fixed top-14 left-0 bottom-0 z-50 w-64 bg-white border-r border-border transform transition-transform duration-200 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <NavContent />
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 min-w-0">
+        {/* Mobile top bar */}
+        <div className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-border sticky top-14 z-30">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-1.5 rounded-sm border border-border text-foreground hover:bg-background transition-colors"
+            aria-label="Toggle navigation"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            >
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
+            </svg>
+          </button>
+          <span className="text-sm font-medium text-foreground">
+            Venue Portal
+          </span>
+        </div>
+
+        <div className="p-6 lg:p-8">{children}</div>
+      </div>
+    </div>
+  );
+}
