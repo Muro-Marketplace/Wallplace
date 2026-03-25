@@ -1,0 +1,621 @@
+import { Metadata } from "next";
+import Button from "@/components/Button";
+import Accordion from "@/components/Accordion";
+
+export const metadata: Metadata = {
+  title: "For Artists — Wallspace",
+  description:
+    "Access high-intent venue demand. Get discovered by cafés, restaurants, hotels, galleries, and offices. Curated visibility for commercial spaces.",
+};
+
+const valueBlocks = [
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 7l9-4 9 4v10l-9 4-9-4V7z" />
+        <path d="M3 7l9 4 9-4M12 11v10" />
+      </svg>
+    ),
+    title: "High-intent venue demand",
+    description: "Real venues actively looking for art — cafés, restaurants, hotels, galleries, offices, and salons.",
+  },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 12l2 2 4-4" />
+        <circle cx="12" cy="12" r="9" />
+      </svg>
+    ),
+    title: "Curated marketplace",
+    description: "Not a listing site. Your work is matched to relevant spaces that suit your style and medium.",
+  },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+    title: "Sales infrastructure",
+    description: "QR codes, online listings, payment processing — everything a buyer needs to purchase your work.",
+  },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M8 12h8M12 8v8" />
+      </svg>
+    ),
+    title: "Commercial visibility",
+    description: "Your profile seen by venues filtering for your style. Curated visibility, not algorithmic noise.",
+  },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+      </svg>
+    ),
+    title: "Fair platform fees",
+    description: "0–10% platform fee. No gallery taking half. You keep the majority of every sale.",
+  },
+  {
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 3h18v18H3zM3 9h18M9 3v18" />
+      </svg>
+    ),
+    title: "Real commercial channel",
+    description: "Physical spaces, not another feed. Daily footfall from people who are already there.",
+  },
+];
+
+const pipelineSteps = [
+  "Apply",
+  "Get Accepted",
+  "Choose Plan",
+  "Get Discovered",
+  "Get Placed & Sold",
+];
+
+const coreFeatures = [
+  "Marketplace profile",
+  "Up to 5 works listed",
+  "Venue enquiry inbox",
+  "QR codes & payment processing",
+  "Basic analytics",
+  "10% platform fee on sales",
+];
+
+const premiumFeatures = [
+  "Everything in Core",
+  "Up to 15 works listed",
+  "Featured profile placement",
+  "Priority venue matching",
+  "Full analytics dashboard",
+  "Dedicated social feature monthly",
+  "5% platform fee on sales",
+];
+
+const proFeatures = [
+  "Everything in Premium",
+  "Unlimited works listed",
+  "Top-tier profile placement",
+  "AI-powered venue matching",
+  "White-glove onboarding",
+  "0% platform fee on sales",
+];
+
+const comparisonData = [
+  {
+    category: "Platform fee",
+    gallery: "40–60%",
+    marketplace: "15–30%",
+    instagram: "N/A",
+    wallspace: "0–10%",
+  },
+  {
+    category: "Physical display",
+    gallery: "Yes",
+    marketplace: "No",
+    instagram: "No",
+    wallspace: "Yes",
+  },
+  {
+    category: "Logistics",
+    gallery: "You handle it",
+    marketplace: "You handle it",
+    instagram: "You handle it",
+    wallspace: "You handle it (add-on packages available)",
+  },
+  {
+    category: "Cost",
+    gallery: "£200–1,000/week",
+    marketplace: "Free–£30/month",
+    instagram: "Free",
+    wallspace: "£9.99–£100/month",
+  },
+  {
+    category: "Audience",
+    gallery: "Gallery visitors",
+    marketplace: "Online browsers",
+    instagram: "Followers",
+    wallspace: "Daily venue footfall",
+  },
+  {
+    category: "Curation",
+    gallery: "Selective",
+    marketplace: "Open",
+    instagram: "None",
+    wallspace: "Selective",
+  },
+];
+
+const faqItems = [
+  {
+    question: "Will my work actually sell?",
+    answer:
+      "We can't guarantee sales — no honest platform can. What we do is connect you with venues that have real daily footfall and genuine interest in displaying art. Every piece gets a QR code linking to your sales page, and venues are matched to your style and medium. The rest is down to the work.",
+  },
+  {
+    question: "Why should I pay for this?",
+    answer:
+      "Because a gallery would take 40–60% of every sale on top of significant upfront costs. Wallspace gives you a platform fee of 0–10%, ongoing commercial visibility, sales infrastructure, and access to a growing network of venues — for less than the cost of a round of drinks per month.",
+  },
+  {
+    question: "Do you handle delivery and installation?",
+    answer:
+      "Logistics are your responsibility as standard. We do offer optional installation add-on packages for artists who want that support. Once a venue expresses interest and you agree to place work there, we'll guide you through the process.",
+  },
+  {
+    question: "Can I still sell through other channels?",
+    answer:
+      "Absolutely. Wallspace is an additional channel. You keep full control of your work and can sell through galleries, your own website, fairs, or anywhere else.",
+  },
+  {
+    question: "What if I'm not accepted?",
+    answer:
+      "We provide feedback on every application. You're welcome to reapply after three months. Many successful artists are accepted on their second application.",
+  },
+  {
+    question: "What sizes work best?",
+    answer:
+      "Most venues suit work between A3 and A1. Once you're accepted and matched to a venue, we'll advise on sizing and presentation for that specific space.",
+  },
+  {
+    question: "How does payment work when something sells?",
+    answer:
+      "The buyer pays through Wallspace. We deduct the platform fee and pay you within 14 days via bank transfer. Simple and transparent.",
+  },
+  {
+    question: "What happens if I cancel?",
+    answer:
+      "You can cancel any time. You'll be responsible for collecting your work from venues you've placed in. No penalties, no hard feelings.",
+  },
+];
+
+export default function ArtistsPage() {
+  return (
+    <>
+      {/* Hero */}
+      <section className="py-24 lg:py-32">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="max-w-2xl">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl tracking-tight">
+              Your work, matched to spaces that want it.
+            </h1>
+            <p className="mt-6 text-lg lg:text-xl text-muted leading-relaxed max-w-xl">
+              Wallspace is the curated art marketplace for independent venues.
+              Access high-intent venue demand. Get discovered by cafés, restaurants,
+              hotels, galleries, offices, and salons looking for original artwork.
+            </p>
+            <div className="mt-10 flex flex-col sm:flex-row gap-4">
+              <Button href="/apply" size="lg">
+                Apply to Join
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Early Access Banner */}
+      <section className="py-6 bg-accent/5 border-y border-accent/20">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-accent uppercase tracking-wider mb-1">
+                Limited founding spots
+              </p>
+              <p className="text-foreground">
+                First 20 approved artists get <strong>6 months free</strong>. All artists get their <strong>first month free</strong>.
+              </p>
+            </div>
+            <Button href="/apply" size="md" variant="secondary">
+              Apply Now
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* What You Get */}
+      <section className="py-20 lg:py-24">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <h2 className="text-3xl md:text-4xl mb-14">What you get</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {valueBlocks.map((block) => (
+              <div
+                key={block.title}
+                className="bg-surface border border-border rounded-sm p-7 hover:shadow-sm transition-shadow duration-300"
+              >
+                <div className="text-accent mb-4">{block.icon}</div>
+                <h3 className="text-lg mb-2">{block.title}</h3>
+                <p className="text-muted text-sm leading-relaxed">
+                  {block.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-20 lg:py-24 bg-surface border-y border-border">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <h2 className="text-3xl md:text-4xl mb-14">How it works</h2>
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-0">
+            {pipelineSteps.map((step, i) => (
+              <div key={step} className="flex items-center gap-4 md:gap-0">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-10 h-10 rounded-full bg-accent text-white text-sm font-medium shrink-0">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {step}
+                  </span>
+                </div>
+                {i < pipelineSteps.length - 1 && (
+                  <div className="hidden md:block w-12 lg:w-16 h-px bg-border mx-4" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="py-20 lg:py-24">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl mb-4">Membership</h2>
+            <p className="text-muted max-w-lg mx-auto leading-relaxed">
+              Less than the cost of a day at an art fair. Ongoing commercial visibility in independent venues.
+            </p>
+          </div>
+
+          {/* First Month Free Banner */}
+          <div className="border-2 border-accent rounded-sm p-6 md:p-8 mb-10 bg-accent/5 text-center">
+            <p className="text-sm font-medium text-accent uppercase tracking-wider mb-2">
+              Founding Artist Offer
+            </p>
+            <p className="text-lg md:text-xl font-serif">
+              First month free for all artists.
+            </p>
+            <p className="mt-2 text-2xl md:text-3xl font-serif text-accent">
+              First 20 approved artists get 6 months free.
+            </p>
+          </div>
+
+          {/* Pricing Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Core */}
+            <div className="bg-surface border border-border rounded-sm p-8 flex flex-col">
+              <h3 className="text-2xl mb-1">Core</h3>
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="text-3xl font-serif text-foreground">
+                  &pound;9.99
+                </span>
+                <span className="text-muted text-sm">/month</span>
+              </div>
+              <p className="text-sm text-muted mb-6">
+                10% platform fee on sales
+              </p>
+              <ul className="space-y-3 mb-8 flex-1">
+                {coreFeatures.map((feature) => (
+                  <li
+                    key={feature}
+                    className="flex items-start gap-2 text-sm text-foreground/80"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-accent mt-0.5 shrink-0"
+                    >
+                      <path d="M3 8.5l3.5 3.5L13 4" />
+                    </svg>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Button href="/apply" size="md" variant="secondary">
+                Apply to Join
+              </Button>
+            </div>
+
+            {/* Premium */}
+            <div className="bg-surface border-2 border-accent rounded-sm p-8 flex flex-col relative">
+              <div className="absolute -top-3 left-6 bg-accent text-white text-xs font-medium px-3 py-1 rounded-sm">
+                Most Popular
+              </div>
+              <h3 className="text-2xl mb-1">Premium</h3>
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="text-3xl font-serif text-foreground">
+                  &pound;29.99
+                </span>
+                <span className="text-muted text-sm">/month</span>
+              </div>
+              <p className="text-sm text-muted mb-6">
+                5% platform fee on sales
+              </p>
+              <ul className="space-y-3 mb-8 flex-1">
+                {premiumFeatures.map((feature) => (
+                  <li
+                    key={feature}
+                    className="flex items-start gap-2 text-sm text-foreground/80"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-accent mt-0.5 shrink-0"
+                    >
+                      <path d="M3 8.5l3.5 3.5L13 4" />
+                    </svg>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Button href="/apply" size="md">
+                Apply to Join
+              </Button>
+            </div>
+
+            {/* Pro */}
+            <div className="bg-surface border border-border rounded-sm p-8 flex flex-col">
+              <h3 className="text-2xl mb-1">Pro</h3>
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="text-3xl font-serif text-foreground">
+                  &pound;100
+                </span>
+                <span className="text-muted text-sm">/month</span>
+              </div>
+              <p className="text-sm text-muted mb-6">
+                0% platform fee on sales
+              </p>
+              <ul className="space-y-3 mb-8 flex-1">
+                {proFeatures.map((feature) => (
+                  <li
+                    key={feature}
+                    className="flex items-start gap-2 text-sm text-foreground/80"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-accent mt-0.5 shrink-0"
+                    >
+                      <path d="M3 8.5l3.5 3.5L13 4" />
+                    </svg>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Button href="/apply" size="md" variant="secondary">
+                Apply to Join
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Value Anchoring */}
+      <section className="py-20 lg:py-24 bg-surface border-y border-border">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <h2 className="text-3xl md:text-4xl mb-10">
+            What &pound;9.99 a month gets you
+          </h2>
+          <div className="max-w-xl space-y-4">
+            <div className="flex items-center justify-between py-3 border-b border-border">
+              <div>
+                <p className="text-sm font-medium text-foreground/60">
+                  Gallery hire
+                </p>
+                <p className="text-sm text-muted">
+                  &pound;200&ndash;1,000/week
+                </p>
+              </div>
+              <span className="text-red-400 text-lg">&times;</span>
+            </div>
+            <div className="flex items-center justify-between py-3 border-b border-border">
+              <div>
+                <p className="text-sm font-medium text-foreground/60">
+                  Art fair table
+                </p>
+                <p className="text-sm text-muted">&pound;300&ndash;500/day</p>
+              </div>
+              <span className="text-red-400 text-lg">&times;</span>
+            </div>
+            <div className="flex items-center justify-between py-3 border-b border-border">
+              <div>
+                <p className="text-sm font-medium text-foreground/60">
+                  Instagram promotion
+                </p>
+                <p className="text-sm text-muted">
+                  &pound;50&ndash;200/month, no physical presence
+                </p>
+              </div>
+              <span className="text-red-400 text-lg">&times;</span>
+            </div>
+            <div className="flex items-center justify-between py-3 border-b border-border">
+              <div>
+                <p className="text-sm font-medium text-accent">
+                  Wallspace Core
+                </p>
+                <p className="text-sm text-muted">
+                  &pound;9.99/month. Access high-intent venue demand. First month free.
+                </p>
+              </div>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-accent"
+              >
+                <path d="M4 10.5l4.5 4.5L16 5" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How Curation Works */}
+      <section className="py-20 lg:py-24">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <h2 className="text-3xl md:text-4xl mb-10">How curation works</h2>
+          <div className="max-w-xl space-y-6">
+            <p className="text-muted leading-relaxed">
+              We review every application. Roughly half are accepted.
+            </p>
+            <div>
+              <p className="font-medium mb-3">We look for:</p>
+              <ul className="space-y-2">
+                {[
+                  "Technical quality",
+                  "Coherent body of work",
+                  "Commercial viability",
+                  "Professional presentation",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-center gap-2 text-sm text-muted"
+                  >
+                    <span className="w-1 h-1 rounded-full bg-accent shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <p className="text-muted leading-relaxed">
+              No AI-generated work. Every piece is original.
+            </p>
+            <p className="text-sm text-muted italic">
+              Being selective is how we maintain venue trust and ensure your work reaches spaces that genuinely want it.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison Table */}
+      <section className="py-20 lg:py-24 bg-surface border-y border-border">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <h2 className="text-3xl md:text-4xl mb-10">
+            How this is different
+          </h2>
+          <div className="overflow-x-auto -mx-6 px-6">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 pr-4 font-medium text-muted text-xs uppercase tracking-wider w-1/5">
+                    &nbsp;
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-muted text-xs uppercase tracking-wider">
+                    Galleries
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-muted text-xs uppercase tracking-wider">
+                    Online Marketplaces
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-muted text-xs uppercase tracking-wider">
+                    Instagram
+                  </th>
+                  <th className="text-left py-3 px-4 font-medium text-accent text-xs uppercase tracking-wider">
+                    Wallspace
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonData.map((row) => (
+                  <tr key={row.category} className="border-b border-border/60">
+                    <td className="py-3.5 pr-4 font-medium text-foreground">
+                      {row.category}
+                    </td>
+                    <td className="py-3.5 px-4 text-muted">{row.gallery}</td>
+                    <td className="py-3.5 px-4 text-muted">
+                      {row.marketplace}
+                    </td>
+                    <td className="py-3.5 px-4 text-muted">{row.instagram}</td>
+                    <td className="py-3.5 px-4 text-foreground font-medium">
+                      {row.wallspace}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQs */}
+      <section className="py-20 lg:py-24">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl mb-10 text-center">
+              Frequently asked questions
+            </h2>
+            <Accordion items={faqItems} />
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-24 lg:py-32 bg-surface border-t border-border">
+        <div className="max-w-[1200px] mx-auto px-6 text-center">
+          <p className="text-muted mb-4">
+            Your studio is not a showroom. Independent venues are.
+          </p>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl mb-4 max-w-2xl mx-auto">
+            Apply to Wallspace. Get discovered by the spaces that want your work.
+          </h2>
+          <div className="mt-8">
+            <Button href="/apply" size="lg">
+              Apply to Join
+            </Button>
+          </div>
+          <p className="mt-6 text-sm text-muted">
+            First month free. First 20 approved artists get 6 months free. Membership from &pound;9.99/month.
+          </p>
+        </div>
+      </section>
+    </>
+  );
+}
