@@ -3,9 +3,9 @@ import Button from "@/components/Button";
 import Accordion from "@/components/Accordion";
 
 export const metadata: Metadata = {
-  title: "Pricing — Wallspace",
+  title: "Pricing — Muro",
   description:
-    "Transparent pricing for artists on Wallspace. First month free. Choose Core, Premium, or Pro — all with access to our curated venue network.",
+    "Transparent pricing for artists on Muro. First month free. Choose Core, Premium, or Pro — all with access to our curated venue network.",
 };
 
 const coreFeatures = [
@@ -14,7 +14,7 @@ const coreFeatures = [
   "Curated matching — we surface you to relevant venues",
   "10% platform fee on sales",
   "Basic analytics dashboard",
-  "Access to Wallspace venue network",
+  "Access to Muro venue network",
 ];
 
 const premiumFeatures = [
@@ -24,7 +24,7 @@ const premiumFeatures = [
   "5% platform fee on sales",
   "Full analytics — views, enquiries, conversion",
   "Featured in curated venue suggestion lists",
-  "Priority response from Wallspace team",
+  "Priority response from Muro team",
 ];
 
 const proFeatures = [
@@ -86,7 +86,7 @@ const faqItems = [
   {
     question: "What is a platform fee?",
     answer:
-      "The platform fee is the percentage Wallspace takes when a sale is made through the platform — whether that's a venue purchasing work outright, or a customer buying directly from a venue display. It is separate from your membership cost. Core artists pay 10%, Premium 5%, and Pro artists pay 0%. You keep the rest.",
+      "The platform fee is the percentage Muro takes when a sale is made through the platform — whether that's a venue purchasing work outright, or a customer buying directly from a venue display. It is separate from your membership cost. Core artists pay 10%, Premium 5%, and Pro artists pay 0%. You keep the rest.",
   },
   {
     question: "Is the first month really free?",
@@ -96,7 +96,7 @@ const faqItems = [
   {
     question: "What do the first 20 artists get?",
     answer:
-      "The first 20 approved artists on the Wallspace platform receive 6 months free on whichever tier they choose, as a founding artist benefit. This is our way of acknowledging that early adopters take a chance on us, and we want to reward that generously.",
+      "The first 20 approved artists on the Muro platform receive 6 months free on whichever tier they choose, as a founding artist benefit. This is our way of acknowledging that early adopters take a chance on us, and we want to reward that generously.",
   },
   {
     question: "Can I change my tier?",
@@ -116,7 +116,7 @@ const faqItems = [
   {
     question: "Are there any other fees?",
     answer:
-      "No hidden fees. Your monthly membership and the platform fee on sales are the only costs. Delivery, framing, and any materials are your own costs as an artist — Wallspace does not add charges for these.",
+      "No hidden fees. Your monthly membership and the platform fee on sales are the only costs. Delivery, framing, and any materials are your own costs as an artist — Muro does not add charges for these.",
   },
 ];
 
@@ -132,7 +132,7 @@ export default function PricingPage() {
             </h1>
             <p className="text-lg text-muted leading-relaxed">
               Choose the tier that fits your ambition. All tiers give you access
-              to the Wallspace platform and venue network. The difference
+              to the Muro platform and venue network. The difference
               is visibility and the platform fee on sales.
             </p>
           </div>
@@ -344,7 +344,7 @@ export default function PricingPage() {
                 Put the cost in perspective
               </h2>
               <p className="text-muted leading-relaxed mb-8">
-                Wallspace membership costs less than almost every other way of
+                Muro membership costs less than almost every other way of
                 getting your work in front of a real audience.
               </p>
               <div className="space-y-4">
@@ -365,7 +365,7 @@ export default function PricingPage() {
                     wallspace: false,
                   },
                   {
-                    label: "Wallspace Core",
+                    label: "Muro Core",
                     detail: "£9.99/month, curated venue access",
                     wallspace: true,
                   },
@@ -457,7 +457,7 @@ export default function PricingPage() {
             get 6 months free on any tier.
           </p>
           <Button href="/apply" size="lg">
-            Apply to Join Wallspace
+            Apply to Join Muro
           </Button>
         </div>
       </section>

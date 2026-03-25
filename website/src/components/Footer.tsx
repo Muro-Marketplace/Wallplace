@@ -39,7 +39,7 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <Link href="/" className="font-serif text-xl tracking-tight">
-              Wallspace
+              Muro
             </Link>
             <p className="mt-3 text-sm text-muted leading-relaxed max-w-xs">
               The curated art marketplace for independent venues.
@@ -94,7 +94,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-16 pt-8 border-t border-border">
           <p className="text-xs text-muted">
-            &copy; {new Date().getFullYear()} Wallspace. All rights reserved.
+            &copy; {new Date().getFullYear()} Muro. All rights reserved.
           </p>
         </div>
       </div>

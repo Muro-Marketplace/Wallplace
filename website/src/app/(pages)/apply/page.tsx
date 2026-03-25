@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import ApplicationForm from "@/components/ApplicationForm";
 
 export const metadata: Metadata = {
-  title: "Apply to Join — Wallspace",
+  title: "Apply to Join — Muro",
   description:
-    "Apply to join Wallspace, the curated platform connecting photographers and artists with independent venues. First month free for all accepted artists.",
+    "Apply to join Muro, the curated platform connecting photographers and artists with independent venues. First month free for all accepted artists.",
 };
 
 const differentiators = [
   {
     title: "Genuine curation, not an open marketplace",
     description:
-      "Every artist on Wallspace has been personally reviewed. We maintain a small, high-quality roster because venues trust us to send them only excellent work. Being accepted means something.",
+      "Every artist on Muro has been personally reviewed. We maintain a small, high-quality roster because venues trust us to send them only excellent work. Being accepted means something.",
   },
   {
     title: "Real venue demand, not passive listings",
@@ -26,7 +26,7 @@ const differentiators = [
   {
     title: "No exclusivity",
     description:
-      "Wallspace is an additional channel. You keep full control of your work and can sell through galleries, fairs, your own website, or anywhere else at the same time.",
+      "Muro is an additional channel. You keep full control of your work and can sell through galleries, fairs, your own website, or anywhere else at the same time.",
   },
 ];
 
@@ -68,10 +68,10 @@ export default function ApplyPage() {
               Artist Applications
             </p>
             <h1 className="text-4xl lg:text-5xl mb-6">
-              Apply to Join Wallspace
+              Apply to Join Muro
             </h1>
             <p className="text-xl text-muted leading-relaxed mb-6">
-              Wallspace is a curated platform connecting artists with venues
+              Muro is a curated platform connecting artists with venues
               that are genuinely looking for artwork. We review every
               application personally. We accept roughly half. Being accepted
               means your work has been judged ready for commercial spaces.
@@ -113,9 +113,9 @@ export default function ApplyPage() {
       <section className="py-20 lg:py-24">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="max-w-2xl mb-12">
-            <h2 className="text-3xl mb-4">What makes Wallspace different</h2>
+            <h2 className="text-3xl mb-4">What makes Muro different</h2>
             <p className="text-muted leading-relaxed">
-              There are plenty of places to list your work online. Wallspace is
+              There are plenty of places to list your work online. Muro is
               not a listing site.
             </p>
           </div>
@@ -145,7 +145,7 @@ export default function ApplyPage() {
             <h2 className="text-3xl mb-4">Platform membership</h2>
             <p className="text-muted leading-relaxed">
               Your first month is free. After that, choose the tier that suits
-              your ambition. All tiers give you access to the Wallspace platform
+              your ambition. All tiers give you access to the Muro platform
               and venue network — the difference is visibility and platform fee.
             </p>
           </div>

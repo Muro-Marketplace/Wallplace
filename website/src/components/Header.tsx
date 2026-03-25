@@ -22,7 +22,7 @@ export default function Header() {
             href="/"
             className="font-serif text-xl lg:text-2xl tracking-tight text-foreground"
           >
-            Wallspace
+            Muro
           </Link>
 
           {/* Desktop Navigation */}

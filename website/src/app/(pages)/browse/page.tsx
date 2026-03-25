@@ -876,7 +876,7 @@ export default function BrowsePortfoliosPage() {
                 venues across the UK.
               </p>
               <Button href="/apply" variant="primary" size="md">
-                Apply to Join Wallspace
+                Apply to Join Muro
               </Button>
             </div>
             <div className="bg-surface border border-border rounded-sm p-8 lg:p-10">

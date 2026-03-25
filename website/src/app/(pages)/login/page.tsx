@@ -3,8 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Login — Wallspace",
-  description: "Log in to your Wallspace account as an artist or venue.",
+  title: "Login — Muro",
+  description: "Log in to your Muro account as an artist or venue.",
 };
 
 export default function LoginPage() {

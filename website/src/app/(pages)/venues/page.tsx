@@ -3,7 +3,7 @@ import Button from "@/components/Button";
 import Accordion from "@/components/Accordion";
 
 export const metadata: Metadata = {
-  title: "For Venues — Wallspace",
+  title: "For Venues — Muro",
   description:
     "Discover original artwork for your space. Browse curated artist portfolios, filter by style and location, and enquire directly. Free for independent venues.",
 };
@@ -128,7 +128,7 @@ const faqItems = [
   {
     question: "Is it really free?",
     answer:
-      "Yes. Browsing portfolios, filtering artists, posting your space, and submitting enquiries are all free. Wallspace is funded by artist memberships.",
+      "Yes. Browsing portfolios, filtering artists, posting your space, and submitting enquiries are all free. Muro is funded by artist memberships.",
   },
   {
     question: "Do you handle installation?",
@@ -148,7 +148,7 @@ const faqItems = [
   {
     question: "What do my staff need to do?",
     answer:
-      "Point to the QR card if a customer asks. The artist provides this. Sales are handled automatically through Wallspace's payment infrastructure.",
+      "Point to the QR card if a customer asks. The artist provides this. Sales are handled automatically through Muro's payment infrastructure.",
   },
   {
     question: "How does revenue share work?",
@@ -328,7 +328,7 @@ export default function VenuesPage() {
               </span>
               <span className="text-muted">&rarr;</span>
               <span className="bg-surface border border-border rounded-sm px-4 py-2">
-                Buys through Wallspace
+                Buys through Muro
               </span>
               <span className="text-muted">&rarr;</span>
               <span className="bg-accent/10 border border-accent/30 text-accent rounded-sm px-4 py-2 font-medium">

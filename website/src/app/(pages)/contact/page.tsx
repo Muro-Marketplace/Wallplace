@@ -2,9 +2,9 @@ import ContactForm from "@/components/ContactForm";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contact — Wallspace",
+  title: "Contact — Muro",
   description:
-    "Get in touch with the Wallspace team. Whether you're an artist, a venue, or just curious — we'd love to hear from you.",
+    "Get in touch with the Muro team. Whether you're an artist, a venue, or just curious — we'd love to hear from you.",
 };
 
 export default function ContactPage() {

@@ -16,8 +16,8 @@ export default function Home() {
         {/* Background: full-bleed stock image of photographer in nature */}
         <div className="absolute inset-0">
           <Image
-            src="https://picsum.photos/seed/photographer-nature-golden/1920/1080"
-            alt="Photographer in nature"
+            src="https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=1920&h=1080&fit=crop&crop=center"
+            alt="Photographer with vintage camera"
             fill
             className="object-cover"
             priority
@@ -30,7 +30,7 @@ export default function Home() {
           <div className="max-w-2xl">
             {/* Wordmark */}
             <h1 className="font-serif text-[clamp(3rem,8vw,6rem)] leading-[0.9] tracking-[-0.02em] text-white mb-6">
-              WALLSPACE
+              MURO
             </h1>
 
             {/* Value proposition */}
@@ -167,25 +167,25 @@ export default function Home() {
 
             {/* Right: venue image mosaic — tessellated jigsaw */}
             <div className="grid grid-cols-5 grid-rows-4 gap-2 aspect-square">
-              {/* Top-left: tall portrait spanning 3 rows */}
+              {/* Top-left: large — moody urban street scene */}
               <div className="col-span-3 row-span-2 relative rounded-sm overflow-hidden">
-                <Image src="https://picsum.photos/seed/cafe-interior-warm/600/400" alt="Café interior with art on walls" fill className="object-cover" sizes="25vw" />
+                <Image src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&h=400&fit=crop" alt="Moody urban street photography" fill className="object-cover" sizes="25vw" />
               </div>
-              {/* Top-right: small square */}
+              {/* Top-right: small — misty forest */}
               <div className="col-span-2 row-span-1 relative rounded-sm overflow-hidden">
-                <Image src="https://picsum.photos/seed/restaurant-minimal/400/400" alt="Restaurant with minimal artwork" fill className="object-cover" sizes="15vw" />
+                <Image src="https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?w=400&h=400&fit=crop" alt="Misty forest landscape" fill className="object-cover" sizes="15vw" />
               </div>
-              {/* Mid-right: wide landscape */}
+              {/* Mid-right: wide — vintage film camera close-up */}
               <div className="col-span-2 row-span-1 relative rounded-sm overflow-hidden">
-                <Image src="https://picsum.photos/seed/wine-bar-moody/400/200" alt="Wine bar with framed prints" fill className="object-cover" sizes="15vw" />
+                <Image src="https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400&h=200&fit=crop" alt="Vintage film camera" fill className="object-cover" sizes="15vw" />
               </div>
-              {/* Bottom-left: wide landscape */}
+              {/* Bottom-left: nature close-up — deer in mist */}
               <div className="col-span-2 row-span-2 relative rounded-sm overflow-hidden">
-                <Image src="https://picsum.photos/seed/hotel-lobby-art/400/400" alt="Hotel lobby with large artwork" fill className="object-cover" sizes="15vw" />
+                <Image src="https://images.unsplash.com/photo-1484406566174-9da000fda645?w=400&h=400&fit=crop" alt="Deer in misty woodland" fill className="object-cover" sizes="15vw" />
               </div>
-              {/* Bottom-right: tall portrait */}
+              {/* Bottom-right: large — moody alley with warm light */}
               <div className="col-span-3 row-span-2 relative rounded-sm overflow-hidden">
-                <Image src="https://picsum.photos/seed/office-gallery-wall/600/400" alt="Office with gallery wall" fill className="object-cover" sizes="25vw" />
+                <Image src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&h=400&fit=crop" alt="Mountain landscape at night" fill className="object-cover" sizes="25vw" />
               </div>
             </div>
           </div>
@@ -269,7 +269,7 @@ export default function Home() {
                 Get discovered by commercial spaces
               </h2>
               <p className="text-lg text-muted leading-relaxed mb-6">
-                Wallspace puts your work in front of caf&eacute;s, restaurants, hotels, galleries, offices, and salons that are actively looking for art.
+                Muro puts your work in front of caf&eacute;s, restaurants, hotels, galleries, offices, and salons that are actively looking for art.
               </p>
 
               <ul className="space-y-4 mb-10">
@@ -362,7 +362,7 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
           <div className="text-center mb-16">
             <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground">
-              How Wallspace works
+              How Muro works
             </h2>
           </div>
           <div className="grid md:grid-cols-2 gap-12 lg:gap-20 max-w-4xl mx-auto">
