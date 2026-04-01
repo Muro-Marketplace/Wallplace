@@ -4,8 +4,8 @@
     {
       "name": "wallspace-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "3099"],
-      "port": 3099
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
     }
   ]
 }

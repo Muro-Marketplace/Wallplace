@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import Button from "@/components/Button";
 
 export const metadata: Metadata = {
-  title: "How It Works — Muro",
+  title: "How It Works — Wallspace",
   description:
-    "A simple process for artists and venues. Learn how Muro places curated art into independent spaces.",
+    "A simple process for artists and venues. Learn how Wallspace places curated art into independent spaces.",
 };
 
 const artistSteps = [
@@ -74,7 +74,7 @@ export default function HowItWorksPage() {
       <section className="py-24 md:py-32">
         <div className="max-w-[1200px] mx-auto px-6 text-center">
           <h1 className="font-serif text-5xl md:text-6xl text-foreground tracking-tight">
-            How Muro Works
+            How Wallspace Works
           </h1>
           <p className="mt-6 text-lg text-muted max-w-lg mx-auto">
             A simple process for artists and venues.

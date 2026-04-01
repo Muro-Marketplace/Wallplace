@@ -390,7 +390,7 @@ export default function ApplicationForm() {
             </p>
             <p className="text-xs text-muted mb-3">
               Free loan means artwork displayed at no cost to the venue with
-              potential for sales. Revenue share means Muro facilitates
+              potential for sales. Revenue share means Wallspace facilitates
               sales from the venue and takes a platform fee. Outright purchase
               means the venue buys the work directly.
             </p>
@@ -492,7 +492,7 @@ export default function ApplicationForm() {
       {/* How Did You Hear */}
       <div>
         <label htmlFor="hearAbout" className={labelClass}>
-          How did you hear about Muro?
+          How did you hear about Wallspace?
         </label>
         <select
           id="hearAbout"
@@ -516,7 +516,7 @@ export default function ApplicationForm() {
           Submit Application
         </Button>
         <p className="mt-4 text-xs text-muted leading-relaxed max-w-md">
-          By submitting this form you agree to Muro reviewing your
+          By submitting this form you agree to Wallspace reviewing your
           application and contacting you about your submission. We will not
           share your details with third parties without your consent.
         </p>

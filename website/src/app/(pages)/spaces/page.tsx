@@ -50,7 +50,7 @@ export default function SpacesPage() {
               These are real venues actively seeking artwork for their
               walls. Cafes, restaurants, hotels, coworking spaces — all with
               genuine interest in displaying and acquiring original art. Get your
-              work in front of them by joining Muro.
+              work in front of them by joining Wallspace.
             </p>
           </div>
         </div>
@@ -254,7 +254,7 @@ export default function SpacesPage() {
               Get your work in front of these venues
             </h2>
             <p className="text-muted leading-relaxed mb-8">
-              Apply to join Muro and your profile will be visible to every
+              Apply to join Wallspace and your profile will be visible to every
               venue on the platform. When a venue is looking for work that
               matches your style, we put you in front of them.
             </p>

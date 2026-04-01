@@ -3,7 +3,7 @@ import Button from "@/components/Button";
 import Accordion from "@/components/Accordion";
 
 export const metadata: Metadata = {
-  title: "For Artists — Muro",
+  title: "For Artists — Wallspace",
   description:
     "Access high-intent venue demand. Get discovered by cafés, restaurants, hotels, galleries, and offices. Curated visibility for commercial spaces.",
 };
@@ -161,7 +161,7 @@ const faqItems = [
   {
     question: "Why should I pay for this?",
     answer:
-      "Because a gallery would take 40–60% of every sale on top of significant upfront costs. Muro gives you a platform fee of 0–10%, ongoing commercial visibility, sales infrastructure, and access to a growing network of venues — for less than the cost of a round of drinks per month.",
+      "Because a gallery would take 40–60% of every sale on top of significant upfront costs. Wallspace gives you a platform fee of 0–10%, ongoing commercial visibility, sales infrastructure, and access to a growing network of venues — for less than the cost of a round of drinks per month.",
   },
   {
     question: "Do you handle delivery and installation?",
@@ -171,7 +171,7 @@ const faqItems = [
   {
     question: "Can I still sell through other channels?",
     answer:
-      "Absolutely. Muro is an additional channel. You keep full control of your work and can sell through galleries, your own website, fairs, or anywhere else.",
+      "Absolutely. Wallspace is an additional channel. You keep full control of your work and can sell through galleries, your own website, fairs, or anywhere else.",
   },
   {
     question: "What if I'm not accepted?",
@@ -186,7 +186,7 @@ const faqItems = [
   {
     question: "How does payment work when something sells?",
     answer:
-      "The buyer pays through Muro. We deduct the platform fee and pay you within 14 days via bank transfer. Simple and transparent.",
+      "The buyer pays through Wallspace. We deduct the platform fee and pay you within 14 days via bank transfer. Simple and transparent.",
   },
   {
     question: "What happens if I cancel?",
@@ -206,7 +206,7 @@ export default function ArtistsPage() {
               Your work, matched to spaces that want it.
             </h1>
             <p className="mt-6 text-lg lg:text-xl text-muted leading-relaxed max-w-xl">
-              Muro is the curated art marketplace for independent venues.
+              Wallspace is the curated art marketplace for independent venues.
               Access high-intent venue demand. Get discovered by cafés, restaurants,
               hotels, galleries, offices, and salons looking for original artwork.
             </p>
@@ -475,7 +475,7 @@ export default function ArtistsPage() {
             <div className="flex items-center justify-between py-3 border-b border-border">
               <div>
                 <p className="text-sm font-medium text-accent">
-                  Muro Core
+                  Wallspace Core
                 </p>
                 <p className="text-sm text-muted">
                   &pound;9.99/month. Access high-intent venue demand. First month free.
@@ -559,7 +559,7 @@ export default function ArtistsPage() {
                     Instagram
                   </th>
                   <th className="text-left py-3 px-4 font-medium text-accent text-xs uppercase tracking-wider">
-                    Muro
+                    Wallspace
                   </th>
                 </tr>
               </thead>
@@ -604,7 +604,7 @@ export default function ArtistsPage() {
             Your studio is not a showroom. Independent venues are.
           </p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl mb-4 max-w-2xl mx-auto">
-            Apply to Muro. Get discovered by the spaces that want your work.
+            Apply to Wallspace. Get discovered by the spaces that want your work.
           </h2>
           <div className="mt-8">
             <Button href="/apply" size="lg">

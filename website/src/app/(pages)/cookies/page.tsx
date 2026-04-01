@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy — Muro",
+  title: "Cookie Policy — Wallspace",
   description:
-    "Muro Cookie Policy. Learn about the cookies we use and how to control them.",
+    "Wallspace Cookie Policy. Learn about the cookies we use and how to control them.",
 };
 
 const cookies = [
@@ -12,7 +12,7 @@ const cookies = [
     category: "Strictly Necessary",
     purpose: "Maintains your session state when you are logged in to the platform.",
     duration: "Session (deleted when you close your browser)",
-    provider: "Muro",
+    provider: "Wallspace",
   },
   {
     name: "csrf_token",
@@ -20,14 +20,14 @@ const cookies = [
     purpose:
       "Protects against Cross-Site Request Forgery attacks by verifying form submissions originate from our site.",
     duration: "Session",
-    provider: "Muro",
+    provider: "Wallspace",
   },
   {
     name: "cookie_consent",
     category: "Strictly Necessary",
     purpose: "Stores your cookie consent preferences so we do not ask you repeatedly.",
     duration: "12 months",
-    provider: "Muro",
+    provider: "Wallspace",
   },
   {
     name: "_ga",
@@ -66,7 +66,7 @@ export default function CookiesPage() {
                   when you visit a website. They are widely used to make
                   websites work efficiently, remember your preferences, and
                   provide information to website owners. Cookies set by the
-                  website owner (in this case, Muro) are called
+                  website owner (in this case, Wallspace) are called
                   &ldquo;first-party cookies&rdquo;. Cookies set by parties
                   other than the website owner are called &ldquo;third-party
                   cookies&rdquo; and may be set by our service providers.
@@ -123,7 +123,7 @@ export default function CookiesPage() {
                 <h2 className="text-2xl mb-4">Cookies We Use</h2>
                 <p className="text-muted leading-relaxed mb-6">
                   The following table lists the specific cookies used on the
-                  Muro website:
+                  Wallspace website:
                 </p>
                 <div className="overflow-x-auto -mx-6 px-6">
                   <table className="w-full min-w-[640px] text-sm border border-border rounded-sm overflow-hidden">

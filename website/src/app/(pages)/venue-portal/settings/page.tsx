@@ -71,14 +71,14 @@ const defaultNotifs: NotifPref[] = [
   },
   {
     id: "wallspace_news",
-    label: "Muro news & updates",
+    label: "Wallspace news & updates",
     desc: "Platform announcements and feature launches",
     checked: false,
   },
   {
     id: "promotions",
     label: "Promotions & offers",
-    desc: "Discounts and special deals from Muro",
+    desc: "Discounts and special deals from Wallspace",
     checked: false,
   },
 ];

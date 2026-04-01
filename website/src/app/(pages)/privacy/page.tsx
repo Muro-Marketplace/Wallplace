@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Muro",
+  title: "Privacy Policy — Wallspace",
   description:
-    "Muro Privacy Policy. Learn how we collect, use, and protect your personal data.",
+    "Wallspace Privacy Policy. Learn how we collect, use, and protect your personal data.",
 };
 
 export default function PrivacyPage() {
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
               <div>
                 <h2 className="text-2xl mb-4">1. Who We Are</h2>
                 <p className="text-muted leading-relaxed">
-                  Muro Ltd (&ldquo;Muro&rdquo;, &ldquo;we&rdquo;,
+                  Wallspace Ltd (&ldquo;Wallspace&rdquo;, &ldquo;we&rdquo;,
                   &ldquo;us&rdquo;, or &ldquo;our&rdquo;) operates the website
                   at wallspace.co and provides a curated art placement service
                   connecting artists with commercial venues. We are the
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
                       We may receive information about you from third-party
                       sources, such as when you sign up or log in using a
                       third-party service, or when another user refers you to
-                      Muro.
+                      Wallspace.
                     </p>
                   </div>
                 </div>
@@ -120,7 +120,7 @@ export default function PrivacyPage() {
                 </p>
                 <ul className="space-y-2">
                   {[
-                    "With venues on the Muro platform, where you have applied or given consent to be introduced",
+                    "With venues on the Wallspace platform, where you have applied or given consent to be introduced",
                     "With trusted third-party service providers who help us operate the platform (such as payment processors, email services, and hosting providers), under strict data processing agreements",
                     "With professional advisors such as lawyers and accountants, where necessary",
                     "With law enforcement or regulatory authorities if required by law",
@@ -269,7 +269,7 @@ export default function PrivacyPage() {
                 </p>
                 <div className="mt-4 bg-surface border border-border rounded-sm p-6">
                   <p className="text-sm text-foreground font-medium">
-                    Muro Ltd
+                    Wallspace Ltd
                   </p>
                   <p className="text-sm text-muted mt-1">London, UK</p>
                   <a

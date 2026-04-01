@@ -30,7 +30,7 @@ export default function Home() {
           <div className="max-w-2xl">
             {/* Wordmark */}
             <h1 className="font-serif text-[clamp(3rem,8vw,6rem)] leading-[0.9] tracking-[-0.02em] text-white mb-6">
-              MURO
+              WALLSPACE
             </h1>
 
             {/* Value proposition */}
@@ -269,7 +269,7 @@ export default function Home() {
                 Get discovered by commercial spaces
               </h2>
               <p className="text-lg text-muted leading-relaxed mb-6">
-                Muro puts your work in front of caf&eacute;s, restaurants, hotels, galleries, offices, and salons that are actively looking for art.
+                Wallspace puts your work in front of caf&eacute;s, restaurants, hotels, galleries, offices, and salons that are actively looking for art.
               </p>
 
               <ul className="space-y-4 mb-10">
@@ -362,7 +362,7 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
           <div className="text-center mb-16">
             <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground">
-              How Muro works
+              How Wallspace works
             </h2>
           </div>
           <div className="grid md:grid-cols-2 gap-12 lg:gap-20 max-w-4xl mx-auto">

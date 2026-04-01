@@ -3,24 +3,24 @@ import Button from "@/components/Button";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "FAQs — Muro",
+  title: "FAQs — Wallspace",
   description:
-    "Frequently asked questions about Muro for artists, venues, and buyers.",
+    "Frequently asked questions about Wallspace for artists, venues, and buyers.",
 };
 
 const generalFaqs = [
   {
-    question: "What is Muro?",
+    question: "What is Wallspace?",
     answer:
-      "Muro is a curated art placement service. We connect emerging and established photographers with independent venues — cafes, restaurants, coworking spaces, offices, and more — that want original artwork on their walls. We handle the curation, logistics, and sales so that artists can focus on making work and venues can focus on running their business.",
+      "Wallspace is a curated art placement service. We connect emerging and established photographers with independent venues — cafes, restaurants, coworking spaces, offices, and more — that want original artwork on their walls. We handle the curation, logistics, and sales so that artists can focus on making work and venues can focus on running their business.",
   },
   {
-    question: "How does Muro make money?",
+    question: "How does Wallspace make money?",
     answer:
-      "Muro takes a commission on artwork sales. When a piece of art displayed in a venue is purchased by a customer or the venue itself, we take a percentage of the sale price. The artist receives the majority. We do not charge venues for displaying artwork, and there are no hidden fees.",
+      "Wallspace takes a commission on artwork sales. When a piece of art displayed in a venue is purchased by a customer or the venue itself, we take a percentage of the sale price. The artist receives the majority. We do not charge venues for displaying artwork, and there are no hidden fees.",
   },
   {
-    question: "Is Muro a gallery?",
+    question: "Is Wallspace a gallery?",
     answer:
       "Not in the traditional sense. We do not have a physical gallery space. Instead, we use the walls of independent venues as our exhibition spaces. This means artists get their work seen by thousands of people in everyday settings, and venues get beautiful original art without the cost of commissioning it directly.",
   },
@@ -28,7 +28,7 @@ const generalFaqs = [
 
 const artistFaqs = [
   {
-    question: "How much does it cost to join Muro as an artist?",
+    question: "How much does it cost to join Wallspace as an artist?",
     answer:
       "Nothing. There is no cost to apply, join, or have your work displayed. We only earn money when your work sells, through a commission on the sale price. You will never be asked to pay a listing fee, membership fee, or any upfront cost.",
   },
@@ -40,7 +40,7 @@ const artistFaqs = [
   {
     question: "What happens when my work sells?",
     answer:
-      "When a piece sells, we handle the transaction and notify you immediately. You receive payment within 14 days of the sale. The sale price is split between you and Muro — you keep the majority. We handle all customer communication, invoicing, and delivery coordination.",
+      "When a piece sells, we handle the transaction and notify you immediately. You receive payment within 14 days of the sale. The sale price is split between you and Wallspace — you keep the majority. We handle all customer communication, invoicing, and delivery coordination.",
   },
   {
     question: "Can I set my own prices?",
@@ -55,17 +55,17 @@ const artistFaqs = [
   {
     question: "What if my work gets damaged in a venue?",
     answer:
-      "All artwork displayed through Muro is covered by our damage policy. If a piece is damaged while on display, we work with the venue to resolve the situation and ensure the artist is compensated fairly. Venues agree to our care guidelines when they sign up.",
+      "All artwork displayed through Wallspace is covered by our damage policy. If a piece is damaged while on display, we work with the venue to resolve the situation and ensure the artist is compensated fairly. Venues agree to our care guidelines when they sign up.",
   },
   {
     question: "Can I cancel my membership?",
     answer:
-      "Yes. You can withdraw from Muro at any time with 30 days notice. We will arrange the return of any artwork currently on display in venues. There are no cancellation fees or penalties.",
+      "Yes. You can withdraw from Wallspace at any time with 30 days notice. We will arrange the return of any artwork currently on display in venues. There are no cancellation fees or penalties.",
   },
   {
-    question: "Is Muro exclusive? Can I sell my work elsewhere?",
+    question: "Is Wallspace exclusive? Can I sell my work elsewhere?",
     answer:
-      "Muro is non-exclusive. You are free to sell your work through other channels, galleries, your own website, or any other platform. We only ask that if a piece is currently on display in a venue through Muro, you let us know before selling it through another channel so we can arrange a replacement.",
+      "Wallspace is non-exclusive. You are free to sell your work through other channels, galleries, your own website, or any other platform. We only ask that if a piece is currently on display in a venue through Wallspace, you let us know before selling it through another channel so we can arrange a replacement.",
   },
 ];
 
@@ -73,7 +73,7 @@ const venueFaqs = [
   {
     question: "How much does it cost for a venue to display art?",
     answer:
-      "Nothing. There is no cost to venues for displaying artwork through Muro. We provide the art, arrange delivery and installation, and manage the rotation. Venues benefit from beautiful original artwork at zero cost. We earn our commission only when a piece sells.",
+      "Nothing. There is no cost to venues for displaying artwork through Wallspace. We provide the art, arrange delivery and installation, and manage the rotation. Venues benefit from beautiful original artwork at zero cost. We earn our commission only when a piece sells.",
   },
   {
     question: "Do we need to sign a contract?",
@@ -93,7 +93,7 @@ const venueFaqs = [
   {
     question: "What happens when a customer wants to buy a piece?",
     answer:
-      "Each artwork on display includes a discreet label with the artist name, title, and a QR code or URL linking to the piece on Muro. Customers can enquire or purchase directly through us. Your staff do not need to handle any sales — they just point customers to the label.",
+      "Each artwork on display includes a discreet label with the artist name, title, and a QR code or URL linking to the piece on Wallspace. Customers can enquire or purchase directly through us. Your staff do not need to handle any sales — they just point customers to the label.",
   },
   {
     question: "Do our staff need to do anything?",
@@ -123,7 +123,7 @@ export default function FaqsPage() {
               Frequently Asked Questions
             </h1>
             <p className="text-lg text-muted leading-relaxed">
-              Everything you need to know about how Muro works for artists,
+              Everything you need to know about how Wallspace works for artists,
               venues, and art lovers.
             </p>
           </div>

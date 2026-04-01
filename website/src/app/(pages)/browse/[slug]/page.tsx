@@ -21,11 +21,11 @@ export async function generateMetadata({
   const artist = artists.find((a) => a.slug === slug);
 
   if (!artist) {
-    return { title: "Artist Not Found — Muro" };
+    return { title: "Artist Not Found — Wallspace" };
   }
 
   return {
-    title: `${artist.name} — Muro`,
+    title: `${artist.name} — Wallspace`,
     description: artist.shortBio,
   };
 }

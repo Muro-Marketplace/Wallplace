@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wallspace — Venue Flyer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ── Reset ── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* ── Page setup for print (A4) ── */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html, body {
+    width: 210mm;
+    height: 297mm;
+    font-family: 'Inter', -apple-system, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .flyer {
+    position: relative;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    background: #0a0a0a;
+  }
+
+  /* ── Background image + overlay ── */
+  .bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+  .bg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      160deg,
+      rgba(0,0,0,0.82) 0%,
+      rgba(0,0,0,0.65) 40%,
+      rgba(0,0,0,0.55) 100%
+    );
+  }
+
+  /* ── Content layer ── */
+  .content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 38mm 22mm 22mm 22mm;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    position: absolute;
+    top: 12mm;
+    left: 22mm;
+    right: 22mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2;
+  }
+  .wordmark {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 22pt;
+    font-weight: 500;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+  .tagline-top {
+    font-size: 7pt;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+  }
+
+  /* ── Accent colour ── */
+  :root { --accent: #C17C5A; }
+
+  /* ── Eyebrow ── */
+  .eyebrow {
+    font-size: 7.5pt;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 5mm;
+  }
+
+  /* ── Headline ── */
+  .headline {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 30pt;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: #fff;
+    margin-bottom: 5mm;
+    max-width: 130mm;
+  }
+
+  /* ── Subhead ── */
+  .subhead {
+    font-size: 10.5pt;
+    font-weight: 400;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.55);
+    max-width: 120mm;
+    margin-bottom: 12mm;
+  }
+
+  /* ── How it works steps ── */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 5mm;
+    margin-bottom: 14mm;
+  }
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 4mm;
+  }
+  .step-num {
+    font-size: 7.5pt;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    padding-top: 0.5mm;
+    flex-shrink: 0;
+    width: 8mm;
+  }
+  .step-body {}
+  .step-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 12pt;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 1mm;
+  }
+  .step-desc {
+    font-size: 8.5pt;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.4);
+    max-width: 110mm;
+  }
+
+  /* ── Deal cards row ── */
+  .deals {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 3.5mm;
+    margin-bottom: 14mm;
+  }
+  .deal {
+    border: 0.3mm solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    border-radius: 1.5mm;
+    padding: 5mm;
+  }
+  .deal-icon {
+    color: var(--accent);
+    margin-bottom: 2.5mm;
+  }
+  .deal-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .deal-title {
+    font-size: 8.5pt;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 1.5mm;
+  }
+  .deal-desc {
+    font-size: 7pt;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.4);
+  }
+
+  /* ── CTA banner ── */
+  .cta-banner {
+    background: rgba(255,255,255,0.06);
+    border: 0.3mm solid rgba(255,255,255,0.12);
+    border-radius: 2mm;
+    padding: 7mm 8mm;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6mm;
+  }
+  .cta-text h4 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 13pt;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 1.5mm;
+  }
+  .cta-text p {
+    font-size: 8pt;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.5;
+  }
+  .cta-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+  .cta-url {
+    background: #fff;
+    color: #1a1a1a;
+    font-size: 8.5pt;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 3mm 6mm;
+    border-radius: 1mm;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .cta-email {
+    font-size: 7pt;
+    color: rgba(255,255,255,0.35);
+    margin-top: 2mm;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .footer-left {
+    font-size: 6.5pt;
+    color: rgba(255,255,255,0.25);
+    line-height: 1.6;
+  }
+  .footer-right {
+    display: flex;
+    gap: 5mm;
+    align-items: center;
+  }
+  .footer-badge {
+    font-size: 6.5pt;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    border: 0.3mm solid rgba(255,255,255,0.15);
+    padding: 1.5mm 3mm;
+    border-radius: 1mm;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    height: 0.3mm;
+    background: rgba(255,255,255,0.08);
+    margin-bottom: 8mm;
+  }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 7pt;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 5mm;
+  }
+</style>
+</head>
+<body>
+
+<div class="flyer">
+  <!-- Background -->
+  <div class="bg">
+    <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1920&h=1200&fit=crop&crop=center" alt="" />
+  </div>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <span class="wordmark">Wallspace</span>
+    <span class="tagline-top">The Art Marketplace for Commercial Spaces</span>
+  </div>
+
+  <!-- Main content -->
+  <div class="content">
+
+    <!-- Eyebrow + Headline -->
+    <p class="eyebrow">For Venues</p>
+    <h1 class="headline">Original art on your walls. Zero upfront cost.</h1>
+    <p class="subhead">
+      Whether you run a cafe, restaurant, hotel, office, or salon — Wallspace
+      connects you with curated photographers and artists who want their work
+      in real, commercial spaces. Browse portfolios, agree terms, and get
+      started for free.
+    </p>
+
+    <!-- How it works -->
+    <p class="section-label">How It Works</p>
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">01</span>
+        <div class="step-body">
+          <p class="step-title">Browse &amp; Filter</p>
+          <p class="step-desc">Search curated portfolios by location, style, and theme. Completely free to browse.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <div class="step-body">
+          <p class="step-title">Enquire Directly</p>
+          <p class="step-desc">Message artists through the platform. Discuss your space, agree terms, and arrange delivery.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <div class="step-body">
+          <p class="step-title">Get Art on Your Walls</p>
+          <p class="step-desc">Arrange a free loan, revenue share, or direct purchase. Swap or rotate any time.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- Deal cards -->
+    <p class="section-label">Flexible Arrangements</p>
+    <div class="deals">
+      <div class="deal">
+        <div class="deal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <p class="deal-title">Free Loan</p>
+        <p class="deal-desc">Display artwork at no cost. Return or rotate any time. Zero financial risk.</p>
+      </div>
+      <div class="deal">
+        <div class="deal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+        </div>
+        <p class="deal-title">Revenue Share</p>
+        <p class="deal-desc">If a customer buys art from your wall, you earn a share of the sale. No cost to you.</p>
+      </div>
+      <div class="deal">
+        <div class="deal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 10h20"/></svg>
+        </div>
+        <p class="deal-title">Direct Purchase</p>
+        <p class="deal-desc">Buy artwork outright for your permanent collection at transparent, fair prices.</p>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-banner">
+      <div class="cta-text">
+        <h4>Join the waitlist. Be first in.</h4>
+        <p>Wallspace is in private beta. Sign up to get early access and be among the first venues to source original art.</p>
+      </div>
+      <div class="cta-box">
+        <div class="cta-url">wallspace.studio/waitlist</div>
+        <span class="cta-email">hello@wallspace.studio</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-left">
+        &copy; 2026 Wallspace. All rights reserved.<br />
+        Curated art for commercial spaces.
+      </div>
+      <div class="footer-right">
+        <span class="footer-badge">Private Beta</span>
+        <span class="footer-badge">UK &amp; Ireland</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

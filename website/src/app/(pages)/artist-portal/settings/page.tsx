@@ -9,7 +9,7 @@ const notifications = [
   { id: "placement_update", label: "Placement updates", description: "When a placement status changes" },
   { id: "sale", label: "Sales", description: "When a piece is sold" },
   { id: "payout", label: "Payout notifications", description: "When a payout is processed" },
-  { id: "newsletter", label: "Muro newsletter", description: "Monthly updates and artist features" },
+  { id: "newsletter", label: "Wallspace newsletter", description: "Monthly updates and artist features" },
   { id: "tips", label: "Tips & resources", description: "Advice on growing your presence" },
 ];
 

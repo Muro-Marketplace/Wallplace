@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms & Privacy — Muro",
-  description: "Terms of service and privacy policy for Muro.",
+  title: "Terms & Privacy — Wallspace",
+  description: "Terms of service and privacy policy for Wallspace.",
 };
 
 export default function TermsPage() {
@@ -26,8 +26,8 @@ export default function TermsPage() {
                     <h3 className="text-xl mb-3">1. Introduction</h3>
                     <p className="text-muted leading-relaxed">
                       These Terms of Service (&ldquo;Terms&rdquo;) govern your
-                      use of the Muro website and services operated by
-                      Muro Ltd (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or
+                      use of the Wallspace website and services operated by
+                      Wallspace Ltd (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or
                       &ldquo;our&rdquo;). By accessing or using our services,
                       you agree to be bound by these Terms. If you do not agree
                       to these Terms, please do not use our services.
@@ -37,7 +37,7 @@ export default function TermsPage() {
                   <div>
                     <h3 className="text-xl mb-3">2. Services</h3>
                     <p className="text-muted leading-relaxed">
-                      Muro provides a curated art placement service
+                      Wallspace provides a curated art placement service
                       connecting artists with venues. Our services
                       include artist curation, artwork placement, sales
                       facilitation, and related logistics. We act as an
@@ -61,7 +61,7 @@ export default function TermsPage() {
                   <div>
                     <h3 className="text-xl mb-3">4. Artist Terms</h3>
                     <p className="text-muted leading-relaxed">
-                      Artists accepted onto the Muro platform grant us a
+                      Artists accepted onto the Wallspace platform grant us a
                       non-exclusive licence to display, promote, and facilitate
                       the sale of their artwork through our network of venue
                       partners. Artists retain full copyright and ownership of
@@ -74,7 +74,7 @@ export default function TermsPage() {
                   <div>
                     <h3 className="text-xl mb-3">5. Venue Terms</h3>
                     <p className="text-muted leading-relaxed">
-                      Venues partnering with Muro agree to display artwork
+                      Venues partnering with Wallspace agree to display artwork
                       in accordance with our care guidelines, maintain
                       appropriate insurance for their premises, and facilitate
                       customer enquiries about displayed artwork. Specific
@@ -98,9 +98,9 @@ export default function TermsPage() {
                   <div>
                     <h3 className="text-xl mb-3">7. Intellectual Property</h3>
                     <p className="text-muted leading-relaxed">
-                      All content on the Muro website, including but not
+                      All content on the Wallspace website, including but not
                       limited to text, design, logos, and software, is the
-                      property of Muro Ltd or its licensors. Artwork images
+                      property of Wallspace Ltd or its licensors. Artwork images
                       displayed on our platform remain the intellectual property
                       of the respective artists. You may not reproduce,
                       distribute, or create derivative works from any content
@@ -111,7 +111,7 @@ export default function TermsPage() {
                   <div>
                     <h3 className="text-xl mb-3">8. Limitation of Liability</h3>
                     <p className="text-muted leading-relaxed">
-                      To the maximum extent permitted by law, Muro Ltd
+                      To the maximum extent permitted by law, Wallspace Ltd
                       shall not be liable for any indirect, incidental, special,
                       or consequential damages arising from your use of our
                       services. Our total liability shall not exceed the amount
@@ -220,7 +220,7 @@ export default function TermsPage() {
                     <p className="text-muted leading-relaxed">
                       If you have any questions about this Privacy Policy or
                       our data practices, please contact us at
-                      hello@wallspace.co or write to us at Muro Ltd,
+                      hello@wallspace.co or write to us at Wallspace Ltd,
                       London, UK.
                     </p>
                   </div>
