@@ -13,8 +13,8 @@ const footerColumns = [
   {
     title: "For Venues",
     links: [
-      { label: "Browse Portfolios", href: "/browse" },
-      { label: "Browse Galleries", href: "/galleries" },
+      { label: "Discover Art", href: "/browse" },
+      { label: "Register Your Venue", href: "/register-venue" },
       { label: "How It Works", href: "/how-it-works" },
       { label: "FAQs", href: "/faqs" },
     ],
@@ -42,7 +42,7 @@ export default function Footer() {
               Wallspace
             </Link>
             <p className="mt-3 text-sm text-muted leading-relaxed max-w-xs">
-              The curated art marketplace for independent venues.
+              The curated art marketplace connecting artists with commercial spaces.
             </p>
             {/* Instagram */}
             <a

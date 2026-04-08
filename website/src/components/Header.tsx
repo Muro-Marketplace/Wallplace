@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import CartIndicator from "./CartIndicator";
 
 const navLinks = [
-  { label: "Browse Art", href: "/browse" },
+  { label: "Discover Art", href: "/browse" },
   { label: "For Venues", href: "/venues" },
   { label: "For Artists", href: "/artists" },
   { label: "Spaces", href: "/spaces" },
@@ -58,7 +59,7 @@ export default function Header() {
                 className={`text-sm transition-colors duration-300 ${
                   showSolid
                     ? "text-muted hover:text-foreground"
-                    : "text-white/60 hover:text-white"
+                    : "text-white/90 hover:text-white"
                 }`}
               >
                 {link.label}
@@ -73,7 +74,7 @@ export default function Header() {
               className={`text-sm px-4 py-2 transition-colors duration-300 ${
                 showSolid
                   ? "text-muted hover:text-foreground"
-                  : "text-white/50 hover:text-white/80"
+                  : "text-white/90 hover:text-white"
               }`}
             >
               Login
@@ -83,11 +84,12 @@ export default function Header() {
               className={`text-sm transition-colors duration-300 ${
                 showSolid
                   ? "text-muted hover:text-foreground"
-                  : "text-white/60 hover:text-white"
+                  : "text-white/90 hover:text-white"
               }`}
             >
-              Apply as Artist
+              Apply to Join
             </Link>
+            <CartIndicator />
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -157,7 +159,7 @@ export default function Header() {
                 className="text-base text-muted hover:text-foreground transition-colors duration-200"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Apply as Artist
+                Apply to Join
               </Link>
             </div>
           </div>

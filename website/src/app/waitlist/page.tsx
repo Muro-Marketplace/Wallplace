@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-type UserType = "photographer" | "venue" | null;
+type UserType = "artist" | "venue" | null;
 
 export default function WaitlistPage() {
   const [name, setName] = useState("");
@@ -52,7 +52,7 @@ export default function WaitlistPage() {
           </Link>
         </div>
 
-        {/* Main content — pushed up with less bottom padding */}
+        {/* Main content – pushed up with less bottom padding */}
         <div className="flex-1 flex items-center justify-center px-6 pb-28 pt-4">
           <div className="w-full max-w-md lg:max-w-lg">
             {submitted ? (
@@ -71,7 +71,7 @@ export default function WaitlistPage() {
 
                 {/* Subhead */}
                 <p className="text-base text-white/60 leading-relaxed mb-8">
-                  Connecting photographers and artists with venues that want
+                  Connecting artists with venues that want
                   original work on their walls. Join the waitlist to be first
                   in.
                 </p>
@@ -119,21 +119,21 @@ export default function WaitlistPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
-                        onClick={() => setUserType("photographer")}
+                        onClick={() => setUserType("artist")}
                         className={`py-3 px-4 text-sm font-medium rounded-sm border transition-all duration-200 ${
-                          userType === "photographer"
-                            ? "bg-white text-[#1A1A1A] border-white"
+                          userType === "artist"
+                            ? "bg-white text-foreground border-white"
                             : "bg-white/10 text-white/70 border-white/15 hover:border-white/30 hover:text-white"
                         }`}
                       >
-                        Photographer
+                        Artist
                       </button>
                       <button
                         type="button"
                         onClick={() => setUserType("venue")}
                         className={`py-3 px-4 text-sm font-medium rounded-sm border transition-all duration-200 ${
                           userType === "venue"
-                            ? "bg-white text-[#1A1A1A] border-white"
+                            ? "bg-white text-foreground border-white"
                             : "bg-white/10 text-white/70 border-white/15 hover:border-white/30 hover:text-white"
                         }`}
                       >
@@ -146,7 +146,7 @@ export default function WaitlistPage() {
                   <button
                     type="submit"
                     disabled={!name || !email || !userType}
-                    className="w-full mt-2 py-3.5 px-6 bg-white text-[#1A1A1A] text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full mt-2 py-3.5 px-6 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Join the Waitlist
                   </button>
@@ -157,7 +157,7 @@ export default function WaitlistPage() {
           </div>
         </div>
 
-        {/* Scroll indicator — larger and more prominent */}
+        {/* Scroll indicator – larger and more prominent */}
         <button
           onClick={scrollToHowItWorks}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-3 text-white/60 hover:text-white transition-colors duration-300 cursor-pointer"
@@ -212,7 +212,7 @@ function HowItWorks() {
                 A curated marketplace. Two sides. Zero risk.
               </h2>
               <p className="text-lg text-white/50 leading-relaxed max-w-xl mx-auto">
-                Wallspace connects photographers and artists who want commercial
+                Wallspace connects artists who want commercial
                 exposure with venues that want original art on their walls —
                 with flexible, risk-free arrangements for both sides.
               </p>
@@ -232,15 +232,15 @@ function HowItWorks() {
               <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
                 {/* Left: copy */}
                 <div>
-                  <p className="text-xs font-medium tracking-[0.25em] uppercase text-[#C17C5A] mb-5">
-                    For Photographers
+                  <p className="text-xs font-medium tracking-[0.25em] uppercase text-accent mb-5">
+                    For Artists
                   </p>
                   <h3 className="font-serif text-3xl lg:text-4xl text-white mb-6 leading-[1.15]">
                     Get your work seen. Get paid fairly.
                   </h3>
                   <p className="text-base text-white/50 leading-relaxed mb-10">
                     Your prints displayed in cafés, restaurants, hotels, and
-                    galleries — reaching people who actually buy art. Not another
+                    galleries – reaching people who actually buy art. Not another
                     social feed. Real, physical walls.
                   </p>
 
@@ -258,12 +258,12 @@ function HowItWorks() {
                     <Step
                       number="03"
                       title="Earn"
-                      description="Sell prints outright, offer bundles, take commissions, or arrange revenue-share deals — all through the marketplace."
+                      description="Sell prints outright, offer bundles, take commissions, or arrange revenue-share deals – all through the marketplace."
                     />
                   </div>
                 </div>
 
-                {/* Right: value props — 3 cards with icons */}
+                {/* Right: value props – 3 cards with icons */}
                 <div className="space-y-4 lg:pt-14">
                   <DealCard
                     icon={
@@ -304,7 +304,7 @@ function HowItWorks() {
               <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-start">
                 {/* Left: copy */}
                 <div>
-                  <p className="text-xs font-medium tracking-[0.25em] uppercase text-[#C17C5A] mb-5">
+                  <p className="text-xs font-medium tracking-[0.25em] uppercase text-accent mb-5">
                     For Venues
                   </p>
                   <h3 className="font-serif text-3xl lg:text-4xl text-white mb-6 leading-[1.15]">
@@ -312,7 +312,7 @@ function HowItWorks() {
                   </h3>
                   <p className="text-base text-white/50 leading-relaxed mb-10">
                     Whether you run a café, restaurant, hotel, office, or salon
-                    — browse curated photographer portfolios and source original
+                    – browse curated artist portfolios and source original
                     work for your walls on terms that work for you.
                   </p>
 
@@ -384,7 +384,7 @@ function HowItWorks() {
                 onClick={() =>
                   window.scrollTo({ top: 0, behavior: "smooth" })
                 }
-                className="inline-flex items-center justify-center px-10 py-4 bg-white text-[#1A1A1A] text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors duration-200"
+                className="inline-flex items-center justify-center px-10 py-4 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors duration-200"
               >
                 Join the Waitlist
               </button>
@@ -445,7 +445,7 @@ function Step({
 }) {
   return (
     <div className="flex gap-5">
-      <span className="flex-shrink-0 text-xs font-medium tracking-widest text-[#C17C5A] mt-1">
+      <span className="flex-shrink-0 text-xs font-medium tracking-widest text-accent mt-1">
         {number}
       </span>
       <div>
@@ -470,7 +470,7 @@ function DealCard({
   return (
     <div className="p-6 rounded-sm border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors duration-300">
       <div className="flex items-start gap-4">
-        <div className="text-[#C17C5A] shrink-0 mt-0.5">{icon}</div>
+        <div className="text-accent shrink-0 mt-0.5">{icon}</div>
         <div>
           <p className="text-sm font-semibold text-white mb-1">{title}</p>
           <p className="text-sm text-white/40 leading-relaxed">

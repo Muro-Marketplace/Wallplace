@@ -3,20 +3,20 @@ import Button from "@/components/Button";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About — Wallspace",
+  title: "About – Wallspace",
   description:
-    "Wallspace exists to connect incredible photographers with the bare walls of cafes, restaurants, and creative spaces.",
+    "Wallspace exists to connect incredible artists with the bare walls of cafes, restaurants, and creative spaces.",
 };
 
 export default function AboutPage() {
   return (
     <div className="bg-background">
       {/* Hero */}
-      <section className="relative py-20 lg:py-28 -mt-14 lg:-mt-16 pt-28 lg:pt-32 overflow-hidden">
+      <section className="relative py-20 lg:py-28 -mt-14 lg:-mt-16 pt-28 lg:pt-32 overflow-hidden bg-foreground">
         <div className="absolute inset-0 -z-10">
           <Image
-            src="https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=1920&h=600&fit=crop&crop=center"
-            alt="Art on cafe wall"
+            src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1920&h=600&fit=crop&crop=center"
+            alt="Art studio"
             fill
             className="object-cover"
           />
@@ -26,7 +26,7 @@ export default function AboutPage() {
           <div className="max-w-3xl">
             <h1 className="text-4xl lg:text-5xl mb-6 text-white">About Wallspace</h1>
             <p className="text-xl text-white/60 leading-relaxed">
-              Wallspace exists because thousands of incredible photographs sit
+              Wallspace exists because thousands of incredible artworks sit
               in artists&rsquo; studios while thousands of bare walls in
               cafes could be transformed by them. We make the
               connection effortless.
@@ -46,7 +46,7 @@ export default function AboutPage() {
                 spaces and you will see one of two things: bare walls,
                 or mass-produced prints that could be in any city in the world.
                 Meanwhile, there are some of the most talented emerging
-                photographers and artists anywhere &mdash; people creating
+                artists anywhere – people creating
                 extraordinary work that deserves to be seen.
               </p>
               <p className="text-muted leading-relaxed">
@@ -70,7 +70,7 @@ export default function AboutPage() {
                 opportunities without the cost or commitment of a traditional
                 gallery. For venues, we provide a rotating selection of original,
                 high-quality artwork that transforms their space and creates
-                talking points for their customers &mdash; all with no upfront
+                talking points for their customers – all with no upfront
                 cost and minimal effort.
               </p>
             </div>
@@ -134,7 +134,7 @@ export default function AboutPage() {
                 You should not need to visit a gallery to experience great art.
                 The cafe where you have your morning coffee, the restaurant
                 where you celebrate an anniversary, the office where you spend
-                your days &mdash; these spaces deserve beautiful, original work
+                your days – these spaces deserve beautiful, original work
                 on their walls.
               </p>
             </div>
@@ -187,7 +187,7 @@ export default function AboutPage() {
                 and creative spaces. No gallery fees, no
                 exclusivity.
               </p>
-              <Button href="/for-artists" variant="primary" size="md">
+              <Button href="/apply" variant="primary" size="md">
                 Apply to Join
               </Button>
             </div>
@@ -195,10 +195,10 @@ export default function AboutPage() {
               <h2 className="text-2xl mb-3">For Venues</h2>
               <p className="text-muted leading-relaxed mb-6">
                 Transform your space with original artwork at no upfront cost.
-                We handle everything &mdash; selection, delivery, installation,
+                We handle everything – selection, delivery, installation,
                 and rotation.
               </p>
-              <Button href="/for-venues" variant="secondary" size="md">
+              <Button href="/venues" variant="secondary" size="md">
                 Get Art for Your Space
               </Button>
             </div>

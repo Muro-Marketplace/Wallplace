@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Artist } from "@/data/artists";
@@ -11,6 +12,7 @@ interface BrowseArtistCardProps {
 }
 
 export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardProps) {
+  const router = useRouter();
   const [imgIndex, setImgIndex] = useState(0);
   const images = artist.works.map((w) => w.image);
 
@@ -119,7 +121,10 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
           {/* Founding Artist badge top-left */}
           <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
             {artist.isFoundingArtist && (
-              <span className="inline-block px-2.5 py-1 bg-white/95 text-xs font-medium text-foreground rounded-sm">
+              <span
+                className="inline-block px-2.5 py-1 bg-white/95 text-xs font-medium text-foreground rounded-sm cursor-help"
+                title="One of the first 20 artists on Wallspace — free access for life"
+              >
                 Founding Artist
               </span>
             )}
@@ -176,7 +181,7 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                window.location.href = `/contact?artist=${artist.slug}`;
+                router.push(`/contact?artist=${artist.slug}`);
               }}
               className="text-xs text-muted hover:text-accent transition-colors cursor-pointer"
             >
@@ -187,7 +192,7 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                window.location.href = `/browse/${artist.slug}?intent=buy`;
+                router.push(`/browse/${artist.slug}`);
               }}
               className="text-xs font-medium text-foreground hover:text-accent transition-colors cursor-pointer"
             >

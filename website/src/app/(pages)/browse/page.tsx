@@ -6,8 +6,10 @@ import Image from "next/image";
 import { artists } from "@/data/artists";
 import { themes } from "@/data/themes";
 import { getGalleryWorks } from "@/data/galleries";
+import { collections } from "@/data/collections";
 import Button from "@/components/Button";
 import BrowseArtistCard from "@/components/BrowseArtistCard";
+import CollectionCard from "@/components/CollectionCard";
 
 // Central London reference point
 const USER_LAT = 51.5074;
@@ -128,7 +130,8 @@ function CheckPill({
 }
 
 export default function BrowsePortfoliosPage() {
-  const [browseMode, setBrowseMode] = useState<"portfolios" | "gallery">("portfolios");
+  const initialMode = typeof window !== "undefined" && window.location.hash === "#collections" ? "collections" : "portfolios";
+  const [browseMode, setBrowseMode] = useState<"portfolios" | "gallery" | "collections">(initialMode);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"compact" | "expanded">("compact");
@@ -419,10 +422,10 @@ export default function BrowsePortfoliosPage() {
             fill
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-black/75" />
+          <div className="absolute inset-0 bg-black/60" />
         </div>
 
-        <div className="relative max-w-[1400px] mx-auto px-6 pt-28 lg:pt-24 pb-10 lg:pb-12">
+        <div className="relative max-w-[1400px] mx-auto px-6 pt-30 lg:pt-28 pb-12 lg:pb-14">
           <div className="py-4">
             <h1 className="font-serif text-3xl lg:text-4xl text-white mb-3 leading-tight">
               The Marketplace
@@ -462,11 +465,22 @@ export default function BrowsePortfoliosPage() {
             >
               Gallery
             </button>
+            <button
+              type="button"
+              onClick={() => setBrowseMode("collections")}
+              className={`py-4 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+                browseMode === "collections"
+                  ? "border-foreground text-foreground"
+                  : "border-transparent text-muted hover:text-foreground"
+              }`}
+            >
+              Collections
+            </button>
           </div>
         </div>
       </div>
 
-      {browseMode === "portfolios" ? (
+      {browseMode === "portfolios" && (
         /* ── Portfolios mode ── */
         <section className="py-10 lg:py-14">
           <div className="max-w-[1400px] mx-auto px-6">
@@ -681,7 +695,9 @@ export default function BrowsePortfoliosPage() {
             </div>
           </div>
         </section>
-      ) : (
+      )}
+
+      {browseMode === "gallery" && (
         /* ── Gallery mode ── */
         <>
           {/* Gallery filter bar */}
@@ -877,6 +893,26 @@ export default function BrowsePortfoliosPage() {
         </>
       )}
 
+      {browseMode === "collections" && (
+        <section className="py-10 lg:py-14">
+          <div className="max-w-[1400px] mx-auto px-6">
+            <div className="mb-8">
+              <h2 className="text-2xl font-serif mb-2">Curated Collections</h2>
+              <p className="text-sm text-muted">Themed bundles of artwork at a set price. Ready to transform your space.</p>
+            </div>
+            {collections.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {collections.filter((c) => c.available).map((col) => (
+                  <CollectionCard key={col.id} collection={col} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted text-center py-16">No collections available yet.</p>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* CTAs */}
       <section className="py-20 lg:py-24 border-t border-border">
         <div className="max-w-[1400px] mx-auto px-6">
@@ -884,7 +920,7 @@ export default function BrowsePortfoliosPage() {
             <div className="bg-surface border border-border rounded-sm p-8 lg:p-10">
               <h2 className="text-2xl mb-3">Are you an artist?</h2>
               <p className="text-muted leading-relaxed mb-6">
-                We are always looking for talented photographers and artists to
+                We are always looking for talented artists to
                 join our curated roster. Apply today and get your work seen in
                 venues across the UK.
               </p>

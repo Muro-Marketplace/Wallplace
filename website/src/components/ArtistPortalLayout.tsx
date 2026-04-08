@@ -6,6 +6,8 @@ import { useState } from "react";
 const navItems = [
   { label: "Dashboard", href: "/artist-portal" },
   { label: "My Portfolio", href: "/artist-portal/portfolio" },
+  { label: "Collections", href: "/artist-portal/collections" },
+  { label: "QR Labels", href: "/artist-portal/labels" },
   { label: "Placements", href: "/artist-portal/placements" },
   { label: "Analytics", href: "/artist-portal/analytics" },
   { label: "Billing", href: "/artist-portal/billing" },

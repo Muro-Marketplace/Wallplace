@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
   { label: "Dashboard", href: "/venue-portal" },
   { label: "Browse Portfolios", href: "/browse" },
-  { label: "Browse Gallery", href: "/galleries" },
+  { label: "Browse Gallery", href: "/browse" },
   { label: "Saved Artists", href: "/venue-portal/saved" },
   { label: "My Enquiries", href: "/venue-portal/enquiries" },
   { label: "My Orders", href: "/venue-portal/orders" },

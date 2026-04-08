@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ApplicationForm from "@/components/ApplicationForm";
 
 export const metadata: Metadata = {
-  title: "Apply to Join — Wallspace",
+  title: "Apply to Join – Wallspace",
   description:
-    "Apply to join Wallspace, the curated platform connecting photographers and artists with independent venues. First month free for all accepted artists.",
+    "Apply to join Wallspace, the curated platform connecting artists with independent venues. First month free for all accepted artists.",
 };
 
 const differentiators = [
@@ -16,7 +16,7 @@ const differentiators = [
   {
     title: "Real venue demand, not passive listings",
     description:
-      "We work with venues who are actively seeking artwork — cafes, restaurants, hotels, coworking spaces. Your profile goes in front of decision-makers who want to fill their walls.",
+      "We work with venues who are actively seeking artwork – cafes, restaurants, hotels, coworking spaces. Your profile goes in front of decision-makers who want to fill their walls.",
   },
   {
     title: "You control your terms",
@@ -27,33 +27,6 @@ const differentiators = [
     title: "No exclusivity",
     description:
       "Wallspace is an additional channel. You keep full control of your work and can sell through galleries, fairs, your own website, or anywhere else at the same time.",
-  },
-];
-
-const pricingTiers = [
-  {
-    name: "Core",
-    price: "£9.99",
-    fee: "10% platform fee on sales",
-    description:
-      "Establish your presence on the platform. Standard profile, curated visibility, and access to venue demand.",
-    highlight: false,
-  },
-  {
-    name: "Premium",
-    price: "£29.99",
-    fee: "5% platform fee on sales",
-    description:
-      "Featured profile and priority visibility in venue recommendations. Full analytics. Ideal for artists looking to grow faster.",
-    highlight: true,
-  },
-  {
-    name: "Pro",
-    price: "£100",
-    fee: "0% platform fee on sales",
-    description:
-      "Maximum visibility, direct venue matching, dedicated account support, and zero platform fee on every sale.",
-    highlight: false,
   },
 ];
 
@@ -101,7 +74,7 @@ export default function ApplyPage() {
               <p className="text-muted text-sm mt-1">
                 The first 20 approved artists receive{" "}
                 <strong className="text-foreground">6 months free</strong>{" "}
-                on any tier — a founding artist benefit to thank you for being
+                on any tier – a founding artist benefit to thank you for being
                 early.
               </p>
             </div>
@@ -138,56 +111,6 @@ export default function ApplyPage() {
         </div>
       </section>
 
-      {/* Pricing Overview */}
-      <section className="py-20 lg:py-24 bg-surface border-y border-border">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <div className="max-w-2xl mb-12">
-            <h2 className="text-3xl mb-4">Platform membership</h2>
-            <p className="text-muted leading-relaxed">
-              Your first month is free. After that, choose the tier that suits
-              your ambition. All tiers give you access to the Wallspace platform
-              and venue network — the difference is visibility and platform fee.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
-            {pricingTiers.map((tier) => (
-              <div
-                key={tier.name}
-                className={`rounded-sm p-7 flex flex-col ${
-                  tier.highlight
-                    ? "bg-accent/5 border-2 border-accent"
-                    : "bg-background border border-border"
-                }`}
-              >
-                {tier.highlight && (
-                  <span className="text-xs font-medium text-accent uppercase tracking-wider mb-2">
-                    Most Popular
-                  </span>
-                )}
-                <h3 className="text-xl mb-1">{tier.name}</h3>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-2xl font-serif">{tier.price}</span>
-                  <span className="text-muted text-sm">/month</span>
-                </div>
-                <p className="text-sm text-accent font-medium mb-4">
-                  {tier.fee}
-                </p>
-                <p className="text-sm text-muted leading-relaxed flex-1">
-                  {tier.description}
-                </p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-8 text-sm text-muted">
-            All tiers: first month free. First 20 approved artists get 6 months
-            free.{" "}
-            <a href="/pricing" className="text-accent hover:underline">
-              See full pricing details &rarr;
-            </a>
-          </p>
-        </div>
-      </section>
-
       {/* Application Form */}
       <section className="py-20 lg:py-24">
         <div className="max-w-[1200px] mx-auto px-6">
@@ -210,7 +133,7 @@ export default function ApplyPage() {
                     "A coherent body of work",
                     "Commercial viability for venue display",
                     "Professional approach and communication",
-                    "Original work — no AI-generated pieces",
+                    "Original work – no AI-generated pieces",
                   ].map((item) => (
                     <li
                       key={item}
@@ -235,7 +158,7 @@ export default function ApplyPage() {
                 </ul>
               </div>
               <p className="mt-6 text-sm text-muted">
-                We aim to respond within two weeks of receiving your
+                We aim to respond within 5 business days of receiving your
                 application.
               </p>
             </div>

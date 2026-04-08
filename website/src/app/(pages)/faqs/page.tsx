@@ -3,7 +3,7 @@ import Button from "@/components/Button";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "FAQs — Wallspace",
+  title: "FAQs – Wallspace",
   description:
     "Frequently asked questions about Wallspace for artists, venues, and buyers.",
 };
@@ -12,12 +12,12 @@ const generalFaqs = [
   {
     question: "What is Wallspace?",
     answer:
-      "Wallspace is a curated art placement service. We connect emerging and established photographers with independent venues — cafes, restaurants, coworking spaces, offices, and more — that want original artwork on their walls. We handle the curation, logistics, and sales so that artists can focus on making work and venues can focus on running their business.",
+      "Wallspace is a curated art placement service. We connect emerging and established artists with independent venues – cafes, restaurants, coworking spaces, offices, and more – that want original artwork on their walls. We handle the curation, logistics, and sales so that artists can focus on making work and venues can focus on running their business.",
   },
   {
     question: "How does Wallspace make money?",
     answer:
-      "Wallspace takes a commission on artwork sales. When a piece of art displayed in a venue is purchased by a customer or the venue itself, we take a percentage of the sale price. The artist receives the majority. We do not charge venues for displaying artwork, and there are no hidden fees.",
+      "Wallspace earns through artist membership plans (from £9.99/month) and a platform fee on artwork sales (0–10% depending on the artist's plan). When a piece sells, the artist keeps the majority. We do not charge venues for displaying artwork.",
   },
   {
     question: "Is Wallspace a gallery?",
@@ -30,17 +30,17 @@ const artistFaqs = [
   {
     question: "How much does it cost to join Wallspace as an artist?",
     answer:
-      "Nothing. There is no cost to apply, join, or have your work displayed. We only earn money when your work sells, through a commission on the sale price. You will never be asked to pay a listing fee, membership fee, or any upfront cost.",
+      "It is free to apply. Once accepted, membership starts from £9.99/month (Core plan) with your first month free. Higher tiers (Premium at £29.99/month, Pro at £100/month) offer lower platform fees on sales and more visibility. The first 20 founding artists receive 6 months free on any tier. See our pricing page for full details.",
   },
   {
     question: "How does the curation process work?",
     answer:
-      "After you submit your application with a portfolio of your work, our team reviews it based on technical quality, originality, consistency, and suitability for display in commercial spaces. We aim to respond within two weeks. If accepted, we will schedule an onboarding call to discuss your portfolio, pricing, and preferences.",
+      "After you submit your application with a portfolio of your work, our team reviews it based on technical quality, originality, consistency, and suitability for display in commercial spaces. We aim to respond within 5 business days. If accepted, we will schedule an onboarding call to discuss your portfolio, pricing, and preferences.",
   },
   {
     question: "What happens when my work sells?",
     answer:
-      "When a piece sells, we handle the transaction and notify you immediately. You receive payment within 14 days of the sale. The sale price is split between you and Wallspace — you keep the majority. We handle all customer communication, invoicing, and delivery coordination.",
+      "When a piece sells, we handle the transaction and notify you immediately. You receive payment within 14 days of the sale. The sale price is split between you and Wallspace – you keep the majority. We handle all customer communication, invoicing, and delivery coordination.",
   },
   {
     question: "Can I set my own prices?",
@@ -73,7 +73,7 @@ const venueFaqs = [
   {
     question: "How much does it cost for a venue to display art?",
     answer:
-      "Nothing. There is no cost to venues for displaying artwork through Wallspace. We provide the art, arrange delivery and installation, and manage the rotation. Venues benefit from beautiful original artwork at zero cost. We earn our commission only when a piece sells.",
+      "Nothing. There is no cost to venues for displaying artwork through Wallspace. We provide the art, arrange delivery and installation, and manage the rotation. Venues benefit from beautiful original artwork at zero cost.",
   },
   {
     question: "Do we need to sign a contract?",
@@ -93,7 +93,7 @@ const venueFaqs = [
   {
     question: "What happens when a customer wants to buy a piece?",
     answer:
-      "Each artwork on display includes a discreet label with the artist name, title, and a QR code or URL linking to the piece on Wallspace. Customers can enquire or purchase directly through us. Your staff do not need to handle any sales — they just point customers to the label.",
+      "Each artwork on display includes a discreet label with the artist name, title, and a QR code or URL linking to the piece on Wallspace. Customers can enquire or purchase directly through us. Your staff do not need to handle any sales – they just point customers to the label.",
   },
   {
     question: "Do our staff need to do anything?",

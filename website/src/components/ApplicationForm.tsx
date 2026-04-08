@@ -73,6 +73,31 @@ const hearAboutOptions = [
   "Other",
 ];
 
+const planOptions = [
+  {
+    id: "core",
+    name: "Core",
+    price: "£9.99",
+    fee: "10% platform fee",
+    description: "Standard profile, basic analytics, marketplace listing.",
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    price: "£29.99",
+    fee: "5% platform fee",
+    description: "Featured profile, proactive venue matching, full analytics.",
+    popular: true as const,
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    price: "£100",
+    fee: "0% platform fee",
+    description: "Premium profile, direct venue matching, dedicated support.",
+  },
+];
+
 interface FormState {
   name: string;
   email: string;
@@ -93,6 +118,7 @@ interface FormState {
   venueTypes: string[];
   themes: string[];
   hearAbout: string;
+  selectedPlan: string;
 }
 
 const initialState: FormState = {
@@ -115,6 +141,7 @@ const initialState: FormState = {
   venueTypes: [],
   themes: [],
   hearAbout: "",
+  selectedPlan: "core",
 };
 
 export default function ApplicationForm() {
@@ -178,7 +205,7 @@ export default function ApplicationForm() {
           review it personally.
         </p>
         <p className="text-muted leading-relaxed">
-          We aim to respond within two weeks. In the meantime, if you have any
+          We aim to respond within 5 business days. In the meantime, if you have any
           questions, email us at{" "}
           <a
             href="mailto:hello@wallspace.co"
@@ -326,7 +353,7 @@ export default function ApplicationForm() {
               className={inputClass}
             />
             <p className="mt-2 text-xs text-muted">
-              Share a link to your best work — website, Behance, Flickr, or
+              Share a link to your best work – website, Behance, Flickr, or
               similar. Make sure the link is publicly accessible.
             </p>
           </div>
@@ -342,7 +369,7 @@ export default function ApplicationForm() {
               onChange={handleChange}
               required
               rows={5}
-              placeholder="Tell us about your practice — what drives your work, what themes you explore, and what makes your work suited to commercial spaces. (100–300 words)"
+              placeholder="Tell us about your practice – what drives your work, what themes you explore, and what makes your work suited to commercial spaces. (100–300 words)"
               className={`${inputClass} resize-none`}
             />
           </div>
@@ -508,6 +535,50 @@ export default function ApplicationForm() {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Plan Selection */}
+      <div>
+        <h3 className="text-xl mb-2 pb-4 border-b border-border">
+          Choose Your Plan
+        </h3>
+        <p className="text-xs text-muted mb-5">
+          First month free on all plans. You can change your plan at any time after joining.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {planOptions.map((plan) => (
+            <button
+              key={plan.id}
+              type="button"
+              onClick={() => setForm((prev) => ({ ...prev, selectedPlan: plan.id }))}
+              className={`text-left rounded-sm p-5 border-2 transition-colors ${
+                form.selectedPlan === plan.id
+                  ? "border-accent bg-accent/5"
+                  : "border-border hover:border-accent/30 bg-background"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-foreground">{plan.name}</span>
+                {"popular" in plan && plan.popular && (
+                  <span className="text-[9px] font-medium text-accent uppercase tracking-wider">Popular</span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="text-lg font-serif">{plan.price}</span>
+                <span className="text-xs text-muted">/month</span>
+              </div>
+              <p className="text-[10px] text-accent font-medium mb-2">{plan.fee}</p>
+              <p className="text-xs text-muted leading-relaxed">{plan.description}</p>
+              <div className={`mt-3 w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                form.selectedPlan === plan.id ? "border-accent" : "border-border"
+              }`}>
+                {form.selectedPlan === plan.id && (
+                  <div className="w-2 h-2 rounded-full bg-accent" />
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Submit */}

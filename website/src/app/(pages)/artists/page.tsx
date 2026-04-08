@@ -3,9 +3,10 @@ import Image from "next/image";
 import Button from "@/components/Button";
 import Accordion from "@/components/Accordion";
 import ScrollButton from "@/components/ScrollButton";
+import AnimateIn from "@/components/AnimateIn";
 
 export const metadata: Metadata = {
-  title: "For Artists — Wallspace",
+  title: "For Artists – Wallspace",
   description:
     "Access high-intent venue demand. Get discovered by cafés, restaurants, hotels, galleries, and offices. Curated visibility for commercial spaces.",
 };
@@ -19,7 +20,7 @@ const valueBlocks = [
       </svg>
     ),
     title: "High-intent venue demand",
-    description: "Real venues actively looking for art — cafés, restaurants, hotels, galleries, offices, and salons.",
+    description: "Real venues actively looking for art – cafés, restaurants, hotels, galleries, offices, and salons.",
   },
   {
     icon: (
@@ -41,7 +42,7 @@ const valueBlocks = [
       </svg>
     ),
     title: "Sales infrastructure",
-    description: "QR codes, online listings, payment processing — everything a buyer needs to purchase your work.",
+    description: "QR codes, online listings, payment processing – everything a buyer needs to purchase your work.",
   },
   {
     icon: (
@@ -158,12 +159,12 @@ const faqItems = [
   {
     question: "Will my work actually sell?",
     answer:
-      "We can't guarantee sales — no honest platform can. What we do is connect you with venues that have real daily footfall and genuine interest in displaying art. Every piece gets a QR code linking to your sales page, and venues are matched to your style and medium. The rest is down to the work.",
+      "We can't guarantee sales – no honest platform can. What we do is connect you with venues that have real daily footfall and genuine interest in displaying art. Every piece gets a QR code linking to your sales page, and venues are matched to your style and medium. The rest is down to the work.",
   },
   {
     question: "Why should I pay for this?",
     answer:
-      "Because a gallery would take 40–60% of every sale on top of significant upfront costs. Wallspace gives you a platform fee of 0–10%, ongoing commercial visibility, sales infrastructure, and access to a growing network of venues — for less than the cost of a round of drinks per month.",
+      "Because a gallery would take 40–60% of every sale on top of significant upfront costs. Wallspace gives you a platform fee of 0–10%, ongoing commercial visibility, sales infrastructure, and access to a growing network of venues – for less than the cost of a round of drinks per month.",
   },
   {
     question: "Do you handle delivery and installation?",
@@ -461,18 +462,6 @@ export default function ArtistsPage() {
                 Apply to Join
               </Button>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Image Break 2 */}
-      <section className="relative h-64 lg:h-80 overflow-hidden">
-        <Image src="https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=1920&h=400&fit=crop&crop=center" alt="Art materials" fill className="object-cover" />
-        <div className="absolute inset-0 bg-black/50" />
-        <div className="relative h-full flex items-center justify-center text-center px-6">
-          <div>
-            <p className="text-white text-3xl lg:text-4xl font-serif mb-3">0&ndash;10% platform fee</p>
-            <p className="text-white/60 text-sm lg:text-base">No gallery taking 50%. Keep most of what you earn.</p>
           </div>
         </div>
       </section>

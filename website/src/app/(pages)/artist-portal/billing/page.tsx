@@ -6,19 +6,19 @@ import Button from "@/components/Button";
 const billingHistory = [
   {
     date: "1 Mar 2026",
-    description: "Premium membership — March 2026",
+    description: "Premium membership – March 2026",
     amount: "£29.99",
     status: "Paid",
   },
   {
     date: "1 Feb 2026",
-    description: "Premium membership — February 2026",
+    description: "Premium membership – February 2026",
     amount: "£29.99",
     status: "Paid",
   },
   {
     date: "1 Jan 2026",
-    description: "Premium membership — January 2026",
+    description: "Premium membership – January 2026",
     amount: "£29.99",
     status: "Paid",
   },
@@ -63,7 +63,7 @@ export default function BillingPage() {
             </svg>
             <p className="text-sm text-accent font-medium">Free trial active</p>
           </div>
-          <p className="text-sm text-accent">24 days remaining — trial ends 18 Apr 2026</p>
+          <p className="text-sm text-accent">24 days remaining – trial ends 18 Apr 2026</p>
         </div>
 
         {/* Plan features */}

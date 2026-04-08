@@ -2,7 +2,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { artists } from "@/data/artists";
+import { getCollectionsByArtist } from "@/data/collections";
 import Button from "@/components/Button";
+import CollectionCard from "@/components/CollectionCard";
 import ArtistProfileClient from "./ArtistProfileClient";
 import type { Metadata } from "next";
 
@@ -174,7 +176,10 @@ export default async function ArtistProfilePage({
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <h1 className="text-2xl lg:text-3xl leading-none">{artist.name}</h1>
                     {artist.isFoundingArtist && (
-                      <span className="inline-block px-2 py-0.5 bg-accent/10 text-accent text-[10px] font-medium rounded-sm border border-accent/20">
+                      <span
+                        className="inline-block px-2 py-0.5 bg-accent/10 text-accent text-[10px] font-medium rounded-sm border border-accent/20 cursor-help"
+                        title="One of the first 20 artists on Wallspace — free access for life and priority venue matching"
+                      >
                         Founding Artist
                       </span>
                     )}
@@ -267,10 +272,30 @@ export default async function ArtistProfilePage({
 
       {/* Portfolio + Extended Bio (client) */}
       <ArtistProfileClient
+        artistName={artist.name}
+        artistSlug={artist.slug}
         extendedBio={artist.extendedBio}
         themes={artist.themes}
         works={artist.works}
       />
+
+      {/* Collections */}
+      {(() => {
+        const artistCollections = getCollectionsByArtist(artist.slug);
+        if (artistCollections.length === 0) return null;
+        return (
+          <section className="py-10 lg:py-14 border-t border-border">
+            <div className="max-w-[1200px] mx-auto px-6">
+              <h2 className="text-2xl mb-6">Collections</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {artistCollections.map((col) => (
+                  <CollectionCard key={col.id} collection={col} />
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* CTA Block */}
       <section className="py-20 lg:py-24 border-t border-border">
@@ -287,8 +312,8 @@ export default async function ArtistProfilePage({
               <Button href="/contact" variant="primary" size="lg">
                 Message This Artist
               </Button>
-              <Button href="/apply" variant="ghost" size="lg">
-                Are you an artist? Apply to join
+              <Button href="/browse" variant="ghost" size="lg">
+                Browse more artists
               </Button>
             </div>
           </div>

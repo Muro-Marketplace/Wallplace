@@ -5,13 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import Footer from "@/components/Footer";
 import ArtistCarousel from "@/components/ArtistCarousel";
+import AnimateIn from "@/components/AnimateIn";
 import { artists } from "@/data/artists";
 import { venues } from "@/data/venues";
 
 const featuredArtists = artists.slice(0, 6);
 
 const navLinks = [
-  { label: "Browse Art", href: "/browse" },
+  { label: "Discover Art", href: "/browse" },
   { label: "For Venues", href: "/venues" },
   { label: "For Artists", href: "/artists" },
   { label: "Spaces", href: "/spaces" },
@@ -29,7 +30,7 @@ export default function Home() {
     <div className="relative">
       {/* ─── HERO ─── full screen with transparent nav */}
       <section className="relative min-h-screen flex flex-col">
-        {/* Hero background image — scoped to hero only */}
+        {/* Hero background image – scoped to hero only */}
         <div className="absolute inset-0 -z-10">
           <Image
             src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1920&h=1080&fit=crop&crop=center"
@@ -38,7 +39,7 @@ export default function Home() {
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-black/50" />
+          <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-black/40" />
         </div>
         {/* Transparent navbar */}
         <header className="relative z-50">
@@ -56,7 +57,7 @@ export default function Home() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-sm text-white/60 hover:text-white transition-colors duration-200"
+                  className="text-sm text-white/90 hover:text-white transition-colors duration-200"
                 >
                   {link.label}
                 </Link>
@@ -67,15 +68,15 @@ export default function Home() {
             <div className="hidden lg:flex items-center gap-4">
               <Link
                 href="/login"
-                className="text-sm text-white/50 hover:text-white/80 transition-colors"
+                className="text-sm text-white/90 hover:text-white transition-colors"
               >
                 Login
               </Link>
               <Link
                 href="/apply"
-                className="text-sm px-5 py-2.5 bg-white text-[#1A1A1A] font-medium rounded-sm hover:bg-white/90 transition-colors"
+                className="text-sm px-5 py-2.5 bg-white text-foreground font-medium rounded-sm hover:bg-white/90 transition-colors"
               >
-                Apply as Artist
+                Apply to Join
               </Link>
             </div>
 
@@ -137,10 +138,10 @@ export default function Home() {
                   </Link>
                   <Link
                     href="/apply"
-                    className="text-center text-sm px-5 py-3 rounded-sm bg-white text-[#1A1A1A] font-medium hover:bg-white/90"
+                    className="text-center text-sm px-5 py-3 rounded-sm bg-white text-foreground font-medium hover:bg-white/90"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Apply as Artist
+                    Apply to Join
                   </Link>
                 </div>
               </div>
@@ -166,13 +167,13 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <Link
                   href="/browse"
-                  className="inline-flex items-center justify-center px-8 py-4 bg-white text-[#1A1A1A] text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors"
                 >
-                  Browse Art
+                  Discover Art
                 </Link>
                 <Link
                   href="/apply"
-                  className="inline-flex items-center justify-center px-8 py-4 border border-white/30 text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/10 transition-colors"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors"
                 >
                   Apply to Join
                 </Link>
@@ -181,7 +182,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Scroll indicator + trust bar — anchored to bottom of hero */}
+        {/* Scroll indicator + trust bar – anchored to bottom of hero */}
         <div className="relative z-10 mt-auto">
           {/* Scroll to see more */}
           <button
@@ -216,80 +217,11 @@ export default function Home() {
 
       {/* ─── CONTENT SECTIONS ─── clean solid background */}
       <div ref={contentRef} className="bg-background">
-          {/* ─── QUICK NAV: WHAT ARE YOU LOOKING FOR? ─── */}
-          <section className="py-12 lg:py-16 border-b border-border">
-            <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <NavCard
-                  href="/browse"
-                  title="Browse Art"
-                  description="Explore curated artist profiles. Filter by location, style, theme, and commercial availability."
-                  icon={
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="3" width="7" height="7" rx="1" />
-                      <rect x="14" y="3" width="7" height="7" rx="1" />
-                      <rect x="3" y="14" width="7" height="7" rx="1" />
-                      <rect x="14" y="14" width="7" height="7" rx="1" />
-                    </svg>
-                  }
-                />
-                <NavCard
-                  href="/venues"
-                  title="For Venues"
-                  description="Source artwork risk-free. Free loan, revenue share, or purchase. No cost to browse."
-                  icon={
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 21h18M5 21V7l7-4 7 4v14" />
-                      <path d="M9 21v-4h6v4" />
-                    </svg>
-                  }
-                />
-                <NavCard
-                  href="/apply"
-                  title="For Artists"
-                  description="Join a curated marketplace. Access high-intent venue demand. First month free."
-                  icon={
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <circle cx="12" cy="8" r="4" />
-                      <path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
-                    </svg>
-                  }
-                />
-              </div>
-            </div>
-          </section>
-
           {/* ─── VENUE PROPOSITION ─── */}
-          <section className="py-16 lg:py-20">
+          <section className="py-16 lg:py-20 bg-surface">
             <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
               <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+                <AnimateIn>
                 <div>
                   <p className="text-xs font-medium tracking-[0.2em] uppercase text-accent mb-4">
                     For Venues
@@ -321,19 +253,21 @@ export default function Home() {
                   <div className="flex items-center gap-3">
                     <Link
                       href="/browse"
-                      className="inline-flex items-center justify-center px-7 py-3.5 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors"
+                      className="inline-flex items-center justify-center px-7 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors"
                     >
-                      Browse Art
+                      Discover Art
                     </Link>
                     <Link
                       href="/venues"
-                      className="inline-flex items-center justify-center px-7 py-3.5 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors"
+                      className="inline-flex items-center justify-center px-7 py-3.5 border border-border text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-background transition-colors"
                     >
                       Learn More
                     </Link>
                   </div>
                 </div>
+                </AnimateIn>
 
+                <AnimateIn delay={150} direction="right">
                 <div className="grid grid-cols-5 grid-rows-4 gap-2 aspect-square">
                   <div className="col-span-3 row-span-2 relative rounded-sm overflow-hidden">
                     <Image
@@ -381,6 +315,76 @@ export default function Home() {
                     />
                   </div>
                 </div>
+                </AnimateIn>
+              </div>
+            </div>
+          </section>
+
+          {/* ─── ARTIST PROPOSITION ─── */}
+          <section className="py-16 lg:py-20">
+            <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
+              <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+                <AnimateIn delay={100} direction="left">
+                <div className="grid grid-cols-3 gap-2 order-2 lg:order-1">
+                  {artists.slice(0, 6).map((a) => (
+                    <div
+                      key={a.slug}
+                      className="aspect-[4/5] relative rounded-sm overflow-hidden"
+                    >
+                      <Image
+                        src={a.image}
+                        alt={a.name}
+                        fill
+                        className="object-cover"
+                        sizes="20vw"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                      <p className="absolute bottom-2 left-2 text-white text-xs font-medium">
+                        {a.name}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                </AnimateIn>
+
+                <AnimateIn delay={0}>
+                <div className="order-1 lg:order-2">
+                  <p className="text-xs font-medium tracking-[0.2em] uppercase text-accent mb-4">
+                    For Artists
+                  </p>
+                  <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground mb-6">
+                    Get discovered by commercial spaces
+                  </h2>
+                  <p className="text-lg text-muted leading-relaxed mb-6">
+                    Wallspace puts your work in front of caf&eacute;s,
+                    restaurants, hotels, galleries, offices, and salons that are
+                    actively looking for art.
+                  </p>
+
+                  <ul className="space-y-4 mb-10">
+                    <BulletPoint text="Display your work in cafés, restaurants, hotels, and salons through free-loan, revenue-share, or purchase arrangements" />
+                    <BulletPoint text="Earn from customer purchases via QR-code discovery or in-store purchases – right from the venue wall" />
+                    <BulletPoint text="0–10% platform fee. No gallery taking 50%." />
+                    <BulletPoint text="First month free. First 20 approved artists get 6 months free." />
+                    <BulletPoint text="Keep selling through your own channels – no exclusivity" />
+                  </ul>
+
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href="/apply"
+                      className="inline-flex items-center justify-center px-7 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors"
+                    >
+                      Apply to Join
+                    </Link>
+                    <Link
+                      href="/pricing"
+                      className="inline-flex items-center justify-center px-7 py-3.5 border border-border text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-background transition-colors"
+                    >
+                      View Pricing
+                    </Link>
+                  </div>
+                </div>
+                </AnimateIn>
               </div>
             </div>
           </section>
@@ -446,83 +450,6 @@ export default function Home() {
                 >
                   Browse All Art
                 </Link>
-              </div>
-            </div>
-          </section>
-
-          {/* Image break */}
-          <section className="relative h-48 lg:h-64 overflow-hidden">
-            <Image src="https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=1920&h=400&fit=crop&crop=center" alt="Art being created" fill className="object-cover" />
-            <div className="absolute inset-0 bg-black/50" />
-            <div className="relative h-full flex items-center justify-center text-center px-6">
-              <div>
-                <p className="text-white text-2xl lg:text-3xl font-serif mb-2">Curated, not crowded.</p>
-                <p className="text-white/50 text-sm">Every artist personally reviewed. No AI art.</p>
-              </div>
-            </div>
-          </section>
-
-          {/* ─── ARTIST PROPOSITION ─── */}
-          <section className="py-16 lg:py-20">
-            <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
-              <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-                <div className="grid grid-cols-3 gap-2 order-2 lg:order-1">
-                  {artists.slice(0, 6).map((a) => (
-                    <div
-                      key={a.slug}
-                      className="aspect-[4/5] relative rounded-sm overflow-hidden"
-                    >
-                      <Image
-                        src={a.image}
-                        alt={a.name}
-                        fill
-                        className="object-cover"
-                        sizes="20vw"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                      <p className="absolute bottom-2 left-2 text-white text-xs font-medium">
-                        {a.name}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="order-1 lg:order-2">
-                  <p className="text-xs font-medium tracking-[0.2em] uppercase text-[#C17C5A] mb-4">
-                    For Artists
-                  </p>
-                  <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground mb-6">
-                    Get discovered by commercial spaces
-                  </h2>
-                  <p className="text-lg text-muted leading-relaxed mb-6">
-                    Wallspace puts your work in front of caf&eacute;s,
-                    restaurants, hotels, galleries, offices, and salons that are
-                    actively looking for art.
-                  </p>
-
-                  <ul className="space-y-4 mb-10">
-                    <BulletPoint text="Display your work in cafés, restaurants, hotels, and salons through free-loan, revenue-share, or purchase arrangements" />
-                    <BulletPoint text="Earn from customer purchases via QR-code discovery or in-store purchases — right from the venue wall" />
-                    <BulletPoint text="0–10% platform fee. No gallery taking 50%." />
-                    <BulletPoint text="First month free. First 20 approved artists get 6 months free." />
-                    <BulletPoint text="Keep selling through your own channels — no exclusivity" />
-                  </ul>
-
-                  <div className="flex items-center gap-3">
-                    <Link
-                      href="/apply"
-                      className="inline-flex items-center justify-center px-7 py-3.5 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors"
-                    >
-                      Apply to Join
-                    </Link>
-                    <Link
-                      href="/pricing"
-                      className="inline-flex items-center justify-center px-7 py-3.5 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors"
-                    >
-                      View Pricing
-                    </Link>
-                  </div>
-                </div>
               </div>
             </div>
           </section>
@@ -628,7 +555,7 @@ export default function Home() {
               </div>
               <div className="grid md:grid-cols-2 gap-12 lg:gap-20 max-w-4xl mx-auto">
                 <div className="flex flex-col">
-                  <p className="text-xs font-medium tracking-[0.2em] uppercase text-[#C17C5A] border-b border-white/10 pb-4 mb-8">
+                  <p className="text-xs font-medium tracking-[0.2em] uppercase text-accent border-b border-white/10 pb-4 mb-8">
                     For Venues
                   </p>
                   <div className="space-y-8 flex-1">
@@ -654,7 +581,7 @@ export default function Home() {
                   <div className="mt-10">
                     <Link
                       href="/browse"
-                      className="inline-flex items-center justify-center px-7 py-3.5 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors"
+                      className="inline-flex items-center justify-center px-7 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors"
                     >
                       Start Browsing
                     </Link>
@@ -662,7 +589,7 @@ export default function Home() {
                 </div>
 
                 <div className="flex flex-col">
-                  <p className="text-xs font-medium tracking-[0.2em] uppercase text-[#C17C5A] border-b border-white/10 pb-4 mb-8">
+                  <p className="text-xs font-medium tracking-[0.2em] uppercase text-accent border-b border-white/10 pb-4 mb-8">
                     For Artists
                   </p>
                   <div className="space-y-8 flex-1">
@@ -741,9 +668,9 @@ export default function Home() {
                   </p>
                   <Link
                     href="/browse"
-                    className="inline-flex items-center justify-center w-full px-6 py-3.5 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors"
+                    className="inline-flex items-center justify-center w-full px-6 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors"
                   >
-                    Browse Art
+                    Discover Art
                   </Link>
                 </div>
                 <div className="bg-surface border border-border rounded-sm p-8 text-center flex flex-col">
@@ -763,6 +690,18 @@ export default function Home() {
                     Apply to Join
                   </Link>
                 </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Image break */}
+          <section className="relative h-48 lg:h-64 overflow-hidden">
+            <Image src="https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=1920&h=400&fit=crop&crop=center" alt="Art being created" fill className="object-cover" />
+            <div className="absolute inset-0 bg-black/50" />
+            <div className="relative h-full flex items-center justify-center text-center px-6">
+              <div>
+                <p className="text-white text-2xl lg:text-3xl font-serif mb-2">Curated, not crowded.</p>
+                <p className="text-white/50 text-sm">Every artist personally reviewed. No AI art.</p>
               </div>
             </div>
           </section>

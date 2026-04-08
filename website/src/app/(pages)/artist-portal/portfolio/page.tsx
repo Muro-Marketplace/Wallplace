@@ -67,7 +67,7 @@ export default function PortfolioPage() {
           <div>
             <p className="text-xs text-muted font-medium uppercase tracking-wide mb-1">Bio</p>
             <p className="text-sm text-foreground leading-relaxed">
-              Documentary photographer based in Hackney. I photograph the texture of everyday urban life — markets, streets, and the people who animate them.
+              Documentary photographer based in Hackney. I photograph the texture of everyday urban life – markets, streets, and the people who animate them.
             </p>
           </div>
           <div>

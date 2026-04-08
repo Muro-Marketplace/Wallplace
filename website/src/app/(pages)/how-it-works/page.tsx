@@ -3,7 +3,7 @@ import { Metadata } from "next";
 import Button from "@/components/Button";
 
 export const metadata: Metadata = {
-  title: "How It Works — Wallspace",
+  title: "How It Works – Wallspace",
   description:
     "A simple process for artists and venues. Learn how Wallspace places curated art into independent spaces.",
 };
@@ -197,8 +197,8 @@ export default function HowItWorksPage() {
                 spaces.
               </p>
               <div className="mt-6">
-                <Button href="/artists" size="lg">
-                  Apply as an Artist
+                <Button href="/apply" size="lg">
+                  Apply to Join
                 </Button>
               </div>
               <p className="mt-3 text-sm text-muted">

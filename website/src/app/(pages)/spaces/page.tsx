@@ -48,7 +48,7 @@ export default function SpacesPage() {
             </h1>
             <p className="text-xl text-muted leading-relaxed">
               These are real venues actively seeking artwork for their
-              walls. Cafes, restaurants, hotels, coworking spaces — all with
+              walls. Cafes, restaurants, hotels, coworking spaces – all with
               genuine interest in displaying and acquiring original art. Get your
               work in front of them by joining Wallspace.
             </p>

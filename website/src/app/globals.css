@@ -53,3 +53,79 @@ img {
 * {
   box-sizing: border-box;
 }
+
+/* Scroll-reveal animations — GPU-accelerated, opacity + transform only */
+.animate-on-scroll {
+  opacity: 0;
+  will-change: opacity, transform;
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.animate-dir-up { transform: translateY(20px); }
+.animate-dir-left { transform: translateX(20px); }
+.animate-dir-right { transform: translateX(-20px); }
+.animate-dir-none { transform: none; }
+
+.animate-on-scroll.animate-visible {
+  opacity: 1;
+  transform: translateY(0) translateX(0);
+}
+
+/* Print styles for QR label sheets */
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+@media print {
+  /* Hide everything non-printable */
+  header,
+  footer,
+  aside,
+  nav,
+  .no-print,
+  .label-preview-toolbar {
+    display: none !important;
+  }
+
+  /* Reset page */
+  html, body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .no-print-bg {
+    background: white !important;
+    overflow: visible !important;
+  }
+
+  /* Each A4 page is its own print page */
+  .label-page {
+    width: 210mm !important;
+    height: 277mm !important; /* 297mm - 2*10mm margin from @page */
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    page-break-after: always;
+    break-after: page;
+    overflow: hidden !important;
+  }
+
+  .label-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .label-sheet {
+    margin: 0;
+    padding: 0;
+  }
+
+  .qr-label {
+    break-inside: avoid;
+  }
+}

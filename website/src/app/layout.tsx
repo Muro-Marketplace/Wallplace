@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, DM_Serif_Display } from "next/font/google";
+import Providers from "@/components/Providers";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -18,7 +19,7 @@ const dmSerifDisplay = DM_Serif_Display({
 export const metadata: Metadata = {
   title: "Wallspace — Curated Art for Commercial Spaces",
   description:
-    "Wallspace is a curated art marketplace connecting independent venues with emerging photographers and artists. Source artwork risk-free. Get discovered by commercial spaces.",
+    "Wallspace is a curated art marketplace connecting independent venues with emerging artists. Source artwork risk-free. Get discovered by commercial spaces.",
 };
 
 export default function RootLayout({
@@ -31,7 +32,9 @@ export default function RootLayout({
       lang="en"
       className={`${dmSans.variable} ${dmSerifDisplay.variable}`}
     >
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

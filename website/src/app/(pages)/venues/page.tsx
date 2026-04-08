@@ -3,10 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import Button from "@/components/Button";
 import Accordion from "@/components/Accordion";
+import AnimateIn from "@/components/AnimateIn";
 import ScrollButton from "@/components/ScrollButton";
 
 export const metadata: Metadata = {
-  title: "For Venues — Wallspace",
+  title: "For Venues – Wallspace",
   description:
     "Discover original artwork for your space. Browse curated artist portfolios, filter by style and location, and enquire directly. Free for independent venues.",
 };
@@ -82,7 +83,7 @@ const freeBenefits = [
 const premiumBenefits = [
   "Professional curation for your space",
   "AI-powered search and recommendations",
-  "AI visualiser — see artwork on your wall before committing",
+  "AI visualiser – see artwork on your wall before committing",
   "Curated shortlists tailored to your venue",
   "Optional installation packages (paid add-on)",
   "Priority access to new artists",
@@ -136,7 +137,7 @@ const faqItems = [
   {
     question: "Do you handle installation?",
     answer:
-      "Installation is not included as standard — it's an optional paid add-on available through our Premium tier (coming soon). For free tier users, delivery and installation are arranged directly between you and the artist.",
+      "Installation is not included as standard – it's an optional paid add-on. Delivery and collection are arranged directly between you and the artist, with our support if needed.",
   },
   {
     question: "What if I don't like the art?",
@@ -161,7 +162,7 @@ const faqItems = [
   {
     question: "Is there a contract?",
     answer:
-      "No. Just a simple agreement between you and the artist. Two weeks' notice to end at any time.",
+      "No. Just a simple partnership agreement covering the basics. 30 days' notice to end at any time.",
   },
 ];
 
@@ -179,7 +180,7 @@ const neighbourhoods = [
 export default function VenuesPage() {
   return (
     <div className="relative">
-      {/* Immersive Hero — pulls behind the header with negative margin */}
+      {/* Immersive Hero – pulls behind the header with negative margin */}
       <section className="relative -mt-14 lg:-mt-16 min-h-screen flex flex-col justify-center pt-28 lg:pt-32 pb-32">
         {/* Hero background image */}
         <div className="absolute inset-0 -z-10">
@@ -209,8 +210,8 @@ export default function VenuesPage() {
               <Button href="/browse" size="lg" variant="accent">
                 Browse Portfolios
               </Button>
-              <Button href="/get-art" size="lg" variant="secondary">
-                Post Your Space
+              <Button href="/register-venue" size="lg" variant="secondary">
+                Register Your Venue
               </Button>
             </div>
           </div>
@@ -223,7 +224,7 @@ export default function VenuesPage() {
       {/* Content sections with solid backgrounds */}
       <div id="venue-content" className="bg-background">
 
-      {/* Free Tier — What You Get */}
+      {/* Free Tier – What You Get */}
       <section className="py-16 lg:py-20">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="mb-10">
@@ -246,15 +247,6 @@ export default function VenuesPage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Image Break 1 */}
-      <section className="relative h-64 lg:h-80 overflow-hidden">
-        <Image src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1920&h=400&fit=crop&crop=center" alt="Cafe interior" fill className="object-cover" />
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="relative h-full flex items-center justify-center">
-          <p className="text-white/80 text-lg lg:text-xl font-serif italic">&ldquo;Art transforms a space from forgettable to unforgettable.&rdquo;</p>
         </div>
       </section>
 
@@ -353,39 +345,39 @@ export default function VenuesPage() {
         <div className="relative h-full flex items-center justify-center text-center px-6">
           <div>
             <p className="text-white text-3xl lg:text-4xl font-serif mb-3">Zero upfront cost</p>
-            <p className="text-white/60 text-sm lg:text-base">Browse, enquire, and arrange — completely free for venues</p>
+            <p className="text-white/60 text-sm lg:text-base">Browse, enquire, and arrange – completely free for venues</p>
           </div>
         </div>
       </section>
 
       {/* Revenue Share */}
-      <section className="py-16 lg:py-20 bg-foreground text-white">
+      <section className="py-16 lg:py-20 bg-surface">
         <div className="max-w-[1200px] mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl mb-10 text-white">
-            Optional: earn from your walls
+          <h2 className="text-3xl md:text-4xl mb-10">
+            Earn from your walls
           </h2>
           <div className="max-w-3xl">
             <div className="flex items-center gap-2 text-xs md:text-sm mb-8 overflow-x-auto">
-              <span className="bg-white/10 border border-white/20 text-white rounded-sm px-3 py-1.5 whitespace-nowrap">
+              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-1.5 whitespace-nowrap">
                 Customer sees art
               </span>
-              <span className="text-white/40 shrink-0">&rarr;</span>
-              <span className="bg-white/10 border border-white/20 text-white rounded-sm px-3 py-1.5 whitespace-nowrap">
+              <span className="text-muted shrink-0">&rarr;</span>
+              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-1.5 whitespace-nowrap">
                 Scans QR
               </span>
-              <span className="text-white/40 shrink-0">&rarr;</span>
-              <span className="bg-white/10 border border-white/20 text-white rounded-sm px-3 py-1.5 whitespace-nowrap">
+              <span className="text-muted shrink-0">&rarr;</span>
+              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-1.5 whitespace-nowrap">
                 Buys via Wallspace
               </span>
-              <span className="text-white/40 shrink-0">&rarr;</span>
-              <span className="bg-[#C17C5A]/20 border border-[#C17C5A]/40 text-[#C17C5A] rounded-sm px-3 py-1.5 font-medium whitespace-nowrap">
+              <span className="text-muted shrink-0">&rarr;</span>
+              <span className="bg-accent/10 border border-accent/30 text-accent rounded-sm px-3 py-1.5 font-medium whitespace-nowrap">
                 You share in the sale
               </span>
             </div>
-            <p className="text-white/60 leading-relaxed">
-              Revenue share is optional and agreed directly between you and the artist when arranging
+            <p className="text-muted leading-relaxed">
+              Revenue share is agreed directly between you and the artist when arranging
               a placement. A common arrangement is 10% to the venue on any sale made from your space.
-              Your walls are already earning nothing &mdash; this is a way to change that.
+              Your walls are already earning nothing – this is a way to change that.
             </p>
           </div>
         </div>
@@ -417,8 +409,8 @@ export default function VenuesPage() {
             <Link href="/browse" className="inline-flex items-center justify-center px-8 py-3 text-sm font-medium bg-white text-foreground rounded-sm hover:bg-white/90 transition-colors">
               Browse Portfolios
             </Link>
-            <Link href="/get-art" className="inline-flex items-center justify-center px-8 py-3 text-sm font-medium border border-white/30 text-white rounded-sm hover:bg-white/10 transition-colors">
-              Post Your Space
+            <Link href="/register-venue" className="inline-flex items-center justify-center px-8 py-3 text-sm font-medium border border-white/30 text-white rounded-sm hover:bg-white/10 transition-colors">
+              Register Your Venue
             </Link>
           </div>
         </div>

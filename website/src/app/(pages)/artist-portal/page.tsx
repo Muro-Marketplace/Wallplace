@@ -20,7 +20,7 @@ const recentActivity = [
   },
   {
     id: 2,
-    text: "Piece sold: Last Light on Mare Street — £280",
+    text: "Piece sold: Last Light on Mare Street – £280",
     time: "Yesterday",
     type: "sale",
   },
@@ -155,6 +155,20 @@ export default function ArtistPortalPage() {
                 </svg>
               </span>
               Update Availability
+            </Link>
+            <Link
+              href="/artist-portal/labels"
+              className="flex items-center gap-3 p-3 rounded-sm border border-border hover:bg-background transition-colors text-sm text-foreground"
+            >
+              <span className="w-8 h-8 rounded-sm bg-accent/10 flex items-center justify-center flex-shrink-0">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <rect x="1" y="1" width="6" height="6" rx="0.5" stroke="#C17C5A" strokeWidth="1.25" />
+                  <rect x="9" y="1" width="6" height="6" rx="0.5" stroke="#C17C5A" strokeWidth="1.25" />
+                  <rect x="1" y="9" width="6" height="6" rx="0.5" stroke="#C17C5A" strokeWidth="1.25" />
+                  <rect x="9" y="9" width="6" height="6" rx="0.5" stroke="#C17C5A" strokeWidth="1.25" />
+                </svg>
+              </span>
+              Print QR Labels
             </Link>
           </div>
 

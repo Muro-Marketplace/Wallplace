@@ -64,10 +64,10 @@ export default function LoginPage() {
           <p className="text-sm text-muted">
             Don&rsquo;t have an account?{" "}
             <Link href="/apply" className="text-accent hover:underline underline-offset-4">
-              Apply as an artist
+              Apply to join as an artist
             </Link>
             {" "}or{" "}
-            <Link href="/venues" className="text-accent hover:underline underline-offset-4">
+            <Link href="/register-venue" className="text-accent hover:underline underline-offset-4">
               register your venue
             </Link>
             .
