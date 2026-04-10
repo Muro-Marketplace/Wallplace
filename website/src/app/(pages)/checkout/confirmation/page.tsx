@@ -1,32 +1,58 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useCart } from "@/context/CartContext";
-import type { MockOrder } from "@/lib/types";
+
+interface StripeOrder {
+  id: string;
+  status: string;
+  amountTotal: number;
+  customerEmail: string;
+  metadata: Record<string, string>;
+  lineItems: { name: string; quantity: number; amount: number }[];
+}
 
 export default function ConfirmationPage() {
-  const { lastOrder: contextOrder } = useCart();
-  const [order, setOrder] = useState<MockOrder | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("session_id");
+  const { clearCart } = useCart();
+  const [order, setOrder] = useState<StripeOrder | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Try context first, then localStorage fallback
-    if (contextOrder) {
-      setOrder(contextOrder);
-    } else {
-      const stored = localStorage.getItem("wallspace-last-order");
-      if (stored) {
-        try { setOrder(JSON.parse(stored)); } catch { /* ignore */ }
+    // Clear cart on successful checkout
+    clearCart();
+
+    async function fetchSession() {
+      if (!sessionId) {
+        setLoading(false);
+        return;
       }
+
+      try {
+        const res = await fetch(`/api/checkout/session?id=${sessionId}`);
+        const data = await res.json();
+        if (data.id) setOrder(data);
+      } catch (err) {
+        console.error("Failed to fetch session:", err);
+      }
+      setLoading(false);
     }
-    setLoaded(true);
-  }, [contextOrder]);
 
-  if (!loaded) return null;
+    fetchSession();
+  }, [sessionId, clearCart]);
 
-  if (!order) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted text-sm">Loading order details...</p>
+      </div>
+    );
+  }
+
+  if (!order && !sessionId) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
@@ -54,52 +80,44 @@ export default function ConfirmationPage() {
 
       <h1 className="text-3xl font-serif mb-2">Order Confirmed</h1>
       <p className="text-muted mb-1">Thank you for your order.</p>
-      <p className="text-sm text-muted/70 mb-8">Order #{order.id}</p>
+      {order && (
+        <p className="text-sm text-muted/70 mb-8">Payment of &pound;{order.amountTotal.toFixed(2)} received</p>
+      )}
 
       {/* Items */}
-      <div className="bg-surface border border-border rounded-sm p-5 mb-6 text-left">
-        <h2 className="text-sm font-medium mb-4">Items</h2>
-        <div className="space-y-3">
-          {order.items.map((item) => (
-            <div key={item.id} className="flex gap-3">
-              <div className="w-14 h-14 relative rounded-sm overflow-hidden bg-border/20 shrink-0">
-                <Image src={item.image} alt={item.title} fill className="object-cover" sizes="56px" />
+      {order?.lineItems && (
+        <div className="bg-surface border border-border rounded-sm p-5 mb-6 text-left">
+          <h2 className="text-sm font-medium mb-4">Items</h2>
+          <div className="space-y-3">
+            {order.lineItems.map((item, i) => (
+              <div key={i} className="flex justify-between text-sm">
+                <span>{item.name} {item.quantity > 1 ? `x${item.quantity}` : ""}</span>
+                <span className="font-medium">&pound;{item.amount.toFixed(2)}</span>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">{item.title}</p>
-                <p className="text-xs text-muted">{item.artistName}{item.size ? ` · ${item.size}` : ""}</p>
-              </div>
-              <p className="text-sm font-medium text-accent">£{item.price.toFixed(2)}</p>
+            ))}
+          </div>
+          <div className="border-t border-border mt-4 pt-3">
+            <div className="flex justify-between text-sm font-medium">
+              <span>Total</span>
+              <span>&pound;{order.amountTotal.toFixed(2)}</span>
             </div>
-          ))}
-        </div>
-        <div className="border-t border-border mt-4 pt-3 space-y-1">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Subtotal</span>
-            <span>£{order.subtotal.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Shipping</span>
-            <span>{order.shippingCost === 0 ? "Free" : `£${order.shippingCost.toFixed(2)}`}</span>
-          </div>
-          <div className="flex justify-between text-sm font-medium pt-1 border-t border-border">
-            <span>Total</span>
-            <span>£{order.total.toFixed(2)}</span>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Delivery details */}
-      <div className="bg-surface border border-border rounded-sm p-5 mb-6 text-left">
-        <h2 className="text-sm font-medium mb-3">Delivery Address</h2>
-        <p className="text-sm text-muted">
-          {order.shipping.fullName}<br />
-          {order.shipping.addressLine1}<br />
-          {order.shipping.addressLine2 && <>{order.shipping.addressLine2}<br /></>}
-          {order.shipping.city}, {order.shipping.postcode}<br />
-          {order.shipping.country}
-        </p>
-      </div>
+      {order?.metadata && (
+        <div className="bg-surface border border-border rounded-sm p-5 mb-6 text-left">
+          <h2 className="text-sm font-medium mb-3">Delivery Address</h2>
+          <p className="text-sm text-muted">
+            {order.metadata.shipping_name}<br />
+            {order.metadata.shipping_address1}<br />
+            {order.metadata.shipping_address2 && <>{order.metadata.shipping_address2}<br /></>}
+            {order.metadata.shipping_city}, {order.metadata.shipping_postcode}<br />
+            {order.metadata.shipping_country}
+          </p>
+        </div>
+      )}
 
       {/* Artist fulfilment */}
       <div className="bg-accent/5 border border-accent/20 rounded-sm p-4 mb-8 text-left flex gap-3">
@@ -110,7 +128,8 @@ export default function ConfirmationPage() {
           <circle cx="18.5" cy="18.5" r="2.5" />
         </svg>
         <p className="text-sm text-foreground/70">
-          Your order will be packed and shipped directly by the artist. Expect delivery within 5–10 working days. You&apos;ll receive a confirmation email at <strong>{order.shipping.email}</strong>.
+          Your order will be packed and shipped directly by the artist. Expect delivery within 5–10 working days.
+          {order?.customerEmail && <> You&apos;ll receive updates at <strong>{order.customerEmail}</strong>.</>}
         </p>
       </div>
 

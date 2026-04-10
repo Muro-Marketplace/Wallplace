@@ -9,7 +9,7 @@ import type { ShippingInfo } from "@/lib/types";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, removeItem, subtotal, placeOrder } = useCart();
+  const { items, removeItem, subtotal } = useCart();
   const [shipping, setShipping] = useState<ShippingInfo>({
     fullName: "",
     email: "",
@@ -31,7 +31,7 @@ export default function CheckoutPage() {
     setErrors((prev) => ({ ...prev, [field]: false }));
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const required: (keyof ShippingInfo)[] = ["fullName", "email", "phone", "addressLine1", "city", "postcode"];
     const newErrors: Record<string, boolean> = {};
     required.forEach((f) => {
@@ -49,8 +49,25 @@ export default function CheckoutPage() {
       return;
     }
 
-    placeOrder(shipping);
-    router.push("/checkout/confirmation");
+    // Create Stripe Checkout Session and redirect
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, shipping }),
+      });
+      const data = await res.json();
+
+      if (data.url) {
+        // Save shipping to localStorage for confirmation fallback
+        localStorage.setItem("wallspace-last-shipping", JSON.stringify(shipping));
+        window.location.href = data.url;
+      } else {
+        setErrors({ submit: true } as Record<string, boolean>);
+      }
+    } catch {
+      setErrors({ submit: true } as Record<string, boolean>);
+    }
   }
 
   if (items.length === 0) {
@@ -149,41 +166,18 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Payment (mock) */}
-          <div>
-            <h2 className="text-lg font-medium mb-4">Payment</h2>
-            <div className="bg-surface border border-border rounded-sm p-5 space-y-3">
-              <input
-                type="text"
-                defaultValue="4242 4242 4242 4242"
-                className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-foreground"
-                readOnly
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  defaultValue="12/28"
-                  className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-foreground"
-                  readOnly
-                />
-                <input
-                  type="text"
-                  defaultValue="123"
-                  className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-foreground"
-                  readOnly
-                />
-              </div>
-              <div className="flex items-center gap-2 pt-1">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C17C5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0110 0v4" />
-                </svg>
-                <span className="text-xs text-muted">Secure checkout</span>
-              </div>
-              <p className="text-[10px] text-muted/60 italic">
-                This is a prototype – no payment will be processed.
-              </p>
+          {/* Payment info */}
+          <div className="bg-surface border border-border rounded-sm p-5">
+            <div className="flex items-center gap-3 mb-3">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C17C5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0110 0v4" />
+              </svg>
+              <h2 className="text-base font-medium">Secure Payment</h2>
             </div>
+            <p className="text-sm text-muted leading-relaxed">
+              You&apos;ll be redirected to Stripe&apos;s secure checkout to complete your payment. We never see or store your card details.
+            </p>
           </div>
 
           {/* Artist fulfilment notice */}
@@ -203,7 +197,7 @@ export default function CheckoutPage() {
             onClick={handleSubmit}
             className="w-full px-6 py-4 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors"
           >
-            Place Order – £{total.toFixed(2)}
+            Proceed to Payment – £{total.toFixed(2)}
           </button>
         </div>
 
