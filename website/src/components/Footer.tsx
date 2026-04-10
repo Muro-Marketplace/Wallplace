@@ -25,6 +25,8 @@ const footerColumns = [
       { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
       { label: "Terms", href: "/terms" },
+      { label: "Artist Agreement", href: "/artist-agreement" },
+      { label: "Venue Agreement", href: "/venue-agreement" },
       { label: "Privacy", href: "/privacy" },
       { label: "Cookies", href: "/cookies" },
     ],

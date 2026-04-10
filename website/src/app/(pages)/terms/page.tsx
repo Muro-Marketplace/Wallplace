@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Terms & Privacy – Wallspace",
-  description: "Terms of service and privacy policy for Wallspace.",
+  title: "Terms of Service – Wallspace",
+  description:
+    "Wallspace Platform Terms of Service. The rules and obligations governing use of the Wallspace marketplace.",
 };
 
 export default function TermsPage() {
@@ -11,220 +13,196 @@ export default function TermsPage() {
       <section className="py-20 lg:py-24">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="max-w-3xl">
-            <h1 className="text-4xl lg:text-5xl mb-5">Terms &amp; Privacy</h1>
-            <p className="text-muted leading-relaxed mb-16">
-              Last updated: March 2026
-            </p>
+            <h1 className="text-4xl lg:text-5xl mb-4">Terms of Service</h1>
+            <p className="text-muted leading-relaxed mb-6">Last updated: April 2026</p>
 
-            {/* Terms of Service */}
-            <div className="space-y-12">
+            <div className="bg-surface border border-border rounded-sm p-5 mb-16">
+              <p className="text-sm text-muted leading-relaxed">
+                <strong className="text-foreground">Note:</strong> Wallspace is the trading name of a business in the process of being incorporated as a limited company in England and Wales. References to &ldquo;Wallspace&rdquo; throughout this document refer to the business operating under this trading name. Once incorporated, this document will be updated to reflect the registered company name and number.
+              </p>
+            </div>
+
+            <div className="space-y-10">
               <div>
-                <h2 className="text-3xl mb-6">Terms of Service</h2>
-
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-xl mb-3">1. Introduction</h3>
-                    <p className="text-muted leading-relaxed">
-                      These Terms of Service (&ldquo;Terms&rdquo;) govern your
-                      use of the Wallspace website and services operated by
-                      Wallspace Ltd (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or
-                      &ldquo;our&rdquo;). By accessing or using our services,
-                      you agree to be bound by these Terms. If you do not agree
-                      to these Terms, please do not use our services.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">2. Services</h3>
-                    <p className="text-muted leading-relaxed">
-                      Wallspace provides a curated art placement service
-                      connecting artists with venues. Our services
-                      include artist curation, artwork placement, sales
-                      facilitation, and related logistics. We act as an
-                      intermediary between artists and venues and between artists
-                      and buyers.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">3. Accounts</h3>
-                    <p className="text-muted leading-relaxed">
-                      Some features of our services require you to create an
-                      account. You are responsible for maintaining the
-                      confidentiality of your account credentials and for all
-                      activities that occur under your account. You agree to
-                      provide accurate and complete information when creating
-                      your account.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">4. Artist Terms</h3>
-                    <p className="text-muted leading-relaxed">
-                      Artists accepted onto the Wallspace platform grant us a
-                      non-exclusive licence to display, promote, and facilitate
-                      the sale of their artwork through our network of venue
-                      partners. Artists retain full copyright and ownership of
-                      their work at all times. Commission rates and payment
-                      terms are set out in the separate Artist Agreement
-                      provided during onboarding.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">5. Venue Terms</h3>
-                    <p className="text-muted leading-relaxed">
-                      Venues partnering with Wallspace agree to display artwork
-                      in accordance with our care guidelines, maintain
-                      appropriate insurance for their premises, and facilitate
-                      customer enquiries about displayed artwork. Specific
-                      terms are set out in the separate Venue Partnership
-                      Agreement.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">6. Purchases and Payments</h3>
-                    <p className="text-muted leading-relaxed">
-                      All prices are listed in GBP and include applicable taxes
-                      unless otherwise stated. Payment is processed securely
-                      through our payment partners. Buyers receive a
-                      confirmation email upon successful purchase. Delivery
-                      arrangements vary by artwork and are communicated at the
-                      time of purchase.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">7. Intellectual Property</h3>
-                    <p className="text-muted leading-relaxed">
-                      All content on the Wallspace website, including but not
-                      limited to text, design, logos, and software, is the
-                      property of Wallspace Ltd or its licensors. Artwork images
-                      displayed on our platform remain the intellectual property
-                      of the respective artists. You may not reproduce,
-                      distribute, or create derivative works from any content
-                      without prior written consent.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">8. Limitation of Liability</h3>
-                    <p className="text-muted leading-relaxed">
-                      To the maximum extent permitted by law, Wallspace Ltd
-                      shall not be liable for any indirect, incidental, special,
-                      or consequential damages arising from your use of our
-                      services. Our total liability shall not exceed the amount
-                      paid by you, if any, for the specific service giving rise
-                      to the claim.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">9. Termination</h3>
-                    <p className="text-muted leading-relaxed">
-                      We reserve the right to suspend or terminate your access
-                      to our services at any time for any reason, including
-                      breach of these Terms. You may terminate your account at
-                      any time by contacting us. Termination does not affect
-                      any rights or obligations accrued prior to the date of
-                      termination.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">10. Governing Law</h3>
-                    <p className="text-muted leading-relaxed">
-                      These Terms are governed by and construed in accordance
-                      with the laws of England and Wales. Any disputes arising
-                      from these Terms shall be subject to the exclusive
-                      jurisdiction of the courts of England and Wales.
-                    </p>
-                  </div>
+                <h2 className="text-2xl mb-4">1. About These Terms</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>These terms govern your use of wallspace.co and the Wallspace platform (the &ldquo;Platform&rdquo;). By creating an account or using the Platform, you agree to be bound by these terms.</p>
+                  <p>Wallspace is a marketplace and platform. It facilitates connections between artists, venues, and buyers. <strong className="text-foreground">Wallspace is not a seller, and is not a party to any contract of sale between an artist and a buyer.</strong></p>
+                  <p>These terms should be read alongside our <Link href="/privacy" className="text-accent hover:underline">Privacy Policy</Link>, <Link href="/cookies" className="text-accent hover:underline">Cookie Policy</Link>, <Link href="/artist-agreement" className="text-accent hover:underline">Artist Agreement</Link>, and <Link href="/venue-agreement" className="text-accent hover:underline">Venue Partnership Agreement</Link>.</p>
                 </div>
               </div>
 
-              {/* Privacy Policy */}
-              <div className="border-t border-border pt-12">
-                <h2 className="text-3xl mb-6">Privacy Policy</h2>
-
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-xl mb-3">1. Information We Collect</h3>
-                    <p className="text-muted leading-relaxed">
-                      We collect information you provide directly, such as your
-                      name, email address, and any other details submitted
-                      through forms on our website. We also collect certain
-                      technical information automatically, including your IP
-                      address, browser type, and usage patterns through cookies
-                      and similar technologies.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">2. How We Use Your Information</h3>
-                    <p className="text-muted leading-relaxed">
-                      We use your information to provide and improve our
-                      services, communicate with you, process transactions,
-                      and comply with legal obligations. We do not sell your
-                      personal information to third parties.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">3. Data Sharing</h3>
-                    <p className="text-muted leading-relaxed">
-                      We may share your information with trusted third-party
-                      service providers who assist us in operating our platform,
-                      such as payment processors and delivery partners. We
-                      require all third parties to respect the security of your
-                      data and to treat it in accordance with applicable laws.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">4. Data Retention</h3>
-                    <p className="text-muted leading-relaxed">
-                      We retain your personal information only for as long as
-                      necessary to fulfil the purposes for which it was
-                      collected, including to satisfy legal, accounting, or
-                      reporting requirements. When your data is no longer
-                      required, it will be securely deleted or anonymised.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">5. Your Rights</h3>
-                    <p className="text-muted leading-relaxed">
-                      Under UK data protection law, you have the right to
-                      access, correct, or delete your personal data. You may
-                      also object to or restrict certain processing activities.
-                      To exercise any of these rights, please contact us at
-                      hello@wallspace.co.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">6. Cookies</h3>
-                    <p className="text-muted leading-relaxed">
-                      Our website uses cookies to enhance your browsing
-                      experience and analyse site traffic. You can control
-                      cookie settings through your browser preferences. For
-                      more information about the cookies we use, please contact
-                      us.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xl mb-3">7. Contact</h3>
-                    <p className="text-muted leading-relaxed">
-                      If you have any questions about this Privacy Policy or
-                      our data practices, please contact us at
-                      hello@wallspace.co or write to us at Wallspace Ltd,
-                      London, UK.
-                    </p>
-                  </div>
+              <div>
+                <h2 className="text-2xl mb-4">2. Definitions</h2>
+                <div className="space-y-2 text-muted leading-relaxed">
+                  <p><strong className="text-foreground">Platform</strong> means the Wallspace website, services, and tools.</p>
+                  <p><strong className="text-foreground">Artist</strong> means a user accepted onto the Platform to list and sell artwork.</p>
+                  <p><strong className="text-foreground">Venue</strong> means a commercial premises registered on the Platform to browse and display artwork.</p>
+                  <p><strong className="text-foreground">Buyer</strong> means any person who purchases artwork through the Platform.</p>
+                  <p><strong className="text-foreground">Artwork</strong> means any original creative work listed on the Platform.</p>
+                  <p><strong className="text-foreground">Free Loan</strong> means an arrangement where an artist lends artwork to a venue at no cost.</p>
+                  <p><strong className="text-foreground">Revenue Share</strong> means an arrangement where a venue receives an agreed percentage of sales from artwork displayed on their premises.</p>
+                  <p><strong className="text-foreground">Direct Purchase</strong> means a transaction where a buyer purchases artwork outright.</p>
+                  <p><strong className="text-foreground">QR Label</strong> means the scannable label placed alongside displayed artwork, linking to the artwork&rsquo;s listing on the Platform.</p>
                 </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">3. The Wallspace Platform</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Wallspace connects artists with commercial venues such as cafes, restaurants, hotels, offices, and bars. The Platform enables artists to showcase their work and enables venues to discover and source original artwork.</p>
+                  <p>Wallspace is not a party to any sale. The contract of sale is directly between the artist and the buyer. Wallspace facilitates the connection and provides payment infrastructure, but does not manufacture, store, inspect, or ship artwork.</p>
+                  <p>Wallspace does not hold buyer funds. Payments are processed and distributed via Stripe Connect, a third-party payment service.</p>
+                  <p>Wallspace curates artist applications but does not guarantee placement in any venue. Wallspace is not responsible for the quality, safety, legality, or suitability of any artwork listed on the Platform.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">4. Account Registration</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>You must be at least 18 years old to create an account. You must provide accurate, complete, and current information during registration and keep it updated.</p>
+                  <p>You are responsible for maintaining the security of your account and for all activity that occurs under it. You must notify Wallspace immediately if you suspect unauthorised access.</p>
+                  <p>One account per person or entity. Wallspace may refuse or revoke accounts at its discretion.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">5. Artist-Specific Terms</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Artists must be accepted through the application process, which is at the sole discretion of Wallspace. Acceptance is based on quality, originality, consistency, and commercial suitability.</p>
+                  <p>Accepted artists must select a membership plan with associated monthly fees and platform fees on sales, as detailed on the <Link href="/pricing" className="text-accent hover:underline">Pricing</Link> page.</p>
+                  <p>Artists must maintain accurate portfolio listings with genuine photographs of their own work. Artists grant Wallspace a non-exclusive, royalty-free licence to display and use artwork images for Platform operation and marketing. Full copyright and ownership is retained by the artist at all times.</p>
+                  <p>Artists are responsible for fulfilment of all orders, including packing, shipping, and delivery.</p>
+                  <p>Full artist obligations are set out in the <Link href="/artist-agreement" className="text-accent hover:underline">Artist Agreement</Link>.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">6. Venue-Specific Terms</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Venues may register and use the Platform at no cost. There are no registration fees, membership fees, commissions, or hidden charges while you maintain an active account.</p>
+                  <p>Venues must exercise reasonable care over displayed artwork, to the same standard as their own property of equivalent value. Venues are liable for damage caused by the negligence of venue staff, contractors, or agents.</p>
+                  <p>Venues must hold appropriate public liability insurance. QR labels must remain clearly visible and unobstructed on all displayed artwork.</p>
+                  <p>Full venue obligations are set out in the <Link href="/venue-agreement" className="text-accent hover:underline">Venue Partnership Agreement</Link>.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">7. Buyer Terms</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Buyers may purchase artwork by scanning QR labels on displayed artwork or by browsing the Platform directly. The contract of sale is between the buyer and the artist. Wallspace is not the seller.</p>
+                  <p>Prices are displayed in GBP. Payment is processed via Stripe. Wallspace does not hold buyer funds at any point.</p>
+                  <p><strong className="text-foreground">Cooling-off period:</strong> Under the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013, you have a 14-day cooling-off period for online purchases, except for bespoke or personalised artwork. To cancel, notify the artist within 14 days of receiving the artwork. Return the artwork in its original condition at your own cost (unless faulty). The artist will issue a refund within 14 days of receiving the returned artwork.</p>
+                  <p><strong className="text-foreground">Faulty or misdescribed goods:</strong> You have additional rights under the Consumer Rights Act 2015, including the right to repair, replacement, or refund for goods that are faulty or not as described.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">8. Payment Processing</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>All payments are processed through Stripe and Stripe Connect. Wallspace does not hold, process, or have access to buyer payment details.</p>
+                  <p>Artist membership fees are billed monthly via Stripe. Platform fees are deducted automatically at the point of each transaction via Stripe Connect.</p>
+                  <p>Wallspace is not responsible for payment failures, delays, or errors caused by Stripe or any payment provider.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">9. Content and Intellectual Property</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Artists retain full copyright and ownership of their work at all times. By listing artwork on the Platform, artists grant Wallspace a non-exclusive, worldwide, royalty-free licence to use, display, and reproduce artwork images for Platform operation and marketing. This licence continues while the artwork is listed, plus a 90-day wind-down period after removal.</p>
+                  <p><strong className="text-foreground">Prohibited content:</strong></p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li>Work that infringes the intellectual property rights of others</li>
+                    <li>AI-generated artwork, in whole or in part</li>
+                    <li>Obscene, offensive, defamatory, or unlawful material</li>
+                    <li>Fraudulent or misleading content</li>
+                  </ul>
+                  <p>Wallspace branding, logos, and original Platform content are the property of Wallspace and may not be used without permission.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">10. Prohibited Conduct</h2>
+                <div className="text-muted leading-relaxed">
+                  <p className="mb-3">You must not:</p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li>Use the Platform for any unlawful purpose</li>
+                    <li>List AI-generated art or work you do not own</li>
+                    <li>Misrepresent yourself, your work, or your venue</li>
+                    <li>Circumvent the Platform to avoid fees after an introduction has been made</li>
+                    <li>Interfere with Platform operation or security</li>
+                    <li>Scrape, harvest, or collect data from the Platform</li>
+                    <li>Harass, threaten, or abuse other users</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">11. Dispute Resolution</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Users are encouraged to resolve disputes directly with the other party. Wallspace may assist as a facilitator if contacted at <a href="mailto:hello@wallspace.co" className="text-accent hover:underline">hello@wallspace.co</a>, but Wallspace is not an arbitrator and is not liable for the outcome of any dispute.</p>
+                  <p>Nothing in these terms affects your statutory consumer rights.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">12. Limitation of Liability</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>The Platform is provided &ldquo;as is&rdquo; and &ldquo;as available&rdquo;. Wallspace excludes all warranties to the maximum extent permitted by law.</p>
+                  <p>Wallspace is not liable for:</p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li>Loss of profits, business, data, or goodwill</li>
+                    <li>Indirect or consequential damages</li>
+                    <li>Acts or omissions of other users</li>
+                    <li>Failures of third-party service providers (including Stripe)</li>
+                  </ul>
+                  <p>Total aggregate liability is capped at the greater of (a) fees you have paid to Wallspace in the prior 12 months, or (b) &pound;100.</p>
+                  <p>Nothing in these terms excludes liability for death or personal injury caused by negligence, fraud, or any liability that cannot be excluded by law.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">13. Indemnification</h2>
+                <p className="text-muted leading-relaxed">You agree to indemnify and hold Wallspace harmless from any claims, losses, or damages arising from your breach of these terms, your use of the Platform, your artwork or content, your transactions with other users, or disputes between you and other users.</p>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">14. Termination</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Either party may terminate with 30 days&rsquo; written notice. Wallspace may suspend or terminate accounts immediately for breach, prohibited conduct, or where continued access poses a risk.</p>
+                  <p>On termination: artists must arrange collection of artwork from venues within 30 days; outstanding payments will be processed; no refund is given for the remainder of any paid membership period; no further charges will be made.</p>
+                  <p>Sections relating to intellectual property, limitation of liability, indemnification, and governing law survive termination.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">15. Changes to These Terms</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Wallspace may update these terms from time to time. Material changes will be notified by email or Platform notice at least 14 days before taking effect.</p>
+                  <p>Continued use of the Platform after changes take effect constitutes acceptance of the updated terms.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">16. General Provisions</h2>
+                <p className="text-muted leading-relaxed">These terms, together with the Artist Agreement, Venue Partnership Agreement, Privacy Policy, and Cookie Policy, constitute the entire agreement between you and Wallspace. If any provision is found to be unenforceable, the remaining provisions continue in full force. A failure to enforce any right is not a waiver of that right. You may not assign your rights under these terms without consent. Wallspace may assign its rights freely. No third party has rights under the Contracts (Rights of Third Parties) Act 1999.</p>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">17. Governing Law and Jurisdiction</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>These terms are governed by the laws of England and Wales. The courts of England and Wales have exclusive jurisdiction over any disputes.</p>
+                  <p>If you are a consumer, nothing in these terms affects the consumer protections available to you under the laws of your country of residence.</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">18. Contact</h2>
+                <p className="text-muted leading-relaxed">
+                  Wallspace, London, United Kingdom.<br />
+                  Email: <a href="mailto:hello@wallspace.co" className="text-accent hover:underline">hello@wallspace.co</a><br />
+                  For data protection queries, see our <Link href="/privacy" className="text-accent hover:underline">Privacy Policy</Link>.
+                </p>
               </div>
             </div>
           </div>

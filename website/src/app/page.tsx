@@ -150,20 +150,20 @@ export default function Home() {
         </header>
 
         {/* Hero content */}
-        <div className="flex-1 flex items-center justify-center sm:justify-start px-6 lg:px-10 pb-16 sm:pb-32">
+        <div className="flex-1 flex items-center justify-center px-6 lg:px-10 pb-16 sm:pb-32">
           <div className="max-w-[1400px] mx-auto w-full">
-            <div className="max-w-2xl text-center sm:text-left">
-              <h1 className="font-serif text-[2.6rem] sm:text-5xl md:text-6xl lg:text-7xl leading-[0.9] tracking-[-0.02em] text-white mb-5 sm:mb-6">
+            <div className="max-w-2xl mx-auto text-center">
+              <h1 className="font-serif text-[2.6rem] sm:text-5xl md:text-[4.5rem] lg:text-[5.5rem] leading-[0.9] tracking-[-0.02em] text-white mt-6 sm:mt-10 mb-5 sm:mb-6">
                 WALLSPACE
               </h1>
               <p className="text-lg sm:text-xl lg:text-2xl text-white/90 font-light leading-snug mb-4 sm:mb-3">
                 The curated art marketplace<br className="sm:hidden" /> for commercial spaces.
               </p>
-              <p className="text-sm sm:text-base lg:text-lg text-white/50 leading-relaxed mb-9 sm:mb-10 max-w-lg mx-auto sm:mx-0">
+              <p className="text-sm sm:text-base lg:text-lg text-white/50 leading-relaxed mb-9 sm:mb-10 max-w-lg mx-auto">
                 Venues source original artwork risk-free. Artists access
                 high-intent commercial demand.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link
                   href="/browse"
                   className="inline-flex items-center justify-center px-10 sm:px-8 py-3 sm:py-4 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors"
