@@ -5,6 +5,7 @@ import Image from "next/image";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
 import Button from "@/components/Button";
 import { artists, type ArtistWork, type SizePricing } from "@/data/artists";
+import { uploadImage } from "@/lib/upload";
 
 const artist = artists[0];
 
@@ -48,6 +49,7 @@ export default function PortfolioPage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [form, setForm] = useState<WorkFormState>(emptyWork);
   const [hoveredWork, setHoveredWork] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -84,14 +86,13 @@ export default function PortfolioPage() {
     setShowForm(true);
   }
 
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setForm((p) => ({ ...p, imagePreview: ev.target?.result as string }));
-    };
-    reader.readAsDataURL(file);
+    setUploading(true);
+    const url = await uploadImage(file, "artworks");
+    setForm((p) => ({ ...p, imagePreview: url }));
+    setUploading(false);
   }
 
   function addSize() {
@@ -203,7 +204,7 @@ export default function PortfolioPage() {
                     onClick={() => fileInputRef.current?.click()}
                     className="px-4 py-2.5 text-sm font-medium border border-border rounded-sm hover:border-foreground/30 transition-colors"
                   >
-                    {form.imagePreview ? "Replace Image" : "Upload Image"}
+                    {uploading ? "Uploading..." : form.imagePreview ? "Replace Image" : "Upload Image"}
                   </button>
                   <p className="text-[10px] text-muted mt-2">JPG, PNG, or WebP. Recommended minimum 1200px wide.</p>
                 </div>

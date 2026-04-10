@@ -6,6 +6,7 @@ import Link from "next/link";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
 import { artists, type ArtistWork } from "@/data/artists";
 import { themes as allThemes } from "@/data/themes";
+import { uploadImage } from "@/lib/upload";
 
 const artist = artists[0];
 
@@ -117,12 +118,15 @@ export default function ProfileEditorPage() {
     setWorks([...artist.works]);
   }, []);
 
-  function handleFileUpload(field: "bannerImage" | "profileImage", e: React.ChangeEvent<HTMLInputElement>) {
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFileUpload(field: "bannerImage" | "profileImage", e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => update(field, ev.target?.result as string);
-    reader.readAsDataURL(file);
+    setUploading(true);
+    const url = await uploadImage(file, "avatars");
+    update(field, url);
+    setUploading(false);
   }
 
   function saveWorks(updated: ArtistWork[]) {
@@ -143,12 +147,13 @@ export default function ProfileEditorPage() {
     setShowWorkForm(true);
   }
 
-  function handleWorkImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleWorkImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setWorkForm((p) => ({ ...p, image: ev.target?.result as string }));
-    reader.readAsDataURL(file);
+    setUploading(true);
+    const url = await uploadImage(file, "artworks");
+    setWorkForm((p) => ({ ...p, image: url }));
+    setUploading(false);
   }
 
   function submitWork() {
