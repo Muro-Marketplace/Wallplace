@@ -22,6 +22,11 @@ export const metadata: Metadata = {
     "Wallspace is a curated art marketplace connecting independent venues with emerging artists. Source artwork risk-free. Get discovered by commercial spaces.",
 };
 
+export const viewport = {
+  themeColor: "#1A1A1A",
+  viewportFit: "cover" as const,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
