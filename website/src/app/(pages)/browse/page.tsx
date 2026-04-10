@@ -138,6 +138,7 @@ export default function BrowsePortfoliosPage() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"compact" | "expanded">("compact");
+  const [mobileGrid, setMobileGrid] = useState<1 | 2>(1);
 
   // Gallery mode filters
   const [galleryTheme, setGalleryTheme] = useState("");
@@ -454,7 +455,7 @@ export default function BrowsePortfoliosPage() {
           <div className="absolute inset-0 bg-black/60" />
         </div>
 
-        <div className="relative max-w-[1400px] mx-auto px-6 pt-30 lg:pt-28 pb-12 lg:pb-14">
+        <div className="relative max-w-[1400px] mx-auto px-6 pt-24 lg:pt-28 pb-8 lg:pb-14">
           <div className="py-4">
             <h1 className="font-serif text-4xl lg:text-5xl text-white mb-3 leading-tight">
               The Marketplace
@@ -553,11 +554,26 @@ export default function BrowsePortfoliosPage() {
                     {filteredArtists.length} artist
                     {filteredArtists.length !== 1 ? "s" : ""}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="flex items-center gap-2 px-4 py-2 border border-border rounded-sm text-sm text-foreground hover:border-foreground/30 transition-colors duration-150 cursor-pointer"
-                  >
+                  <div className="flex items-center gap-2">
+                    {/* Grid toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setMobileGrid(mobileGrid === 1 ? 2 : 1)}
+                      className={`p-2 border rounded-sm transition-colors ${mobileGrid === 2 ? "border-foreground bg-foreground text-white" : "border-border text-muted"}`}
+                      title={mobileGrid === 1 ? "Two columns" : "Single column"}
+                    >
+                      {mobileGrid === 2 ? (
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="6" height="6" rx="0.5" /><rect x="8" y="0" width="6" height="6" rx="0.5" /><rect x="0" y="8" width="6" height="6" rx="0.5" /><rect x="8" y="8" width="6" height="6" rx="0.5" /></svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="14" height="4" rx="0.5" /><rect x="0" y="5" width="14" height="4" rx="0.5" /><rect x="0" y="10" width="14" height="4" rx="0.5" /></svg>
+                      )}
+                    </button>
+                    {/* Filters */}
+                    <button
+                      type="button"
+                      onClick={() => setSidebarOpen(!sidebarOpen)}
+                      className="flex items-center gap-2 px-4 py-2 border border-border rounded-sm text-sm text-foreground hover:border-foreground/30 transition-colors duration-150 cursor-pointer"
+                    >
                     <svg
                       width="14"
                       height="14"
@@ -574,6 +590,7 @@ export default function BrowsePortfoliosPage() {
                     </svg>
                     Filters{hasActiveFilters && " •"}
                   </button>
+                  </div>
                 </div>
 
                 {/* Mobile filter panel */}
@@ -643,7 +660,7 @@ export default function BrowsePortfoliosPage() {
                     </button>
                   </div>
                 ) : viewMode === "compact" ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                  <div className={`grid ${mobileGrid === 2 ? "grid-cols-2" : "grid-cols-1"} sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-5`}>
                     {filteredArtists.map((artist) => {
                       const distance = calcDistance(artist.coordinates.lat, artist.coordinates.lng);
                       return <BrowseArtistCard key={artist.slug} artist={artist} distance={distance} />;

@@ -260,14 +260,14 @@ export default function VenuesPage() {
               <span className="text-muted shrink-0">&rarr;</span>
               <span className="bg-accent/10 border border-accent/30 text-accent rounded-sm px-3 py-1.5 font-medium whitespace-nowrap">You share in the sale</span>
             </div>
-            <div className="flex sm:hidden flex-col items-start gap-1.5 mb-8 text-xs">
-              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-2 w-full">Customer sees art</span>
-              <span className="text-muted pl-3">&darr;</span>
-              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-2 w-full">Scans QR code</span>
-              <span className="text-muted pl-3">&darr;</span>
-              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-2 w-full">Buys via Wallspace</span>
-              <span className="text-muted pl-3">&darr;</span>
-              <span className="bg-accent/10 border border-accent/30 text-accent rounded-sm px-3 py-2 w-full font-medium">You share in the sale</span>
+            <div className="flex sm:hidden flex-col items-center gap-1.5 mb-8 text-xs">
+              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-2 w-full text-center">Customer sees art</span>
+              <span className="text-muted">&darr;</span>
+              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-2 w-full text-center">Scans QR code</span>
+              <span className="text-muted">&darr;</span>
+              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-2 w-full text-center">Buys via Wallspace</span>
+              <span className="text-muted">&darr;</span>
+              <span className="bg-accent/10 border border-accent/30 text-accent rounded-sm px-3 py-2 w-full text-center font-medium">You share in the sale</span>
             </div>
             <p className="text-muted leading-relaxed">
               Revenue share is agreed directly between you and the artist when arranging

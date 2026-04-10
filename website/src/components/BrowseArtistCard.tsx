@@ -165,16 +165,6 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
           <p className="text-sm text-muted mb-3">
             {artist.primaryMedium} &middot; {artist.location}
           </p>
-          <div className="flex flex-wrap gap-1">
-            {artist.styleTags.slice(0, 3).map((tag) => (
-              <span
-                key={tag}
-                className="inline-block px-2 py-0.5 text-[11px] text-muted bg-background border border-border rounded-sm"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
           {/* Commercial terms */}
           <div className="flex flex-wrap gap-1.5 mt-2">
             {artist.openToFreeLoan && (
@@ -197,18 +187,17 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
                 e.stopPropagation();
                 router.push(`/contact?artist=${artist.slug}`);
               }}
-              className="text-xs text-muted hover:text-accent transition-colors cursor-pointer"
+              className="px-3 py-1.5 text-xs font-medium border border-border rounded-sm text-foreground hover:border-accent hover:text-accent transition-colors cursor-pointer"
             >
               Send Message
             </button>
-            <span className="text-border">·</span>
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 router.push(`/browse/${artist.slug}`);
               }}
-              className="text-xs font-medium text-foreground hover:text-accent transition-colors cursor-pointer"
+              className="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-sm hover:bg-accent-hover transition-colors cursor-pointer"
             >
               Buy Now
             </button>
