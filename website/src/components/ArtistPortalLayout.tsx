@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
   { label: "Dashboard", href: "/artist-portal" },
+  { label: "Messages", href: "/artist-portal/messages" },
   { label: "Edit Profile", href: "/artist-portal/profile" },
   { label: "My Portfolio", href: "/artist-portal/portfolio" },
   { label: "Collections", href: "/artist-portal/collections" },

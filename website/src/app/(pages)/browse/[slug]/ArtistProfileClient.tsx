@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { ArtistWork } from "@/data/artists";
 import { slugify } from "@/lib/slugify";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import SaveButton from "@/components/SaveButton";
 
 interface ArtistProfileClientProps {
@@ -25,6 +26,7 @@ export default function ArtistProfileClient({
 }: ArtistProfileClientProps) {
   const router = useRouter();
   const { addItem } = useCart();
+  const { user, displayName: authDisplayName, userType } = useAuth();
   const [activeTheme, setActiveTheme] = useState("All");
   const [bioExpanded, setBioExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -387,28 +389,41 @@ export default function ArtistProfileClient({
                     e.preventDefault();
                     const form = e.currentTarget;
                     const data = new FormData(form);
+                    const senderName = (data.get("senderName") as string) || authDisplayName || "Anonymous";
                     try {
-                      const res = await fetch("/api/enquiry", {
+                      await fetch("/api/messages", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                          senderName: data.get("senderName"),
-                          senderEmail: data.get("senderEmail"),
+                          senderId: user?.id || null,
+                          senderName,
+                          senderType: userType || "anonymous",
+                          recipientSlug: artistSlug,
+                          content: `[${data.get("enquiryType")}] ${currentWork ? `Re: ${currentWork.title} – ` : ""}${data.get("message")}`,
+                        }),
+                      });
+                      // Also save to enquiries table for backward compatibility
+                      await fetch("/api/enquiry", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          senderName,
+                          senderEmail: data.get("senderEmail") || user?.email || "",
                           artistSlug,
                           workTitle: currentWork?.title || null,
                           enquiryType: data.get("enquiryType"),
                           message: data.get("message"),
                         }),
                       });
-                      if (res.ok) setEnquirySent(true);
+                      setEnquirySent(true);
                     } catch {
-                      setEnquirySent(true); // Show success anyway for UX
+                      setEnquirySent(true);
                     }
                   }}
                   className="space-y-3"
                 >
-                  <input type="text" name="senderName" placeholder="Your name" required className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50" />
-                  <input type="email" name="senderEmail" placeholder="Your email" required className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50" />
+                  <input type="text" name="senderName" placeholder="Your name" required defaultValue={authDisplayName || ""} className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50" />
+                  <input type="email" name="senderEmail" placeholder="Your email" required defaultValue={user?.email || ""} className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50" />
                   <select name="enquiryType" className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm text-muted focus:outline-none focus:border-accent/50">
                     <option value="venue_looking">I&apos;m a venue looking for art</option>
                     <option value="purchasing">I&apos;m interested in purchasing</option>

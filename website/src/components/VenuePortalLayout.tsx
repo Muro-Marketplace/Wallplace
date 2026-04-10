@@ -7,10 +7,9 @@ import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
   { label: "Dashboard", href: "/venue-portal" },
+  { label: "Messages", href: "/venue-portal/messages" },
   { label: "Browse Portfolios", href: "/browse" },
-  { label: "Browse Gallery", href: "/browse" },
   { label: "Saved Artists", href: "/venue-portal/saved" },
-  { label: "My Enquiries", href: "/venue-portal/enquiries" },
   { label: "My Orders", href: "/venue-portal/orders" },
   { label: "Venue Profile", href: "/venue-portal/profile" },
   { label: "Premium Tools", href: "/venue-portal/premium" },
