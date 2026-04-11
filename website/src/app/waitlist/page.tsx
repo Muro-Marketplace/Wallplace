@@ -70,17 +70,17 @@ export default function WaitlistPage() {
             ) : (
               <>
                 {/* Logo */}
-                <h2 className="font-serif text-5xl lg:text-7xl tracking-tight text-white mb-6">
+                <h2 className="font-serif text-4xl lg:text-5xl tracking-tight text-white mb-8">
                   Wallspace
                 </h2>
 
                 {/* Headline */}
-                <h1 className="font-serif text-lg lg:text-xl leading-snug tracking-[-0.01em] text-white/70 mb-2">
+                <h1 className="font-serif text-[clamp(2rem,5vw,3.25rem)] lg:text-[2.75rem] leading-[1.05] tracking-[-0.02em] text-white mb-3">
                   The art marketplace for commercial spaces.
                 </h1>
 
                 {/* Subhead */}
-                <p className="text-sm text-white/40 leading-relaxed mb-8 mx-auto max-w-xs">
+                <p className="text-base text-white/60 leading-relaxed mb-8 mx-auto max-w-sm">
                   Connecting artists with venues that want
                   original work on their walls. Join the waitlist to be first
                   in.
