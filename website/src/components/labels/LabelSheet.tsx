@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import QRLabel from "./QRLabel";
+import { LABEL_SIZES, type LabelSize } from "./QRLabel";
 import { generateQRDataURL } from "@/lib/qr";
 import { slugify } from "@/lib/slugify";
 
@@ -19,6 +20,8 @@ export interface LabelData {
   _sourceMedium?: string;
   _sourcePrice?: string;
   _sourceDimensions?: string;
+  labelSize?: LabelSize;
+  tagline?: string;
 }
 
 interface LabelSheetProps {
@@ -64,13 +67,19 @@ export default function LabelSheet({ labels, pageIndex }: LabelSheetProps) {
     );
   }
 
-  // Split into pages of 8
+  // Determine size from first label (all labels in a batch share the same size)
+  const currentSize = labels[0]?.labelSize || "medium";
+  const sizeConfig = LABEL_SIZES.find((s) => s.key === currentSize) || LABEL_SIZES[1];
+  const perPage = sizeConfig.perPage;
+  const cols = currentSize === "xlarge" ? 1 : currentSize === "large" ? 2 : 2;
+  const rows = Math.ceil(perPage / cols);
+
+  // Split into pages
   const pages: typeof expandedLabels[] = [];
-  for (let i = 0; i < expandedLabels.length; i += 8) {
-    pages.push(expandedLabels.slice(i, i + 8));
+  for (let i = 0; i < expandedLabels.length; i += perPage) {
+    pages.push(expandedLabels.slice(i, i + perPage));
   }
 
-  // If pageIndex specified, render only that page
   const pagesToRender = pageIndex !== undefined ? [pages[pageIndex]].filter(Boolean) : pages;
 
   return (
@@ -82,8 +91,8 @@ export default function LabelSheet({ labels, pageIndex }: LabelSheetProps) {
             key={actualPageIndex}
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2, 70mm)",
-              gridTemplateRows: "repeat(4, 50mm)",
+              gridTemplateColumns: `repeat(${cols}, ${sizeConfig.width})`,
+              gridTemplateRows: `repeat(${rows}, ${sizeConfig.height})`,
               gap: "0mm",
               justifyContent: "center",
             }}
@@ -98,6 +107,8 @@ export default function LabelSheet({ labels, pageIndex }: LabelSheetProps) {
                 workPrice={item.label.workPrice}
                 qrDataUrl={qrUrls[item.uniqueIndex] || ""}
                 isPortfolioLabel={item.label.isPortfolioLabel}
+                labelSize={currentSize}
+                tagline={item.label.tagline}
               />
             ))}
           </div>

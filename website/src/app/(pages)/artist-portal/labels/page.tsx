@@ -6,6 +6,7 @@ import Image from "next/image";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
 import LabelPreview from "@/components/labels/LabelPreview";
 import type { LabelData } from "@/components/labels/LabelSheet";
+import { LABEL_SIZES, type LabelSize } from "@/components/labels/QRLabel";
 import { useCurrentArtist } from "@/hooks/useCurrentArtist";
 import { authFetch } from "@/lib/api-client";
 
@@ -34,6 +35,8 @@ export default function LabelsPage() {
   const [venues, setVenues] = useState<string[]>([]);
   const [venueDropdownOpen, setVenueDropdownOpen] = useState(false);
   const [preselected, setPreselected] = useState(false);
+  const [labelSize, setLabelSize] = useState<LabelSize>("medium");
+  const [tagline, setTagline] = useState("");
 
   // Pre-select venue and works from query params (from placement QR button)
   useEffect(() => {
@@ -121,6 +124,8 @@ export default function LabelsPage() {
         venueName: selectedVenue || undefined,
         quantity: portfolioQty,
         isPortfolioLabel: true,
+        labelSize,
+        tagline: (labelSize === "large" || labelSize === "xlarge") ? tagline || undefined : undefined,
       });
     }
 
@@ -138,6 +143,8 @@ export default function LabelsPage() {
         _sourceMedium: work.medium,
         _sourcePrice: work.priceBand,
         _sourceDimensions: work.dimensions,
+        labelSize,
+        tagline: (labelSize === "large" || labelSize === "xlarge") ? tagline || undefined : undefined,
       });
     });
     return labels;
@@ -164,6 +171,40 @@ export default function LabelsPage() {
           {/* Customisation panel */}
           <div className="flex-1 bg-surface border border-border rounded-sm p-4">
             <h3 className="text-xs font-medium tracking-wider uppercase text-muted mb-3">Label Options</h3>
+
+            {/* Size selector */}
+            <div className="mb-3">
+              <p className="text-xs text-muted mb-1.5">Label Size</p>
+              <div className="flex gap-1.5">
+                {LABEL_SIZES.map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={() => setLabelSize(s.key)}
+                    className={`px-3 py-1.5 text-xs rounded-sm border transition-colors ${
+                      labelSize === s.key ? "bg-foreground text-white border-foreground" : "border-border text-muted hover:border-foreground/30"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tagline for large sizes */}
+            {(labelSize === "large" || labelSize === "xlarge") && (
+              <div className="mb-3">
+                <p className="text-xs text-muted mb-1.5">Tagline (shown on label)</p>
+                <input
+                  type="text"
+                  value={tagline}
+                  onChange={(e) => setTagline(e.target.value)}
+                  placeholder="e.g. Scan to view & purchase this artwork"
+                  maxLength={80}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/60"
+                />
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-x-5 gap-y-2">
               {([
                 { key: "showMedium" as const, label: "Medium" },

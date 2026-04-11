@@ -3,6 +3,7 @@
 import { useState } from "react";
 import LabelSheet from "./LabelSheet";
 import type { LabelData } from "./LabelSheet";
+import { LABEL_SIZES, type LabelSize } from "./QRLabel";
 
 interface LabelPreviewProps {
   labels: LabelData[];
@@ -16,7 +17,9 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
 
   // Calculate total including quantities
   const totalCount = labels.reduce((sum, l) => sum + l.quantity, 0);
-  const pageCount = Math.ceil(totalCount / 8);
+  const currentSize = labels[0]?.labelSize || "medium";
+  const sizeConfig = LABEL_SIZES.find((s) => s.key === currentSize) || LABEL_SIZES[1];
+  const pageCount = Math.ceil(totalCount / sizeConfig.perPage);
 
   function updateLabel(index: number, updates: Partial<LabelData>) {
     setLabels((prev) => prev.map((l, i) => (i === index ? { ...l, ...updates } : l)));
@@ -68,6 +71,24 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
           {showControls && (
             <div className="no-print w-80 shrink-0 bg-surface border-r border-border overflow-y-auto p-4 space-y-3">
               <h3 className="text-xs font-medium tracking-wider uppercase text-muted mb-2">Edit Labels</h3>
+
+              {/* Size selector */}
+              <div className="bg-background border border-border rounded-sm p-3">
+                <p className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Label Size</p>
+                <div className="flex flex-wrap gap-1">
+                  {LABEL_SIZES.map((s) => (
+                    <button
+                      key={s.key}
+                      onClick={() => setLabels((prev) => prev.map((l) => ({ ...l, labelSize: s.key as LabelSize })))}
+                      className={`px-2 py-0.5 text-[10px] rounded-sm border transition-colors ${
+                        currentSize === s.key ? "bg-accent text-white border-accent" : "text-muted border-border hover:border-foreground/30"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {labels.map((label, index) => (
                 <div key={index} className="bg-background border border-border rounded-sm p-3 space-y-2">

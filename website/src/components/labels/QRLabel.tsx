@@ -1,3 +1,12 @@
+export type LabelSize = "small" | "medium" | "large" | "xlarge";
+
+export const LABEL_SIZES: { key: LabelSize; label: string; width: string; height: string; qr: string; perPage: number }[] = [
+  { key: "small", label: "Small", width: "55mm", height: "35mm", qr: "20mm", perPage: 15 },
+  { key: "medium", label: "Medium", width: "70mm", height: "50mm", qr: "28mm", perPage: 8 },
+  { key: "large", label: "Large", width: "90mm", height: "60mm", qr: "34mm", perPage: 6 },
+  { key: "xlarge", label: "Extra Large", width: "130mm", height: "80mm", qr: "44mm", perPage: 3 },
+];
+
 interface QRLabelProps {
   artistName: string;
   workTitle?: string;
@@ -6,6 +15,8 @@ interface QRLabelProps {
   workPrice?: string;
   qrDataUrl: string;
   isPortfolioLabel?: boolean;
+  labelSize?: LabelSize;
+  tagline?: string;
 }
 
 export default function QRLabel({
@@ -16,15 +27,21 @@ export default function QRLabel({
   workPrice,
   qrDataUrl,
   isPortfolioLabel,
+  labelSize = "medium",
+  tagline,
 }: QRLabelProps) {
+  const sizeConfig = LABEL_SIZES.find((s) => s.key === labelSize) || LABEL_SIZES[1];
+  const isLarge = labelSize === "large" || labelSize === "xlarge";
+  const isSmall = labelSize === "small";
+
   return (
     <div
       className="qr-label"
       style={{
-        width: "70mm",
-        height: "50mm",
+        width: sizeConfig.width,
+        height: sizeConfig.height,
         border: "0.5pt solid #ddd",
-        padding: "4mm",
+        padding: isSmall ? "3mm" : isLarge ? "5mm" : "4mm",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "stretch",
@@ -49,7 +66,7 @@ export default function QRLabel({
           <p
             style={{
               fontFamily: "var(--font-serif)",
-              fontSize: "11pt",
+              fontSize: isLarge ? "14pt" : isSmall ? "9pt" : "11pt",
               fontWeight: 600,
               color: "#1A1A1A",
               margin: 0,
@@ -125,9 +142,22 @@ export default function QRLabel({
             </>
           )}
         </div>
+        {isLarge && tagline && (
+          <p
+            style={{
+              fontSize: "7.5pt",
+              color: "#6B6B6B",
+              margin: "2mm 0 0 0",
+              lineHeight: 1.3,
+              fontStyle: "italic",
+            }}
+          >
+            {tagline}
+          </p>
+        )}
         <p
           style={{
-            fontSize: "6.5pt",
+            fontSize: isSmall ? "5.5pt" : "6.5pt",
             color: "#999",
             margin: 0,
             letterSpacing: "0.03em",
@@ -140,8 +170,8 @@ export default function QRLabel({
       {/* Right: QR code */}
       <div
         style={{
-          width: "28mm",
-          height: "28mm",
+          width: sizeConfig.qr,
+          height: sizeConfig.qr,
           flexShrink: 0,
           alignSelf: "center",
         }}
