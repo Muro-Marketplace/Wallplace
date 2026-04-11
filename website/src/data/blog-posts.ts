@@ -58,7 +58,7 @@ This isn't just about aesthetics. Instagram culture means every corner of a venu
 For independent artists, this shift is transformative. Where once you needed a gallery to reach buyers, now a well-placed piece in a busy restaurant can generate more visibility — and more sales — than a month-long exhibition.
 
 The key is accessibility. Venues don't want to navigate the traditional art world. They want a simple way to find, trial, and display artwork. That's exactly what Wallplace was built to do.`,
-    image: "https://images.unsplash.com/photo-1577083552431-6e5fd01988a5?w=800&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1590381105924-c72589b9ef3f?w=800&h=500&fit=crop",
     date: "2026-03-28",
     readTime: "4 min read",
     author: "Wallplace Team",
@@ -84,5 +84,24 @@ The key is accessibility. Venues don't want to navigate the traditional art worl
     readTime: "3 min read",
     author: "Wallplace Team",
     category: "For Artists",
+  },
+  {
+    slug: "revenue-share-explained",
+    title: "Revenue Share: How Artists and Venues Both Win",
+    excerpt: "The revenue share model is transforming how art gets displayed in commercial spaces. Here's how it works and why it benefits everyone involved.",
+    content: `Revenue share is one of the simplest and most powerful ideas in the art-for-venues space: a venue displays an artist's work for free, and when a customer buys a piece, the venue earns a percentage of the sale.
+
+For venues, it's genuinely zero risk. You get beautiful, rotating artwork on your walls without paying a penny upfront. If nothing sells, you've lost nothing. If something does sell, you earn a commission — typically between 5% and 20%.
+
+For artists, it's exposure that actually converts. Instead of paying for advertising or hoping someone stumbles across your website, your work is physically in front of hundreds of people every week. And when someone scans a QR code and makes a purchase, you know exactly which venue drove the sale.
+
+The key to making revenue share work is transparency. Both sides need to know the terms upfront, see the same data, and trust the process. That's why Wallplace tracks everything: QR scans, sales, commissions — all visible in real time to both the artist and the venue.
+
+If you're a venue owner who's been thinking about art for your space but didn't want the commitment of buying pieces outright, revenue share is your answer. And if you're an artist looking for commercial exposure without gallery fees, this model was built for you.`,
+    image: "https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&h=500&fit=crop",
+    date: "2026-03-14",
+    readTime: "4 min read",
+    author: "Wallplace Team",
+    category: "For Venues",
   },
 ];
