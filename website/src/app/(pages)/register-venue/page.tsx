@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { slugify } from "@/lib/slugify";
 
@@ -80,6 +81,7 @@ const initialState: VenueFormState = {
 };
 
 export default function RegisterVenuePage() {
+  const router = useRouter();
   const [form, setForm] = useState(initialState);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -115,22 +117,16 @@ export default function RegisterVenuePage() {
     }
 
     try {
-      const res = await fetch("/api/register-venue", {
+      // Save registration record (for admin reference)
+      await fetch("/api/register-venue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Something went wrong");
-        setSubmitting(false);
-        return;
-      }
+      }).catch(() => {});
 
       // Create auth account
       const venueSlug = slugify(form.venueName);
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { error: authError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
@@ -140,37 +136,49 @@ export default function RegisterVenuePage() {
 
       if (authError) {
         console.error("Auth signup error:", authError);
-        setError("Your venue details were saved but we couldn't create your login account. Please contact support@wallspace.art.");
+        setError(authError.message || "Could not create account. Please try again.");
         setSubmitting(false);
         return;
       }
 
-      // Create venue profile in database so portal works immediately
-      if (authData?.user) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          await fetch("/api/venue-profile", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              name: form.venueName,
-              slug: venueSlug,
-              type: form.venueType,
-              location: form.city,
-              contactName: form.contactName,
-              email: form.email,
-              phone: form.phone,
-              wallSpace: form.wallSpace,
-            }),
-          }).catch((err) => console.error("Venue profile creation error:", err));
-        }
+      // Sign in immediately
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      });
+
+      if (signInError) {
+        console.error("Auto sign-in error:", signInError);
+        // Account created but auto-login failed — send to login page
+        setError("Account created! Please sign in with your credentials.");
+        setSubmitting(false);
+        return;
       }
 
-      setSubmitted(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // Create venue profile so portal works immediately
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await fetch("/api/venue-profile", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            name: form.venueName,
+            slug: venueSlug,
+            type: form.venueType,
+            location: form.city,
+            contactName: form.contactName,
+            email: form.email,
+            phone: form.phone,
+            wallSpace: form.wallSpace,
+          }),
+        }).catch((err) => console.error("Venue profile creation error:", err));
+      }
+
+      // Redirect straight to browse
+      router.push("/browse");
     } catch {
       setError("Network error. Please try again.");
       setSubmitting(false);
@@ -187,16 +195,21 @@ export default function RegisterVenuePage() {
           <div className="w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-6">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C17C5A" strokeWidth="2" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
           </div>
-          <h1 className="text-3xl font-serif mb-3">Registration Received</h1>
+          <h1 className="text-3xl font-serif mb-3">You&rsquo;re In</h1>
           <p className="text-muted leading-relaxed mb-2">
-            Thank you, {form.contactName}. We&rsquo;ve received your venue registration for <strong>{form.venueName}</strong>.
+            Welcome to Wallspace, {form.contactName}. Your venue <strong>{form.venueName}</strong> is set up and ready to go.
           </p>
           <p className="text-muted leading-relaxed mb-8">
-            Our team will review your space and get back to you within 5 business days to discuss next steps.
+            Start browsing artist portfolios and find the perfect work for your space.
           </p>
-          <Link href="/browse" className="inline-flex items-center justify-center px-6 py-3 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors">
-            Discover Art in the Meantime
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link href="/browse" className="inline-flex items-center justify-center px-6 py-3 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors">
+              Browse Art
+            </Link>
+            <Link href="/venue-portal" className="inline-flex items-center justify-center px-6 py-3 border border-border text-foreground text-sm font-medium rounded-sm hover:bg-surface transition-colors">
+              Go to Your Portal
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -226,7 +239,7 @@ export default function RegisterVenuePage() {
               <h2 className="text-2xl font-serif mb-5">What happens next</h2>
               <div className="space-y-4">
                 {[
-                  { step: "01", title: "We review your space", desc: "Our team assesses your venue to match the right artists." },
+                  { step: "01", title: "Create your account", desc: "Register and start browsing immediately. No waiting." },
                   { step: "02", title: "Browse & connect", desc: "Explore artist portfolios and enquire about work you love." },
                   { step: "03", title: "Agree & display", desc: "Arrange terms directly with the artist and start displaying." },
                 ].map((s) => (
