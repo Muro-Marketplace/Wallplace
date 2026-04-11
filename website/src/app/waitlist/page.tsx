@@ -353,7 +353,7 @@ function HowItWorks() {
                     <Step
                       number="03"
                       title="Get Art on Your Walls"
-                      description="Arrange free loan, revenue share, or direct purchase. Swap or rotate any time."
+                      description="Display art for free with optional revenue share, or purchase outright. Rotate any time."
                     />
                   </div>
                 </div>
@@ -364,21 +364,14 @@ function HowItWorks() {
                     icon={
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                     }
-                    title="Free Loan"
-                    description="Display artwork at no cost. Return or rotate any time. Zero financial risk."
-                  />
-                  <DealCard
-                    icon={
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
-                    }
-                    title="Revenue Share"
-                    description="If a customer buys art from your wall, you earn a share of the sale."
+                    title="Display"
+                    description="Art on your walls for free. If a customer buys via QR, you earn a share of the sale. Zero risk."
                   />
                   <DealCard
                     icon={
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 10h20"/></svg>
                     }
-                    title="Direct Purchase"
+                    title="Purchase"
                     description="Buy artwork outright for your permanent collection at transparent prices."
                   />
                 </div>

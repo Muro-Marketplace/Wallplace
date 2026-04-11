@@ -55,8 +55,7 @@ export default function ArtistCarousel({
   };
 
   const commercialTags: string[] = [];
-  if (openToFreeLoan) commercialTags.push("Free Loan");
-  if (openToRevenueShare) commercialTags.push("Revenue Share");
+  if (openToFreeLoan || openToRevenueShare) commercialTags.push("Display");
   if (openToOutrightPurchase) commercialTags.push("Purchase");
 
   return (

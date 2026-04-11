@@ -235,10 +235,9 @@ export default function Home() {
                     Completely free to browse and enquire.
                   </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-8 sm:mb-10">
-                    <DealCard title="Free Loan" description="Display at no cost. Rotate any time." />
-                    <DealCard title="Revenue Share" description="Earn a share if it sells from your wall." />
-                    <DealCard title="Purchase" description="Buy outright for your collection." />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-8 sm:mb-10">
+                    <DealCard title="Display" description="Art on your walls for free. Earn a share if it sells." />
+                    <DealCard title="Purchase" description="Buy pieces outright for your permanent collection." />
                   </div>
 
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -302,7 +301,7 @@ export default function Home() {
                   </p>
 
                   <ul className="space-y-3 mb-10">
-                    <BulletPoint text="Free loan, revenue share, or outright purchase arrangements" />
+                    <BulletPoint text="Display your art in venues for free, or sell outright" />
                     <BulletPoint text="0–10% platform fee. No gallery taking 50%." />
                     <BulletPoint text="First month free. First 20 artists get 6 months free." />
                   </ul>
@@ -334,7 +333,7 @@ export default function Home() {
                   <div className="space-y-8 flex-1">
                     <Step dark number="01" title="Browse &amp; Filter" description="Search curated artists by style, theme, and location. Free." />
                     <Step dark number="02" title="Enquire" description="Contact artists directly. Discuss terms and fit." />
-                    <Step dark number="03" title="Arrange" description="Agree on free loan, revenue share, or purchase." />
+                    <Step dark number="03" title="Arrange" description="Display art for free with optional revenue share, or purchase outright." />
                   </div>
                   <div className="mt-10">
                     <Link href="/register-venue" className="inline-flex items-center justify-center px-7 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">

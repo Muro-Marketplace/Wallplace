@@ -485,11 +485,10 @@ export default function ProfileEditorPage() {
           {/* Deal types */}
           <div className="mb-6">
             <label className={labelClass}>Deal types</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {([
-                { key: "openToFreeLoan" as const, label: "Free loan" },
-                { key: "openToOutrightPurchase" as const, label: "Outright purchase" },
-                { key: "openToRevenueShare" as const, label: "Revenue share" },
+                { key: "openToFreeLoan" as const, label: "Display (with optional revenue share)" },
+                { key: "openToOutrightPurchase" as const, label: "Purchase" },
               ]).map(({ key, label }) => (
                 <label key={key} className="flex items-center gap-2.5 cursor-pointer group">
                   <button
@@ -508,19 +507,19 @@ export default function ProfileEditorPage() {
           </div>
 
           {/* Revenue share % */}
-          {profile.openToRevenueShare && (
+          {profile.openToFreeLoan && (
             <div className="mb-6">
-              <label className={labelClass}>Your revenue share offer (%)</label>
+              <label className={labelClass}>Revenue share for venues (%)</label>
+              <p className="text-xs text-muted mb-2">Optional — the % you offer venues on sales from their space. Leave at 0 for a pure free display.</p>
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  min={1}
-                  max={50}
+                  min={0}
                   value={profile.revenueSharePercent}
                   onChange={(e) => update("revenueSharePercent", Number(e.target.value) || 0)}
                   className="w-24 bg-background border border-border rounded-sm px-4 py-3 text-sm text-foreground text-center focus:outline-none focus:border-accent/60"
                 />
-                <span className="text-sm text-muted">% to the venue on sales from their space</span>
+                <span className="text-sm text-muted">%</span>
               </div>
             </div>
           )}

@@ -438,16 +438,14 @@ export default function ApplicationForm() {
               <span className="text-accent">*</span>
             </p>
             <p className="text-xs text-muted mb-3">
-              Free loan means artwork displayed at no cost to the venue with
-              potential for sales. Revenue share means Wallspace facilitates
-              sales from the venue and takes a platform fee. Outright purchase
-              means the venue buys the work directly.
+              Display means your art is shown in venues for free — if a customer
+              buys via QR, you can offer the venue a revenue share (you set the %).
+              Purchase means venues can buy your work outright.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { name: "openToFreeLoan", label: "Free loan" },
-                { name: "openToRevenueShare", label: "Revenue share" },
-                { name: "openToPurchase", label: "Outright purchase" },
+                { name: "openToFreeLoan", label: "Display (with optional revenue share)" },
+                { name: "openToPurchase", label: "Purchase" },
               ].map(({ name, label }) => (
                 <label key={name} className={checkboxLabelClass}>
                   <input

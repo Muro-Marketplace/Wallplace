@@ -156,15 +156,11 @@ export default async function VenueProfilePage({ params }: Props) {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <DealTag
-                      label="Free loan"
-                      active={venue.interestedInFreeLoan}
+                      label="Display"
+                      active={venue.interestedInFreeLoan || venue.interestedInRevenueShare}
                     />
                     <DealTag
-                      label="Revenue share"
-                      active={venue.interestedInRevenueShare}
-                    />
-                    <DealTag
-                      label="Direct purchase"
+                      label="Purchase"
                       active={venue.interestedInDirectPurchase}
                     />
                   </div>

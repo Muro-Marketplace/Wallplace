@@ -78,21 +78,15 @@ export default function SpacesPage() {
             </div>
             <div>
               <p className="text-2xl font-serif text-foreground">
-                {venues.filter((v) => v.interestedInFreeLoan).length}
+                {venues.filter((v) => v.interestedInFreeLoan || v.interestedInRevenueShare).length}
               </p>
-              <p className="text-xs text-muted mt-0.5">Open to free loan</p>
+              <p className="text-xs text-muted mt-0.5">Open to display</p>
             </div>
             <div>
               <p className="text-2xl font-serif text-foreground">
                 {venues.filter((v) => v.interestedInDirectPurchase).length}
               </p>
               <p className="text-xs text-muted mt-0.5">Looking to purchase</p>
-            </div>
-            <div>
-              <p className="text-2xl font-serif text-foreground">
-                {venues.filter((v) => v.interestedInRevenueShare).length}
-              </p>
-              <p className="text-xs text-muted mt-0.5">Open to revenue share</p>
             </div>
           </div>
         </div>
@@ -200,15 +194,11 @@ export default function SpacesPage() {
                       {/* Deal signals */}
                       <div className="flex flex-wrap gap-1.5 mb-4">
                         <DealBadge
-                          label="Free loan"
-                          active={venue.interestedInFreeLoan}
+                          label="Display"
+                          active={venue.interestedInFreeLoan || venue.interestedInRevenueShare}
                         />
                         <DealBadge
-                          label="Revenue share"
-                          active={venue.interestedInRevenueShare}
-                        />
-                        <DealBadge
-                          label="Wants to buy"
+                          label="Purchase"
                           active={venue.interestedInDirectPurchase}
                         />
                       </div>

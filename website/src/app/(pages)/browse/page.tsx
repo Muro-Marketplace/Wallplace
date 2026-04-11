@@ -213,9 +213,7 @@ export default function BrowsePortfoliosPage() {
       if (filters.originals && !artist.offersOriginals) return false;
       if (filters.prints && !artist.offersPrints) return false;
       if (filters.framing && !artist.offersFramed) return false;
-      if (filters.freeLoan && !artist.openToFreeLoan) return false;
-      if (filters.revenueShare && !artist.openToRevenueShare) return false;
-      if (filters.revenueShareMin > 0 && (!artist.openToRevenueShare || !artist.revenueSharePercent || artist.revenueSharePercent < filters.revenueShareMin)) return false;
+      if (filters.freeLoan && !artist.openToFreeLoan && !artist.openToRevenueShare) return false;
       if (filters.outrightPurchase && !artist.openToOutrightPurchase)
         return false;
       if (
@@ -346,51 +344,22 @@ export default function BrowsePortfoliosPage() {
         </select>
       </div>
 
-      {/* Commercial Terms – moved above Availability */}
+      {/* Commercial Terms */}
       <div>
         <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">
           Commercial Terms
         </p>
         <div className="space-y-2.5">
           <CheckPill
-            label="Free loan"
+            label="Display"
             checked={filters.freeLoan}
-            onChange={(v) => setFilter("freeLoan", v)}
+            onChange={(v) => { setFilter("freeLoan", v); if (v) setFilter("revenueShare", true); }}
           />
           <CheckPill
-            label="Outright purchase"
+            label="Purchase"
             checked={filters.outrightPurchase}
             onChange={(v) => setFilter("outrightPurchase", v)}
           />
-          <CheckPill
-            label="Revenue share"
-            checked={filters.revenueShare}
-            onChange={(v) => setFilter("revenueShare", v)}
-          />
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] text-muted">Min share</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              defaultValue=""
-              ref={(el) => { if (el && filters.revenueShareMin > 0 && !el.dataset.init) { el.value = String(filters.revenueShareMin); el.dataset.init = "1"; } }}
-              onBlur={(e) => {
-                const val = Number(e.target.value) || 0;
-                setFilter("revenueShareMin", val);
-                if (val > 0 && !filters.revenueShare) setFilter("revenueShare", true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const val = Number((e.target as HTMLInputElement).value) || 0;
-                  setFilter("revenueShareMin", val);
-                  if (val > 0 && !filters.revenueShare) setFilter("revenueShare", true);
-                }
-              }}
-              placeholder="e.g. 10"
-              className="w-20 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs text-foreground text-center focus:outline-none focus:border-accent/50"
-            />
-            <span className="text-[10px] text-muted">%</span>
-          </div>
         </div>
       </div>
 
