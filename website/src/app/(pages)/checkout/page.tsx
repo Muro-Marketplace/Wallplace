@@ -106,13 +106,13 @@ export default function CheckoutPage() {
       errors[field] ? "border-red-400" : "border-border"
     }`;
 
-  function InputField({ field, type = "text", placeholder, value, colSpan }: { field: keyof ShippingInfo; type?: string; placeholder: string; value: string; colSpan?: string }) {
+  function renderInput(field: keyof ShippingInfo, placeholder: string, type = "text") {
     return (
-      <div className={colSpan}>
+      <div>
         <input
           type={type}
           placeholder={placeholder}
-          value={value}
+          value={shipping[field] || ""}
           onChange={(e) => updateField(field, e.target.value)}
           className={inputClass(field)}
         />
@@ -137,12 +137,12 @@ export default function CheckoutPage() {
           <div>
             <h2 className="text-lg font-medium mb-4">Delivery Details</h2>
             <div className="space-y-3">
-              <InputField field="fullName" placeholder="Full name *" value={shipping.fullName} />
+              {renderInput("fullName", "Full name *")}
               <div className="grid grid-cols-2 gap-3">
-                <InputField field="email" type="email" placeholder="Email address *" value={shipping.email} />
-                <InputField field="phone" type="tel" placeholder="Phone number *" value={shipping.phone} />
+                {renderInput("email", "Email address *", "email")}
+                {renderInput("phone", "Phone number *", "tel")}
               </div>
-              <InputField field="addressLine1" placeholder="Address line 1 *" value={shipping.addressLine1} />
+              {renderInput("addressLine1", "Address line 1 *")}
               <input
                 type="text"
                 placeholder="Address line 2"
@@ -151,8 +151,8 @@ export default function CheckoutPage() {
                 className={inputClass("addressLine2")}
               />
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <InputField field="city" placeholder="City *" value={shipping.city} />
-                <InputField field="postcode" placeholder="Postcode *" value={shipping.postcode} />
+                {renderInput("city", "City *")}
+                {renderInput("postcode", "Postcode *")}
                 <input
                   type="text"
                   placeholder="Country"
