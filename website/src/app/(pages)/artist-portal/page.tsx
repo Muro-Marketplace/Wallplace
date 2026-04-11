@@ -8,15 +8,17 @@ import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 
 interface ActivityItem {
-  id: number;
+  id: string;
   text: string;
   time: string;
-  type: "enquiry" | "sale" | "placement" | "view";
+  sortTime: number;
+  type: "enquiry" | "sale" | "placement" | "message" | "view";
 }
 
 const typeColors: Record<string, string> = {
   enquiry: "bg-blue-100 text-blue-700",
   sale: "bg-green-100 text-green-700",
+  message: "bg-accent/10 text-accent",
   placement: "bg-accent/15 text-accent",
   view: "bg-gray-100 text-gray-600",
 };
@@ -25,6 +27,7 @@ const typeLabels: Record<string, string> = {
   enquiry: "Enquiry",
   sale: "Sale",
   placement: "Placement",
+  message: "Message",
   view: "View",
 };
 
@@ -35,12 +38,19 @@ export default function ArtistPortalPage() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("none");
 
   useEffect(() => {
-    // Check subscription status
+    // Fetch profile + stats
     authFetch("/api/artist-profile").then((r) => r.json()).then((data) => {
       if (data.profile?.subscription_status) setSubscriptionStatus(data.profile.subscription_status);
+      if (data.profile) {
+        setStats((prev) => ({
+          ...prev,
+          enquiries: data.profile.total_enquiries || 0,
+          views: data.profile.total_views || 0,
+        }));
+      }
     }).catch(() => {});
 
-    // Fetch stats from API (not localStorage)
+    // Fetch placement + order stats
     Promise.all([
       authFetch("/api/placements").then((r) => r.json()).catch(() => ({ placements: [] })),
       authFetch("/api/orders").then((r) => r.json()).catch(() => ({ orders: [] })),
@@ -50,31 +60,58 @@ export default function ArtistPortalPage() {
       const activePlacements = placements.filter((p: { status: string }) => p.status === "active").length;
       const totalRevenue = orders.reduce((sum: number, o: { total: number }) => sum + (o.total || 0), 0);
 
-      setStats({
+      setStats((prev) => ({
+        ...prev,
         placements: activePlacements,
         sales: `\u00a3${totalRevenue.toLocaleString()}`,
-        enquiries: 0,
-        views: 0,
-      });
+      }));
     });
 
-    // Build activity from recent messages
-    if (!displayName) return;
-    authFetch("/api/messages?slug=" + displayName).then(async (res) => {
+    // Build activity from placements + messages using resolved slug
+    async function loadActivity() {
+      // First resolve our slug
+      let slug = "";
       try {
-        const data = await res.json();
-        if (data.conversations) {
-          const items: ActivityItem[] = data.conversations.slice(0, 5).map((c: { conversationId: string; otherParty: string; lastActivity: string; latestMessage: string }, i: number) => ({
-            id: i,
-            text: `Message from ${c.otherParty}: "${c.latestMessage.slice(0, 60)}${c.latestMessage.length > 60 ? "..." : ""}"`,
-            time: formatRelativeTime(c.lastActivity),
-            type: "enquiry" as const,
-          }));
-          setActivity(items);
+        const profileRes = await authFetch("/api/artist-profile");
+        const profileData = await profileRes.json();
+        slug = profileData.profile?.slug || "";
+      } catch { /* empty */ }
+      if (!slug) return;
+
+      const items: ActivityItem[] = [];
+
+      // Placements activity
+      try {
+        const pRes = await authFetch("/api/placements");
+        const pData = await pRes.json();
+        for (const p of (pData.placements || []).slice(0, 10)) {
+          const time = p.responded_at || p.created_at;
+          if (p.status === "pending") {
+            items.push({ id: "p-" + p.id, text: `Placement request: ${p.work_title || "Artwork"} — ${p.venue || "Venue"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+          } else if (p.status === "active") {
+            items.push({ id: "pa-" + p.id, text: `Placement accepted: ${p.work_title || "Artwork"} at ${p.venue || "Venue"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+          } else if (p.status === "declined") {
+            items.push({ id: "pd-" + p.id, text: `Placement declined: ${p.work_title || "Artwork"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+          }
         }
-      } catch { /* ignore */ }
-    });
-  }, [displayName]);
+      } catch { /* empty */ }
+
+      // Messages activity
+      try {
+        const mRes = await authFetch(`/api/messages?slug=${slug}`);
+        const mData = await mRes.json();
+        for (const c of (mData.conversations || []).slice(0, 5)) {
+          const name = c.otherPartyDisplayName || c.otherParty;
+          const preview = c.latestMessage?.slice(0, 50) || "";
+          items.push({ id: "m-" + c.conversationId, text: `${name}: "${preview}${c.latestMessage?.length > 50 ? "..." : ""}"`, time: formatRelativeTime(c.lastActivity), sortTime: new Date(c.lastActivity).getTime(), type: c.unreadCount > 0 ? "enquiry" : "message" });
+        }
+      } catch { /* empty */ }
+
+      items.sort((a, b) => b.sortTime - a.sortTime);
+      setActivity(items.slice(0, 8));
+    }
+    loadActivity();
+  }, []);
 
   return (
     <ArtistPortalLayout activePath="/artist-portal">
