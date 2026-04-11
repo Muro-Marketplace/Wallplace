@@ -694,50 +694,9 @@ export default function BrowsePortfoliosPage() {
             >
               Collections
             </button>
-          </div>
-        </div>
-      </div>
 
-      {/* Subcategory pills + view toggle */}
-      {activeCategory !== "collections" && (
-        <div className="border-b border-border bg-[#FAF8F5]">
-          <div className="max-w-[1400px] mx-auto px-6 py-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
-              {activeCategoryObj ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSubcategories(new Set())}
-                    className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
-                      activeSubcategories.size === 0
-                        ? "bg-foreground text-white border-foreground"
-                        : "border-border text-muted hover:border-foreground/30"
-                    }`}
-                  >
-                    All {activeCategoryObj.label}
-                  </button>
-                  {availableSubcategories.map((sub) => (
-                    <button
-                      key={sub}
-                      type="button"
-                      onClick={() => setActiveSubcategories((prev) => { const next = new Set(prev); if (next.has(sub)) next.delete(sub); else next.add(sub); return next; })}
-                      className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
-                        activeSubcategories.has(sub)
-                          ? "bg-foreground text-white border-foreground"
-                          : "border-border text-muted hover:border-foreground/30"
-                      }`}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </>
-              ) : (
-                <span className="text-xs text-muted">
-                  {viewAs === "artists" ? `${filteredArtists.length} artists` : `${filteredGalleryWorks.length} works`}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
+            {/* Portfolios / Gallery toggle in same row */}
+            <div className="flex items-center gap-1 ml-auto shrink-0">
               <button
                 type="button"
                 onClick={() => setViewAs("artists")}
@@ -757,6 +716,42 @@ export default function BrowsePortfoliosPage() {
                 Gallery
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Subcategory pills — only when a category is selected */}
+      {activeCategoryObj && activeCategory !== "collections" && (
+        <div className="border-b border-border bg-[#FAF8F5]">
+          <div className="max-w-[1400px] mx-auto px-6 py-3 flex items-center gap-2 overflow-x-auto scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setActiveSubcategories(new Set())}
+              className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
+                activeSubcategories.size === 0
+                  ? "bg-foreground text-white border-foreground"
+                  : "border-border text-muted hover:border-foreground/30"
+              }`}
+            >
+              All {activeCategoryObj.label}
+            </button>
+            {availableSubcategories.map((sub) => (
+              <button
+                key={sub}
+                type="button"
+                onClick={() => setActiveSubcategories((prev) => { const next = new Set(prev); if (next.has(sub)) next.delete(sub); else next.add(sub); return next; })}
+                className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
+                  activeSubcategories.has(sub)
+                    ? "bg-foreground text-white border-foreground"
+                    : "border-border text-muted hover:border-foreground/30"
+                }`}
+              >
+                {sub}
+              </button>
+            ))}
+            <span className="ml-auto text-xs text-muted shrink-0">
+              {viewAs === "artists" ? `${filteredArtists.length} artists` : `${filteredGalleryWorks.length} works`}
+            </span>
           </div>
         </div>
       )}
