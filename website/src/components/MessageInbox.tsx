@@ -157,8 +157,14 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
     return () => { if (threadPollRef.current) clearInterval(threadPollRef.current); };
   }, [selectedConv, loadThread]);
 
+  // Scroll to bottom within the messages container only (not the whole page)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      const container = messagesEndRef.current.parentElement;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
   }, [messages]);
 
   const selectedConvData = conversations.find((c) => c.conversationId === selectedConv);
@@ -391,7 +397,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-10rem)]">
+      <div className="flex items-center justify-center h-[calc(100vh-13rem)]">
         <p className="text-muted text-sm">Loading messages...</p>
       </div>
     );
@@ -441,7 +447,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
   }
 
   return (
-    <div className="flex h-[calc(100vh-10rem)] border border-border rounded-sm overflow-hidden bg-surface">
+    <div className="flex h-[calc(100vh-13rem)] border border-border rounded-sm overflow-hidden bg-surface">
       {/* Conversation list */}
       <div className={`${selectedConv || composing ? "hidden sm:block" : ""} w-full sm:w-80 shrink-0 border-r border-border overflow-y-auto`}>
         {conversations.length === 0 && !composing ? (
