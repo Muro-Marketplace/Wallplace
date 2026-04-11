@@ -348,7 +348,7 @@ export default function ArtistProfileClient({
                   <button
                     onClick={() => {
                       setLightboxIndex(null);
-                      router.push(`/venue-portal/messages?artist=${artistSlug}&artistName=${encodeURIComponent(artistName)}`);
+                      router.push(`/venue-portal/placements`);
                     }}
                     className="w-full px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
                   >
