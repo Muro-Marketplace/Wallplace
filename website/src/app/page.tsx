@@ -170,7 +170,7 @@ export default function Home() {
           <div className="max-w-[1400px] mx-auto w-full">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="font-serif text-[2.6rem] sm:text-5xl md:text-[4.5rem] lg:text-[5.5rem] leading-[0.9] tracking-[-0.02em] text-white mt-6 sm:mt-10 mb-5 sm:mb-6">
-                WALLSPACE
+                WALLPLACE
               </h1>
               <p className="text-lg sm:text-xl lg:text-2xl text-white/90 font-light leading-snug mb-4 sm:mb-3">
                 The curated art marketplace<br className="sm:hidden" /> for commercial spaces.
