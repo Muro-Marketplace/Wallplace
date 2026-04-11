@@ -979,10 +979,10 @@ export default function BrowsePortfoliosPage() {
                     <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Commercial Terms</p>
                     <div className="space-y-2.5">
                       <CheckPill checked={galleryFreeLoan} onChange={setGalleryFreeLoan} label="Display" />
-                      <div className="flex items-center gap-2 text-sm text-foreground/70">
-                        <span>Min Revenue Share</span>
-                        <input type="number" min={0} max={50} value={galleryRevenueShareMin || ""} onChange={(e) => setGalleryRevenueShareMin(Number(e.target.value) || 0)} placeholder="e.g. 10" className="w-16 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs text-center focus:outline-none focus:border-accent/50" />
-                        <span>%</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted">Min Revenue Share</span>
+                        <input type="number" min={0} max={50} value={galleryRevenueShareMin || ""} onChange={(e) => setGalleryRevenueShareMin(Number(e.target.value) || 0)} placeholder="e.g. 10" className="w-16 px-2 py-1 bg-surface border border-border rounded-sm text-xs text-foreground text-center focus:outline-none focus:border-accent/50" />
+                        <span className="text-xs text-muted">%</span>
                       </div>
                       <CheckPill checked={galleryPurchase} onChange={setGalleryPurchase} label="Purchase" />
                     </div>
