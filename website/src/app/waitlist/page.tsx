@@ -70,7 +70,7 @@ export default function WaitlistPage() {
             ) : (
               <>
                 {/* Logo */}
-                <h2 className="font-serif text-5xl lg:text-7xl tracking-tight text-white mb-6 lg:mb-8 uppercase">
+                <h2 className="font-serif text-5xl lg:text-8xl tracking-tight text-white mb-6 lg:mb-8 uppercase">
                   Wallspace
                 </h2>
 
