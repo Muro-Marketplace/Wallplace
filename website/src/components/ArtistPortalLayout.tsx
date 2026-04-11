@@ -53,7 +53,7 @@ export default function ArtistPortalLayout({
   if (!user || userType !== "artist") return null;
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex pt-14 lg:pt-16">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -138,7 +138,7 @@ export default function ArtistPortalLayout({
       {/* Main content */}
       <div className="flex-1 lg:ml-56 min-w-0">
         {/* Mobile header bar */}
-        <div className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-border sticky top-14 z-10">
+        <div className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-border sticky top-[3.5rem] z-20">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-1.5 rounded-sm hover:bg-background transition-colors"
