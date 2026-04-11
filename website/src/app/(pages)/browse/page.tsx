@@ -356,8 +356,7 @@ export default function BrowsePortfoliosPage() {
             checked={filters.freeLoan}
             onChange={(v) => { setFilter("freeLoan", v); if (v) setFilter("revenueShare", true); }}
           />
-          {filters.freeLoan && (
-            <div className="flex items-center gap-1.5 pl-6">
+          <div className="flex items-center gap-1.5 pl-6">
               <span className="text-[10px] text-muted">Min rev share</span>
               <input
                 type="text"
@@ -378,8 +377,7 @@ export default function BrowsePortfoliosPage() {
                 className="w-16 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs text-foreground text-center focus:outline-none focus:border-accent/50"
               />
               <span className="text-[10px] text-muted">%</span>
-            </div>
-          )}
+          </div>
           <CheckPill
             label="Purchase"
             checked={filters.outrightPurchase}
