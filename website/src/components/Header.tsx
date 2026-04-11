@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import CartIndicator from "./CartIndicator";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
-import { slugify } from "@/lib/slugify";
 
 const navLinks = [
   { label: "Discover Art", href: "/browse" },
@@ -32,7 +31,7 @@ export default function Header() {
   const msgDropdownRef = useRef<HTMLDivElement>(null);
 
   const portalBase = userType === "venue" ? "/venue-portal" : "/artist-portal";
-  const userSlug = displayName ? slugify(displayName) : "";
+  const [resolvedSlug, setResolvedSlug] = useState("");
 
   // Fetch unread message count when logged in
   const fetchUnread = useCallback(() => {
@@ -58,15 +57,28 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isImmersive]);
 
+  // Resolve the user's actual slug from their profile
+  useEffect(() => {
+    if (!user) { setResolvedSlug(""); return; }
+    const endpoint = userType === "venue" ? "/api/venue-profile" : "/api/artist-profile";
+    authFetch(endpoint)
+      .then((r) => r.json())
+      .then((data) => {
+        const slug = data.profile?.slug;
+        if (slug) setResolvedSlug(slug);
+      })
+      .catch(() => {});
+  }, [user, userType]);
+
   // Load conversations when dropdown opens
   useEffect(() => {
-    if (!msgDropdownOpen || convsLoaded || !user || !userSlug) return;
-    authFetch(`/api/messages?slug=${userSlug}`)
+    if (!msgDropdownOpen || convsLoaded || !user || !resolvedSlug) return;
+    authFetch(`/api/messages?slug=${resolvedSlug}`)
       .then((r) => r.json())
       .then((data) => { if (data.conversations) setConversations(data.conversations.slice(0, 6)); })
       .catch(() => {})
       .finally(() => setConvsLoaded(true));
-  }, [msgDropdownOpen, convsLoaded, user, userSlug]);
+  }, [msgDropdownOpen, convsLoaded, user, resolvedSlug]);
 
   // Refresh conversations on open
   useEffect(() => {
