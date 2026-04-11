@@ -153,7 +153,7 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 h-14 lg:h-16 ${
+      className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 h-14 lg:h-16 ${
         isPortal
           ? "border-b border-white/10"
           : showSolid
@@ -222,7 +222,7 @@ export default function Header() {
 
                   {/* Dropdown panel */}
                   {msgDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[60]">
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[110]">
                       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                         <p className="text-sm font-medium text-foreground">Messages</p>
                         <Link href={`${portalBase}/messages`} onClick={() => setMsgDropdownOpen(false)} className="text-xs text-accent hover:text-accent-hover">View All</Link>
@@ -288,7 +288,7 @@ export default function Header() {
                   </button>
 
                   {notifDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[60]">
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[110]">
                       <div className="px-4 py-3 border-b border-border">
                         <p className="text-sm font-medium text-foreground">Notifications</p>
                       </div>

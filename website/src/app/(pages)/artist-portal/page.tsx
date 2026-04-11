@@ -38,53 +38,35 @@ export default function ArtistPortalPage() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("none");
 
   useEffect(() => {
-    // Fetch profile + stats
-    authFetch("/api/artist-profile").then((r) => r.json()).then((data) => {
-      if (data.profile?.subscription_status) setSubscriptionStatus(data.profile.subscription_status);
-      if (data.profile) {
-        setStats((prev) => ({
-          ...prev,
-          enquiries: data.profile.total_enquiries || 0,
-          views: data.profile.total_views || 0,
-        }));
-      }
-    }).catch(() => {});
+    // Fetch everything in parallel
+    async function loadDashboard() {
+      const [profileData, placementsData, ordersData] = await Promise.all([
+        authFetch("/api/artist-profile").then((r) => r.json()).catch(() => ({ profile: null, works: [] })),
+        authFetch("/api/placements").then((r) => r.json()).catch(() => ({ placements: [] })),
+        authFetch("/api/orders").then((r) => r.json()).catch(() => ({ orders: [] })),
+      ]);
 
-    // Fetch placement + order stats
-    Promise.all([
-      authFetch("/api/placements").then((r) => r.json()).catch(() => ({ placements: [] })),
-      authFetch("/api/orders").then((r) => r.json()).catch(() => ({ orders: [] })),
-    ]).then(([placementsData, ordersData]) => {
+      // Profile + stats
+      if (profileData.profile?.subscription_status) setSubscriptionStatus(profileData.profile.subscription_status);
       const placements = placementsData.placements || [];
       const orders = ordersData.orders || [];
       const activePlacements = placements.filter((p: { status: string }) => p.status === "active").length;
       const totalRevenue = orders.reduce((sum: number, o: { total: number }) => sum + (o.total || 0), 0);
 
-      setStats((prev) => ({
-        ...prev,
+      setStats({
         placements: activePlacements,
         sales: `\u00a3${totalRevenue.toLocaleString()}`,
-      }));
-    });
+        enquiries: profileData.profile?.total_enquiries || 0,
+        views: profileData.profile?.total_views || 0,
+      });
 
-    // Build activity from placements + messages using resolved slug
-    async function loadActivity() {
-      // First resolve our slug
-      let slug = "";
-      try {
-        const profileRes = await authFetch("/api/artist-profile");
-        const profileData = await profileRes.json();
-        slug = profileData.profile?.slug || "";
-      } catch { /* empty */ }
-      if (!slug) return;
-
+      // Build activity from already-fetched data
+      const slug = profileData.profile?.slug || "";
       const items: ActivityItem[] = [];
 
-      // Placements activity
-      try {
-        const pRes = await authFetch("/api/placements");
-        const pData = await pRes.json();
-        for (const p of (pData.placements || []).slice(0, 10)) {
+      if (slug) {
+        // Placements activity (reuse fetched data)
+        for (const p of placements.slice(0, 10)) {
           const time = p.responded_at || p.created_at;
           if (p.status === "pending") {
             items.push({ id: "p-" + p.id, text: `Placement request: ${p.work_title || "Artwork"} — ${p.venue || "Venue"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
@@ -94,23 +76,21 @@ export default function ArtistPortalPage() {
             items.push({ id: "pd-" + p.id, text: `Placement declined: ${p.work_title || "Artwork"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
           }
         }
-      } catch { /* empty */ }
 
-      // Messages activity
-      try {
-        const mRes = await authFetch(`/api/messages?slug=${slug}`);
-        const mData = await mRes.json();
+        // Messages activity (one more fetch, but only if slug exists)
+        const mRes = await authFetch(`/api/messages?slug=${slug}`).catch(() => null);
+        const mData = mRes ? await mRes.json().catch(() => ({})) : {};
         for (const c of (mData.conversations || []).slice(0, 5)) {
           const name = c.otherPartyDisplayName || c.otherParty;
           const preview = c.latestMessage?.slice(0, 50) || "";
           items.push({ id: "m-" + c.conversationId, text: `${name}: "${preview}${c.latestMessage?.length > 50 ? "..." : ""}"`, time: formatRelativeTime(c.lastActivity), sortTime: new Date(c.lastActivity).getTime(), type: c.unreadCount > 0 ? "enquiry" : "message" });
         }
-      } catch { /* empty */ }
+      }
 
       items.sort((a, b) => b.sortTime - a.sortTime);
       setActivity(items.slice(0, 8));
     }
-    loadActivity();
+    loadDashboard();
   }, []);
 
   return (
