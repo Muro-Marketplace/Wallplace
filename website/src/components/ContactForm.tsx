@@ -34,7 +34,7 @@ export default function ContactForm() {
     const data = {
       name: formData.get("name") as string,
       email: formData.get("email") as string,
-      type: formData.get("type") as string,
+      type: (formData.get("type") as string) || (artistSlug ? "artist-message" : "other"),
       message: formData.get("message") as string,
     };
 
