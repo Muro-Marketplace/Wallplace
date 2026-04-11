@@ -271,3 +271,106 @@ export async function notifyAdminNewVenue(venue: {
     console.error("Email send error (venue registration):", err);
   }
 }
+
+/**
+ * Notify artist when a new order is placed for their work.
+ */
+export async function notifyArtistNewOrder(order: {
+  email: string;
+  artistName: string;
+  orderId: string;
+  itemTitle: string;
+  total: number;
+  artistRevenue: number;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: order.email,
+      subject: `New order: ${order.itemTitle}`,
+      html: `
+        <h2>You have a new order!</h2>
+        <p><strong>${order.itemTitle}</strong> has been purchased.</p>
+        <ul>
+          <li><strong>Order ID:</strong> ${order.orderId}</li>
+          <li><strong>Total:</strong> &pound;${order.total.toFixed(2)}</li>
+          <li><strong>Your revenue:</strong> &pound;${order.artistRevenue.toFixed(2)}</li>
+        </ul>
+        <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/artist-portal/orders" style="color: #C17C5A; font-weight: 600;">View in your portal</a></p>
+        <br/>
+        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+      `,
+    });
+  } catch (err) {
+    console.error("Email send error (artist new order):", err);
+  }
+}
+
+/**
+ * Notify buyer when order status is updated.
+ */
+export async function notifyBuyerStatusUpdate(buyer: {
+  email: string;
+  orderId: string;
+  status: string;
+  trackingNumber?: string;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+  try {
+    const statusLabels: Record<string, string> = { processing: "is being prepared", shipped: "has been shipped", delivered: "has been delivered" };
+    const statusText = statusLabels[buyer.status] || `status: ${buyer.status}`;
+    await resend.emails.send({
+      from: FROM,
+      to: buyer.email,
+      subject: `Order ${buyer.orderId} ${statusText}`,
+      html: `
+        <h2>Order Update</h2>
+        <p>Your order <strong>${buyer.orderId}</strong> ${statusText}.</p>
+        ${buyer.trackingNumber ? `<p><strong>Tracking number:</strong> ${buyer.trackingNumber}</p>` : ""}
+        <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/customer-portal/orders" style="color: #C17C5A; font-weight: 600;">Track your order</a></p>
+        <br/>
+        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+      `,
+    });
+  } catch (err) {
+    console.error("Email send error (buyer status update):", err);
+  }
+}
+
+/**
+ * Notify venue when their placement generates a sale.
+ */
+export async function notifyVenueOrderFromPlacement(venue: {
+  email: string;
+  venueName: string;
+  artistName: string;
+  itemTitle: string;
+  total: number;
+  venueRevenue: number;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: venue.email,
+      subject: `Sale from your venue: ${venue.itemTitle}`,
+      html: `
+        <h2>A sale was made from your venue!</h2>
+        <p><strong>${venue.itemTitle}</strong> by ${venue.artistName} was purchased from ${venue.venueName}.</p>
+        <ul>
+          <li><strong>Sale total:</strong> &pound;${venue.total.toFixed(2)}</li>
+          <li><strong>Your revenue share:</strong> &pound;${venue.venueRevenue.toFixed(2)}</li>
+        </ul>
+        <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/venue-portal/orders" style="color: #C17C5A; font-weight: 600;">View in your portal</a></p>
+        <br/>
+        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+      `,
+    });
+  } catch (err) {
+    console.error("Email send error (venue order from placement):", err);
+  }
+}

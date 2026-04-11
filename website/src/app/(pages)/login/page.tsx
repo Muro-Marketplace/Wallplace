@@ -20,6 +20,7 @@ export default function LoginPage() {
       router.replace(
         userType === "admin" ? "/admin" :
         userType === "venue" ? "/venue-portal" :
+        userType === "customer" ? "/customer-portal" :
         "/artist-portal"
       );
     }

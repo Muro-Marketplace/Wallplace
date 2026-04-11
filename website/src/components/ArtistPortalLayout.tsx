@@ -13,6 +13,7 @@ const navItems = [
   { label: "Collections", href: "/artist-portal/collections" },
   { label: "QR Labels", href: "/artist-portal/labels" },
   { label: "Placements", href: "/artist-portal/placements" },
+  { label: "Orders", href: "/artist-portal/orders" },
   { label: "Analytics", href: "/artist-portal/analytics" },
   { label: "Billing", href: "/artist-portal/billing" },
   { label: "Settings", href: "/artist-portal/settings" },

@@ -103,6 +103,7 @@ export const checkoutSchema = z.object({
   items: z.array(z.object({
     title: safeString(200),
     artistName: safeString(100),
+    artistSlug: optionalString(100),
     size: safeString(50),
     price: z.number().positive().max(100000),
     quantity: z.number().int().positive().max(10),

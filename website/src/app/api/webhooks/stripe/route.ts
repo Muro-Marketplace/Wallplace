@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { notifyArtistNewOrder, notifyVenueOrderFromPlacement } from "@/lib/email";
 import type Stripe from "stripe";
 
 export async function POST(request: Request) {
@@ -36,9 +37,54 @@ export async function POST(request: Request) {
       try {
         const subtotal = (session.amount_total || 0) / 100;
         const shippingCost = subtotal >= 300 ? 0 : 9.95;
+        const total = subtotal + shippingCost;
+        const orderId = `WS-${session.id.slice(-8)}`;
+        const source = session.metadata?.source || "direct";
+        const venueSlug = session.metadata?.venue_slug || "";
+        const artistSlugs = session.metadata?.artist_slugs || "";
+        const firstArtistSlug = artistSlugs.split(",")[0] || "";
 
-        const { error } = await db.from("orders").insert({
-          id: `WS-${session.id.slice(-8)}`,
+        // Compute revenue splits
+        let venueRevSharePct = 0;
+        let venueRevenue = 0;
+        let platformFeePct = 10; // Default Core plan fee
+        let platformFee = 0;
+        let artistRevenue = 0;
+        let placementId: string | null = null;
+        let artistUserId: string | null = null;
+
+        // Look up artist profile for subscription plan (fee rate)
+        if (firstArtistSlug) {
+          const { data: ap } = await db.from("artist_profiles").select("user_id, subscription_plan").eq("slug", firstArtistSlug).single();
+          if (ap) {
+            artistUserId = ap.user_id;
+            const planFees: Record<string, number> = { core: 15, premium: 8, pro: 3 };
+            platformFeePct = planFees[ap.subscription_plan || "core"] || 15;
+          }
+        }
+
+        // Look up venue placement for revenue share
+        if (venueSlug && firstArtistSlug) {
+          const { data: placement } = await db.from("placements")
+            .select("id, revenue_share_percent")
+            .eq("artist_slug", firstArtistSlug)
+            .eq("venue_slug", venueSlug)
+            .eq("status", "active")
+            .limit(1)
+            .single();
+          if (placement) {
+            placementId = placement.id;
+            venueRevSharePct = placement.revenue_share_percent || 0;
+          }
+        }
+
+        // Calculate splits
+        venueRevenue = Math.round(total * (venueRevSharePct / 100) * 100) / 100;
+        platformFee = Math.round(total * (platformFeePct / 100) * 100) / 100;
+        artistRevenue = Math.round((total - venueRevenue - platformFee) * 100) / 100;
+
+        const orderRow: Record<string, unknown> = {
+          id: orderId,
           buyer_email: session.customer_email || session.metadata?.shipping_email || "",
           items: session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [],
           shipping: {
@@ -54,13 +100,64 @@ export async function POST(request: Request) {
           },
           subtotal,
           shipping_cost: shippingCost,
-          total: subtotal + shippingCost,
+          total,
           status: "confirmed",
+          status_history: JSON.stringify([{ status: "confirmed", timestamp: new Date().toISOString() }]),
+          source,
+          artist_slug: firstArtistSlug || null,
+          artist_user_id: artistUserId,
+          venue_slug: venueSlug || null,
+          venue_revenue_share_percent: venueRevSharePct,
+          venue_revenue: venueRevenue,
+          artist_revenue: artistRevenue,
+          platform_fee_percent: platformFeePct,
+          platform_fee: platformFee,
+          placement_id: placementId,
           created_at: new Date().toISOString(),
-        });
+        };
+
+        // Try full insert, fall back to base if new columns don't exist
+        let { error } = await db.from("orders").insert(orderRow);
+        if (error) {
+          console.warn("Full order insert failed, trying base:", error.message);
+          const baseRow = {
+            id: orderId,
+            buyer_email: orderRow.buyer_email,
+            items: orderRow.items,
+            shipping: orderRow.shipping,
+            subtotal, shipping_cost: shippingCost, total,
+            status: "confirmed",
+            created_at: new Date().toISOString(),
+          };
+          const retry = await db.from("orders").insert(baseRow);
+          error = retry.error;
+        }
 
         if (error) {
           console.error("Supabase order save error:", error);
+        } else {
+          // Notify artist (fire-and-forget)
+          if (artistUserId) {
+            const { data: { user: artistUser } } = await db.auth.admin.getUserById(artistUserId);
+            const { data: artistProfile } = await db.from("artist_profiles").select("name").eq("user_id", artistUserId).single();
+            if (artistUser?.email && artistProfile) {
+              const cartItems = session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [];
+              const firstItem = cartItems[0]?.title || "Artwork";
+              notifyArtistNewOrder({ email: artistUser.email, artistName: artistProfile.name, orderId, itemTitle: firstItem, total, artistRevenue }).catch(() => {});
+            }
+          }
+          // Notify venue if revenue share exists
+          if (venueSlug && venueRevenue > 0) {
+            const { data: vp } = await db.from("venue_profiles").select("user_id, name").eq("slug", venueSlug).single();
+            if (vp?.user_id) {
+              const { data: { user: venueUser } } = await db.auth.admin.getUserById(vp.user_id);
+              const { data: ap } = await db.from("artist_profiles").select("name").eq("slug", firstArtistSlug).single();
+              if (venueUser?.email) {
+                const cartItems = session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [];
+                notifyVenueOrderFromPlacement({ email: venueUser.email, venueName: vp.name, artistName: ap?.name || firstArtistSlug, itemTitle: cartItems[0]?.title || "Artwork", total, venueRevenue }).catch(() => {});
+              }
+            }
+          }
         }
       } catch (err) {
         console.error("Order processing error:", err);

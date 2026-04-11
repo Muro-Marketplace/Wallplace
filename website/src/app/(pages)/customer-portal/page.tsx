@@ -2,26 +2,27 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import VenuePortalLayout from "@/components/VenuePortalLayout";
+import Image from "next/image";
+import CustomerPortalLayout from "@/components/CustomerPortalLayout";
 import OrderStatusTracker from "@/components/OrderStatusTracker";
+import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 
 interface Order {
   id: string;
   items: { title: string; qty: number; price: number; artistSlug?: string }[];
-  shipping: { fullName: string; addressLine1: string; city: string; postcode: string };
   total: number;
-  venue_revenue: number;
-  venue_revenue_share_percent: number;
-  artist_slug?: string;
   status: string;
   status_history: { status: string; timestamp: string }[];
   tracking_number?: string;
-  source?: string;
+  shipping: { fullName: string; addressLine1: string; city: string; postcode: string };
   created_at: string;
+  artist_slug?: string;
+  venue_slug?: string;
 }
 
-export default function VenueOrdersPage() {
+export default function CustomerPortalPage() {
+  const { displayName } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
@@ -34,14 +35,14 @@ export default function VenueOrdersPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.venue_revenue || 0), 0);
+  const totalSpent = orders.reduce((sum, o) => sum + (o.total || 0), 0);
   const selected = orders.find((o) => o.id === selectedOrder);
 
   return (
-    <VenuePortalLayout>
+    <CustomerPortalLayout>
       <div className="mb-8">
-        <h1 className="text-2xl lg:text-3xl">Orders</h1>
-        <p className="text-sm text-muted mt-1">Sales from your venue and your purchases</p>
+        <h1 className="text-2xl lg:text-3xl">My Orders</h1>
+        <p className="text-sm text-muted mt-1">Track your purchases and delivery status</p>
       </div>
 
       {/* Stats */}
@@ -51,12 +52,12 @@ export default function VenueOrdersPage() {
           <p className="text-2xl font-serif">{orders.length}</p>
         </div>
         <div className="bg-surface border border-border rounded-sm p-5">
-          <p className="text-xs text-muted uppercase tracking-wider mb-1">Revenue Earned</p>
-          <p className="text-2xl font-serif text-accent">&pound;{totalRevenue.toFixed(2)}</p>
+          <p className="text-xs text-muted uppercase tracking-wider mb-1">Total Spent</p>
+          <p className="text-2xl font-serif">&pound;{totalSpent.toFixed(2)}</p>
         </div>
       </div>
 
-      {/* Order detail */}
+      {/* Order detail overlay */}
       {selected && (
         <div className="bg-surface border border-accent/20 rounded-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-5">
@@ -64,29 +65,34 @@ export default function VenueOrdersPage() {
             <button onClick={() => setSelectedOrder(null)} className="text-xs text-muted hover:text-foreground">Close</button>
           </div>
 
-          <OrderStatusTracker currentStatus={selected.status} statusHistory={selected.status_history || []} />
+          <OrderStatusTracker
+            currentStatus={selected.status}
+            statusHistory={selected.status_history || []}
+          />
 
           {selected.tracking_number && (
             <p className="text-sm text-muted mt-4">Tracking: <span className="text-foreground font-medium">{selected.tracking_number}</span></p>
           )}
 
-          <div className="mt-6 space-y-2">
+          <div className="mt-6 space-y-3">
             <p className="text-xs text-muted uppercase tracking-wider">Items</p>
             {(selected.items || []).map((item, i) => (
-              <div key={i} className="flex justify-between text-sm border-b border-border pb-2">
-                <span>{item.title} &times; {item.qty}</span>
-                <span className="font-medium">&pound;{(item.price * item.qty).toFixed(2)}</span>
+              <div key={i} className="flex items-center justify-between text-sm border-b border-border pb-2">
+                <span className="text-foreground">{item.title} &times; {item.qty}</span>
+                <span className="text-foreground font-medium">&pound;{(item.price * item.qty).toFixed(2)}</span>
               </div>
             ))}
+            <div className="flex items-center justify-between text-sm font-medium pt-2">
+              <span>Total</span>
+              <span>&pound;{selected.total.toFixed(2)}</span>
+            </div>
           </div>
 
-          {selected.venue_revenue > 0 && (
-            <div className="mt-5 p-4 bg-accent/5 rounded-sm border border-accent/20 space-y-2">
-              <p className="text-xs text-accent uppercase tracking-wider mb-2">Your Revenue</p>
-              <div className="flex justify-between text-sm"><span>Sale total</span><span>&pound;{selected.total?.toFixed(2)}</span></div>
-              <div className="flex justify-between text-sm"><span>Your share ({selected.venue_revenue_share_percent}%)</span><span className="font-medium text-accent">&pound;{selected.venue_revenue.toFixed(2)}</span></div>
-            </div>
-          )}
+          <div className="mt-6">
+            <p className="text-xs text-muted uppercase tracking-wider mb-2">Shipping to</p>
+            <p className="text-sm text-foreground">{selected.shipping?.fullName}</p>
+            <p className="text-sm text-muted">{selected.shipping?.addressLine1}, {selected.shipping?.city} {selected.shipping?.postcode}</p>
+          </div>
 
           <div className="mt-6 pt-4 border-t border-border">
             <Link href={`/contact?subject=Order ${selected.id}`} className="text-sm text-accent hover:text-accent-hover transition-colors">
@@ -101,7 +107,8 @@ export default function VenueOrdersPage() {
         <p className="text-muted text-sm py-12 text-center">Loading orders...</p>
       ) : orders.length === 0 ? (
         <div className="bg-surface border border-border rounded-sm px-6 py-12 text-center">
-          <p className="text-muted text-sm">No orders yet. Sales from your placements will appear here.</p>
+          <p className="text-muted text-sm mb-2">No orders yet</p>
+          <Link href="/browse" className="text-sm text-accent hover:text-accent-hover">Browse the marketplace</Link>
         </div>
       ) : (
         <div className="space-y-3">
@@ -113,17 +120,14 @@ export default function VenueOrdersPage() {
             >
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{order.id}</p>
-                    {order.source === "qr" && <span className="text-[9px] bg-accent/10 text-accent px-1.5 py-0.5 rounded-sm font-medium">QR Sale</span>}
-                  </div>
+                  <p className="text-sm font-medium text-foreground">{order.id}</p>
                   <p className="text-xs text-muted mt-0.5">
-                    {new Date(order.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                    {" · "}{(order.items || []).map((i) => i.title).join(", ")}
+                    {new Date(order.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    {" · "}{(order.items || []).length} item{(order.items || []).length !== 1 ? "s" : ""}
                   </p>
                 </div>
                 <div className="text-right">
-                  {order.venue_revenue > 0 && <p className="text-sm font-medium text-accent">&pound;{order.venue_revenue.toFixed(2)}</p>}
+                  <p className="text-sm font-medium">&pound;{order.total?.toFixed(2)}</p>
                   <OrderStatusTracker currentStatus={order.status} compact />
                 </div>
               </div>
@@ -131,6 +135,6 @@ export default function VenueOrdersPage() {
           ))}
         </div>
       )}
-    </VenuePortalLayout>
+    </CustomerPortalLayout>
   );
 }

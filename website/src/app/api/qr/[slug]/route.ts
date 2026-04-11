@@ -27,11 +27,12 @@ export async function GET(
     referrer: ctx.referrer || undefined,
   }).catch(() => {});
 
-  // Build redirect URL
+  // Build redirect URL with source attribution
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
+  const sourceParams = `?ref=qr${venue ? `&venue=${encodeURIComponent(venue)}` : ""}`;
   const redirectPath = work
-    ? `/browse/${slug}#work-${encodeURIComponent(work)}`
-    : `/browse/${slug}`;
+    ? `/browse/${slug}${sourceParams}#work-${encodeURIComponent(work)}`
+    : `/browse/${slug}${sourceParams}`;
 
   return NextResponse.redirect(new URL(redirectPath, baseUrl), 302);
 }

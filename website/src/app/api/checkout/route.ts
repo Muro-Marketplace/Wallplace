@@ -12,6 +12,8 @@ export async function POST(request: Request) {
     }
 
     const { items, shipping } = parsed.data;
+    const source = body.source || "direct";
+    const venueSlug = body.venueSlug || "";
 
     // Build Stripe line items from cart
     const lineItems = items.map((item) => ({
@@ -68,7 +70,10 @@ export async function POST(request: Request) {
         shipping_postcode: shipping.postcode,
         shipping_country: shipping.country || "United Kingdom",
         shipping_notes: shipping.notes || "",
-        cart_items: JSON.stringify(items.map(i => ({ title: i.title, qty: i.quantity, price: i.price }))).slice(0, 500),
+        cart_items: JSON.stringify(items.map(i => ({ title: i.title, qty: i.quantity, price: i.price, artistSlug: i.artistSlug || "" }))).slice(0, 500),
+        source,
+        venue_slug: venueSlug,
+        artist_slugs: [...new Set(items.map(i => i.artistSlug || "").filter(Boolean))].join(","),
       },
       success_url: `${origin}/checkout/confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout`,

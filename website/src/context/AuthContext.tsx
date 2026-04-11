@@ -8,7 +8,7 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  userType: "artist" | "venue" | "admin" | null;
+  userType: "artist" | "venue" | "customer" | "admin" | null;
   displayName: string | null;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
-  const userType = (user?.user_metadata?.user_type as "artist" | "venue" | "admin") ?? null;
+  const userType = (user?.user_metadata?.user_type as "artist" | "venue" | "customer" | "admin") ?? null;
   const displayName = (user?.user_metadata?.display_name as string) ?? null;
 
   return (

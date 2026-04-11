@@ -33,7 +33,7 @@ export default function Header() {
   const msgDropdownRef = useRef<HTMLDivElement>(null);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
 
-  const portalBase = userType === "venue" ? "/venue-portal" : "/artist-portal";
+  const portalBase = userType === "venue" ? "/venue-portal" : userType === "customer" ? "/customer-portal" : "/artist-portal";
   const [resolvedSlug, setResolvedSlug] = useState("");
 
   // Fetch unread message count when logged in
