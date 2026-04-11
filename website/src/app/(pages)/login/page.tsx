@@ -121,14 +121,9 @@ export default function LoginPage() {
         <div className="text-center mt-6 space-y-2">
           <p className="text-sm text-white/50">
             Don&rsquo;t have an account?{" "}
-            <Link href="/apply" className="text-accent hover:underline underline-offset-4">
-              Apply to join as an artist
+            <Link href="/signup" className="text-accent hover:underline underline-offset-4">
+              Sign up
             </Link>
-            {" "}or{" "}
-            <Link href="/register-venue" className="text-accent hover:underline underline-offset-4">
-              register your venue
-            </Link>
-            .
           </p>
         </div>
       </div>

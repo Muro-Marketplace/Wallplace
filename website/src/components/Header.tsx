@@ -357,12 +357,12 @@ export default function Header() {
                   Login
                 </Link>
                 <Link
-                  href="/apply"
-                  className={`text-sm transition-colors duration-300 ${
-                    isPortal || !showSolid ? "text-white/90 hover:text-white" : "text-muted hover:text-foreground"
+                  href="/signup"
+                  className={`text-sm px-4 py-2 rounded-sm transition-colors duration-300 ${
+                    isPortal || !showSolid ? "bg-white/10 text-white hover:bg-white/20" : "bg-foreground text-white hover:bg-foreground/90"
                   }`}
                 >
-                  Apply to Join
+                  Sign Up
                 </Link>
               </>
             ) : null}
@@ -467,11 +467,11 @@ export default function Header() {
                     Login
                   </Link>
                   <Link
-                    href="/apply"
-                    className="text-base text-muted hover:text-foreground transition-colors duration-200"
+                    href="/signup"
+                    className="text-center text-sm px-5 py-3 rounded-sm bg-foreground text-white hover:bg-foreground/90"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Apply to Join
+                    Sign Up
                   </Link>
                 </>
               )}
