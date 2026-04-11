@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (
       email: string,
       password: string,
-      metadata: { user_type: "artist" | "venue" | "admin"; display_name: string }
+      metadata: { user_type: "artist" | "venue" | "customer" | "admin"; display_name: string }
     ) => {
       const { error } = await supabase.auth.signUp({
         email,
