@@ -164,18 +164,30 @@ export async function POST(request: Request) {
       : { data: null };
     const resolvedSenderSlug = senderArtist?.slug || senderVenue?.slug || parsed.data.senderName;
 
-    const { error } = await db.from("messages").insert({
+    // Try insert with new columns first, fall back to base columns if they don't exist yet
+    const baseRow = {
       conversation_id: cid,
       sender_id: auth.user!.id,
       sender_name: resolvedSenderSlug,
       sender_type: senderType || "anonymous",
       recipient_slug: recipientSlug,
       content,
-      message_type: messageType || "text",
-      metadata: metadata || {},
       is_read: false,
       created_at: new Date().toISOString(),
+    };
+
+    let { error } = await db.from("messages").insert({
+      ...baseRow,
+      message_type: messageType || "text",
+      metadata: metadata || {},
     });
+
+    // If insert failed (likely missing columns), retry with base columns only
+    if (error) {
+      console.warn("Message insert failed with new columns, retrying base-only:", error.message);
+      const retry = await db.from("messages").insert(baseRow);
+      error = retry.error;
+    }
 
     if (error) {
       console.error("Supabase error:", error);

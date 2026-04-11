@@ -165,7 +165,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
     if (!reply.trim() || !selectedConv || !selectedConvData) return;
     setSending(true);
     try {
-      await authFetch("/api/messages", {
+      const res = await authFetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -176,6 +176,12 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
           content: reply.trim(),
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error("Send failed:", errData.error || res.status);
+        setSending(false);
+        return;
+      }
       setMessages((prev) => [...prev, {
         id: Date.now(),
         conversation_id: selectedConv,
@@ -238,7 +244,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
       : `Placement request: ${placementWork || "Artwork"} — Free Display${placementMessage ? ` — ${placementMessage}` : ""}`;
 
     try {
-      await authFetch("/api/messages", {
+      const res = await authFetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -256,6 +262,12 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
           },
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error("Placement request failed:", errData.error || res.status);
+        setSending(false);
+        return;
+      }
 
       setMessages((prev) => [...prev, {
         id: Date.now(),

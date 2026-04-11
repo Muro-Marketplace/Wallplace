@@ -111,25 +111,37 @@ export async function POST(request: Request) {
       venueProfile = vp;
     }
 
-    const rows = parsed.data.map((p) => ({
+    // Build rows with new columns, fall back to base columns if they don't exist
+    const baseRows = parsed.data.map((p) => ({
       id: p.id,
       artist_user_id: artistProfile!.user_id,
-      artist_slug: artistProfile!.slug,
-      venue_user_id: venueProfile!.user_id,
-      venue_slug: venueProfile!.slug,
-      venue: venueProfile!.name,
       work_title: p.workTitle,
       work_image: p.workImage || null,
+      venue: venueProfile!.name,
       arrangement_type: p.type,
       revenue_share_percent: p.revenueSharePercent || null,
       status: "pending",
       revenue: null,
       notes: p.notes || null,
-      message: p.message || null,
       created_at: new Date().toISOString(),
     }));
 
-    const { error } = await db.from("placements").insert(rows);
+    const fullRows = baseRows.map((row, i) => ({
+      ...row,
+      artist_slug: artistProfile!.slug,
+      venue_user_id: venueProfile!.user_id,
+      venue_slug: venueProfile!.slug,
+      message: parsed.data[i].message || null,
+    }));
+
+    let { error } = await db.from("placements").insert(fullRows);
+
+    // If insert failed (likely missing columns), retry with base columns only
+    if (error) {
+      console.warn("Placement insert failed with new columns, retrying base-only:", error.message);
+      const retry = await db.from("placements").insert(baseRows);
+      error = retry.error;
+    }
 
     if (error) {
       console.error("Supabase error:", error);

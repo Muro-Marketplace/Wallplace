@@ -179,7 +179,7 @@ export default function VenuePlacementsPage() {
         body: JSON.stringify({
           placements: newPlacements.map((p) => ({
             ...p,
-            venueSlug: artistSlug, // The API expects venueSlug for the other party
+            venueSlug: "self", // Placeholder — API resolves venue from auth for fromVenue requests
           })),
           fromVenue: true,
           artistSlug,
