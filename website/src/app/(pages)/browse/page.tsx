@@ -357,7 +357,7 @@ export default function BrowsePortfoliosPage() {
             onChange={(v) => { setFilter("freeLoan", v); if (v) setFilter("revenueShare", true); }}
           />
           <div className="flex items-center gap-1.5 pl-6">
-              <span className="text-[10px] text-muted">Min rev share</span>
+              <span className="text-[10px] text-muted">Min Revenue Share</span>
               <input
                 type="text"
                 inputMode="numeric"
