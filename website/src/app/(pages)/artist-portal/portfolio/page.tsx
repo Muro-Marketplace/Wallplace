@@ -57,10 +57,6 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     if (!artist || initialised) return;
-    const stored = localStorage.getItem("wallspace-artist-works");
-    if (stored) {
-      try { setWorks(JSON.parse(stored)); setInitialised(true); return; } catch { /* ignore */ }
-    }
     setWorks([...artist.works]);
     setInitialised(true);
   }, [artist, initialised]);
@@ -75,7 +71,6 @@ export default function PortfolioPage() {
 
   function saveWorks(updated: ArtistWork[]) {
     setWorks(updated);
-    localStorage.setItem("wallspace-artist-works", JSON.stringify(updated));
 
     // Sync each work to Supabase
     updated.forEach((work, index) => {
