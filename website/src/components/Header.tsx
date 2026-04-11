@@ -148,7 +148,7 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 h-14 lg:h-16 ${
         isPortal
           ? "border-b border-white/10"
           : showSolid
