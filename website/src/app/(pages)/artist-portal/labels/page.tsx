@@ -27,6 +27,13 @@ export default function LabelsPage() {
   // Portfolio label
   const [portfolioQty, setPortfolioQty] = useState(0);
 
+  // useMemo MUST be before any early return to satisfy React's rules of hooks
+  const totalLabels = useMemo(() => {
+    let count = portfolioQty;
+    selected.forEach((i) => { count += quantities[i] ?? 1; });
+    return count;
+  }, [selected, quantities, portfolioQty]);
+
   if (artistLoading || !artist) {
     return (
       <ArtistPortalLayout activePath="/artist-portal/labels">
@@ -96,13 +103,6 @@ export default function LabelsPage() {
     setPreviewLabels(buildLabels(indices));
     setShowPreview(true);
   }
-
-  // Total labels count (including copies)
-  const totalLabels = useMemo(() => {
-    let count = portfolioQty;
-    selected.forEach((i) => { count += getQty(i); });
-    return count;
-  }, [selected, quantities, portfolioQty]);
 
   return (
     <ArtistPortalLayout activePath="/artist-portal/labels">
