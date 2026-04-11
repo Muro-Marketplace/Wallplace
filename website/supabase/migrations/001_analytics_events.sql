@@ -62,3 +62,12 @@ ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS total_sales integer DEFAULT
 ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS referral_code text UNIQUE;
 ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS email_digest_enabled boolean DEFAULT true;
 ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS last_digest_sent_at timestamptz;
+
+-- Placement request/accept flow columns
+ALTER TABLE placements ADD COLUMN IF NOT EXISTS venue_user_id uuid;
+ALTER TABLE placements ADD COLUMN IF NOT EXISTS venue_slug text;
+ALTER TABLE placements ADD COLUMN IF NOT EXISTS artist_slug text;
+ALTER TABLE placements ADD COLUMN IF NOT EXISTS responded_at timestamptz;
+ALTER TABLE placements ADD COLUMN IF NOT EXISTS message text;
+CREATE INDEX IF NOT EXISTS idx_placements_venue_user ON placements(venue_user_id) WHERE venue_user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_placements_status ON placements(status);

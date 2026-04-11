@@ -1,4 +1,4 @@
-import { artists, type WorkOrientation, type SizePricing } from "./artists";
+import { artists, type Artist, type WorkOrientation, type SizePricing } from "./artists";
 
 export interface GalleryWork {
   id: string;
@@ -15,8 +15,14 @@ export interface GalleryWork {
   orientation?: WorkOrientation;
 }
 
+/** Build gallery works from static seed data (fallback) */
 export function getGalleryWorks(): GalleryWork[] {
-  return artists.flatMap((artist) =>
+  return artistsToGalleryWorks(artists);
+}
+
+/** Build gallery works from any artist list (merged static + DB) */
+export function artistsToGalleryWorks(allArtists: Artist[]): GalleryWork[] {
+  return allArtists.flatMap((artist) =>
     artist.works.map((work) => ({
       id: work.id,
       title: work.title,

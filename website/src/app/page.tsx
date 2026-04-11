@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Footer from "@/components/Footer";
@@ -10,6 +10,13 @@ import { artists } from "@/data/artists";
 import { venues } from "@/data/venues";
 
 const featuredArtists = artists.slice(0, 6);
+
+interface PlatformStats {
+  total_artists: number;
+  total_artworks: number;
+  total_placements: number;
+  total_venues: number;
+}
 
 const navLinks = [
   { label: "Discover Art", href: "/browse" },
@@ -21,6 +28,14 @@ const navLinks = [
 export default function Home() {
   const contentRef = useRef<HTMLDivElement>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+
+  useEffect(() => {
+    fetch("/api/stats/public")
+      .then((r) => r.json())
+      .then((data) => setStats(data))
+      .catch(() => {});
+  }, []);
 
   function scrollToContent() {
     contentRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -198,10 +213,23 @@ export default function Home() {
           {/* Dark trust bar */}
           <div className="border-t border-white/10 bg-black/50 backdrop-blur-sm">
             <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <p className="text-sm text-white/60">
-                <span className="text-white/90 font-medium">30+ curated artists</span>{" "}
-                and growing
-              </p>
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-white/90 font-medium">
+                  {stats ? `${stats.total_artists} curated artist${stats.total_artists !== 1 ? "s" : ""}` : "30+ curated artists"}
+                </span>
+                {stats && stats.total_artworks > 0 && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-white/30" />
+                    <span className="text-white/60">{stats.total_artworks} original artworks</span>
+                  </>
+                )}
+                {stats && stats.total_placements > 0 && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-white/30" />
+                    <span className="text-white/60">{stats.total_placements} venue placements</span>
+                  </>
+                )}
+              </div>
               <div className="hidden sm:flex items-center gap-4 text-xs text-white/40 tracking-widest uppercase">
                 <span>Original work only</span>
                 <span className="w-1 h-1 rounded-full bg-white/30" />

@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { artists as staticArtists, type Artist } from "@/data/artists";
 import { themes } from "@/data/themes";
-import { getGalleryWorks } from "@/data/galleries";
+import { artistsToGalleryWorks } from "@/data/galleries";
 import { collections } from "@/data/collections";
 import { slugify } from "@/lib/slugify";
 import { geocodePostcode } from "@/lib/geocode";
@@ -296,7 +296,7 @@ export default function BrowsePortfoliosPage() {
     []
   );
 
-  const allGalleryWorks = useMemo(() => getGalleryWorks(), []);
+  const allGalleryWorks = useMemo(() => artistsToGalleryWorks(artists), [artists]);
 
   const allGalleryMediums = useMemo(
     () => Array.from(new Set(allGalleryWorks.map((w) => w.medium))).sort(),
@@ -871,133 +871,132 @@ export default function BrowsePortfoliosPage() {
       )}
 
       {browseMode === "gallery" && (
-        /* ── Gallery mode ── */
-        <>
-          {/* Gallery filter bar */}
-          <section className="sticky top-14 lg:top-16 z-20 bg-background/95 backdrop-blur-sm border-b border-border">
-            <div className="max-w-[1400px] mx-auto px-6 py-3">
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Theme */}
-                <select
-                  value={galleryTheme}
-                  onChange={(e) => setGalleryTheme(e.target.value)}
-                  className="px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer"
-                >
-                  <option value="">All themes</option>
-                  {themes.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Medium */}
-                <select
-                  value={galleryMedium}
-                  onChange={(e) => setGalleryMedium(e.target.value)}
-                  className="px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer"
-                >
-                  <option value="">All mediums</option>
-                  {allGalleryMediums.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Price */}
-                <select
-                  value={galleryPriceFilter}
-                  onChange={(e) => setGalleryPriceFilter(e.target.value)}
-                  className="px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer"
-                >
-                  {PRICE_BANDS.map((b) => (
-                    <option key={b.value} value={b.value}>
-                      {b.label}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Available only */}
-                <button
-                  type="button"
-                  onClick={() => setGalleryAvailableOnly(!galleryAvailableOnly)}
-                  className="flex items-center gap-2 cursor-pointer group"
-                >
-                  <span
-                    className={`w-4 h-4 rounded-sm border flex items-center justify-center shrink-0 transition-colors duration-150 ${
-                      galleryAvailableOnly
-                        ? "bg-accent border-accent"
-                        : "border-border group-hover:border-muted"
-                    }`}
-                  >
-                    {galleryAvailableOnly && (
-                      <svg
-                        width="10"
-                        height="10"
-                        viewBox="0 0 10 10"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="1.5 5 4 7.5 8.5 2.5" />
-                      </svg>
-                    )}
-                  </span>
-                  <span className="text-sm text-foreground/70 group-hover:text-foreground transition-colors duration-150">
-                    Available only
-                  </span>
-                </button>
-
-                {/* Results count + clear */}
-                <div className="ml-auto flex items-center gap-4">
-                  <span className="text-sm text-muted">
-                    {filteredGalleryWorks.length} work
-                    {filteredGalleryWorks.length !== 1 ? "s" : ""}
-                  </span>
+        /* ── Gallery mode with sidebar ── */
+        <section className="py-10 lg:py-14">
+          <div className="max-w-[1400px] mx-auto px-6">
+            <div className="flex gap-10 lg:gap-14 items-start">
+              {/* Sidebar – desktop */}
+              <aside className="hidden lg:block w-56 shrink-0 sticky top-8">
+                <div className="flex items-center justify-between mb-6">
+                  <span className="text-sm font-medium text-foreground">Filters</span>
                   {hasGalleryFilters && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setGalleryTheme("");
-                        setGalleryMedium("");
-                        setGalleryAvailableOnly(false);
-                        setGalleryPriceFilter("");
-                      }}
-                      className="text-sm text-accent hover:text-accent-hover transition-colors duration-150 cursor-pointer"
+                      onClick={() => { setGalleryTheme(""); setGalleryMedium(""); setGalleryAvailableOnly(false); setGalleryPriceFilter(""); }}
+                      className="text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
                     >
-                      Clear
+                      Clear all
                     </button>
                   )}
                 </div>
-              </div>
-            </div>
-          </section>
+                <div className="space-y-7">
+                  {/* Theme */}
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Theme</p>
+                    <div className="space-y-1.5">
+                      {themes.map((t) => (
+                        <CheckPill key={t} checked={galleryTheme === t} onChange={() => setGalleryTheme(galleryTheme === t ? "" : t)} label={t} />
+                      ))}
+                    </div>
+                  </div>
 
-          {/* Gallery grid */}
-          <section className="py-10 lg:py-14">
-            <div className="max-w-[1400px] mx-auto px-6">
-              {filteredGalleryWorks.length === 0 ? (
-                <div className="py-24 text-center">
-                  <p className="text-muted text-lg mb-4">
-                    No works match these filters.
+                  {/* Medium */}
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Medium</p>
+                    <div className="space-y-1.5">
+                      {allGalleryMediums.map((m) => (
+                        <CheckPill key={m} checked={galleryMedium === m} onChange={() => setGalleryMedium(galleryMedium === m ? "" : m)} label={m} />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Price</p>
+                    <div className="space-y-1.5">
+                      {PRICE_BANDS.filter((b) => b.value).map((b) => (
+                        <CheckPill key={b.value} checked={galleryPriceFilter === b.value} onChange={() => setGalleryPriceFilter(galleryPriceFilter === b.value ? "" : b.value)} label={b.label} />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Availability */}
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Availability</p>
+                    <CheckPill checked={galleryAvailableOnly} onChange={setGalleryAvailableOnly} label="Available only" />
+                  </div>
+                </div>
+              </aside>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                {/* Mobile filter toggle */}
+                <div className="lg:hidden mb-6 flex items-center justify-between">
+                  <p className="text-sm text-muted">
+                    {filteredGalleryWorks.length} work{filteredGalleryWorks.length !== 1 ? "s" : ""}
                   </p>
                   <button
                     type="button"
-                    onClick={() => {
-                      setGalleryTheme("");
-                      setGalleryMedium("");
-                      setGalleryAvailableOnly(false);
-                      setGalleryPriceFilter("");
-                    }}
-                    className="text-sm text-accent hover:text-accent-hover transition-colors duration-150 cursor-pointer"
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="flex items-center gap-1.5 px-3 py-2 border border-border rounded-sm text-sm text-foreground hover:bg-surface transition-colors cursor-pointer"
                   >
-                    Clear all filters
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="16" y2="12" /><line x1="4" y1="17" x2="12" y2="17" /></svg>
+                    Filters
+                    {hasGalleryFilters && <span className="text-xs text-white bg-accent rounded-full w-4 h-4 flex items-center justify-center">!</span>}
                   </button>
                 </div>
-              ) : (
+
+                {/* Mobile filter drawer */}
+                {sidebarOpen && browseMode === "gallery" && (
+                  <div className="lg:hidden mb-6 bg-surface border border-border rounded-sm p-4 space-y-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Filters</span>
+                      <button type="button" onClick={() => setSidebarOpen(false)} className="text-xs text-muted hover:text-foreground cursor-pointer">Close</button>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Theme</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {themes.map((t) => (
+                          <button key={t} type="button" onClick={() => setGalleryTheme(galleryTheme === t ? "" : t)} className={`px-2.5 py-1 text-xs rounded-sm border transition-colors cursor-pointer ${galleryTheme === t ? "bg-accent text-white border-accent" : "border-border text-muted hover:border-foreground/30"}`}>{t}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Medium</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {allGalleryMediums.map((m) => (
+                          <button key={m} type="button" onClick={() => setGalleryMedium(galleryMedium === m ? "" : m)} className={`px-2.5 py-1 text-xs rounded-sm border transition-colors cursor-pointer ${galleryMedium === m ? "bg-accent text-white border-accent" : "border-border text-muted hover:border-foreground/30"}`}>{m}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Price</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {PRICE_BANDS.filter((b) => b.value).map((b) => (
+                          <button key={b.value} type="button" onClick={() => setGalleryPriceFilter(galleryPriceFilter === b.value ? "" : b.value)} className={`px-2.5 py-1 text-xs rounded-sm border transition-colors cursor-pointer ${galleryPriceFilter === b.value ? "bg-accent text-white border-accent" : "border-border text-muted hover:border-foreground/30"}`}>{b.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <CheckPill checked={galleryAvailableOnly} onChange={setGalleryAvailableOnly} label="Available only" />
+                    {hasGalleryFilters && (
+                      <button type="button" onClick={() => { setGalleryTheme(""); setGalleryMedium(""); setGalleryAvailableOnly(false); setGalleryPriceFilter(""); }} className="text-sm text-accent hover:text-accent-hover transition-colors cursor-pointer">Clear all filters</button>
+                    )}
+                  </div>
+                )}
+
+                {/* Results count */}
+                <div className="hidden lg:flex items-center justify-between mb-6">
+                  <p className="text-sm text-muted">
+                    {filteredGalleryWorks.length} work{filteredGalleryWorks.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+
+                {filteredGalleryWorks.length === 0 ? (
+                  <div className="py-24 text-center">
+                    <p className="text-muted text-lg mb-4">No works match these filters.</p>
+                    <button type="button" onClick={() => { setGalleryTheme(""); setGalleryMedium(""); setGalleryAvailableOnly(false); setGalleryPriceFilter(""); }} className="text-sm text-accent hover:text-accent-hover transition-colors cursor-pointer">Clear all filters</button>
+                  </div>
+                ) : (
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5 space-y-5">
                   {filteredGalleryWorks.map((work) => (
                     <Link
@@ -1060,10 +1059,11 @@ export default function BrowsePortfoliosPage() {
                     </Link>
                   ))}
                 </div>
-              )}
+                )}
+              </div>
             </div>
-          </section>
-        </>
+          </div>
+        </section>
       )}
 
       {browseMode === "collections" && (

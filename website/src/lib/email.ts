@@ -166,6 +166,80 @@ export async function notifyNewMessage(recipient: {
 }
 
 /**
+ * Notify venue when an artist requests a placement.
+ */
+export async function notifyPlacementRequest(venue: {
+  email: string;
+  venueName: string;
+  artistName: string;
+  workTitles: string[];
+  arrangementType: string;
+  revenueSharePercent?: number;
+  message?: string;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+  try {
+    const typeLabel = venue.arrangementType === "revenue_share"
+      ? `Revenue Share (${venue.revenueSharePercent || 0}%)`
+      : venue.arrangementType === "free_loan" ? "Free Loan" : "Direct Purchase";
+    await resend.emails.send({
+      from: FROM,
+      to: venue.email,
+      subject: `Placement request from ${venue.artistName}`,
+      html: `
+        <h2>New Placement Request</h2>
+        <p><strong>${venue.artistName}</strong> would like to display work at <strong>${venue.venueName}</strong>.</p>
+        <ul>
+          <li><strong>Works:</strong> ${venue.workTitles.join(", ")}</li>
+          <li><strong>Arrangement:</strong> ${typeLabel}</li>
+        </ul>
+        ${venue.message ? `<p><strong>Message:</strong></p><blockquote style="border-left: 3px solid #C17C5A; padding-left: 12px; color: #555;">${venue.message}</blockquote>` : ""}
+        <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/venue-portal/placements" style="color: #C17C5A; font-weight: 600;">Review in your portal</a></p>
+        <br/>
+        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+      `,
+    });
+  } catch (err) {
+    console.error("Email send error (placement request):", err);
+  }
+}
+
+/**
+ * Notify artist when venue responds to a placement request.
+ */
+export async function notifyPlacementResponse(artist: {
+  email: string;
+  artistName: string;
+  venueName: string;
+  accepted: boolean;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+  try {
+    const status = artist.accepted ? "accepted" : "declined";
+    await resend.emails.send({
+      from: FROM,
+      to: artist.email,
+      subject: `${artist.venueName} ${status} your placement request`,
+      html: `
+        <h2>Placement Request ${artist.accepted ? "Accepted" : "Declined"}</h2>
+        <p><strong>${artist.venueName}</strong> has ${status} your placement request.</p>
+        ${artist.accepted
+          ? `<p>Your artwork is now confirmed for display. You can view the details in your portal.</p>`
+          : `<p>You can reach out to the venue via messages if you'd like to discuss further.</p>`
+        }
+        <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/artist-portal/placements" style="color: #C17C5A; font-weight: 600;">View in your portal</a></p>
+        <br/>
+        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+      `,
+    });
+  } catch (err) {
+    console.error("Email send error (placement response):", err);
+  }
+}
+
+/**
  * Notify admin when a new venue registers.
  */
 export async function notifyAdminNewVenue(venue: {

@@ -137,6 +137,7 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
                       <div className="flex flex-wrap gap-x-3 gap-y-1">
                         {([
                           { key: "workMedium" as const, sourceKey: "_sourceMedium" as const, label: "Medium" },
+                          { key: "workDimensions" as const, sourceKey: "_sourceDimensions" as const, label: "Dimensions" },
                           { key: "workPrice" as const, sourceKey: "_sourcePrice" as const, label: "Price" },
                         ]).map(({ key, sourceKey, label: fieldLabel }) => {
                           const isOn = !!label[key];

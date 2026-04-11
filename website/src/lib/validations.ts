@@ -82,17 +82,19 @@ export const placementSchema = z.object({
   artistUserId: optionalString(100),
   workTitle: safeString(200),
   workImage: optionalString(1000),
-  venue: safeString(200),
+  venueSlug: safeString(100),
+  venue: optionalString(200),
   type: z.enum(["free_loan", "revenue_share", "purchase"]),
   revenueSharePercent: z.number().min(0).max(100).optional(),
-  status: z.enum(["active", "completed", "paused"]).optional(),
+  status: z.enum(["pending", "active", "declined", "completed", "paused"]).optional(),
   revenue: z.number().min(0).optional(),
   notes: optionalString(1000),
+  message: optionalString(2000),
 });
 
 export const placementUpdateSchema = z.object({
   id: safeString(100),
-  status: z.enum(["active", "completed", "paused"]),
+  status: z.enum(["pending", "active", "declined", "completed", "paused"]),
 });
 
 export const checkoutSchema = z.object({

@@ -48,6 +48,11 @@ export interface Artist {
   coordinates: { lat: number; lng: number } | null;
   image: string;
   works: ArtistWork[];
+  // Stats (populated from cache columns on artist_profiles)
+  totalViews?: number;
+  totalPlacements?: number;
+  totalSales?: number;
+  totalEnquiries?: number;
 }
 
 export const artists: Artist[] = [

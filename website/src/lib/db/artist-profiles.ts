@@ -35,6 +35,10 @@ export interface DbArtistProfile {
   postcode?: string;
   lat?: number | null;
   lng?: number | null;
+  total_views?: number;
+  total_placements?: number;
+  total_sales?: number;
+  total_enquiries?: number;
 }
 
 export interface DbArtistWork {
@@ -86,6 +90,10 @@ export function dbProfileToArtist(profile: DbArtistProfile, works: DbArtistWork[
         ? { lat: profile.lat, lng: profile.lng }
         : null,
     image: profile.profile_image || `https://picsum.photos/seed/${profile.slug}/400/400`,
+    totalViews: profile.total_views || 0,
+    totalPlacements: profile.total_placements || 0,
+    totalSales: profile.total_sales || 0,
+    totalEnquiries: profile.total_enquiries || 0,
     works: works.map((w) => ({
       id: w.id,
       title: w.title,

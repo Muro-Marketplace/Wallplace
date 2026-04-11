@@ -2,38 +2,65 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
 import { useCurrentArtist } from "@/hooks/useCurrentArtist";
 import { authFetch } from "@/lib/api-client";
 
-type FilterTab = "All" | "Active" | "Pending" | "Completed";
+type FilterTab = "All" | "Pending" | "Active" | "Completed";
 type ArrangementType = "Free Loan" | "Revenue Share" | "Direct Purchase";
-type PlacementStatus = "Active" | "Pending" | "Completed" | "Sold";
+type PlacementStatus = "Active" | "Pending" | "Declined" | "Completed" | "Sold";
 
 interface Placement {
   id: string;
   workTitle: string;
   workImage: string;
   venue: string;
+  venueSlug: string;
   type: ArrangementType;
   revenueSharePercent?: number;
   status: PlacementStatus;
   date: string;
+  respondedAt?: string;
   revenue: string | null;
   notes?: string;
+  message?: string;
+}
+
+interface InteractedVenue {
+  slug: string;
+  name: string;
+  type?: string;
+  location?: string;
 }
 
 const statusBadge = (status: string) => {
   switch (status) {
     case "Active": return "bg-green-100 text-green-700";
     case "Pending": return "bg-amber-100 text-amber-700";
+    case "Declined": return "bg-red-100 text-red-600";
     case "Sold": return "bg-blue-100 text-blue-700";
     case "Completed": return "bg-gray-100 text-gray-600";
     default: return "bg-gray-100 text-gray-600";
   }
 };
 
-const tabs: FilterTab[] = ["All", "Active", "Pending", "Completed"];
+const tabs: FilterTab[] = ["All", "Pending", "Active", "Completed"];
+
+function normaliseStatus(raw: string): PlacementStatus {
+  const map: Record<string, PlacementStatus> = {
+    active: "Active", pending: "Pending", declined: "Declined",
+    completed: "Completed", sold: "Sold", paused: "Completed",
+  };
+  return map[raw.toLowerCase()] || "Active";
+}
+
+function normaliseType(raw: string): ArrangementType {
+  const map: Record<string, ArrangementType> = {
+    free_loan: "Free Loan", revenue_share: "Revenue Share", purchase: "Direct Purchase",
+  };
+  return map[raw] || "Free Loan";
+}
 
 export default function PlacementsPage() {
   const { artist, loading: artistLoading } = useCurrentArtist();
@@ -43,12 +70,17 @@ export default function PlacementsPage() {
   const [initialised, setInitialised] = useState(false);
 
   // Form state
-  const [venueName, setVenueName] = useState("");
+  const [venueSlug, setVenueSlug] = useState("");
   const [arrangementType, setArrangementType] = useState<ArrangementType>("Free Loan");
   const [revenuePercent, setRevenuePercent] = useState(10);
   const [selectedWorks, setSelectedWorks] = useState<Set<number>>(new Set());
   const [notes, setNotes] = useState("");
-  const [status, setStatus] = useState<PlacementStatus>("Active");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Interacted venues for dropdown
+  const [venues, setVenues] = useState<InteractedVenue[]>([]);
+  const [venuesLoading, setVenuesLoading] = useState(false);
 
   // Load placements from API
   useEffect(() => {
@@ -62,19 +94,33 @@ export default function PlacementsPage() {
             workTitle: p.work_title || "Untitled",
             workImage: (p.work_image as string) || "",
             venue: p.venue || "",
-            type: (p.arrangement_type || "Free Loan") as ArrangementType,
+            venueSlug: p.venue_slug || "",
+            type: normaliseType(p.arrangement_type as string || "free_loan"),
             revenueSharePercent: p.revenue_share_percent as number | undefined,
-            status: (p.status || "active") as PlacementStatus,
+            status: normaliseStatus(p.status as string || "active"),
             date: p.created_at ? new Date(p.created_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "",
+            respondedAt: p.responded_at ? new Date(p.responded_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : undefined,
             revenue: p.revenue ? `\u00a3${p.revenue}` : null,
             notes: p.notes as string | undefined,
+            message: p.message as string | undefined,
           }));
           setPlacements(mapped);
         }
       })
-      .catch(() => { /* empty state */ })
+      .catch(() => {})
       .finally(() => setInitialised(true));
   }, [artist, initialised]);
+
+  // Load interacted venues when form opens
+  useEffect(() => {
+    if (!showForm || venues.length > 0) return;
+    setVenuesLoading(true);
+    authFetch("/api/placements/venues")
+      .then((res) => res.json())
+      .then((data) => { if (data.venues) setVenues(data.venues); })
+      .catch(() => {})
+      .finally(() => setVenuesLoading(false));
+  }, [showForm, venues.length]);
 
   function toggleWork(index: number) {
     setSelectedWorks((prev) => {
@@ -86,54 +132,72 @@ export default function PlacementsPage() {
   }
 
   async function handleSubmit() {
-    if (!venueName || selectedWorks.size === 0) return;
+    if (!venueSlug || selectedWorks.size === 0) return;
+    setSubmitting(true);
 
-    const newPlacements: Placement[] = Array.from(selectedWorks).map((workIndex) => {
+    const typeMap: Record<ArrangementType, string> = {
+      "Free Loan": "free_loan", "Revenue Share": "revenue_share", "Direct Purchase": "purchase",
+    };
+
+    const newPlacements = Array.from(selectedWorks).map((workIndex) => {
       const work = works[workIndex];
       return {
         id: `p-${Date.now()}-${workIndex}`,
         workTitle: work.title,
         workImage: work.image,
-        venue: venueName,
-        type: arrangementType,
+        venueSlug,
+        type: typeMap[arrangementType],
         revenueSharePercent: arrangementType === "Revenue Share" ? revenuePercent : undefined,
-        status,
-        date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-        revenue: null,
         notes: notes || undefined,
+        message: message || undefined,
       };
     });
 
-    // Save to Supabase
     try {
-      await authFetch("/api/placements", {
+      const res = await authFetch("/api/placements", {
         method: "POST",
-        body: JSON.stringify({
-          placements: newPlacements.map((p) => ({
-            ...p,
-            workTitle: p.workTitle,
-            workImage: p.workImage,
-          })),
-        }),
+        body: JSON.stringify({ placements: newPlacements }),
       });
+      if (res.ok) {
+        const selectedVenue = venues.find((v) => v.slug === venueSlug);
+        const mapped: Placement[] = newPlacements.map((p) => ({
+          id: p.id,
+          workTitle: p.workTitle,
+          workImage: p.workImage,
+          venue: selectedVenue?.name || venueSlug,
+          venueSlug: p.venueSlug,
+          type: arrangementType,
+          revenueSharePercent: p.revenueSharePercent,
+          status: "Pending",
+          date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+          revenue: null,
+          notes: p.notes,
+          message: p.message,
+        }));
+        setPlacements([...mapped, ...placements]);
+        setShowForm(false);
+        setVenueSlug("");
+        setSelectedWorks(new Set());
+        setNotes("");
+        setMessage("");
+        setArrangementType("Free Loan");
+      }
     } catch (err) {
       console.error("Placement save error:", err);
+    } finally {
+      setSubmitting(false);
     }
-
-    setPlacements([...newPlacements, ...placements]);
-    setShowForm(false);
-    setVenueName("");
-    setSelectedWorks(new Set());
-    setNotes("");
-    setArrangementType("Free Loan");
-    setStatus("Active");
   }
 
   function updateStatus(id: string, newStatus: PlacementStatus) {
+    const statusMap: Record<string, string> = {
+      Active: "active", Pending: "pending", Declined: "declined",
+      Completed: "completed", Sold: "completed",
+    };
     setPlacements(placements.map((p) => (p.id === id ? { ...p, status: newStatus } : p)));
     authFetch("/api/placements", {
       method: "PATCH",
-      body: JSON.stringify({ id, status: newStatus }),
+      body: JSON.stringify({ id, status: statusMap[newStatus] || "active" }),
     }).catch((err) => console.error("Status update error:", err));
   }
 
@@ -170,34 +234,53 @@ export default function PlacementsPage() {
           <span className="text-sm text-muted">
             {placements.filter((p) => p.status === "Active").length} active
           </span>
+          <Link
+            href="/artist-portal/labels"
+            className="px-4 py-2 text-sm font-medium text-foreground border border-border hover:bg-background rounded-sm transition-colors"
+          >
+            Print QR Labels
+          </Link>
           <button
             onClick={() => setShowForm(!showForm)}
             className="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
           >
-            + Log Placement
+            + Request Placement
           </button>
         </div>
       </div>
 
-      {/* Log Placement Form */}
+      {/* Request Placement Form */}
       {showForm && (
         <div className="bg-surface border border-border rounded-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-medium">Log New Placement</h2>
+            <h2 className="text-base font-medium">Request Placement</h2>
             <button onClick={() => setShowForm(false)} className="text-xs text-muted hover:text-foreground transition-colors">Cancel</button>
           </div>
 
           <div className="space-y-5">
-            {/* Venue name */}
+            {/* Venue selector */}
             <div>
-              <label className="block text-sm font-medium mb-2">Venue Name <span className="text-accent">*</span></label>
-              <input
-                type="text"
-                value={venueName}
-                onChange={(e) => setVenueName(e.target.value)}
-                placeholder="e.g. Ozone Coffee, Shoreditch"
-                className={inputClass}
-              />
+              <label className="block text-sm font-medium mb-2">Venue <span className="text-accent">*</span></label>
+              {venuesLoading ? (
+                <p className="text-sm text-muted">Loading venues...</p>
+              ) : venues.length === 0 ? (
+                <div className="bg-background border border-border rounded-sm p-4">
+                  <p className="text-sm text-muted">No venues available. You can only request placements with venues you&rsquo;ve interacted with via messages or enquiries.</p>
+                </div>
+              ) : (
+                <select
+                  value={venueSlug}
+                  onChange={(e) => setVenueSlug(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="">Select a venue</option>
+                  {venues.map((v) => (
+                    <option key={v.slug} value={v.slug}>
+                      {v.name}{v.location ? ` — ${v.location}` : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Arrangement type */}
@@ -239,32 +322,10 @@ export default function PlacementsPage() {
               </div>
             )}
 
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Status</label>
-              <div className="flex gap-2">
-                {(["Active", "Pending"] as PlacementStatus[]).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setStatus(s)}
-                    className={`px-4 py-2 text-xs rounded-sm border transition-colors ${
-                      status === s
-                        ? "bg-foreground text-white border-foreground"
-                        : "border-border text-muted hover:border-foreground/30"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[10px] text-muted mt-1">Active = already on the wall. Pending = agreed but not yet installed.</p>
-            </div>
-
             {/* Select works */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Select Works to Place <span className="text-accent">*</span>
+                Select Works <span className="text-accent">*</span>
                 {selectedWorks.size > 0 && (
                   <span className="text-accent ml-2 font-normal">{selectedWorks.size} selected</span>
                 )}
@@ -295,13 +356,25 @@ export default function PlacementsPage() {
               </div>
             </div>
 
+            {/* Message to venue */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Message to venue (optional)</label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Introduce yourself or explain why your work would suit their space..."
+                rows={3}
+                className={`${inputClass} resize-none`}
+              />
+            </div>
+
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium mb-2">Notes (optional)</label>
+              <label className="block text-sm font-medium mb-2">Private notes (optional)</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any details about the arrangement, delivery date, contact person..."
+                placeholder="Notes for your own records..."
                 rows={2}
                 className={`${inputClass} resize-none`}
               />
@@ -311,10 +384,10 @@ export default function PlacementsPage() {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleSubmit}
-                disabled={!venueName || selectedWorks.size === 0}
+                disabled={!venueSlug || selectedWorks.size === 0 || submitting}
                 className="px-6 py-2.5 text-sm font-medium text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Log {selectedWorks.size} Placement{selectedWorks.size !== 1 ? "s" : ""}
+                {submitting ? "Sending..." : `Request ${selectedWorks.size} Placement${selectedWorks.size !== 1 ? "s" : ""}`}
               </button>
               <button onClick={() => setShowForm(false)} className="px-6 py-2.5 text-sm text-muted border border-border rounded-sm hover:text-foreground transition-colors">
                 Cancel
@@ -385,16 +458,25 @@ export default function PlacementsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3.5">
-                    <select
-                      value={p.status}
-                      onChange={(e) => updateStatus(p.id, e.target.value as PlacementStatus)}
-                      className={`text-xs font-medium px-2 py-0.5 rounded-full border-none cursor-pointer ${statusBadge(p.status)}`}
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Pending">Pending</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Sold">Sold</option>
-                    </select>
+                    {p.status === "Pending" ? (
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                        Awaiting response
+                      </span>
+                    ) : p.status === "Declined" ? (
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                        Declined
+                      </span>
+                    ) : (
+                      <select
+                        value={p.status}
+                        onChange={(e) => updateStatus(p.id, e.target.value as PlacementStatus)}
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full border-none cursor-pointer ${statusBadge(p.status)}`}
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Sold">Sold</option>
+                      </select>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-muted whitespace-nowrap">{p.date}</td>
                   <td className="px-4 py-3.5 text-right font-medium text-foreground">
@@ -433,7 +515,7 @@ export default function PlacementsPage() {
                 </div>
               </div>
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0 ${statusBadge(p.status)}`}>
-                {p.status}
+                {p.status === "Pending" ? "Awaiting response" : p.status}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs text-muted mt-2">

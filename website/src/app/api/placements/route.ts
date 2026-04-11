@@ -2,32 +2,66 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAuthenticatedUser } from "@/lib/api-auth";
 import { placementSchema, placementUpdateSchema } from "@/lib/validations";
+import { notifyPlacementRequest, notifyPlacementResponse } from "@/lib/email";
 import { z } from "zod";
 
-// GET: fetch placements for the authenticated user
+/**
+ * Determine if the authenticated user is an artist or venue.
+ * Returns { type, slug, profile } or null.
+ */
+async function getUserRole(userId: string) {
+  const db = getSupabaseAdmin();
+  const { data: artist } = await db
+    .from("artist_profiles")
+    .select("slug, name, user_id")
+    .eq("user_id", userId)
+    .single();
+  if (artist) return { type: "artist" as const, slug: artist.slug, name: artist.name };
+
+  const { data: venue } = await db
+    .from("venue_profiles")
+    .select("slug, name, user_id")
+    .eq("user_id", userId)
+    .single();
+  if (venue) return { type: "venue" as const, slug: venue.slug, name: venue.name };
+
+  return null;
+}
+
+// GET: fetch placements for the authenticated user (artist or venue)
 export async function GET(request: Request) {
   const auth = await getAuthenticatedUser(request);
   if (auth.error) return auth.error;
 
   try {
     const db = getSupabaseAdmin();
-    const { data, error } = await db
-      .from("placements")
-      .select("*")
-      .eq("artist_user_id", auth.user!.id)
-      .order("created_at", { ascending: false });
+    const role = await getUserRole(auth.user!.id);
+
+    if (!role) {
+      return NextResponse.json({ placements: [] });
+    }
+
+    let query;
+    if (role.type === "artist") {
+      query = db.from("placements").select("*").eq("artist_user_id", auth.user!.id);
+    } else {
+      query = db.from("placements").select("*").eq("venue_user_id", auth.user!.id);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
       console.error("Supabase error:", error);
       return NextResponse.json({ error: "Failed to fetch placements" }, { status: 500 });
     }
 
-    return NextResponse.json({ placements: data || [] });
+    return NextResponse.json({ placements: data || [], userType: role.type });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
 
+// POST: artist creates a placement request
 export async function POST(request: Request) {
   const auth = await getAuthenticatedUser(request);
   if (auth.error) return auth.error;
@@ -45,26 +79,75 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid placement data" }, { status: 400 });
     }
 
+    const db = getSupabaseAdmin();
+
+    // Get artist slug
+    const { data: artistProfile } = await db
+      .from("artist_profiles")
+      .select("slug, name")
+      .eq("user_id", auth.user!.id)
+      .single();
+
+    if (!artistProfile) {
+      return NextResponse.json({ error: "Artist profile not found" }, { status: 400 });
+    }
+
+    // All placements in a batch go to the same venue
+    const venueSlug = parsed.data[0].venueSlug;
+    if (!venueSlug) {
+      return NextResponse.json({ error: "Venue selection required" }, { status: 400 });
+    }
+
+    // Look up venue
+    const { data: venueProfile } = await db
+      .from("venue_profiles")
+      .select("user_id, slug, name")
+      .eq("slug", venueSlug)
+      .single();
+
+    if (!venueProfile) {
+      return NextResponse.json({ error: "Venue not found" }, { status: 400 });
+    }
+
     const rows = parsed.data.map((p) => ({
       id: p.id,
       artist_user_id: auth.user!.id,
+      artist_slug: artistProfile.slug,
+      venue_user_id: venueProfile.user_id,
+      venue_slug: venueProfile.slug,
+      venue: venueProfile.name,
       work_title: p.workTitle,
       work_image: p.workImage || null,
-      venue: p.venue,
       arrangement_type: p.type,
       revenue_share_percent: p.revenueSharePercent || null,
-      status: p.status || "active",
-      revenue: p.revenue || null,
+      status: "pending",
+      revenue: null,
       notes: p.notes || null,
+      message: p.message || null,
       created_at: new Date().toISOString(),
     }));
 
-    const db = getSupabaseAdmin();
     const { error } = await db.from("placements").insert(rows);
 
     if (error) {
       console.error("Supabase error:", error);
       return NextResponse.json({ error: "Failed to save placements" }, { status: 500 });
+    }
+
+    // Notify venue by email (fire-and-forget)
+    if (venueProfile.user_id) {
+      const { data: { user: venueUser } } = await db.auth.admin.getUserById(venueProfile.user_id);
+      if (venueUser?.email) {
+        notifyPlacementRequest({
+          email: venueUser.email,
+          venueName: venueProfile.name,
+          artistName: artistProfile.name,
+          workTitles: parsed.data.map((p) => p.workTitle),
+          arrangementType: parsed.data[0].type,
+          revenueSharePercent: parsed.data[0].revenueSharePercent,
+          message: parsed.data[0].message,
+        }).catch(() => {});
+      }
     }
 
     return NextResponse.json({ success: true });
@@ -73,6 +156,7 @@ export async function POST(request: Request) {
   }
 }
 
+// PATCH: update placement status (artist or venue)
 export async function PATCH(request: Request) {
   const auth = await getAuthenticatedUser(request);
   if (auth.error) return auth.error;
@@ -86,27 +170,69 @@ export async function PATCH(request: Request) {
     }
 
     const { id, status } = parsed.data;
-
-    // Verify ownership before updating
     const db = getSupabaseAdmin();
+
+    // Fetch the placement
     const { data: existing } = await db
       .from("placements")
-      .select("artist_user_id")
+      .select("artist_user_id, venue_user_id, artist_slug, venue, status")
       .eq("id", id)
       .single();
 
-    if (!existing || existing.artist_user_id !== auth.user!.id) {
+    if (!existing) {
+      return NextResponse.json({ error: "Placement not found" }, { status: 404 });
+    }
+
+    const isArtist = existing.artist_user_id === auth.user!.id;
+    const isVenue = existing.venue_user_id === auth.user!.id;
+
+    if (!isArtist && !isVenue) {
       return NextResponse.json({ error: "Not authorised" }, { status: 403 });
     }
 
-    const { error } = await db
-      .from("placements")
-      .update({ status })
-      .eq("id", id);
+    // Venue can accept/decline pending requests
+    if (isVenue) {
+      if (existing.status !== "pending") {
+        return NextResponse.json({ error: "Can only respond to pending requests" }, { status: 400 });
+      }
+      if (status !== "active" && status !== "declined") {
+        return NextResponse.json({ error: "Venue can only accept or decline" }, { status: 400 });
+      }
+    }
+
+    // Artist can update active placements but not pending ones (venue decides those)
+    if (isArtist && existing.status === "pending" && status !== "pending") {
+      return NextResponse.json({ error: "Awaiting venue response" }, { status: 400 });
+    }
+
+    const updates: Record<string, unknown> = { status };
+    if (isVenue && (status === "active" || status === "declined")) {
+      updates.responded_at = new Date().toISOString();
+    }
+
+    const { error } = await db.from("placements").update(updates).eq("id", id);
 
     if (error) {
       console.error("Supabase error:", error);
       return NextResponse.json({ error: "Failed to update placement" }, { status: 500 });
+    }
+
+    // Notify artist when venue responds (fire-and-forget)
+    if (isVenue && existing.artist_user_id) {
+      const { data: { user: artistUser } } = await db.auth.admin.getUserById(existing.artist_user_id);
+      const { data: artistProfile } = await db
+        .from("artist_profiles")
+        .select("name")
+        .eq("user_id", existing.artist_user_id)
+        .single();
+      if (artistUser?.email && artistProfile) {
+        notifyPlacementResponse({
+          email: artistUser.email,
+          artistName: artistProfile.name,
+          venueName: existing.venue || "Venue",
+          accepted: status === "active",
+        }).catch(() => {});
+      }
     }
 
     return NextResponse.json({ success: true });
@@ -115,6 +241,7 @@ export async function PATCH(request: Request) {
   }
 }
 
+// DELETE: artist removes a placement
 export async function DELETE(request: Request) {
   const auth = await getAuthenticatedUser(request);
   if (auth.error) return auth.error;
@@ -127,7 +254,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Valid ID required" }, { status: 400 });
     }
 
-    // Verify ownership before deleting
     const db = getSupabaseAdmin();
     const { data: existing } = await db
       .from("placements")
@@ -139,10 +265,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Not authorised" }, { status: 403 });
     }
 
-    const { error } = await db
-      .from("placements")
-      .delete()
-      .eq("id", id);
+    const { error } = await db.from("placements").delete().eq("id", id);
 
     if (error) {
       console.error("Supabase error:", error);

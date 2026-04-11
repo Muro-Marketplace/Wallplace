@@ -166,6 +166,31 @@ export default async function ArtistProfilePage({
                   </div>
                 ))}
               </div>
+
+              {/* Stats row - only show if there's data */}
+              {((artist.totalPlacements ?? 0) > 0 || (artist.totalSales ?? 0) > 0 || (artist.totalViews ?? 0) > 0) && (
+                <div className="flex items-center gap-4 mb-4 py-2.5 border-y border-border">
+                  {(artist.totalPlacements ?? 0) > 0 && (
+                    <div className="text-center">
+                      <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalPlacements}</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mt-0.5">Venue{artist.totalPlacements !== 1 ? "s" : ""}</p>
+                    </div>
+                  )}
+                  {(artist.totalSales ?? 0) > 0 && (
+                    <div className="text-center">
+                      <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalSales}</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mt-0.5">Sold</p>
+                    </div>
+                  )}
+                  {(artist.totalViews ?? 0) > 0 && (
+                    <div className="text-center">
+                      <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalViews}</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mt-0.5">Views</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-1.5">
                 {[
                   { label: "Originals", yes: artist.offersOriginals },

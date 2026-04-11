@@ -227,8 +227,8 @@ export default function RegisterVenuePage() {
               <div className="space-y-4">
                 {[
                   { step: "01", title: "We review your space", desc: "Our team assesses your venue to match the right artists." },
-                  { step: "02", title: "We propose a selection", desc: "You receive a curated shortlist of artists suited to your space." },
-                  { step: "03", title: "You choose", desc: "Pick the work you love. We handle delivery and installation." },
+                  { step: "02", title: "Browse & connect", desc: "Explore artist portfolios and enquire about work you love." },
+                  { step: "03", title: "Agree & display", desc: "Arrange terms directly with the artist and start displaying." },
                 ].map((s) => (
                   <div key={s.step} className="flex gap-4">
                     <span className="text-accent text-sm font-medium mt-0.5">{s.step}</span>
