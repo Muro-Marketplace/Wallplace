@@ -175,6 +175,15 @@ export default function BrowsePortfoliosPage() {
   const [galleryMedium, setGalleryMedium] = useState("");
   const [galleryAvailableOnly, setGalleryAvailableOnly] = useState(false);
   const [galleryPriceFilter, setGalleryPriceFilter] = useState("");
+  const [galleryLocationMode, setGalleryLocationMode] = useState<"global" | "local">("global");
+  const [galleryStyle, setGalleryStyle] = useState("");
+  const [galleryOriginals, setGalleryOriginals] = useState(false);
+  const [galleryPrints, setGalleryPrints] = useState(false);
+  const [galleryFraming, setGalleryFraming] = useState(false);
+  const [galleryFreeLoan, setGalleryFreeLoan] = useState(false);
+  const [galleryRevenueShare, setGalleryRevenueShare] = useState(false);
+  const [galleryRevenueShareMin, setGalleryRevenueShareMin] = useState(0);
+  const [galleryPurchase, setGalleryPurchase] = useState(false);
 
   function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -305,16 +314,43 @@ export default function BrowsePortfoliosPage() {
 
   const filteredGalleryWorks = useMemo(() => {
     return allGalleryWorks.filter((work) => {
+      // Theme
       if (galleryTheme && !work.themes.includes(galleryTheme)) return false;
+      // Medium (work-level)
       if (galleryMedium && work.medium !== galleryMedium) return false;
+      // Style (artist primary medium)
+      if (galleryStyle && work.artistPrimaryMedium !== galleryStyle) return false;
+      // Availability
       if (galleryAvailableOnly && !work.available) return false;
+      // Price
       if (!priceBandMatches(work.priceBand, galleryPriceFilter)) return false;
+      // Originals / Prints / Framing
+      if (galleryOriginals && !work.offersOriginals) return false;
+      if (galleryPrints && !work.offersPrints) return false;
+      if (galleryFraming && !work.offersFramed) return false;
+      // Commercial terms
+      if (galleryFreeLoan && !work.openToFreeLoan) return false;
+      if (galleryRevenueShare && !work.openToRevenueShare) return false;
+      if (galleryRevenueShare && galleryRevenueShareMin > 0 && (work.revenueSharePercent || 0) < galleryRevenueShareMin) return false;
+      if (galleryPurchase && !work.openToOutrightPurchase) return false;
+      // Location
+      if (galleryLocationMode === "local" && userCoords && work.artistCoordinates) {
+        const dist = calcDistance(userCoords.lat, userCoords.lng, work.artistCoordinates.lat, work.artistCoordinates.lng);
+        if (dist > filters.maxDistance) return false;
+      }
       return true;
     });
-  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryAvailableOnly, galleryPriceFilter]);
+  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceFilter, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.maxDistance]);
 
   const hasGalleryFilters =
-    !!galleryTheme || !!galleryMedium || galleryAvailableOnly || !!galleryPriceFilter;
+    !!galleryTheme || !!galleryMedium || !!galleryStyle || galleryAvailableOnly || !!galleryPriceFilter || galleryOriginals || galleryPrints || galleryFraming || galleryFreeLoan || galleryRevenueShare || galleryPurchase || galleryLocationMode === "local";
+
+  function clearGalleryFilters() {
+    setGalleryTheme(""); setGalleryMedium(""); setGalleryStyle(""); setGalleryAvailableOnly(false);
+    setGalleryPriceFilter(""); setGalleryOriginals(false); setGalleryPrints(false); setGalleryFraming(false);
+    setGalleryFreeLoan(false); setGalleryRevenueShare(false); setGalleryRevenueShareMin(0); setGalleryPurchase(false);
+    setGalleryLocationMode("global");
+  }
 
   const FilterPanel = () => (
     <div className="space-y-7">
@@ -880,33 +916,87 @@ export default function BrowsePortfoliosPage() {
                 <div className="flex items-center justify-between mb-6">
                   <span className="text-sm font-medium text-foreground">Filters</span>
                   {hasGalleryFilters && (
-                    <button
-                      type="button"
-                      onClick={() => { setGalleryTheme(""); setGalleryMedium(""); setGalleryAvailableOnly(false); setGalleryPriceFilter(""); }}
-                      className="text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
-                    >
+                    <button type="button" onClick={clearGalleryFilters} className="text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer">
                       Clear all
                     </button>
                   )}
                 </div>
                 <div className="space-y-7">
+                  {/* Location Mode */}
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Location Mode</p>
+                    <div className="flex gap-2">
+                      {(["global", "local"] as const).map((mode) => (
+                        <button key={mode} type="button" onClick={() => { setGalleryLocationMode(mode); if (mode === "local" && !userCoords) handleModeChange("local"); }} className={`flex-1 py-2 text-sm rounded-sm border transition-all duration-150 capitalize cursor-pointer ${galleryLocationMode === mode ? "bg-foreground text-background border-foreground" : "border-border text-muted hover:border-foreground/30"}`}>
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                    {galleryLocationMode === "local" && userCoords && (
+                      <div className="mt-3">
+                        <p className="text-xs text-muted mb-2">Distance</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {DISTANCE_OPTIONS.map((opt) => (
+                            <button key={opt.value} type="button" onClick={() => setFilter("maxDistance", opt.value)} className={`px-2.5 py-1 text-xs rounded-sm border transition-colors cursor-pointer ${filters.maxDistance === opt.value ? "bg-foreground text-background border-foreground" : "border-border text-muted hover:border-foreground/30"}`}>
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {galleryLocationMode === "local" && !userCoords && !geoRequesting && (
+                      <div className="mt-3">
+                        <p className="text-xs text-muted mb-1.5">Enter your postcode</p>
+                        <div className="flex gap-1.5">
+                          <input type="text" value={postcodeInput} onChange={(e) => { setPostcodeInput(e.target.value.toUpperCase()); setPostcodeError(false); }} onKeyDown={(e) => { if (e.key === "Enter") handlePostcodeSubmit(); }} placeholder="e.g. EC1A 1BB" className="flex-1 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs text-foreground focus:outline-none focus:border-accent/50 uppercase" />
+                          <button type="button" onClick={handlePostcodeSubmit} className="px-3 py-1.5 bg-accent text-white text-xs rounded-sm hover:bg-accent-hover transition-colors cursor-pointer">Go</button>
+                        </div>
+                        {postcodeError && <p className="text-[10px] text-red-400 mt-1">Postcode not found</p>}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Style */}
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Style</p>
+                    <select value={galleryStyle} onChange={(e) => setGalleryStyle(e.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer">
+                      <option value="">All styles</option>
+                      {allMediums.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+
                   {/* Theme */}
                   <div>
                     <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Theme</p>
+                    <select value={galleryTheme} onChange={(e) => setGalleryTheme(e.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer">
+                      <option value="">All themes</option>
+                      {themes.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Commercial Terms */}
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Commercial Terms</p>
                     <div className="space-y-1.5">
-                      {themes.map((t) => (
-                        <CheckPill key={t} checked={galleryTheme === t} onChange={() => setGalleryTheme(galleryTheme === t ? "" : t)} label={t} />
-                      ))}
+                      <CheckPill checked={galleryFreeLoan} onChange={setGalleryFreeLoan} label="Display" />
+                      {galleryFreeLoan && (
+                        <div className="ml-6 flex items-center gap-2 text-xs text-muted">
+                          <span>Min Revenue Share</span>
+                          <input type="number" min={0} max={50} value={galleryRevenueShareMin || ""} onChange={(e) => setGalleryRevenueShareMin(Number(e.target.value) || 0)} placeholder="e.g. 10" className="w-16 px-2 py-1 bg-surface border border-border rounded-sm text-xs text-center focus:outline-none focus:border-accent/50" />
+                          <span>%</span>
+                        </div>
+                      )}
+                      <CheckPill checked={galleryPurchase} onChange={setGalleryPurchase} label="Purchase" />
                     </div>
                   </div>
 
-                  {/* Medium */}
+                  {/* Availability */}
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Medium</p>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Availability</p>
                     <div className="space-y-1.5">
-                      {allGalleryMediums.map((m) => (
-                        <CheckPill key={m} checked={galleryMedium === m} onChange={() => setGalleryMedium(galleryMedium === m ? "" : m)} label={m} />
-                      ))}
+                      <CheckPill checked={galleryOriginals} onChange={setGalleryOriginals} label="Originals available" />
+                      <CheckPill checked={galleryPrints} onChange={setGalleryPrints} label="Prints available" />
+                      <CheckPill checked={galleryFraming} onChange={setGalleryFraming} label="Framing available" />
                     </div>
                   </div>
 
@@ -918,12 +1008,6 @@ export default function BrowsePortfoliosPage() {
                         <CheckPill key={b.value} checked={galleryPriceFilter === b.value} onChange={() => setGalleryPriceFilter(galleryPriceFilter === b.value ? "" : b.value)} label={b.label} />
                       ))}
                     </div>
-                  </div>
-
-                  {/* Availability */}
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Availability</p>
-                    <CheckPill checked={galleryAvailableOnly} onChange={setGalleryAvailableOnly} label="Available only" />
                   </div>
                 </div>
               </aside>
@@ -954,19 +1038,32 @@ export default function BrowsePortfoliosPage() {
                       <button type="button" onClick={() => setSidebarOpen(false)} className="text-xs text-muted hover:text-foreground cursor-pointer">Close</button>
                     </div>
                     <div>
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Style</p>
+                      <select value={galleryStyle} onChange={(e) => setGalleryStyle(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm">
+                        <option value="">All styles</option>
+                        {allMediums.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                    <div>
                       <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Theme</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {themes.map((t) => (
-                          <button key={t} type="button" onClick={() => setGalleryTheme(galleryTheme === t ? "" : t)} className={`px-2.5 py-1 text-xs rounded-sm border transition-colors cursor-pointer ${galleryTheme === t ? "bg-accent text-white border-accent" : "border-border text-muted hover:border-foreground/30"}`}>{t}</button>
-                        ))}
+                      <select value={galleryTheme} onChange={(e) => setGalleryTheme(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm">
+                        <option value="">All themes</option>
+                        {themes.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Commercial Terms</p>
+                      <div className="space-y-1.5">
+                        <CheckPill checked={galleryFreeLoan} onChange={setGalleryFreeLoan} label="Display" />
+                        <CheckPill checked={galleryPurchase} onChange={setGalleryPurchase} label="Purchase" />
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Medium</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {allGalleryMediums.map((m) => (
-                          <button key={m} type="button" onClick={() => setGalleryMedium(galleryMedium === m ? "" : m)} className={`px-2.5 py-1 text-xs rounded-sm border transition-colors cursor-pointer ${galleryMedium === m ? "bg-accent text-white border-accent" : "border-border text-muted hover:border-foreground/30"}`}>{m}</button>
-                        ))}
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Availability</p>
+                      <div className="space-y-1.5">
+                        <CheckPill checked={galleryOriginals} onChange={setGalleryOriginals} label="Originals" />
+                        <CheckPill checked={galleryPrints} onChange={setGalleryPrints} label="Prints" />
+                        <CheckPill checked={galleryFraming} onChange={setGalleryFraming} label="Framing" />
                       </div>
                     </div>
                     <div>
@@ -977,9 +1074,8 @@ export default function BrowsePortfoliosPage() {
                         ))}
                       </div>
                     </div>
-                    <CheckPill checked={galleryAvailableOnly} onChange={setGalleryAvailableOnly} label="Available only" />
                     {hasGalleryFilters && (
-                      <button type="button" onClick={() => { setGalleryTheme(""); setGalleryMedium(""); setGalleryAvailableOnly(false); setGalleryPriceFilter(""); }} className="text-sm text-accent hover:text-accent-hover transition-colors cursor-pointer">Clear all filters</button>
+                      <button type="button" onClick={clearGalleryFilters} className="text-sm text-accent hover:text-accent-hover transition-colors cursor-pointer">Clear all filters</button>
                     )}
                   </div>
                 )}
@@ -994,7 +1090,7 @@ export default function BrowsePortfoliosPage() {
                 {filteredGalleryWorks.length === 0 ? (
                   <div className="py-24 text-center">
                     <p className="text-muted text-lg mb-4">No works match these filters.</p>
-                    <button type="button" onClick={() => { setGalleryTheme(""); setGalleryMedium(""); setGalleryAvailableOnly(false); setGalleryPriceFilter(""); }} className="text-sm text-accent hover:text-accent-hover transition-colors cursor-pointer">Clear all filters</button>
+                    <button type="button" onClick={clearGalleryFilters} className="text-sm text-accent hover:text-accent-hover transition-colors cursor-pointer">Clear all filters</button>
                   </div>
                 ) : (
                 <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5 space-y-5">

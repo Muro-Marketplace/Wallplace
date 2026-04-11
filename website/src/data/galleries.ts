@@ -13,6 +13,17 @@ export interface GalleryWork {
   image: string;
   themes: string[];
   orientation?: WorkOrientation;
+  // Artist-level fields for filtering
+  artistLocation: string;
+  artistCoordinates: { lat: number; lng: number } | null;
+  artistPrimaryMedium: string;
+  offersOriginals: boolean;
+  offersPrints: boolean;
+  offersFramed: boolean;
+  openToFreeLoan: boolean;
+  openToRevenueShare: boolean;
+  revenueSharePercent?: number;
+  openToOutrightPurchase: boolean;
 }
 
 /** Build gallery works from static seed data (fallback) */
@@ -36,6 +47,16 @@ export function artistsToGalleryWorks(allArtists: Artist[]): GalleryWork[] {
       image: work.image,
       themes: artist.themes,
       orientation: work.orientation,
+      artistLocation: artist.location,
+      artistCoordinates: artist.coordinates,
+      artistPrimaryMedium: artist.primaryMedium,
+      offersOriginals: artist.offersOriginals,
+      offersPrints: artist.offersPrints,
+      offersFramed: artist.offersFramed,
+      openToFreeLoan: artist.openToFreeLoan,
+      openToRevenueShare: artist.openToRevenueShare,
+      revenueSharePercent: artist.revenueSharePercent,
+      openToOutrightPurchase: artist.openToOutrightPurchase,
     }))
   );
 }
