@@ -152,14 +152,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const { conversationId, senderName, senderType, recipientSlug, content, messageType, metadata } = parsed.data;
+    const { conversationId, senderType, recipientSlug, content, messageType, metadata } = parsed.data;
     const cid = conversationId || `conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     const db = getSupabaseAdmin();
+
+    // Resolve the authenticated user's actual slug (never trust client-provided senderName)
+    const { data: senderArtist } = await db.from("artist_profiles").select("slug").eq("user_id", auth.user!.id).single();
+    const { data: senderVenue } = !senderArtist
+      ? await db.from("venue_profiles").select("slug").eq("user_id", auth.user!.id).single()
+      : { data: null };
+    const resolvedSenderSlug = senderArtist?.slug || senderVenue?.slug || parsed.data.senderName;
+
     const { error } = await db.from("messages").insert({
       conversation_id: cid,
       sender_id: auth.user!.id,
-      sender_name: senderName,
+      sender_name: resolvedSenderSlug,
       sender_type: senderType || "anonymous",
       recipient_slug: recipientSlug,
       content,
@@ -181,15 +189,15 @@ export async function POST(request: Request) {
 
       // Determine who is artist and who is venue
       const senderIsArtist = senderType === "artist";
-      const artistSlug = senderIsArtist ? senderName : recipientSlug;
-      const venueSlug = senderIsArtist ? recipientSlug : senderName;
+      const artistSlug = senderIsArtist ? resolvedSenderSlug : recipientSlug;
+      const venueSlug = senderIsArtist ? recipientSlug : resolvedSenderSlug;
 
       // Look up user IDs
       const { data: artistProfile } = await db.from("artist_profiles").select("user_id, slug, name").eq("slug", artistSlug).single();
       const { data: venueProfileData } = await db.from("venue_profiles").select("user_id, slug, name").eq("slug", venueSlug).single();
 
       if (artistProfile && venueProfileData) {
-        await db.from("placements").insert({
+        const { error: placementError } = await db.from("placements").insert({
           id: placementId,
           artist_user_id: artistProfile.user_id,
           artist_slug: artistProfile.slug,
@@ -204,6 +212,7 @@ export async function POST(request: Request) {
           message: content,
           created_at: new Date().toISOString(),
         });
+        if (placementError) console.error("Placement insert error:", placementError);
 
         // Notify the recipient about the placement request
         const recipientIsArtist = !senderIsArtist;
@@ -267,7 +276,7 @@ export async function POST(request: Request) {
         if (recipientArtist.message_notifications_enabled !== false && recipientArtist.user_id) {
           const { data: { user: recipientUser } } = await db.auth.admin.getUserById(recipientArtist.user_id);
           if (recipientUser?.email) {
-            notifyNewMessage({ email: recipientUser.email, name: recipientArtist.name, senderName, messagePreview: content });
+            notifyNewMessage({ email: recipientUser.email, name: recipientArtist.name, senderName: resolvedSenderSlug, messagePreview: content });
           }
         }
       } else {
@@ -280,7 +289,7 @@ export async function POST(request: Request) {
         if (vp?.user_id && vp.message_notifications_enabled !== false) {
           const { data: { user: recipientUser } } = await db.auth.admin.getUserById(vp.user_id);
           if (recipientUser?.email) {
-            notifyNewMessage({ email: recipientUser.email, name: vp.name, senderName, messagePreview: content });
+            notifyNewMessage({ email: recipientUser.email, name: vp.name, senderName: resolvedSenderSlug, messagePreview: content });
           }
         }
       }

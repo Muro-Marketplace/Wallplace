@@ -33,8 +33,23 @@ export async function POST(request: Request) {
 
     notifyAdminNewEnquiry({ senderName, senderEmail, artistSlug, enquiryType, message });
 
-    // Also notify the artist by email
+    // Also create a message in the messaging system so it appears in the artist's inbox
     const db = getSupabaseAdmin();
+    const cid = `conv-enq-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    await db.from("messages").insert({
+      conversation_id: cid,
+      sender_id: null,
+      sender_name: senderEmail.split("@")[0],
+      sender_type: "anonymous",
+      recipient_slug: artistSlug,
+      content: `${workTitle ? `Re: ${workTitle}\n\n` : ""}${message}\n\n— ${senderName} (${senderEmail})`,
+      message_type: "text",
+      metadata: {},
+      is_read: false,
+      created_at: new Date().toISOString(),
+    });
+
+    // Notify the artist by email
     const { data: artistProfile } = await db
       .from("artist_profiles")
       .select("name, user_id")

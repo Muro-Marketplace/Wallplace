@@ -381,6 +381,17 @@ export default function ArtistProfileClient({
                   </button>
                   <SaveButton type="work" itemId={currentWork.id} size="md" />
                 </div>
+                {user && userType === "venue" && (
+                  <button
+                    onClick={() => {
+                      setLightboxIndex(null);
+                      router.push(`/venue-portal/messages?artist=${artistSlug}&artistName=${encodeURIComponent(artistName)}`);
+                    }}
+                    className="w-full px-5 py-2.5 text-sm font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
+                  >
+                    Request Placement
+                  </button>
+                )}
               </div>
 
               {/* Counter */}
