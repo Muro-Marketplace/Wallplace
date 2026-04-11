@@ -14,6 +14,7 @@ export default function VenueMessagesPage() {
 
   const userSlug = venue?.slug || (displayName ? slugify(displayName) : "venue");
   const initialArtistSlug = searchParams.get("artist") || undefined;
+  const initialArtistName = searchParams.get("artistName") || undefined;
 
   return (
     <VenuePortalLayout>
@@ -21,7 +22,12 @@ export default function VenueMessagesPage() {
         <h1 className="text-2xl lg:text-3xl">Messages</h1>
         <p className="text-sm text-muted mt-1">Conversations with artists</p>
       </div>
-      <MessageInbox userSlug={userSlug} portalType="venue" initialArtistSlug={initialArtistSlug} />
+      <MessageInbox
+        userSlug={userSlug}
+        portalType="venue"
+        initialArtistSlug={initialArtistSlug}
+        initialArtistName={initialArtistName}
+      />
     </VenuePortalLayout>
   );
 }

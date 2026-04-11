@@ -75,3 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_placements_status ON placements(status);
 -- Message notification preferences
 ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS message_notifications_enabled boolean DEFAULT true;
 ALTER TABLE venue_profiles ADD COLUMN IF NOT EXISTS message_notifications_enabled boolean DEFAULT true;
+
+-- Message types for placement requests in conversations
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS message_type text DEFAULT 'text';
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}';

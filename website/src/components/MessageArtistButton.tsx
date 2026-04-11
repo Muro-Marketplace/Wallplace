@@ -21,10 +21,11 @@ export default function MessageArtistButton({ artistSlug, artistName, variant = 
     : "bg-accent text-white hover:bg-accent-hover";
 
   function handleClick() {
+    const nameParam = artistName ? `&artistName=${encodeURIComponent(artistName)}` : "";
     if (user && userType === "venue") {
-      router.push(`/venue-portal/messages?artist=${artistSlug}`);
+      router.push(`/venue-portal/messages?artist=${artistSlug}${nameParam}`);
     } else if (user && userType === "artist") {
-      router.push(`/artist-portal/messages?artist=${artistSlug}`);
+      router.push(`/artist-portal/messages?artist=${artistSlug}${nameParam}`);
     } else {
       router.push(`/contact?artist=${artistSlug}`);
     }

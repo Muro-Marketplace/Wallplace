@@ -111,7 +111,8 @@ export function dbProfileToArtist(profile: DbArtistProfile, works: DbArtistWork[
 }
 
 export async function getArtistProfileByUserId(userId: string) {
-  const { data: profile } = await supabase
+  const db = getSupabaseAdmin();
+  const { data: profile } = await db
     .from("artist_profiles")
     .select("*")
     .eq("user_id", userId)
@@ -119,7 +120,7 @@ export async function getArtistProfileByUserId(userId: string) {
 
   if (!profile) return null;
 
-  const { data: works } = await supabase
+  const { data: works } = await db
     .from("artist_works")
     .select("*")
     .eq("artist_id", profile.id)
@@ -129,7 +130,8 @@ export async function getArtistProfileByUserId(userId: string) {
 }
 
 export async function getArtistProfileBySlug(slug: string) {
-  const { data: profile } = await supabase
+  const db = getSupabaseAdmin();
+  const { data: profile } = await db
     .from("artist_profiles")
     .select("*")
     .eq("slug", slug)
@@ -137,7 +139,7 @@ export async function getArtistProfileBySlug(slug: string) {
 
   if (!profile) return null;
 
-  const { data: works } = await supabase
+  const { data: works } = await db
     .from("artist_works")
     .select("*")
     .eq("artist_id", profile.id)

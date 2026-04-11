@@ -15,6 +15,7 @@ export default function ArtistMessagesPage() {
 
   const userSlug = artist?.slug || "unknown";
   const initialArtistSlug = searchParams.get("artist") || undefined;
+  const initialArtistName = searchParams.get("artistName") || undefined;
 
   return (
     <ArtistPortalLayout activePath="/artist-portal/messages">
@@ -22,7 +23,13 @@ export default function ArtistMessagesPage() {
         <h1 className="text-2xl lg:text-3xl">Messages</h1>
         <p className="text-sm text-muted mt-1">Enquiries and conversations with venues and buyers</p>
       </div>
-      <MessageInbox userSlug={userSlug} portalType="artist" initialArtistSlug={initialArtistSlug} />
+      <MessageInbox
+        userSlug={userSlug}
+        portalType="artist"
+        initialArtistSlug={initialArtistSlug}
+        initialArtistName={initialArtistName}
+        works={artist?.works}
+      />
     </ArtistPortalLayout>
   );
 }
