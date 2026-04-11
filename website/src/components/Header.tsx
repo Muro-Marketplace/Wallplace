@@ -90,38 +90,38 @@ export default function Header() {
       .catch(() => {});
   }, [msgDropdownOpen, user, resolvedSlug]);
 
-  // Load notifications when dropdown opens
+  // Load notifications when dropdown opens — placements, messages, enquiries
   useEffect(() => {
     if (!notifDropdownOpen || !user || !resolvedSlug) return;
-    // Fetch pending placements as notifications
-    authFetch("/api/placements")
-      .then((r) => r.json())
-      .then((data) => {
-        const notifs: typeof notifications = [];
-        for (const p of (data.placements || []).slice(0, 10)) {
+    async function loadNotifs() {
+      const notifs: typeof notifications = [];
+      try {
+        // Placements
+        const placementsRes = await authFetch("/api/placements");
+        const placementsData = await placementsRes.json();
+        for (const p of (placementsData.placements || []).slice(0, 10)) {
           if (p.status === "pending") {
-            notifs.push({
-              id: p.id,
-              type: "placement",
-              title: "Placement Request",
-              description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`,
-              time: p.created_at,
-              link: `${portalBase}/placements`,
-            });
+            notifs.push({ id: p.id, type: "placement", title: "Placement Request", description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`, time: p.created_at, link: `${portalBase}/placements` });
           } else if (p.status === "active" && p.responded_at) {
-            notifs.push({
-              id: p.id + "-accepted",
-              type: "placement_accepted",
-              title: "Placement Accepted",
-              description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`,
-              time: p.responded_at,
-              link: `${portalBase}/placements`,
-            });
+            notifs.push({ id: p.id + "-a", type: "placement_accepted", title: "Placement Accepted", description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`, time: p.responded_at, link: `${portalBase}/placements` });
+          } else if (p.status === "declined" && p.responded_at) {
+            notifs.push({ id: p.id + "-d", type: "placement_declined", title: "Placement Declined", description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`, time: p.responded_at, link: `${portalBase}/placements` });
           }
         }
-        setNotifications(notifs);
-      })
-      .catch(() => {});
+        // Unread messages
+        const msgsRes = await authFetch(`/api/messages?slug=${resolvedSlug}`);
+        const msgsData = await msgsRes.json();
+        for (const c of (msgsData.conversations || []).slice(0, 5)) {
+          if (c.unreadCount > 0) {
+            notifs.push({ id: "msg-" + c.conversationId, type: "message", title: "New Message", description: `${c.otherPartyDisplayName || c.otherParty}: ${c.latestMessage}`.slice(0, 80), time: c.lastActivity, link: `${portalBase}/messages` });
+          }
+        }
+      } catch { /* empty */ }
+      // Sort by time descending
+      notifs.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+      setNotifications(notifs.slice(0, 12));
+    }
+    loadNotifs();
   }, [notifDropdownOpen, user, resolvedSlug, portalBase]);
 
   // Close dropdowns on click outside
@@ -157,7 +157,7 @@ export default function Header() {
     >
       {/* Dark gallery background for portal pages */}
       {isPortal && (
-        <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 -z-10 overflow-hidden">
           <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1920&h=200&fit=crop&crop=center" alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/45 to-black/55" />
         </div>
@@ -301,10 +301,14 @@ export default function Header() {
                             >
                               <div className="flex items-start gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                                  n.type === "placement" ? "bg-amber-100" : "bg-green-100"
+                                  n.type === "placement" ? "bg-amber-100" : n.type === "placement_declined" ? "bg-red-100" : n.type === "message" ? "bg-accent/10" : "bg-green-100"
                                 }`}>
                                   {n.type === "placement" ? (
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
+                                  ) : n.type === "placement_declined" ? (
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+                                  ) : n.type === "message" ? (
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C17C5A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
                                   ) : (
                                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#15803D" strokeWidth="2" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
                                   )}
