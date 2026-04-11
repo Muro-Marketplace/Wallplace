@@ -612,7 +612,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
               {messages.map((msg) => {
-                const isMe = msg.sender_type === portalType;
+                const isMe = msg.sender_id === user?.id || msg.sender_type === portalType;
                 const meta = (msg.metadata || {}) as Record<string, unknown>;
 
                 // Placement request card
