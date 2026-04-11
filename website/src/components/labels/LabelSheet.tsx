@@ -40,12 +40,13 @@ export default function LabelSheet({ labels, pageIndex }: LabelSheetProps) {
 
   useEffect(() => {
     async function generate() {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://wallplace.art";
       const uniqueUrls = await Promise.all(
         labels.map((l) => {
           const venueParam = l.venueName ? `&v=${encodeURIComponent(l.venueName)}` : "";
           const url = l.isPortfolioLabel
-            ? `https://wallplace.art/api/qr/${l.artistSlug}${venueParam ? `?${venueParam.slice(1)}` : ""}`
-            : `https://wallplace.art/api/qr/${l.artistSlug}?work=${encodeURIComponent(l.workTitle || "")}${venueParam}`;
+            ? `${siteUrl}/api/qr/${l.artistSlug}${venueParam ? `?${venueParam.slice(1)}` : ""}`
+            : `${siteUrl}/api/qr/${l.artistSlug}?work=${encodeURIComponent(l.workTitle || "")}${venueParam}`;
           return generateQRDataURL(url);
         })
       );
