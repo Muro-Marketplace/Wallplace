@@ -72,3 +72,64 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
+
+// DELETE: delete all messages in a conversation
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ conversationId: string }> }
+) {
+  const auth = await getAuthenticatedUser(request);
+  if (auth.error) return auth.error;
+
+  try {
+    const { conversationId } = await params;
+
+    if (!conversationId || conversationId.length > 200) {
+      return NextResponse.json({ error: "Valid conversation ID required" }, { status: 400 });
+    }
+
+    // Verify user is a participant in this conversation
+    const db = getSupabaseAdmin();
+
+    // Get user's slug
+    const { data: artistProfile } = await db.from("artist_profiles").select("slug").eq("user_id", auth.user!.id).single();
+    const { data: venueProfile } = !artistProfile
+      ? await db.from("venue_profiles").select("slug").eq("user_id", auth.user!.id).single()
+      : { data: null };
+    const userSlug = artistProfile?.slug || venueProfile?.slug;
+
+    if (!userSlug) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 400 });
+    }
+
+    // Check that user is part of this conversation
+    const { data: msgs } = await db
+      .from("messages")
+      .select("sender_name, recipient_slug")
+      .eq("conversation_id", conversationId)
+      .limit(1);
+
+    if (!msgs || msgs.length === 0) {
+      return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    }
+
+    const msg = msgs[0];
+    if (msg.sender_name !== userSlug && msg.recipient_slug !== userSlug) {
+      return NextResponse.json({ error: "Not authorised" }, { status: 403 });
+    }
+
+    const { error } = await db
+      .from("messages")
+      .delete()
+      .eq("conversation_id", conversationId);
+
+    if (error) {
+      console.error("Supabase error:", error);
+      return NextResponse.json({ error: "Failed to delete conversation" }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+}

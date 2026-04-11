@@ -78,9 +78,11 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
 
   // Placement request form
   const [showPlacementForm, setShowPlacementForm] = useState(false);
-  const [placementWork, setPlacementWork] = useState("");
+  const [placementSelectedWorks, setPlacementSelectedWorks] = useState<Set<string>>(new Set());
   const [placementRevShare, setPlacementRevShare] = useState(0);
   const [placementMessage, setPlacementMessage] = useState("");
+  const [otherPartyWorks, setOtherPartyWorks] = useState<ArtistWork[]>([]);
+  const [otherWorksLoading, setOtherWorksLoading] = useState(false);
 
   const slugRef = useRef(userSlug);
   slugRef.current = userSlug;
@@ -234,14 +236,59 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
     setSending(false);
   }
 
-  async function handlePlacementRequest() {
+  // Load the other party's works for the placement form
+  async function loadOtherPartyWorks() {
     if (!selectedConvData) return;
+    // If current user is artist, use their own works prop. If venue, fetch the artist's portfolio.
+    if (portalType === "artist" && works && works.length > 0) {
+      setOtherPartyWorks(works);
+      return;
+    }
+    // Venue: fetch artist's portfolio
+    setOtherWorksLoading(true);
+    try {
+      const res = await fetch("/api/browse-artists");
+      const data = await res.json();
+      const artist = (data.artists || []).find((a: { slug: string }) => a.slug === selectedConvData.otherParty);
+      if (artist?.works) setOtherPartyWorks(artist.works);
+    } catch { /* empty */ }
+    setOtherWorksLoading(false);
+  }
+
+  function togglePlacementWork(title: string) {
+    setPlacementSelectedWorks((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  }
+
+  async function handleDeleteConversation(convId: string) {
+    try {
+      const res = await authFetch(`/api/messages/${convId}`, { method: "DELETE" });
+      if (res.ok) {
+        setConversations((prev) => prev.filter((c) => c.conversationId !== convId));
+        if (selectedConv === convId) {
+          setSelectedConv(null);
+          setMessages([]);
+        }
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  }
+
+  async function handlePlacementRequest() {
+    if (!selectedConvData || placementSelectedWorks.size === 0) return;
     setSending(true);
 
-    const workObj = works?.find((w) => w.title === placementWork);
+    const workTitles = Array.from(placementSelectedWorks);
+    const firstWork = otherPartyWorks.find((w) => w.title === workTitles[0]);
+    const label = workTitles.length === 1 ? workTitles[0] : `${workTitles.length} works`;
     const content = placementRevShare > 0
-      ? `Placement request: ${placementWork || "Artwork"} — Revenue Share ${placementRevShare}%${placementMessage ? ` — ${placementMessage}` : ""}`
-      : `Placement request: ${placementWork || "Artwork"} — Free Display${placementMessage ? ` — ${placementMessage}` : ""}`;
+      ? `Placement request: ${label} — Revenue Share ${placementRevShare}%${placementMessage ? ` — ${placementMessage}` : ""}`
+      : `Placement request: ${label} — Free Display${placementMessage ? ` — ${placementMessage}` : ""}`;
 
     try {
       const res = await authFetch("/api/messages", {
@@ -255,8 +302,9 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
           content,
           messageType: "placement_request",
           metadata: {
-            workTitle: placementWork || "Artwork",
-            workImage: workObj?.image || null,
+            workTitle: workTitles.join(", "),
+            workImage: firstWork?.image || null,
+            workTitles,
             arrangementType: placementRevShare > 0 ? "revenue_share" : "free_loan",
             revenueSharePercent: placementRevShare > 0 ? placementRevShare : null,
           },
@@ -280,11 +328,11 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
         is_read: false,
         created_at: new Date().toISOString(),
         message_type: "placement_request",
-        metadata: { workTitle: placementWork, workImage: workObj?.image || null, arrangementType: placementRevShare > 0 ? "revenue_share" : "free_loan", revenueSharePercent: placementRevShare },
+        metadata: { workTitle: workTitles.join(", "), workImage: firstWork?.image || null, workTitles, arrangementType: placementRevShare > 0 ? "revenue_share" : "free_loan", revenueSharePercent: placementRevShare },
       }]);
 
       setShowPlacementForm(false);
-      setPlacementWork("");
+      setPlacementSelectedWorks(new Set());
       setPlacementRevShare(0);
       setPlacementMessage("");
     } catch (err) {
@@ -358,7 +406,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
       <button
         key={conv.conversationId}
         onClick={() => { setSelectedConv(conv.conversationId); setComposing(false); setShowPlacementForm(false); }}
-        className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
+        className={`group w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
           selectedConv === conv.conversationId
             ? "bg-accent/8 border-l-2 border-l-accent"
             : "border-l-2 border-l-transparent hover:bg-[#FAF8F5]"
@@ -378,7 +426,16 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
           </div>
           <p className="text-xs text-muted truncate mt-0.5">{conv.latestMessage}</p>
         </div>
-        <span className="text-[10px] text-muted shrink-0">{timeAgo(conv.lastActivity)}</span>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <span className="text-[10px] text-muted">{timeAgo(conv.lastActivity)}</span>
+          <button
+            onClick={(e) => { e.stopPropagation(); if (confirm("Delete this conversation?")) handleDeleteConversation(conv.conversationId); }}
+            className="text-muted/40 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+            title="Delete"
+          >
+            <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+          </button>
+        </div>
       </button>
     );
   }
@@ -484,7 +541,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                 {selectedConvData?.otherPartyType === "artist" && (
                   <Link href={`/browse/${selectedConvData.otherParty}`} className="text-xs text-accent hover:text-accent-hover transition-colors">View Portfolio</Link>
                 )}
-                <button onClick={() => setShowPlacementForm(!showPlacementForm)} className={`text-xs px-2.5 py-1.5 rounded-sm border transition-colors ${showPlacementForm ? "bg-accent text-white border-accent" : "text-accent border-accent/30 hover:bg-accent/5"}`}>
+                <button onClick={() => { setShowPlacementForm(!showPlacementForm); if (!showPlacementForm) loadOtherPartyWorks(); }} className={`text-xs px-2.5 py-1.5 rounded-sm border transition-colors ${showPlacementForm ? "bg-accent text-white border-accent" : "text-accent border-accent/30 hover:bg-accent/5"}`}>
                   Request Placement
                 </button>
               </div>
@@ -492,19 +549,47 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
 
             {/* Placement request form */}
             {showPlacementForm && (
-              <div className="px-4 py-3 bg-[#FAF8F5] border-b border-border space-y-3">
+              <div className="px-4 py-3 bg-[#FAF8F5] border-b border-border space-y-3 max-h-[50vh] overflow-y-auto">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium uppercase tracking-widest text-muted">Request Placement</p>
-                  <button onClick={() => setShowPlacementForm(false)} className="text-xs text-muted hover:text-foreground">Cancel</button>
+                  <p className="text-xs font-medium uppercase tracking-widest text-muted">
+                    Request Placement {placementSelectedWorks.size > 0 && <span className="text-accent ml-1 normal-case">({placementSelectedWorks.size} selected)</span>}
+                  </p>
+                  <button onClick={() => { setShowPlacementForm(false); setPlacementSelectedWorks(new Set()); }} className="text-xs text-muted hover:text-foreground">Cancel</button>
                 </div>
-                {works && works.length > 0 && (
-                  <div>
-                    <select value={placementWork} onChange={(e) => setPlacementWork(e.target.value)} className="w-full px-3 py-2 bg-white border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50">
-                      <option value="">Select a work</option>
-                      {works.map((w) => <option key={w.id} value={w.title}>{w.title}</option>)}
-                    </select>
+
+                {/* Work selector grid */}
+                {otherWorksLoading ? (
+                  <p className="text-xs text-muted">Loading portfolio...</p>
+                ) : otherPartyWorks.length > 0 ? (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5">
+                    {otherPartyWorks.map((w) => {
+                      const selected = placementSelectedWorks.has(w.title);
+                      return (
+                        <button
+                          key={w.id}
+                          type="button"
+                          onClick={() => togglePlacementWork(w.title)}
+                          className={`relative aspect-square rounded-sm overflow-hidden border-2 transition-all ${selected ? "border-accent shadow-sm" : "border-transparent hover:border-border"}`}
+                        >
+                          <Image src={w.image} alt={w.title} fill className="object-cover" sizes="60px" />
+                          {selected && (
+                            <div className="absolute inset-0 bg-accent/25 flex items-center justify-center">
+                              <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center">
+                                <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                              </div>
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5">
+                            <p className="text-[8px] text-white truncate">{w.title}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
+                ) : (
+                  <p className="text-xs text-muted">No works available to select.</p>
                 )}
+
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted">Revenue Share</span>
                   <input type="number" min={0} max={50} value={placementRevShare} onChange={(e) => setPlacementRevShare(Number(e.target.value) || 0)} className="w-16 px-2 py-1.5 bg-white border border-border rounded-sm text-xs text-center focus:outline-none focus:border-accent/50" />
@@ -512,8 +597,8 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                   <span className="text-[10px] text-muted ml-1">(0 = free display)</span>
                 </div>
                 <input type="text" value={placementMessage} onChange={(e) => setPlacementMessage(e.target.value)} placeholder="Add a note (optional)" className="w-full px-3 py-2 bg-white border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50" />
-                <button onClick={handlePlacementRequest} disabled={sending} className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-40">
-                  {sending ? "Sending..." : "Send Request"}
+                <button onClick={handlePlacementRequest} disabled={sending || placementSelectedWorks.size === 0} className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-40">
+                  {sending ? "Sending..." : `Request ${placementSelectedWorks.size} Placement${placementSelectedWorks.size !== 1 ? "s" : ""}`}
                 </button>
               </div>
             )}
