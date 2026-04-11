@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { artists } from "@/data/artists";
 import { getCollectionsByArtist } from "@/data/collections";
@@ -7,6 +8,7 @@ import Button from "@/components/Button";
 import CollectionCard from "@/components/CollectionCard";
 import ArtistProfileClient from "./ArtistProfileClient";
 import { getArtistBySlug } from "@/lib/db/merged-data";
+import { trackEvent, extractTrackingContext, generateVisitorId } from "@/lib/analytics";
 import type { Metadata } from "next";
 
 // Static params for seed artists — database artists use dynamic fallback
@@ -59,6 +61,17 @@ export default async function ArtistProfilePage({
   if (!artist) {
     notFound();
   }
+
+  // Track profile view (fire-and-forget, non-blocking)
+  const headersList = await headers();
+  const ctx = extractTrackingContext(headersList);
+  trackEvent({
+    event_type: "profile_view",
+    artist_slug: slug,
+    visitor_id: generateVisitorId(ctx.ip, ctx.userAgent),
+    referrer: ctx.referrer || undefined,
+    source: ctx.referrer?.includes("qr") ? "qr" : "browse",
+  }).catch(() => {});
 
   return (
     <div className="bg-background">

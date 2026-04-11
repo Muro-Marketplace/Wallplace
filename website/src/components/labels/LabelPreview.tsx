@@ -10,7 +10,7 @@ interface LabelPreviewProps {
   onClose: () => void;
 }
 
-export default function LabelPreview({ labels: initialLabels, availableSizes, onClose }: LabelPreviewProps) {
+export default function LabelPreview({ labels: initialLabels, availableSizes = [], onClose }: LabelPreviewProps) {
   const [labels, setLabels] = useState<LabelData[]>(initialLabels);
   const [showControls, setShowControls] = useState(true);
 

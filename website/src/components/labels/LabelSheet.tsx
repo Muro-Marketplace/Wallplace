@@ -42,8 +42,8 @@ export default function LabelSheet({ labels, pageIndex }: LabelSheetProps) {
       const uniqueUrls = await Promise.all(
         labels.map((l) => {
           const url = l.isPortfolioLabel
-            ? `https://wallspace.art/browse/${l.artistSlug}`
-            : `https://wallspace.art/browse/${l.artistSlug}#work-${slugify(l.workTitle || "")}`;
+            ? `https://wallspace.art/api/qr/${l.artistSlug}`
+            : `https://wallspace.art/api/qr/${l.artistSlug}?work=${encodeURIComponent(l.workTitle || "")}`;
           return generateQRDataURL(url);
         })
       );

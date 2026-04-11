@@ -70,6 +70,36 @@ export default function ArtistProfileClient({
     return () => { document.body.style.overflow = ""; };
   }, [lightboxIndex]);
 
+  // Track venue views of artist profiles
+  useEffect(() => {
+    if (userType === "venue" && user?.id) {
+      fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_type: "venue_viewed_artist",
+          artist_slug: artistSlug,
+          venue_user_id: user.id,
+        }),
+      }).catch(() => {});
+    }
+  }, [artistSlug, user?.id, userType]);
+
+  // Track artwork views in lightbox
+  useEffect(() => {
+    if (lightboxIndex !== null && filteredWorks[lightboxIndex]) {
+      fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_type: "artwork_view",
+          artist_slug: artistSlug,
+          work_id: filteredWorks[lightboxIndex].id || filteredWorks[lightboxIndex].title,
+        }),
+      }).catch(() => {});
+    }
+  }, [lightboxIndex, artistSlug, filteredWorks]);
+
   const currentWork = lightboxIndex !== null ? filteredWorks[lightboxIndex] : null;
 
   return (

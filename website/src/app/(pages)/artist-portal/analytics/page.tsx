@@ -1,10 +1,22 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import Link from "next/link";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
 import { authFetch } from "@/lib/api-client";
 
 const dateRanges = ["Last 7 days", "Last 30 days", "Last 3 months", "Last 12 months", "All time"];
+
+function dateRangeToParam(range: string): string {
+  switch (range) {
+    case "Last 7 days": return "7d";
+    case "Last 30 days": return "30d";
+    case "Last 3 months": return "90d";
+    case "Last 12 months": return "12m";
+    case "All time": return "all";
+    default: return "30d";
+  }
+}
 
 interface Placement {
   id: string;
@@ -18,14 +30,32 @@ interface Placement {
   revenue: string | null;
 }
 
+interface AnalyticsData {
+  totals: {
+    profile_views: number;
+    artwork_views: number;
+    qr_scans: number;
+    enquiries: number;
+    venue_views: number;
+  };
+  views_over_time: { date: string; profile_views: number; artwork_views: number; qr_scans: number }[];
+  top_works: { work_id: string; views: number }[];
+  traffic_sources: { source: string; count: number }[];
+  venue_viewers: { venue_name: string; venue_type: string; viewed_at: string }[] | null;
+  venue_viewer_count: number;
+  is_premium: boolean;
+}
+
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState("Last 30 days");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [orders, setOrders] = useState<{ total?: number; created_at?: string }[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
+  // Fetch placements and orders (unchanged)
   useEffect(() => {
-    // Fetch from API instead of localStorage
     authFetch("/api/placements")
       .then((r) => r.json())
       .then((data) => {
@@ -51,13 +81,24 @@ export default function AnalyticsPage() {
       .catch(() => {});
   }, []);
 
+  // Fetch engagement analytics (reacts to date range changes)
+  useEffect(() => {
+    setAnalyticsLoading(true);
+    authFetch(`/api/analytics/artist?range=${dateRangeToParam(dateRange)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.totals) setAnalytics(data);
+      })
+      .catch(() => {})
+      .finally(() => setAnalyticsLoading(false));
+  }, [dateRange]);
+
   const activePlacements = placements.filter((p) => p.status === "Active").length;
   const pendingPlacements = placements.filter((p) => p.status === "Pending").length;
   const completedPlacements = placements.filter((p) => p.status === "Completed" || p.status === "Sold").length;
   const totalEarnings = orders.reduce((sum: number, o: { total?: number }) => sum + (o.total || 0), 0);
   const uniqueVenues = new Set(placements.map((p) => p.venue)).size;
 
-  // Group placements by venue
   const venuePerformance = useMemo(() => {
     const map: Record<string, { venue: string; pieces: number; sales: number; revenue: number; status: string }> = {};
     placements.forEach((p) => {
@@ -72,7 +113,6 @@ export default function AnalyticsPage() {
     return Object.values(map);
   }, [placements]);
 
-  // Derive earnings data for chart from orders
   const earningsData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const now = new Date();
@@ -99,6 +139,9 @@ export default function AnalyticsPage() {
     { label: "Pending", count: pendingPlacements, color: "bg-amber-100 text-amber-700" },
     { label: "Completed", count: completedPlacements, color: "bg-gray-100 text-gray-600" },
   ];
+
+  // Total traffic for source percentages
+  const totalTraffic = analytics?.traffic_sources.reduce((s, t) => s + t.count, 0) || 0;
 
   return (
     <ArtistPortalLayout activePath="/artist-portal/analytics">
@@ -137,7 +180,148 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Key metric cards */}
+      {/* ── ENGAGEMENT METRICS ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <MetricCard
+          label="Profile Views"
+          value={analytics?.totals.profile_views ?? 0}
+          subtitle={dateRange}
+          loading={analyticsLoading}
+        />
+        <MetricCard
+          label="Artwork Views"
+          value={analytics?.totals.artwork_views ?? 0}
+          subtitle={dateRange}
+          loading={analyticsLoading}
+        />
+        <MetricCard
+          label="QR Scans"
+          value={analytics?.totals.qr_scans ?? 0}
+          subtitle={dateRange}
+          loading={analyticsLoading}
+        />
+        <MetricCard
+          label="Enquiries"
+          value={analytics?.totals.enquiries ?? 0}
+          subtitle={dateRange}
+          loading={analyticsLoading}
+        />
+      </div>
+
+      {/* ── VIEWS OVER TIME ── */}
+      {analytics && analytics.views_over_time.length > 0 && (
+        <div className="bg-surface border border-border rounded-sm mb-6 overflow-hidden">
+          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+            <h2 className="text-base font-medium">Views Over Time</h2>
+            <span className="text-xs text-muted">{dateRange}</span>
+          </div>
+          <div className="px-6 py-6">
+            <ViewsChart data={analytics.views_over_time} />
+          </div>
+        </div>
+      )}
+
+      {/* ── TRAFFIC SOURCES ── */}
+      {analytics && analytics.traffic_sources.length > 0 && (
+        <div className="bg-surface border border-border rounded-sm mb-6">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-base font-medium">Traffic Sources</h2>
+          </div>
+          <div className="px-6 py-5 space-y-3">
+            {analytics.traffic_sources.map((src) => {
+              const pct = totalTraffic > 0 ? Math.round((src.count / totalTraffic) * 100) : 0;
+              const label = src.source === "qr" ? "QR Code" : src.source === "browse" ? "Browse" : src.source === "direct" ? "Direct" : src.source;
+              return (
+                <div key={src.source}>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-foreground capitalize">{label}</span>
+                    <span className="text-muted">{src.count} ({pct}%)</span>
+                  </div>
+                  <div className="h-2 bg-border/30 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-accent rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── TOP WORKS BY VIEWS ── */}
+      {analytics && analytics.top_works.length > 0 && (
+        <div className="bg-surface border border-border rounded-sm mb-6">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-base font-medium">Top Performing Works</h2>
+          </div>
+          <div className="divide-y divide-border">
+            {analytics.top_works.map((work) => (
+              <div key={work.work_id} className="px-6 py-3 flex items-center justify-between">
+                <span className="text-sm text-foreground truncate">{work.work_id}</span>
+                <span className="text-sm text-muted tabular-nums">{work.views} views</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── VENUES THAT VIEWED YOU ── */}
+      <div className="bg-surface border border-border rounded-sm mb-6">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-base font-medium">Venues That Viewed You</h2>
+          {analytics && !analytics.is_premium && (
+            <span className="text-xs text-accent font-medium">Premium Feature</span>
+          )}
+        </div>
+        {analyticsLoading ? (
+          <div className="px-6 py-8 text-center text-sm text-muted">Loading...</div>
+        ) : analytics?.is_premium && analytics.venue_viewers ? (
+          analytics.venue_viewers.length > 0 ? (
+            <div className="divide-y divide-border">
+              {analytics.venue_viewers.map((v, i) => (
+                <div key={i} className="px-6 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-foreground">{v.venue_name}</p>
+                    <p className="text-xs text-muted capitalize">{v.venue_type}</p>
+                  </div>
+                  <span className="text-xs text-muted">
+                    {new Date(v.viewed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="px-6 py-8 text-center text-sm text-muted">
+              No venues have viewed your profile yet in this period.
+            </div>
+          )
+        ) : (
+          <div className="px-6 py-8 text-center relative">
+            {/* Blurred preview */}
+            <div className="space-y-3 opacity-30 blur-sm pointer-events-none select-none">
+              <div className="flex items-center justify-between"><span className="text-sm">The Coffee House</span><span className="text-xs text-muted">2 Apr</span></div>
+              <div className="flex items-center justify-between"><span className="text-sm">Bloom Hotel</span><span className="text-xs text-muted">28 Mar</span></div>
+              <div className="flex items-center justify-between"><span className="text-sm">Studio Works</span><span className="text-xs text-muted">25 Mar</span></div>
+            </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <p className="text-sm text-foreground font-medium mb-1">
+                {analytics?.venue_viewer_count ?? 0} venue{(analytics?.venue_viewer_count ?? 0) !== 1 ? "s" : ""} viewed your profile
+              </p>
+              <p className="text-xs text-muted mb-3">Upgrade to Premium to see which venues are looking at your work</p>
+              <Link
+                href="/artist-portal/billing"
+                className="px-4 py-2 text-xs font-medium text-white bg-accent rounded-sm hover:bg-accent/90 transition-colors"
+              >
+                Upgrade to Premium
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── EXISTING: Revenue metrics ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-surface border border-border rounded-sm p-5">
           <p className="text-sm text-muted mb-1">Total Earnings</p>
@@ -182,7 +366,7 @@ export default function AnalyticsPage() {
         ))}
       </div>
 
-      {/* Top Performing Works */}
+      {/* Placements table */}
       <div className="bg-surface border border-border rounded-sm mb-6">
         <div className="px-6 py-4 border-b border-border">
           <h2 className="text-base font-medium">Placements</h2>
@@ -266,7 +450,146 @@ export default function AnalyticsPage() {
   );
 }
 
-/* ── Earnings Chart (pure SVG) ── */
+/* ── Metric Card ── */
+function MetricCard({ label, value, subtitle, loading }: { label: string; value: number; subtitle: string; loading: boolean }) {
+  return (
+    <div className="bg-surface border border-border rounded-sm p-5">
+      <p className="text-sm text-muted mb-1">{label}</p>
+      {loading ? (
+        <div className="h-8 w-16 bg-border/30 rounded animate-pulse" />
+      ) : (
+        <p className="text-2xl font-medium">{value.toLocaleString()}</p>
+      )}
+      <p className="text-xs text-muted mt-1">{subtitle}</p>
+    </div>
+  );
+}
+
+/* ── Views Chart (multi-line SVG) ── */
+function ViewsChart({ data }: { data: { date: string; profile_views: number; artwork_views: number; qr_scans: number }[] }) {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(700);
+
+  useEffect(() => {
+    function measure() {
+      if (containerRef.current) setWidth(containerRef.current.offsetWidth);
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  const maxVal = Math.max(...data.map((d) => Math.max(d.profile_views, d.artwork_views, d.qr_scans)), 1);
+  const chartHeight = 220;
+  const padding = { top: 20, right: 20, bottom: 30, left: 40 };
+  const innerWidth = width - padding.left - padding.right;
+  const innerHeight = chartHeight - padding.top - padding.bottom;
+  const xStep = data.length > 1 ? innerWidth / (data.length - 1) : innerWidth;
+
+  const lines = [
+    { key: "profile_views" as const, color: "#C17C5A", label: "Profile" },
+    { key: "artwork_views" as const, color: "#7C9A5A", label: "Artworks" },
+    { key: "qr_scans" as const, color: "#5A7C9A", label: "QR Scans" },
+  ];
+
+  function getPoints(key: "profile_views" | "artwork_views" | "qr_scans") {
+    return data.map((d, i) => ({
+      x: padding.left + i * xStep,
+      y: padding.top + innerHeight - (d[key] / maxVal) * innerHeight,
+    }));
+  }
+
+  function toPath(points: { x: number; y: number }[]) {
+    return points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  }
+
+  const yTicks = [0, Math.round(maxVal / 2), maxVal];
+
+  // Show at most ~14 x-axis labels to avoid overlap
+  const labelEvery = Math.max(1, Math.ceil(data.length / 14));
+
+  return (
+    <div ref={containerRef} className="w-full">
+      {/* Legend */}
+      <div className="flex items-center gap-4 mb-3">
+        {lines.map((line) => (
+          <div key={line.key} className="flex items-center gap-1.5">
+            <div className="w-3 h-[2px] rounded-full" style={{ backgroundColor: line.color }} />
+            <span className="text-[10px] text-muted">{line.label}</span>
+          </div>
+        ))}
+      </div>
+      <svg width={width} height={chartHeight}>
+        {yTicks.map((tick) => {
+          const y = padding.top + innerHeight - (tick / maxVal) * innerHeight;
+          return (
+            <g key={tick}>
+              <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke="#E5E2DD" strokeWidth="0.5" />
+              <text x={padding.left - 8} y={y + 4} textAnchor="end" className="fill-muted" fontSize="10">
+                {tick}
+              </text>
+            </g>
+          );
+        })}
+        {lines.map((line) => {
+          const points = getPoints(line.key);
+          return (
+            <path
+              key={line.key}
+              d={toPath(points)}
+              fill="none"
+              stroke={line.color}
+              strokeWidth="2"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          );
+        })}
+        {/* Hover zones + x labels */}
+        {data.map((d, i) => {
+          const x = padding.left + i * xStep;
+          const dateLabel = new Date(d.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+          return (
+            <g key={i}>
+              <rect
+                x={x - xStep / 2}
+                y={padding.top}
+                width={xStep}
+                height={innerHeight}
+                fill="transparent"
+                onMouseEnter={() => setHoveredIndex(i)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              />
+              {hoveredIndex === i && (
+                <g>
+                  <line x1={x} y1={padding.top} x2={x} y2={padding.top + innerHeight} stroke="#E5E2DD" strokeWidth="1" strokeDasharray="3,3" />
+                  <rect x={x - 55} y={padding.top - 2} width="110" height="50" rx="4" fill="#1A1A1A" />
+                  <text x={x} y={padding.top + 14} textAnchor="middle" fill="#C17C5A" fontSize="10">
+                    Profile: {d.profile_views}
+                  </text>
+                  <text x={x} y={padding.top + 28} textAnchor="middle" fill="#7C9A5A" fontSize="10">
+                    Artwork: {d.artwork_views}
+                  </text>
+                  <text x={x} y={padding.top + 42} textAnchor="middle" fill="#5A7C9A" fontSize="10">
+                    QR: {d.qr_scans}
+                  </text>
+                </g>
+              )}
+              {i % labelEvery === 0 && (
+                <text x={x} y={chartHeight - 5} textAnchor="middle" className="fill-muted" fontSize="10">
+                  {dateLabel}
+                </text>
+              )}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+/* ── Earnings Chart (pure SVG, unchanged) ── */
 function EarningsChart({ data }: { data: { month: string; earnings: number; sales: number }[] }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
