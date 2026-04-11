@@ -113,9 +113,10 @@ export default function CustomerSignUpPage() {
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
 
-            <div className="relative my-2">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-              <div className="relative flex justify-center text-xs"><span className="bg-white/95 px-3 text-muted">or continue with</span></div>
+            <div className="flex items-center gap-3 my-2">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted">or continue with</span>
+              <div className="flex-1 h-px bg-border" />
             </div>
 
             <div className="flex gap-3">
