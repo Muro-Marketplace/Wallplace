@@ -65,18 +65,13 @@ export default function ArtistPortalLayout({
       <aside
         className={`
           fixed top-14 lg:top-16 left-0 h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)]
-          w-56 border-r border-white/10 z-30
-          flex flex-col overflow-hidden relative
+          w-56 bg-[#F5F3F0] border-r border-border z-30
+          flex flex-col
           transition-transform duration-200
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
       >
-        {/* Background image + overlay matching waitlist */}
-        <div className="absolute inset-0 -z-10">
-          <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800&h=1200&fit=crop&crop=center" alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/70" />
-        </div>
-        <nav className="flex-1 py-4 overflow-y-auto relative z-10">
+        <nav className="flex-1 py-4 overflow-y-auto">
           <ul className="space-y-0.5 px-2">
             {navItems.map((item) => {
               const isActive = activePath === item.href;
@@ -89,8 +84,8 @@ export default function ArtistPortalLayout({
                       block text-sm py-2 px-3 rounded-sm transition-colors duration-150
                       ${
                         isActive
-                          ? "text-accent font-medium bg-white/10"
-                          : "text-white/70 hover:text-white hover:bg-white/5"
+                          ? "text-accent font-medium bg-accent/8"
+                          : "text-foreground/70 hover:text-foreground hover:bg-white/60"
                       }
                     `}
                   >
@@ -101,7 +96,7 @@ export default function ArtistPortalLayout({
             })}
           </ul>
 
-          <div className="my-4 mx-4 border-t border-white/10" />
+          <div className="my-4 mx-4 border-t border-border" />
 
           <ul className="space-y-0.5 px-2">
             {secondaryItems.map((item) => (
@@ -109,7 +104,7 @@ export default function ArtistPortalLayout({
                 <Link
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className="block text-sm py-2 px-3 rounded-sm text-white/50 hover:text-white hover:bg-white/5 transition-colors duration-150"
+                  className="block text-sm py-2 px-3 rounded-sm text-muted hover:text-foreground hover:bg-white/60 transition-colors duration-150"
                 >
                   {item.label}
                 </Link>
@@ -118,7 +113,7 @@ export default function ArtistPortalLayout({
             <li>
               <button
                 onClick={() => signOut()}
-                className="w-full text-left text-sm py-2 px-3 rounded-sm text-white/50 hover:text-white hover:bg-white/5 transition-colors duration-150"
+                className="w-full text-left text-sm py-2 px-3 rounded-sm text-muted hover:text-foreground hover:bg-white/60 transition-colors duration-150"
               >
                 Logout
               </button>
@@ -126,14 +121,14 @@ export default function ArtistPortalLayout({
           </ul>
         </nav>
 
-        <div className="px-4 py-4 border-t border-white/10 relative z-10">
+        <div className="px-4 py-4 border-t border-border">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-sm font-medium">
               {displayName?.charAt(0)?.toUpperCase() || "A"}
             </div>
             <div>
-              <p className="text-sm font-medium text-white leading-tight">{displayName || "Artist"}</p>
-              <p className="text-xs text-white/50">Artist</p>
+              <p className="text-sm font-medium text-foreground leading-tight">{displayName || "Artist"}</p>
+              <p className="text-xs text-muted">Artist</p>
             </div>
           </div>
         </div>

@@ -50,23 +50,33 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isImmersive]);
 
+  const isPortal = pathname.startsWith("/artist-portal") || pathname.startsWith("/venue-portal");
   const showSolid = !isImmersive || scrolled;
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        showSolid
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 overflow-hidden ${
+        isPortal
+          ? "border-b border-white/10"
+          : showSolid
           ? "bg-white border-b border-border"
           : "bg-transparent border-b border-transparent"
       }`}
     >
+      {/* Dark gallery background for portal pages */}
+      {isPortal && (
+        <div className="absolute inset-0 -z-10">
+          <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1920&h=200&fit=crop&crop=center" alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/65 to-black/75" />
+        </div>
+      )}
       <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
         <div className="flex items-center justify-between h-14 lg:h-16">
           {/* Logo */}
           <Link
             href="/"
             className={`font-serif text-xl lg:text-2xl tracking-tight transition-colors duration-300 ${
-              showSolid ? "text-foreground" : "text-white"
+              isPortal || !showSolid ? "text-white" : "text-foreground"
             }`}
           >
             Wallspace
@@ -79,9 +89,9 @@ export default function Header() {
                 key={link.href}
                 href={link.href}
                 className={`text-sm transition-colors duration-300 ${
-                  showSolid
-                    ? "text-muted hover:text-foreground"
-                    : "text-white/90 hover:text-white"
+                  isPortal || !showSolid
+                    ? "text-white/80 hover:text-white"
+                    : "text-muted hover:text-foreground"
                 }`}
               >
                 {link.label}
@@ -97,7 +107,7 @@ export default function Header() {
                 <Link
                   href={`${portalBase}/messages`}
                   className={`relative p-2 transition-colors duration-300 ${
-                    showSolid ? "text-muted hover:text-foreground" : "text-white/70 hover:text-white"
+                    isPortal || !showSolid ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground"
                   }`}
                   title="Messages"
                 >
@@ -115,7 +125,7 @@ export default function Header() {
                 <Link
                   href={portalBase}
                   className={`relative p-2 transition-colors duration-300 ${
-                    showSolid ? "text-muted hover:text-foreground" : "text-white/70 hover:text-white"
+                    isPortal || !showSolid ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground"
                   }`}
                   title="Notifications"
                 >
@@ -129,7 +139,7 @@ export default function Header() {
                 <Link
                   href={portalBase}
                   className={`text-sm px-3 py-2 transition-colors duration-300 ${
-                    showSolid ? "text-muted hover:text-foreground" : "text-white/90 hover:text-white"
+                    isPortal || !showSolid ? "text-white/90 hover:text-white" : "text-muted hover:text-foreground"
                   }`}
                 >
                   {userType === "venue" ? "Venue Portal" : "Artist Portal"}
@@ -137,7 +147,7 @@ export default function Header() {
                 <button
                   onClick={() => signOut()}
                   className={`text-sm transition-colors duration-300 ${
-                    showSolid ? "text-muted hover:text-foreground" : "text-white/90 hover:text-white"
+                    isPortal || !showSolid ? "text-white/90 hover:text-white" : "text-muted hover:text-foreground"
                   }`}
                 >
                   Logout
@@ -148,7 +158,7 @@ export default function Header() {
                 <Link
                   href="/login"
                   className={`text-sm px-4 py-2 transition-colors duration-300 ${
-                    showSolid ? "text-muted hover:text-foreground" : "text-white/90 hover:text-white"
+                    isPortal || !showSolid ? "text-white/90 hover:text-white" : "text-muted hover:text-foreground"
                   }`}
                 >
                   Login
@@ -156,7 +166,7 @@ export default function Header() {
                 <Link
                   href="/apply"
                   className={`text-sm transition-colors duration-300 ${
-                    showSolid ? "text-muted hover:text-foreground" : "text-white/90 hover:text-white"
+                    isPortal || !showSolid ? "text-white/90 hover:text-white" : "text-muted hover:text-foreground"
                   }`}
                 >
                   Apply to Join
@@ -170,7 +180,7 @@ export default function Header() {
           <button
             type="button"
             className={`lg:hidden p-2 -mr-2 transition-colors duration-300 ${
-              showSolid ? "text-foreground" : "text-white"
+              isPortal || !showSolid ? "text-white" : "text-foreground"
             }`}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}

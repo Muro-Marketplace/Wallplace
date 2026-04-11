@@ -56,14 +56,9 @@ export default function VenuePortalLayout({
   }
 
   const NavContent = () => (
-    <nav className="flex flex-col h-full relative">
-      {/* Background image + overlay */}
-      <div className="absolute inset-0 -z-10">
-        <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=800&h=1200&fit=crop&crop=center" alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/70" />
-      </div>
-      <div className="px-4 py-5 border-b border-white/10">
-        <p className="text-xs font-medium uppercase tracking-widest text-white/50">
+    <nav className="flex flex-col h-full">
+      <div className="px-4 py-5 border-b border-border">
+        <p className="text-xs font-medium uppercase tracking-widest text-muted">
           Venue Portal
         </p>
       </div>
@@ -76,8 +71,8 @@ export default function VenuePortalLayout({
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-150 rounded-sm mx-1 ${
                   isActive(item.href)
-                    ? "bg-white/10 text-accent font-medium"
-                    : "text-white/70 hover:text-white hover:bg-white/5"
+                    ? "bg-accent/8 text-accent font-medium"
+                    : "text-foreground/70 hover:text-foreground hover:bg-white/60"
                 }`}
               >
                 {item.label}
@@ -85,14 +80,14 @@ export default function VenuePortalLayout({
             </li>
           ))}
         </ul>
-        <div className="mx-4 my-3 border-t border-white/10" />
+        <div className="mx-4 my-3 border-t border-border" />
         <ul className="space-y-0.5">
           {bottomItems.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/50 hover:text-white hover:bg-white/5 transition-colors duration-150 rounded-sm mx-1"
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-muted hover:text-foreground hover:bg-white/60 transition-colors duration-150 rounded-sm mx-1"
               >
                 {item.label}
               </Link>
@@ -101,7 +96,7 @@ export default function VenuePortalLayout({
           <li>
             <button
               onClick={() => signOut()}
-              className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-white/50 hover:text-white hover:bg-white/5 transition-colors duration-150 rounded-sm mx-1"
+              className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-muted hover:text-foreground hover:bg-white/60 transition-colors duration-150 rounded-sm mx-1"
             >
               Logout
             </button>
@@ -114,7 +109,7 @@ export default function VenuePortalLayout({
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)] lg:min-h-[calc(100vh-4rem)] bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r border-white/10 sticky top-14 lg:top-16 self-start h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)] overflow-hidden">
+      <aside className="hidden lg:flex flex-col w-56 shrink-0 bg-[#F5F3F0] border-r border-border sticky top-14 lg:top-16 self-start h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)]">
         <NavContent />
       </aside>
 
@@ -128,7 +123,7 @@ export default function VenuePortalLayout({
 
       {/* Mobile drawer */}
       <aside
-        className={`lg:hidden fixed top-14 left-0 bottom-0 z-50 w-64 border-r border-white/10 overflow-hidden transform transition-transform duration-200 ${
+        className={`lg:hidden fixed top-14 left-0 bottom-0 z-50 w-64 bg-[#F5F3F0] border-r border-border transform transition-transform duration-200 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

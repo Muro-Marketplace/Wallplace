@@ -214,7 +214,9 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
         }),
       });
       const data = await res.json();
-      if (data.conversationId) {
+      if (!res.ok) {
+        console.error("Send message error:", data.error);
+      } else if (data.conversationId) {
         await loadConversations();
         setSelectedConv(data.conversationId);
         setComposing(false);

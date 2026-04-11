@@ -55,7 +55,8 @@ export function dbVenueToVenue(v: DbVenueProfile): Venue {
 }
 
 export async function getVenueProfileByUserId(userId: string) {
-  const { data } = await supabase
+  const db = getSupabaseAdmin();
+  const { data } = await db
     .from("venue_profiles")
     .select("*")
     .eq("user_id", userId)
