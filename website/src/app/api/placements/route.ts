@@ -61,14 +61,14 @@ export async function GET(request: Request) {
   }
 }
 
-// POST: artist creates a placement request
+// POST: artist or venue creates a placement request
 export async function POST(request: Request) {
   const auth = await getAuthenticatedUser(request);
   if (auth.error) return auth.error;
 
   try {
     const body = await request.json();
-    const { placements } = body;
+    const { placements, fromVenue, artistSlug: bodyArtistSlug } = body;
 
     if (!placements || !Array.isArray(placements) || placements.length === 0) {
       return NextResponse.json({ error: "No placements provided" }, { status: 400 });
@@ -80,42 +80,44 @@ export async function POST(request: Request) {
     }
 
     const db = getSupabaseAdmin();
+    const role = await getUserRole(auth.user!.id);
 
-    // Get artist slug
-    const { data: artistProfile } = await db
-      .from("artist_profiles")
-      .select("slug, name")
-      .eq("user_id", auth.user!.id)
-      .single();
+    let artistProfile: { user_id: string; slug: string; name: string } | null = null;
+    let venueProfile: { user_id: string; slug: string; name: string } | null = null;
 
-    if (!artistProfile) {
-      return NextResponse.json({ error: "Artist profile not found" }, { status: 400 });
-    }
+    if (fromVenue && role?.type === "venue") {
+      // Venue-initiated request: look up artist from body
+      const targetArtistSlug = bodyArtistSlug || parsed.data[0].venueSlug;
+      const { data: ap } = await db.from("artist_profiles").select("user_id, slug, name").eq("slug", targetArtistSlug).single();
+      const { data: vp } = await db.from("venue_profiles").select("user_id, slug, name").eq("user_id", auth.user!.id).single();
 
-    // All placements in a batch go to the same venue
-    const venueSlug = parsed.data[0].venueSlug;
-    if (!venueSlug) {
-      return NextResponse.json({ error: "Venue selection required" }, { status: 400 });
-    }
+      if (!ap) return NextResponse.json({ error: "Artist not found" }, { status: 400 });
+      if (!vp) return NextResponse.json({ error: "Venue profile not found" }, { status: 400 });
 
-    // Look up venue
-    const { data: venueProfile } = await db
-      .from("venue_profiles")
-      .select("user_id, slug, name")
-      .eq("slug", venueSlug)
-      .single();
+      artistProfile = ap;
+      venueProfile = vp;
+    } else {
+      // Artist-initiated request: look up venue from venueSlug
+      const { data: ap } = await db.from("artist_profiles").select("user_id, slug, name").eq("user_id", auth.user!.id).single();
+      if (!ap) return NextResponse.json({ error: "Artist profile not found" }, { status: 400 });
 
-    if (!venueProfile) {
-      return NextResponse.json({ error: "Venue not found" }, { status: 400 });
+      const venueSlug = parsed.data[0].venueSlug;
+      if (!venueSlug) return NextResponse.json({ error: "Venue selection required" }, { status: 400 });
+
+      const { data: vp } = await db.from("venue_profiles").select("user_id, slug, name").eq("slug", venueSlug).single();
+      if (!vp) return NextResponse.json({ error: "Venue not found" }, { status: 400 });
+
+      artistProfile = ap;
+      venueProfile = vp;
     }
 
     const rows = parsed.data.map((p) => ({
       id: p.id,
-      artist_user_id: auth.user!.id,
-      artist_slug: artistProfile.slug,
-      venue_user_id: venueProfile.user_id,
-      venue_slug: venueProfile.slug,
-      venue: venueProfile.name,
+      artist_user_id: artistProfile!.user_id,
+      artist_slug: artistProfile!.slug,
+      venue_user_id: venueProfile!.user_id,
+      venue_slug: venueProfile!.slug,
+      venue: venueProfile!.name,
       work_title: p.workTitle,
       work_image: p.workImage || null,
       arrangement_type: p.type,
@@ -134,14 +136,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Failed to save placements" }, { status: 500 });
     }
 
-    // Notify venue by email (fire-and-forget)
-    if (venueProfile.user_id) {
-      const { data: { user: venueUser } } = await db.auth.admin.getUserById(venueProfile.user_id);
-      if (venueUser?.email) {
+    // Notify the other party by email (fire-and-forget)
+    const notifyUserId = fromVenue ? artistProfile!.user_id : venueProfile!.user_id;
+    if (notifyUserId) {
+      const { data: { user: notifyUser } } = await db.auth.admin.getUserById(notifyUserId);
+      if (notifyUser?.email) {
         notifyPlacementRequest({
-          email: venueUser.email,
-          venueName: venueProfile.name,
-          artistName: artistProfile.name,
+          email: notifyUser.email,
+          venueName: venueProfile!.name,
+          artistName: artistProfile!.name,
           workTitles: parsed.data.map((p) => p.workTitle),
           arrangementType: parsed.data[0].type,
           revenueSharePercent: parsed.data[0].revenueSharePercent,
