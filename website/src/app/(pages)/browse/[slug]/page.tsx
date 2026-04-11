@@ -151,6 +151,7 @@ export default async function ArtistProfilePage({
                 )}
               </div>
               <MessageArtistButton artistSlug={artist.slug} artistName={artist.name} variant="accent" size="md" />
+              <Button href={`/venue-portal/placements?artist=${artist.slug}&artistName=${encodeURIComponent(artist.name)}`} variant="secondary" size="md">Request Placement</Button>
             </div>
 
             <div className="w-full lg:w-[400px] shrink-0 lg:mt-16">
@@ -246,7 +247,8 @@ export default async function ArtistProfilePage({
               Get in touch to discuss pricing, availability, and how this artist&rsquo;s work could transform your venue.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <MessageArtistButton artistSlug={artist.slug} artistName={artist.name} variant="primary" size="lg" />
+              <Button href={`/venue-portal/placements?artist=${artist.slug}&artistName=${encodeURIComponent(artist.name)}`} variant="primary" size="lg">Request Placement</Button>
+              <MessageArtistButton artistSlug={artist.slug} artistName={artist.name} variant="accent" size="lg" />
               <Button href="/browse" variant="ghost" size="lg">Browse more artists</Button>
             </div>
           </div>

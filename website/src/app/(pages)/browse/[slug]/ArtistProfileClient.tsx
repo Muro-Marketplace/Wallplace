@@ -32,6 +32,26 @@ export default function ArtistProfileClient({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [selectedSizeIdx, setSelectedSizeIdx] = useState(0);
   const [showEnquiry, setShowEnquiry] = useState(false);
+  const [selectedForPlacement, setSelectedForPlacement] = useState<Set<number>>(new Set());
+
+  function togglePlacementSelection(index: number) {
+    setSelectedForPlacement((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }
+
+  function handleRequestPlacement() {
+    const workTitles = Array.from(selectedForPlacement).map((i) => filteredWorks[i]?.title).filter(Boolean);
+    const firstWork = filteredWorks[Array.from(selectedForPlacement)[0]];
+    if (userType === "venue") {
+      router.push(`/venue-portal/placements?artist=${artistSlug}&artistName=${encodeURIComponent(artistName)}&work=${encodeURIComponent(workTitles[0] || "")}&workImage=${encodeURIComponent(firstWork?.image || "")}`);
+    } else if (userType === "artist") {
+      router.push(`/artist-portal/placements`);
+    }
+  }
   const [enquirySent, setEnquirySent] = useState(false);
 
   const allThemes = ["All", ...themes];
@@ -174,6 +194,24 @@ export default function ArtistProfileClient({
                   <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <SaveButton type="work" itemId={work.id} />
                   </div>
+                  {/* Selection checkbox for placement (venue only) */}
+                  {user && userType === "venue" && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); togglePlacementSelection(index); }}
+                      className={`absolute bottom-3 left-3 w-7 h-7 rounded-full flex items-center justify-center transition-all z-10 ${
+                        selectedForPlacement.has(index)
+                          ? "bg-accent text-white shadow-lg"
+                          : "bg-white/80 text-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-white hover:text-accent backdrop-blur-sm"
+                      }`}
+                      title={selectedForPlacement.has(index) ? "Deselect" : "Select for placement"}
+                    >
+                      {selectedForPlacement.has(index) ? (
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /></svg>
+                      )}
+                    </button>
+                  )}
                   {/* Availability */}
                   <div className="absolute top-3 right-3">
                     {work.available ? (
@@ -393,6 +431,26 @@ export default function ArtistProfileClient({
               <p className="text-[10px] text-muted text-center mt-4">
                 {lightboxIndex + 1} of {filteredWorks.length}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating placement bar */}
+      {user && userType === "venue" && selectedForPlacement.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-foreground/95 backdrop-blur-sm border-t border-white/10 shadow-2xl">
+          <div className="max-w-[1200px] mx-auto px-6 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-white text-sm font-medium">{selectedForPlacement.size} work{selectedForPlacement.size !== 1 ? "s" : ""} selected</span>
+              <button onClick={() => setSelectedForPlacement(new Set())} className="text-white/50 text-xs hover:text-white transition-colors">Clear</button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRequestPlacement}
+                className="px-5 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors"
+              >
+                Request Placement
+              </button>
             </div>
           </div>
         </div>
