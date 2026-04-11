@@ -53,6 +53,7 @@ export default function PortfolioPage() {
   const [uploading, setUploading] = useState(false);
   const [initialised, setInitialised] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     if (!artist || initialised) return;
@@ -149,8 +150,6 @@ export default function PortfolioPage() {
   function removeSize(index: number) {
     setForm((p) => ({ ...p, sizes: p.sizes.filter((_, i) => i !== index) }));
   }
-
-  const [formError, setFormError] = useState("");
 
   function handleSubmit() {
     setFormError("");

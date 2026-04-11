@@ -15,6 +15,13 @@ interface CollectionForm {
 
 export default function CollectionsPage() {
   const { artist, loading: artistLoading } = useCurrentArtist();
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<CollectionForm>({
+    name: "",
+    description: "",
+    workIds: [],
+    bundlePrice: "",
+  });
 
   if (artistLoading || !artist) {
     return (
@@ -25,13 +32,6 @@ export default function CollectionsPage() {
   }
 
   const artistCollections = seedCollections.filter((c) => c.artistSlug === artist.slug);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<CollectionForm>({
-    name: "",
-    description: "",
-    workIds: [],
-    bundlePrice: "",
-  });
 
   function toggleWork(workId: string) {
     setForm((prev) => ({
