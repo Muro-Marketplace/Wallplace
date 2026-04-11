@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 interface StripeOrder {
   id: string;
@@ -26,6 +27,7 @@ function ConfirmationContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const { clearCart } = useCart();
+  const { user } = useAuth();
   const [order, setOrder] = useState<StripeOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -165,6 +167,20 @@ function ConfirmationContent() {
         </p>
       </div>
 
+      {/* Sign up prompt for guests */}
+      {!user && (
+        <div className="bg-surface border border-border rounded-sm p-5 mb-8 text-left">
+          <h2 className="text-sm font-medium mb-2">Create an account to track your order</h2>
+          <p className="text-xs text-muted mb-4">Sign up to view order status, get delivery updates, and manage future purchases.</p>
+          <Link
+            href="/signup/customer"
+            className="inline-flex items-center justify-center px-5 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors"
+          >
+            Create Account
+          </Link>
+        </div>
+      )}
+
       {/* CTAs */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <Link
@@ -173,6 +189,14 @@ function ConfirmationContent() {
         >
           Continue Browsing
         </Link>
+        {user && (
+          <Link
+            href="/customer-portal"
+            className="inline-flex items-center justify-center px-6 py-3 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors"
+          >
+            View My Orders
+          </Link>
+        )}
       </div>
     </div>
   );
