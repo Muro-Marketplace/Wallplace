@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import CartIndicator from "./CartIndicator";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
+import { slugify } from "@/lib/slugify";
 
 const navLinks = [
   { label: "Discover Art", href: "/browse" },
@@ -21,10 +23,16 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const isImmersive = immersiveRoutes.includes(pathname);
-  const { user, userType, signOut, loading: authLoading } = useAuth();
+  const { user, userType, displayName, signOut, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [msgDropdownOpen, setMsgDropdownOpen] = useState(false);
+  const [conversations, setConversations] = useState<{ conversationId: string; otherPartyDisplayName: string; otherPartyImage: string | null; otherParty: string; latestMessage: string; unreadCount: number; lastActivity: string }[]>([]);
+  const [convsLoaded, setConvsLoaded] = useState(false);
+  const msgDropdownRef = useRef<HTMLDivElement>(null);
 
   const portalBase = userType === "venue" ? "/venue-portal" : "/artist-portal";
+  const userSlug = displayName ? slugify(displayName) : "";
 
   // Fetch unread message count when logged in
   const fetchUnread = useCallback(() => {
@@ -49,6 +57,36 @@ export default function Header() {
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isImmersive]);
+
+  // Load conversations when dropdown opens
+  useEffect(() => {
+    if (!msgDropdownOpen || convsLoaded || !user || !userSlug) return;
+    authFetch(`/api/messages?slug=${userSlug}`)
+      .then((r) => r.json())
+      .then((data) => { if (data.conversations) setConversations(data.conversations.slice(0, 6)); })
+      .catch(() => {})
+      .finally(() => setConvsLoaded(true));
+  }, [msgDropdownOpen, convsLoaded, user, userSlug]);
+
+  // Refresh conversations on open
+  useEffect(() => {
+    if (msgDropdownOpen) setConvsLoaded(false);
+  }, [msgDropdownOpen]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!msgDropdownOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (msgDropdownRef.current && !msgDropdownRef.current.contains(e.target as Node)) {
+        setMsgDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [msgDropdownOpen]);
+
+  // Close dropdown on route change
+  useEffect(() => { setMsgDropdownOpen(false); }, [pathname]);
 
   const isPortal = pathname.startsWith("/artist-portal") || pathname.startsWith("/venue-portal");
   const showSolid = !isImmersive || scrolled;
@@ -103,23 +141,71 @@ export default function Header() {
           <div className="hidden lg:flex items-center gap-2.5">
             {!authLoading && user ? (
               <>
-                {/* Messages icon */}
-                <Link
-                  href={`${portalBase}/messages`}
-                  className={`relative p-2 transition-colors duration-300 ${
-                    isPortal || !showSolid ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground"
-                  }`}
-                  title="Messages"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                  </svg>
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center px-1 text-[10px] font-bold text-white bg-accent rounded-full leading-none">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
+                {/* Messages dropdown */}
+                <div className="relative" ref={msgDropdownRef}>
+                  <button
+                    onClick={() => setMsgDropdownOpen(!msgDropdownOpen)}
+                    className={`relative p-2 transition-colors duration-300 ${
+                      isPortal || !showSolid ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground"
+                    }`}
+                    title="Messages"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center px-1 text-[10px] font-bold text-white bg-accent rounded-full leading-none">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Dropdown panel */}
+                  {msgDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-50">
+                      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                        <p className="text-sm font-medium text-foreground">Messages</p>
+                        <Link href={`${portalBase}/messages`} onClick={() => setMsgDropdownOpen(false)} className="text-xs text-accent hover:text-accent-hover">View All</Link>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {conversations.length === 0 ? (
+                          <p className="text-xs text-muted text-center py-8">No messages yet</p>
+                        ) : (
+                          conversations.map((conv) => (
+                            <button
+                              key={conv.conversationId}
+                              onClick={() => {
+                                setMsgDropdownOpen(false);
+                                router.push(`${portalBase}/messages?artist=${conv.otherParty}&artistName=${encodeURIComponent(conv.otherPartyDisplayName)}`);
+                              }}
+                              className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#FAF8F5] transition-colors border-b border-border last:border-b-0"
+                            >
+                              {conv.otherPartyImage ? (
+                                <img src={conv.otherPartyImage} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                                  <span className="text-xs font-medium text-accent">{conv.otherPartyDisplayName?.charAt(0)?.toUpperCase()}</span>
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-sm font-medium text-foreground truncate">{conv.otherPartyDisplayName}</p>
+                                  {conv.unreadCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />}
+                                </div>
+                                <p className="text-xs text-muted truncate">{conv.latestMessage}</p>
+                              </div>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                      <div className="px-4 py-2.5 border-t border-border bg-[#FAF8F5]">
+                        <Link href={`${portalBase}/messages`} onClick={() => setMsgDropdownOpen(false)} className="block text-center text-xs font-medium text-accent hover:text-accent-hover">
+                          Open Full Inbox
+                        </Link>
+                      </div>
+                    </div>
                   )}
-                </Link>
+                </div>
 
                 {/* Notifications icon */}
                 <Link
