@@ -53,13 +53,13 @@ export default function PortalGuard({ allowedType, children }: PortalGuardProps)
         }
 
         const status = profile.subscription_status || "none";
-        const isFoundingArtist = profile.is_founding_artist || false;
 
-        // Allow: active subscription, trialing, or founding artist without subscription yet
-        if (status === "active" || status === "trialing" || (isFoundingArtist && status === "none")) {
-          setSubscriptionOk(true);
-        } else {
+        // Block only explicitly failed states (past_due, canceled)
+        // Allow: active, trialing, or no subscription yet (pre-launch grace period)
+        if (status === "past_due" || status === "canceled") {
           setSubscriptionOk(false);
+        } else {
+          setSubscriptionOk(true);
         }
       })
       .catch(() => {

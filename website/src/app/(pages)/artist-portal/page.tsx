@@ -32,8 +32,14 @@ export default function ArtistPortalPage() {
   const { displayName } = useAuth();
   const [stats, setStats] = useState({ placements: 0, sales: "£0", enquiries: 0, views: 0 });
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("none");
 
   useEffect(() => {
+    // Check subscription status
+    authFetch("/api/artist-profile").then((r) => r.json()).then((data) => {
+      if (data.profile?.subscription_status) setSubscriptionStatus(data.profile.subscription_status);
+    }).catch(() => {});
+
     // Fetch stats from API (not localStorage)
     Promise.all([
       authFetch("/api/placements").then((r) => r.json()).catch(() => ({ placements: [] })),
@@ -85,6 +91,17 @@ export default function ArtistPortalPage() {
           Edit Portfolio
         </Button>
       </div>
+
+      {/* Subscription prompt */}
+      {subscriptionStatus === "none" && (
+        <div className="mb-6 bg-accent/5 border border-accent/20 rounded-sm p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Choose a plan to unlock your full portal</p>
+            <p className="text-xs text-muted mt-0.5">All plans include a free trial. Founding artists get 6 months free.</p>
+          </div>
+          <Button href="/artist-portal/billing" variant="accent" size="sm">Choose a Plan</Button>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
