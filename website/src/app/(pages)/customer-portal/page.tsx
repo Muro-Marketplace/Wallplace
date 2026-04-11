@@ -8,6 +8,12 @@ import OrderStatusTracker from "@/components/OrderStatusTracker";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 
+function safeArray(val: unknown): { title: string; qty: number; price: number; artistSlug?: string }[] {
+  if (Array.isArray(val)) return val;
+  if (typeof val === "string") { try { const parsed = JSON.parse(val); return Array.isArray(parsed) ? parsed : []; } catch { return []; } }
+  return [];
+}
+
 interface Order {
   id: string;
   items: { title: string; qty: number; price: number; artistSlug?: string }[];
@@ -36,7 +42,14 @@ export default function CustomerPortalPage() {
   }, []);
 
   const totalSpent = orders.reduce((sum, o) => sum + (o.total || 0), 0);
-  const selected = orders.find((o) => o.id === selectedOrder);
+  const rawSelected = orders.find((o) => o.id === selectedOrder);
+  // Ensure items is always an array and status_history is parsed
+  const selected = rawSelected ? {
+    ...rawSelected,
+    items: Array.isArray(rawSelected.items) ? rawSelected.items : (typeof rawSelected.items === "string" ? (() => { try { return JSON.parse(rawSelected.items); } catch { return []; } })() : []),
+    status_history: Array.isArray(rawSelected.status_history) ? rawSelected.status_history : (typeof rawSelected.status_history === "string" ? (() => { try { return JSON.parse(rawSelected.status_history); } catch { return []; } })() : []),
+    total: rawSelected.total || 0,
+  } : null;
 
   return (
     <CustomerPortalLayout>
@@ -76,7 +89,7 @@ export default function CustomerPortalPage() {
 
           <div className="mt-6 space-y-3">
             <p className="text-xs text-muted uppercase tracking-wider">Items</p>
-            {(selected.items || []).map((item, i) => (
+            {safeArray(selected.items).map((item, i) => (
               <div key={i} className="flex items-center justify-between text-sm border-b border-border pb-2">
                 <span className="text-foreground">{item.title} &times; {item.qty}</span>
                 <span className="text-foreground font-medium">&pound;{(item.price * item.qty).toFixed(2)}</span>
@@ -123,7 +136,7 @@ export default function CustomerPortalPage() {
                   <p className="text-sm font-medium text-foreground">{order.id}</p>
                   <p className="text-xs text-muted mt-0.5">
                     {new Date(order.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                    {" · "}{(order.items || []).length} item{(order.items || []).length !== 1 ? "s" : ""}
+                    {" · "}{safeArray(order.items).length} item{safeArray(order.items).length !== 1 ? "s" : ""}
                   </p>
                 </div>
                 <div className="text-right">

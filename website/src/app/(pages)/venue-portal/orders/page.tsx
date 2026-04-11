@@ -72,7 +72,7 @@ export default function VenueOrdersPage() {
 
           <div className="mt-6 space-y-2">
             <p className="text-xs text-muted uppercase tracking-wider">Items</p>
-            {(selected.items || []).map((item, i) => (
+            {(selected.items || []).map((item: { title: string; qty: number; price: number }, i: number) => (
               <div key={i} className="flex justify-between text-sm border-b border-border pb-2">
                 <span>{item.title} &times; {item.qty}</span>
                 <span className="font-medium">&pound;{(item.price * item.qty).toFixed(2)}</span>

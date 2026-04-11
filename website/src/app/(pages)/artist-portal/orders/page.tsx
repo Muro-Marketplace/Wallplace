@@ -71,7 +71,18 @@ export default function ArtistOrdersPage() {
     setUpdating(false);
   }
 
-  const selected = orders.find((o) => o.id === selectedOrder);
+  const rawSelected = orders.find((o) => o.id === selectedOrder);
+  const selected = rawSelected ? {
+    ...rawSelected,
+    items: Array.isArray(rawSelected.items) ? rawSelected.items : (typeof rawSelected.items === "string" ? (() => { try { return JSON.parse(rawSelected.items); } catch { return []; } })() : []),
+    status_history: Array.isArray(rawSelected.status_history) ? rawSelected.status_history : (typeof rawSelected.status_history === "string" ? (() => { try { return JSON.parse(rawSelected.status_history); } catch { return []; } })() : []),
+    total: rawSelected.total || 0,
+    artist_revenue: rawSelected.artist_revenue || 0,
+    venue_revenue: rawSelected.venue_revenue || 0,
+    platform_fee: rawSelected.platform_fee || 0,
+    venue_revenue_share_percent: rawSelected.venue_revenue_share_percent || 0,
+    platform_fee_percent: rawSelected.platform_fee_percent || 0,
+  } : null;
   const pendingCount = orders.filter((o) => o.status === "confirmed" || o.status === "processing").length;
 
   return (
@@ -121,7 +132,7 @@ export default function ArtistOrdersPage() {
           {/* Items */}
           <div className="mt-6 space-y-2">
             <p className="text-xs text-muted uppercase tracking-wider">Items</p>
-            {(selected.items || []).map((item, i) => (
+            {(selected.items || []).map((item: { title: string; qty: number; price: number }, i: number) => (
               <div key={i} className="flex justify-between text-sm border-b border-border pb-2">
                 <span>{item.title} &times; {item.qty}</span>
                 <span className="font-medium">&pound;{(item.price * item.qty).toFixed(2)}</span>
