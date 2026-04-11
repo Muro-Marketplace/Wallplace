@@ -119,7 +119,7 @@ export default function LoginPage() {
 
           <div className="relative my-4">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-white px-3 text-muted">or continue with</span></div>
+            <div className="relative flex justify-center text-xs"><span className="bg-white/95 px-3 text-muted">or continue with</span></div>
           </div>
 
           <div className="flex gap-3">
