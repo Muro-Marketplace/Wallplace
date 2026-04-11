@@ -41,12 +41,38 @@ export function useCurrentArtist(): {
     async function loadProfile() {
       setLoading(true);
 
-      // Try Supabase via API
+      // Check sessionStorage cache first (avoids cold start on navigation)
+      const cacheKey = `wallplace-artist-${user!.id}`;
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached && !cancelled) {
+          const { profile, works, ts } = JSON.parse(cached);
+          // Use cache if less than 5 minutes old
+          if (Date.now() - ts < 300000 && profile) {
+            const a = dbProfileToArtist(profile as DbArtistProfile, (works || []) as DbArtistWork[]);
+            setArtist(a);
+            setProfileId(profile.id);
+            setLoading(false);
+            // Refresh in background
+            authFetch("/api/artist-profile").then((r) => r.json()).then((data) => {
+              if (data.profile && !cancelled) {
+                sessionStorage.setItem(cacheKey, JSON.stringify({ profile: data.profile, works: data.works, ts: Date.now() }));
+                const fresh = dbProfileToArtist(data.profile as DbArtistProfile, (data.works || []) as DbArtistWork[]);
+                setArtist(fresh);
+              }
+            }).catch(() => {});
+            return;
+          }
+        }
+      } catch { /* sessionStorage unavailable */ }
+
+      // Fetch from API
       try {
         const res = await authFetch("/api/artist-profile");
         if (res.ok) {
           const data = await res.json();
           if (data.profile && !cancelled) {
+            try { sessionStorage.setItem(cacheKey, JSON.stringify({ profile: data.profile, works: data.works, ts: Date.now() })); } catch { /* ignore */ }
             const a = dbProfileToArtist(
               data.profile as DbArtistProfile,
               (data.works || []) as DbArtistWork[]

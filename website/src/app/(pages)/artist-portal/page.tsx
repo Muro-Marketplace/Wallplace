@@ -38,53 +38,41 @@ export default function ArtistPortalPage() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("none");
 
   useEffect(() => {
-    // Fetch everything in parallel
+    // Single API call for entire dashboard
     async function loadDashboard() {
-      const [profileData, placementsData, ordersData] = await Promise.all([
-        authFetch("/api/artist-profile").then((r) => r.json()).catch(() => ({ profile: null, works: [] })),
-        authFetch("/api/placements").then((r) => r.json()).catch(() => ({ placements: [] })),
-        authFetch("/api/orders").then((r) => r.json()).catch(() => ({ orders: [] })),
-      ]);
+      const data = await authFetch("/api/dashboard").then((r) => r.json()).catch(() => ({}));
 
-      // Profile + stats
-      if (profileData.profile?.subscription_status) setSubscriptionStatus(profileData.profile.subscription_status);
-      const placements = placementsData.placements || [];
-      const orders = ordersData.orders || [];
-      const activePlacements = placements.filter((p: { status: string }) => p.status === "active").length;
-      const totalRevenue = orders.reduce((sum: number, o: { total: number }) => sum + (o.total || 0), 0);
+      if (data.profile?.subscription_status) setSubscriptionStatus(data.profile.subscription_status);
 
-      setStats({
-        placements: activePlacements,
-        sales: `\u00a3${totalRevenue.toLocaleString()}`,
-        enquiries: profileData.profile?.total_enquiries || 0,
-        views: profileData.profile?.total_views || 0,
-      });
+      if (data.stats) {
+        setStats({
+          placements: data.stats.activePlacements || 0,
+          sales: `\u00a3${(data.stats.totalRevenue || 0).toLocaleString()}`,
+          enquiries: data.stats.enquiries || 0,
+          views: data.stats.views || 0,
+        });
+      }
 
-      // Build activity from already-fetched data
-      const slug = profileData.profile?.slug || "";
+      // Build activity from dashboard data
       const items: ActivityItem[] = [];
+      const placements = data.placements || [];
+      const conversations = data.conversations || [];
 
-      if (slug) {
-        // Placements activity (reuse fetched data)
-        for (const p of placements.slice(0, 10)) {
-          const time = p.responded_at || p.created_at;
-          if (p.status === "pending") {
-            items.push({ id: "p-" + p.id, text: `Placement request: ${p.work_title || "Artwork"} — ${p.venue || "Venue"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
-          } else if (p.status === "active") {
-            items.push({ id: "pa-" + p.id, text: `Placement accepted: ${p.work_title || "Artwork"} at ${p.venue || "Venue"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
-          } else if (p.status === "declined") {
-            items.push({ id: "pd-" + p.id, text: `Placement declined: ${p.work_title || "Artwork"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
-          }
+      for (const p of placements.slice(0, 10)) {
+        const time = p.responded_at || p.created_at;
+        if (p.status === "pending") {
+          items.push({ id: "p-" + p.id, text: `Placement request: ${p.work_title || "Artwork"} — ${p.venue || "Venue"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+        } else if (p.status === "active") {
+          items.push({ id: "pa-" + p.id, text: `Placement accepted: ${p.work_title || "Artwork"} at ${p.venue || "Venue"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+        } else if (p.status === "declined") {
+          items.push({ id: "pd-" + p.id, text: `Placement declined: ${p.work_title || "Artwork"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
         }
+      }
 
-        // Messages activity (one more fetch, but only if slug exists)
-        const mRes = await authFetch(`/api/messages?slug=${slug}`).catch(() => null);
-        const mData = mRes ? await mRes.json().catch(() => ({})) : {};
-        for (const c of (mData.conversations || []).slice(0, 5)) {
-          const name = c.otherPartyDisplayName || c.otherParty;
-          const preview = c.latestMessage?.slice(0, 50) || "";
-          items.push({ id: "m-" + c.conversationId, text: `${name}: "${preview}${c.latestMessage?.length > 50 ? "..." : ""}"`, time: formatRelativeTime(c.lastActivity), sortTime: new Date(c.lastActivity).getTime(), type: c.unreadCount > 0 ? "enquiry" : "message" });
-        }
+      for (const c of conversations) {
+        const name = c.otherParty;
+        const preview = c.latestMessage?.slice(0, 50) || "";
+        items.push({ id: "m-" + c.conversationId, text: `${name}: "${preview}${c.latestMessage?.length > 50 ? "..." : ""}"`, time: formatRelativeTime(c.lastActivity), sortTime: new Date(c.lastActivity).getTime(), type: c.unreadCount > 0 ? "enquiry" : "message" });
       }
 
       items.sort((a, b) => b.sortTime - a.sortTime);
