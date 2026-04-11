@@ -53,27 +53,49 @@ export async function PUT(
       return NextResponse.json({ success: true, status: "rejected" });
     }
 
-    // Accept: create auth user via invite + artist profile
+    // Accept: create or find auth user + artist profile
     const artistSlug = slugify(app.name);
+    let userId: string;
+    let invited = false;
 
-    const { data: inviteData, error: inviteError } =
-      await db.auth.admin.inviteUserByEmail(app.email, {
-        data: {
+    // Check if user already exists (from old auto-signup flow)
+    const { data: existingUsers } = await db.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(
+      (u) => u.email === app.email
+    );
+
+    if (existingUser) {
+      userId = existingUser.id;
+      // Update their metadata to ensure user_type is "artist"
+      await db.auth.admin.updateUserById(userId, {
+        user_metadata: {
           user_type: "artist",
           display_name: app.name,
           artist_slug: artistSlug,
         },
       });
+    } else {
+      // New user — send invite email
+      const { data: inviteData, error: inviteError } =
+        await db.auth.admin.inviteUserByEmail(app.email, {
+          data: {
+            user_type: "artist",
+            display_name: app.name,
+            artist_slug: artistSlug,
+          },
+        });
 
-    if (inviteError) {
-      console.error("Invite error:", inviteError);
-      return NextResponse.json(
-        { error: `Failed to invite user: ${inviteError.message}` },
-        { status: 500 }
-      );
+      if (inviteError) {
+        console.error("Invite error:", inviteError);
+        return NextResponse.json(
+          { error: `Failed to invite user: ${inviteError.message}` },
+          { status: 500 }
+        );
+      }
+
+      userId = inviteData.user.id;
+      invited = true;
     }
-
-    const userId = inviteData.user.id;
 
     // Create artist profile
     const { error: profileError } = await db
@@ -115,7 +137,9 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       status: "accepted",
-      message: `Invite email sent to ${app.email}`,
+      message: invited
+        ? `Invite email sent to ${app.email}`
+        : `${app.email} already had an account — profile created, they can log in now`,
     });
   } catch (err) {
     console.error("Accept/reject error:", err);

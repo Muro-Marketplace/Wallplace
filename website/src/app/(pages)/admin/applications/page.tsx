@@ -78,7 +78,7 @@ export default function AdminApplicationsPage() {
       if (res.ok) {
         setToast(
           action === "accept"
-            ? `Accepted. Invite email sent to ${applications.find((a) => a.id === id)?.email}`
+            ? `Accepted. ${data.message || ""}`
             : "Application rejected."
         );
         setTimeout(() => setToast(""), 4000);
