@@ -26,8 +26,11 @@ export default function Header() {
   const router = useRouter();
   const [unreadCount, setUnreadCount] = useState(0);
   const [msgDropdownOpen, setMsgDropdownOpen] = useState(false);
+  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [conversations, setConversations] = useState<{ conversationId: string; otherPartyDisplayName: string; otherPartyImage: string | null; otherParty: string; latestMessage: string; unreadCount: number; lastActivity: string }[]>([]);
+  const [notifications, setNotifications] = useState<{ id: string; type: string; title: string; description: string; time: string; link: string }[]>([]);
   const msgDropdownRef = useRef<HTMLDivElement>(null);
+  const notifDropdownRef = useRef<HTMLDivElement>(null);
 
   const portalBase = userType === "venue" ? "/venue-portal" : "/artist-portal";
   const [resolvedSlug, setResolvedSlug] = useState("");
@@ -87,27 +90,64 @@ export default function Header() {
       .catch(() => {});
   }, [msgDropdownOpen, user, resolvedSlug]);
 
-  // Close dropdown on click outside
+  // Load notifications when dropdown opens
   useEffect(() => {
-    if (!msgDropdownOpen) return;
+    if (!notifDropdownOpen || !user || !resolvedSlug) return;
+    // Fetch pending placements as notifications
+    authFetch("/api/placements")
+      .then((r) => r.json())
+      .then((data) => {
+        const notifs: typeof notifications = [];
+        for (const p of (data.placements || []).slice(0, 10)) {
+          if (p.status === "pending") {
+            notifs.push({
+              id: p.id,
+              type: "placement",
+              title: "Placement Request",
+              description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`,
+              time: p.created_at,
+              link: `${portalBase}/placements`,
+            });
+          } else if (p.status === "active" && p.responded_at) {
+            notifs.push({
+              id: p.id + "-accepted",
+              type: "placement_accepted",
+              title: "Placement Accepted",
+              description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`,
+              time: p.responded_at,
+              link: `${portalBase}/placements`,
+            });
+          }
+        }
+        setNotifications(notifs);
+      })
+      .catch(() => {});
+  }, [notifDropdownOpen, user, resolvedSlug, portalBase]);
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    if (!msgDropdownOpen && !notifDropdownOpen) return;
     function handleClick(e: MouseEvent) {
-      if (msgDropdownRef.current && !msgDropdownRef.current.contains(e.target as Node)) {
+      if (msgDropdownOpen && msgDropdownRef.current && !msgDropdownRef.current.contains(e.target as Node)) {
         setMsgDropdownOpen(false);
+      }
+      if (notifDropdownOpen && notifDropdownRef.current && !notifDropdownRef.current.contains(e.target as Node)) {
+        setNotifDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [msgDropdownOpen]);
+  }, [msgDropdownOpen, notifDropdownOpen]);
 
-  // Close dropdown on route change
-  useEffect(() => { setMsgDropdownOpen(false); }, [pathname]);
+  // Close dropdowns on route change
+  useEffect(() => { setMsgDropdownOpen(false); setNotifDropdownOpen(false); }, [pathname]);
 
   const isPortal = pathname.startsWith("/artist-portal") || pathname.startsWith("/venue-portal");
   const showSolid = !isImmersive || scrolled;
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 overflow-hidden ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isPortal
           ? "border-b border-white/10"
           : showSolid
@@ -158,7 +198,7 @@ export default function Header() {
                 {/* Messages dropdown */}
                 <div className="relative" ref={msgDropdownRef}>
                   <button
-                    onClick={() => setMsgDropdownOpen(!msgDropdownOpen)}
+                    onClick={() => { setMsgDropdownOpen(!msgDropdownOpen); setNotifDropdownOpen(false); }}
                     className={`relative p-2 transition-colors duration-300 ${
                       isPortal || !showSolid ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground"
                     }`}
@@ -176,7 +216,7 @@ export default function Header() {
 
                   {/* Dropdown panel */}
                   {msgDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-50">
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[60]">
                       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                         <p className="text-sm font-medium text-foreground">Messages</p>
                         <Link href={`${portalBase}/messages`} onClick={() => setMsgDropdownOpen(false)} className="text-xs text-accent hover:text-accent-hover">View All</Link>
@@ -221,19 +261,67 @@ export default function Header() {
                   )}
                 </div>
 
-                {/* Notifications icon */}
-                <Link
-                  href={portalBase}
-                  className={`relative p-2 transition-colors duration-300 ${
-                    isPortal || !showSolid ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground"
-                  }`}
-                  title="Notifications"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                  </svg>
-                </Link>
+                {/* Notifications dropdown */}
+                <div className="relative" ref={notifDropdownRef}>
+                  <button
+                    onClick={() => { setNotifDropdownOpen(!notifDropdownOpen); setMsgDropdownOpen(false); }}
+                    className={`relative p-2 transition-colors duration-300 ${
+                      isPortal || !showSolid ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground"
+                    }`}
+                    title="Notifications"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                    {notifications.length > 0 && notifDropdownOpen === false && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center px-1 text-[10px] font-bold text-white bg-accent rounded-full leading-none">
+                        {notifications.length > 9 ? "9+" : notifications.length}
+                      </span>
+                    )}
+                  </button>
+
+                  {notifDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[60]">
+                      <div className="px-4 py-3 border-b border-border">
+                        <p className="text-sm font-medium text-foreground">Notifications</p>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="py-8 text-center">
+                            <p className="text-xs text-muted">No new notifications</p>
+                          </div>
+                        ) : (
+                          notifications.map((n) => (
+                            <Link
+                              key={n.id}
+                              href={n.link}
+                              onClick={() => setNotifDropdownOpen(false)}
+                              className="block px-4 py-3 hover:bg-[#FAF8F5] transition-colors border-b border-border last:border-b-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                                  n.type === "placement" ? "bg-amber-100" : "bg-green-100"
+                                }`}>
+                                  {n.type === "placement" ? (
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                                  ) : (
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#15803D" strokeWidth="2" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-foreground">{n.title}</p>
+                                  <p className="text-xs text-muted truncate">{n.description}</p>
+                                  <p className="text-[10px] text-muted mt-0.5">{new Date(n.time).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
+                                </div>
+                              </div>
+                            </Link>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Portal link */}
                 <Link
