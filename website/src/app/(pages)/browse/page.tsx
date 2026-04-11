@@ -235,7 +235,7 @@ export default function BrowsePortfoliosPage() {
         return false;
       return true;
     });
-  }, [filters]);
+  }, [artists, filters]);
 
   const allMediums = useMemo(
     () => Array.from(new Set(artists.map((a) => a.primaryMedium))).sort(),
