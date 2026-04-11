@@ -168,7 +168,7 @@ export default function Header() {
           {/* Logo */}
           <Link
             href="/"
-            className={`font-serif text-xl lg:text-2xl tracking-tight transition-colors duration-300 ${
+            className={`font-serif text-2xl lg:text-3xl tracking-tight transition-colors duration-300 ${
               isPortal || !showSolid ? "text-white" : "text-foreground"
             }`}
           >
