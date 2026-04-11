@@ -71,7 +71,7 @@ export default function PlacementsPage() {
 
   // Form state
   const [venueSlug, setVenueSlug] = useState("");
-  const [arrangementType, setArrangementType] = useState<ArrangementType>("Free Loan");
+  // arrangementType derived from revenuePercent — no separate state needed
   const [revenuePercent, setRevenuePercent] = useState(10);
   const [selectedWorks, setSelectedWorks] = useState<Set<number>>(new Set());
   const [notes, setNotes] = useState("");
@@ -135,10 +135,6 @@ export default function PlacementsPage() {
     if (!venueSlug || selectedWorks.size === 0) return;
     setSubmitting(true);
 
-    const typeMap: Record<ArrangementType, string> = {
-      "Free Loan": "free_loan", "Revenue Share": "revenue_share", "Direct Purchase": "purchase",
-    };
-
     const newPlacements = Array.from(selectedWorks).map((workIndex) => {
       const work = works[workIndex];
       return {
@@ -146,8 +142,8 @@ export default function PlacementsPage() {
         workTitle: work.title,
         workImage: work.image,
         venueSlug,
-        type: typeMap[arrangementType],
-        revenueSharePercent: arrangementType === "Revenue Share" ? revenuePercent : undefined,
+        type: revenuePercent > 0 ? "revenue_share" as const : "free_loan" as const,
+        revenueSharePercent: revenuePercent > 0 ? revenuePercent : undefined,
         notes: notes || undefined,
         message: message || undefined,
       };
@@ -166,7 +162,7 @@ export default function PlacementsPage() {
           workImage: p.workImage,
           venue: selectedVenue?.name || venueSlug,
           venueSlug: p.venueSlug,
-          type: arrangementType,
+          type: revenuePercent > 0 ? "Revenue Share" as ArrangementType : "Free Loan" as ArrangementType,
           revenueSharePercent: p.revenueSharePercent,
           status: "Pending",
           date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
@@ -180,7 +176,7 @@ export default function PlacementsPage() {
         setSelectedWorks(new Set());
         setNotes("");
         setMessage("");
-        setArrangementType("Free Loan");
+        setRevenuePercent(0);
       }
     } catch (err) {
       console.error("Placement save error:", err);
@@ -283,44 +279,22 @@ export default function PlacementsPage() {
               )}
             </div>
 
-            {/* Arrangement type */}
+            {/* Revenue share */}
             <div>
-              <label className="block text-sm font-medium mb-2">Arrangement Type</label>
-              <div className="flex gap-2">
-                {(["Free Loan", "Revenue Share", "Direct Purchase"] as ArrangementType[]).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setArrangementType(type)}
-                    className={`px-4 py-2 text-xs rounded-sm border transition-colors ${
-                      arrangementType === type
-                        ? "bg-foreground text-white border-foreground"
-                        : "border-border text-muted hover:border-foreground/30"
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
+              <label className="block text-sm font-medium mb-2">Revenue Share (optional)</label>
+              <p className="text-xs text-muted mb-3">Offer the venue a percentage of any sales made from their space. Leave at 0 for a free display arrangement.</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={revenuePercent}
+                  onChange={(e) => setRevenuePercent(Number(e.target.value) || 0)}
+                  className="w-20 bg-background border border-border rounded-sm px-3 py-3 text-sm text-center focus:outline-none focus:border-accent/60"
+                />
+                <span className="text-sm text-muted">% to the venue on sales</span>
               </div>
             </div>
-
-            {/* Revenue share % */}
-            {arrangementType === "Revenue Share" && (
-              <div>
-                <label className="block text-sm font-medium mb-2">Venue Revenue Share %</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={revenuePercent}
-                    onChange={(e) => setRevenuePercent(Number(e.target.value) || 0)}
-                    className="w-20 bg-background border border-border rounded-sm px-3 py-3 text-sm text-center focus:outline-none focus:border-accent/60"
-                  />
-                  <span className="text-sm text-muted">% to the venue on sales from their space</span>
-                </div>
-              </div>
-            )}
 
             {/* Select works */}
             <div>
