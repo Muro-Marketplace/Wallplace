@@ -12,7 +12,7 @@ const notifications = [
   { id: "placement_update", label: "Placement updates", description: "When a placement status changes" },
   { id: "sale", label: "Sales", description: "When a piece is sold" },
   { id: "payout", label: "Payout notifications", description: "When a payout is processed" },
-  { id: "newsletter", label: "Wallspace newsletter", description: "Monthly updates and artist features" },
+  { id: "newsletter", label: "Wallplace newsletter", description: "Monthly updates and artist features" },
   { id: "tips", label: "Tips & resources", description: "Advice on growing your presence" },
 ];
 
@@ -106,7 +106,7 @@ export default function SettingsPage() {
   }
 
   function handleNotifSave() {
-    localStorage.setItem("wallspace-notif-prefs", JSON.stringify(notifState));
+    localStorage.setItem("wallplace-notif-prefs", JSON.stringify(notifState));
     // Persist message notification preference to DB
     authFetch("/api/artist-profile", {
       method: "PUT",

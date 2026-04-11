@@ -18,7 +18,7 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
   const hasMounted = useRef(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("wallspace-saved");
+    const stored = localStorage.getItem("wallplace-saved");
     if (stored) {
       try { setSavedItems(JSON.parse(stored)); } catch { /* ignore */ }
     }
@@ -27,7 +27,7 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (hasMounted.current) {
-      localStorage.setItem("wallspace-saved", JSON.stringify(savedItems));
+      localStorage.setItem("wallplace-saved", JSON.stringify(savedItems));
     }
   }, [savedItems]);
 

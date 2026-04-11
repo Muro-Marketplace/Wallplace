@@ -31,11 +31,11 @@ export async function generateMetadata({
   const artist = await getArtistBySlug(slug);
 
   if (!artist) {
-    return { title: "Artist Not Found – Wallspace" };
+    return { title: "Artist Not Found – Wallplace" };
   }
 
   return {
-    title: `${artist.name} – Wallspace`,
+    title: `${artist.name} – Wallplace`,
     description: artist.shortBio,
   };
 }
@@ -119,7 +119,7 @@ export default async function ArtistProfilePage({
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <h1 className="text-2xl lg:text-3xl leading-none">{artist.name}</h1>
                 {artist.isFoundingArtist && (
-                  <span className="inline-block px-2 py-0.5 bg-accent/10 text-accent text-[10px] font-medium rounded-sm border border-accent/20 cursor-help" title="One of the first 20 artists on Wallspace">
+                  <span className="inline-block px-2 py-0.5 bg-accent/10 text-accent text-[10px] font-medium rounded-sm border border-accent/20 cursor-help" title="One of the first 20 artists on Wallplace">
                     Founding Artist
                   </span>
                 )}

@@ -16,8 +16,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const venue = venues.find((v) => v.slug === slug);
   if (!venue) return {};
   return {
-    title: `${venue.name} – Wallspace`,
-    description: `${venue.name} in ${venue.location} is looking for artwork on Wallspace. ${venue.description.slice(0, 120)}...`,
+    title: `${venue.name} – Wallplace`,
+    description: `${venue.name} in ${venue.location} is looking for artwork on Wallplace. ${venue.description.slice(0, 120)}...`,
   };
 }
 
@@ -284,7 +284,7 @@ export default async function VenueProfilePage({ params }: Props) {
                   Get discovered by venues like this
                 </h3>
                 <p className="text-sm text-muted leading-relaxed mb-5">
-                  Apply to join Wallspace and your profile will be visible to{" "}
+                  Apply to join Wallplace and your profile will be visible to{" "}
                   {venue.name} and every other venue on the platform looking for
                   artwork that matches your style.
                 </p>

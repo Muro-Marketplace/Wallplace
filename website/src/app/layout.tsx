@@ -17,9 +17,9 @@ const dmSerifDisplay = DM_Serif_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Wallspace – Curated Art for Commercial Spaces",
+  title: "Wallplace – Curated Art for Commercial Spaces",
   description:
-    "Wallspace is a curated art marketplace connecting independent venues with emerging artists. Source artwork risk-free. Get discovered by commercial spaces.",
+    "Wallplace is a curated art marketplace connecting independent venues with emerging artists. Source artwork risk-free. Get discovered by commercial spaces.",
 };
 
 export const viewport = {

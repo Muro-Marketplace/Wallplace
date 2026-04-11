@@ -172,7 +172,7 @@ export default function Header() {
               isPortal || !showSolid ? "text-white" : "text-foreground"
             }`}
           >
-            Wallspace
+            Wallplace
           </Link>
 
           {/* Desktop Navigation */}

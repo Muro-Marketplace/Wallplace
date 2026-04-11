@@ -11,8 +11,8 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const post = blogPosts.find((p) => p.slug === slug);
-  if (!post) return { title: "Post Not Found – Wallspace" };
-  return { title: `${post.title} – Wallspace Blog`, description: post.excerpt };
+  if (!post) return { title: "Post Not Found – Wallplace" };
+  return { title: `${post.title} – Wallplace Blog`, description: post.excerpt };
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -60,7 +60,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {/* CTA */}
           <div className="mt-12 pt-8 border-t border-border bg-accent/5 rounded-sm p-8 text-center">
             <h3 className="font-serif text-xl mb-2">Ready to get started?</h3>
-            <p className="text-sm text-muted mb-6">Whether you&rsquo;re an artist or a venue, Wallspace connects you with the right people.</p>
+            <p className="text-sm text-muted mb-6">Whether you&rsquo;re an artist or a venue, Wallplace connects you with the right people.</p>
             <div className="flex items-center justify-center gap-3">
               <Link href="/browse" className="px-6 py-3 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors">
                 Browse Marketplace

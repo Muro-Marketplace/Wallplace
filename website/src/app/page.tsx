@@ -64,7 +64,7 @@ export default function Home() {
               href="/"
               className="font-serif text-2xl lg:text-3xl tracking-tight text-white"
             >
-              Wallspace
+              Wallplace
             </Link>
 
             {/* Desktop nav */}
@@ -324,7 +324,7 @@ export default function Home() {
                     Get discovered by commercial spaces
                   </h2>
                   <p className="text-lg text-muted leading-relaxed mb-8">
-                    Wallspace puts your work in front of venues that are
+                    Wallplace puts your work in front of venues that are
                     actively looking for art. No exclusivity. Keep selling
                     through your own channels.
                   </p>
@@ -354,7 +354,7 @@ export default function Home() {
             <div className="max-w-[1000px] mx-auto px-6 lg:px-10">
               <AnimateIn>
               <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-white text-center mb-16">
-                How Wallspace works
+                How Wallplace works
               </h2>
               <div className="grid md:grid-cols-2 gap-16">
                 <div className="flex flex-col">
@@ -401,13 +401,13 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {[
                   {
-                    quote: "Wallspace made it incredibly easy to find artwork that fits our space. We went from bare walls to a rotating gallery in two weeks.",
+                    quote: "Wallplace made it incredibly easy to find artwork that fits our space. We went from bare walls to a rotating gallery in two weeks.",
                     name: "Sarah Mitchell",
                     role: "Owner, The Copper Kettle",
                     type: "Venue",
                   },
                   {
-                    quote: "I've had more venue enquiries in three months on Wallspace than in two years trying to approach places myself. The platform just works.",
+                    quote: "I've had more venue enquiries in three months on Wallplace than in two years trying to approach places myself. The platform just works.",
                     name: "James Okafor",
                     role: "Architectural Photographer",
                     type: "Artist",

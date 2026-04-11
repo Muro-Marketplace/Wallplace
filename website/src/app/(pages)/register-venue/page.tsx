@@ -197,7 +197,7 @@ export default function RegisterVenuePage() {
           </div>
           <h1 className="text-3xl font-serif mb-3">You&rsquo;re In</h1>
           <p className="text-muted leading-relaxed mb-2">
-            Welcome to Wallspace, {form.contactName}. Your venue <strong>{form.venueName}</strong> is set up and ready to go.
+            Welcome to Wallplace, {form.contactName}. Your venue <strong>{form.venueName}</strong> is set up and ready to go.
           </p>
           <p className="text-muted leading-relaxed mb-8">
             Start browsing artist portfolios and find the perfect work for your space.
@@ -359,7 +359,7 @@ export default function RegisterVenuePage() {
 
               {/* How did you hear */}
               <div>
-                <label className="block text-sm font-medium mb-2">How did you hear about Wallspace?</label>
+                <label className="block text-sm font-medium mb-2">How did you hear about Wallplace?</label>
                 <select value={form.hearAbout} onChange={(e) => updateField("hearAbout", e.target.value)} className={inputClass}>
                   <option value="">Select</option>
                   {hearOptions.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -379,7 +379,7 @@ export default function RegisterVenuePage() {
                   {submitting ? "Registering..." : "Register Your Venue"}
                 </button>
                 <p className="mt-4 text-xs text-muted max-w-md">
-                  By submitting you agree to Wallspace contacting you about art for your venue. We will not share your details with third parties.
+                  By submitting you agree to Wallplace contacting you about art for your venue. We will not share your details with third parties.
                 </p>
               </div>
             </form>

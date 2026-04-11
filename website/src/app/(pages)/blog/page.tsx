@@ -4,8 +4,8 @@ import { blogPosts } from "@/data/blog-posts";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Blog – Wallspace",
-  description: "Insights on art in commercial spaces, artist tips, and industry trends from the Wallspace team.",
+  title: "Blog – Wallplace",
+  description: "Insights on art in commercial spaces, artist tips, and industry trends from the Wallplace team.",
 };
 
 export default function BlogPage() {

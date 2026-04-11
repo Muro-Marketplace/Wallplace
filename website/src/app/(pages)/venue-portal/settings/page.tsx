@@ -73,15 +73,15 @@ const defaultNotifs: NotifPref[] = [
     checked: true,
   },
   {
-    id: "wallspace_news",
-    label: "Wallspace news & updates",
+    id: "wallplace_news",
+    label: "Wallplace news & updates",
     desc: "Platform announcements and feature launches",
     checked: false,
   },
   {
     id: "promotions",
     label: "Promotions & offers",
-    desc: "Discounts and special deals from Wallspace",
+    desc: "Discounts and special deals from Wallplace",
     checked: false,
   },
 ];
@@ -113,7 +113,7 @@ export default function VenueSettingsPage() {
   };
 
   const handleSave = () => {
-    localStorage.setItem("wallspace-venue-notif-prefs", JSON.stringify(notifs));
+    localStorage.setItem("wallplace-venue-notif-prefs", JSON.stringify(notifs));
     // Persist message notification preference to DB
     authFetch("/api/venue-profile", {
       method: "PUT",

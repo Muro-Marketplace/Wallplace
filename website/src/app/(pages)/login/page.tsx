@@ -68,7 +68,7 @@ export default function LoginPage() {
         {/* Heading */}
         <div className="text-center mb-8">
           <h1 className="text-3xl lg:text-4xl mb-2 text-white">Welcome back</h1>
-          <p className="text-white/50 text-sm">Sign in to your Wallspace account</p>
+          <p className="text-white/50 text-sm">Sign in to your Wallplace account</p>
         </div>
 
         {/* Login form */}

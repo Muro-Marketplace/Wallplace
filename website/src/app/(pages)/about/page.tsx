@@ -3,9 +3,9 @@ import Button from "@/components/Button";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About – Wallspace",
+  title: "About – Wallplace",
   description:
-    "Wallspace exists to connect incredible artists with the bare walls of cafes, restaurants, and creative spaces.",
+    "Wallplace exists to connect incredible artists with the bare walls of cafes, restaurants, and creative spaces.",
 };
 
 export default function AboutPage() {
@@ -24,9 +24,9 @@ export default function AboutPage() {
         </div>
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="max-w-3xl">
-            <h1 className="text-4xl lg:text-5xl mb-6 text-white">About Wallspace</h1>
+            <h1 className="text-4xl lg:text-5xl mb-6 text-white">About Wallplace</h1>
             <p className="text-xl text-white/60 leading-relaxed">
-              Wallspace exists because thousands of incredible artworks sit
+              Wallplace exists because thousands of incredible artworks sit
               in artists&rsquo; studios while thousands of bare walls in
               cafes could be transformed by them. We make the
               connection effortless.
@@ -58,9 +58,9 @@ export default function AboutPage() {
               </p>
             </div>
             <div>
-              <h2 className="text-3xl mb-5">What Wallspace Does</h2>
+              <h2 className="text-3xl mb-5">What Wallplace Does</h2>
               <p className="text-muted leading-relaxed mb-4">
-                Wallspace is a curated art placement service. We review and
+                Wallplace is a curated art placement service. We review and
                 accept artists based on the quality of their work. We match them
                 with venues that suit their style. We handle the logistics of
                 getting art on walls and managing the relationship over time.
@@ -85,7 +85,7 @@ export default function AboutPage() {
             <h2 className="text-3xl mb-5">How Curation Works</h2>
             <p className="text-muted leading-relaxed">
               Quality is everything. We are not a marketplace where anyone can
-              list their work. Every artist on Wallspace has been through our
+              list their work. Every artist on Wallplace has been through our
               review process.
             </p>
           </div>
@@ -143,7 +143,7 @@ export default function AboutPage() {
               <p className="text-muted leading-relaxed">
                 We would rather have 50 exceptional artists than 500 mediocre
                 ones. Our curation process is rigorous because the venues and
-                buyers who trust us deserve the best. Every piece on Wallspace
+                buyers who trust us deserve the best. Every piece on Wallplace
                 has been reviewed and approved.
               </p>
             </div>
@@ -166,10 +166,10 @@ export default function AboutPage() {
           <div className="bg-surface border border-border rounded-sm p-8 lg:p-10 max-w-2xl">
             <h3 className="text-xl mb-3">Original Work Only</h3>
             <p className="text-muted leading-relaxed">
-              Every piece on Wallspace is original work by a real artist. We do
+              Every piece on Wallplace is original work by a real artist. We do
               not accept AI-generated art. Our artists invest time, skill, and
               vision into their craft, and we believe that distinction matters.
-              When you see a photograph on Wallspace, you can trust that a human
+              When you see a photograph on Wallplace, you can trust that a human
               being stood behind the camera.
             </p>
           </div>

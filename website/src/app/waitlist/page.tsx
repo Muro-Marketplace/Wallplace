@@ -71,7 +71,7 @@ export default function WaitlistPage() {
               <>
                 {/* Logo */}
                 <h2 className="font-serif text-5xl lg:text-[5.5rem] tracking-tight text-white mb-6 lg:mb-8 uppercase">
-                  Wallspace
+                  Wallplace
                 </h2>
 
                 {/* Headline */}
@@ -229,13 +229,13 @@ function HowItWorks() {
           <section className="py-24 lg:py-32">
             <div className="max-w-[900px] mx-auto px-6 lg:px-10 text-center">
               <p className="text-xs font-medium tracking-[0.25em] uppercase text-white/40 mb-6">
-                How Wallspace Works
+                How Wallplace Works
               </p>
               <h2 className="font-serif text-[clamp(2rem,4.5vw,3.5rem)] leading-[1.1] tracking-[-0.02em] text-white mb-6">
                 A curated marketplace. Two sides. Zero risk.
               </h2>
               <p className="text-lg text-white/50 leading-relaxed max-w-xl mx-auto">
-                Wallspace connects artists who want commercial
+                Wallplace connects artists who want commercial
                 exposure with venues that want original art on their walls —
                 with flexible, risk-free arrangements for both sides.
               </p>
@@ -400,7 +400,7 @@ function HowItWorks() {
                 Be first in when we launch.
               </h2>
               <p className="text-base text-white/40 leading-relaxed mb-10 max-w-md mx-auto">
-                Wallspace is in private beta. Join the waitlist and we&rsquo;ll
+                Wallplace is in private beta. Join the waitlist and we&rsquo;ll
                 notify you when we open the doors.
               </p>
               <button
@@ -544,7 +544,7 @@ function SuccessState() {
       </h2>
       <p className="text-white/50 text-base leading-relaxed max-w-xs mx-auto">
         We&rsquo;ll be in touch before launch. Thanks for your interest in
-        Wallspace.
+        Wallplace.
       </p>
     </div>
   );

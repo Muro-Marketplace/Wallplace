@@ -65,7 +65,7 @@ export default function CheckoutPage() {
 
       if (data.url) {
         // Save shipping to localStorage for confirmation fallback
-        localStorage.setItem("wallspace-last-shipping", JSON.stringify(shipping));
+        localStorage.setItem("wallplace-last-shipping", JSON.stringify(shipping));
         window.location.href = data.url;
       } else {
         setErrors({ submit: true } as Record<string, boolean>);

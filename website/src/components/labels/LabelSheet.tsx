@@ -44,8 +44,8 @@ export default function LabelSheet({ labels, pageIndex }: LabelSheetProps) {
         labels.map((l) => {
           const venueParam = l.venueName ? `&v=${encodeURIComponent(l.venueName)}` : "";
           const url = l.isPortfolioLabel
-            ? `https://wallspace.art/api/qr/${l.artistSlug}${venueParam ? `?${venueParam.slice(1)}` : ""}`
-            : `https://wallspace.art/api/qr/${l.artistSlug}?work=${encodeURIComponent(l.workTitle || "")}${venueParam}`;
+            ? `https://wallplace.art/api/qr/${l.artistSlug}${venueParam ? `?${venueParam.slice(1)}` : ""}`
+            : `https://wallplace.art/api/qr/${l.artistSlug}?work=${encodeURIComponent(l.workTitle || "")}${venueParam}`;
           return generateQRDataURL(url);
         })
       );

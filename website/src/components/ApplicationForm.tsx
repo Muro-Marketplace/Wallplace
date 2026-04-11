@@ -230,10 +230,10 @@ export default function ApplicationForm() {
           an email with a link to set up your account and profile. In the meantime, if you have any
           questions, email us at{" "}
           <a
-            href="mailto:hello@wallspace.co"
+            href="mailto:hello@wallplace.co"
             className="text-accent hover:underline"
           >
-            hello@wallspace.co
+            hello@wallplace.co
           </a>
           .
         </p>
@@ -539,7 +539,7 @@ export default function ApplicationForm() {
       {/* How Did You Hear */}
       <div>
         <label htmlFor="hearAbout" className={labelClass}>
-          How did you hear about Wallspace?
+          How did you hear about Wallplace?
         </label>
         <select
           id="hearAbout"
@@ -614,7 +614,7 @@ export default function ApplicationForm() {
           {submitting ? "Submitting..." : "Submit Application"}
         </button>
         <p className="mt-4 text-xs text-muted leading-relaxed max-w-md">
-          By submitting this form you agree to Wallspace reviewing your
+          By submitting this form you agree to Wallplace reviewing your
           application and contacting you about your submission. We will not
           share your details with third parties without your consent.
         </p>

@@ -7,7 +7,7 @@ import AnimateIn from "@/components/AnimateIn";
 import ScrollButton from "@/components/ScrollButton";
 
 export const metadata: Metadata = {
-  title: "For Venues – Wallspace",
+  title: "For Venues – Wallplace",
   description:
     "Discover original artwork for your space. Browse curated artist portfolios, filter by style and location, and enquire directly. Free for independent venues.",
 };
@@ -122,7 +122,7 @@ const faqItems = [
   {
     question: "Is it really free?",
     answer:
-      "Yes. Browsing portfolios, filtering artists, posting your space, and submitting enquiries are all free. Wallspace is funded by artist memberships.",
+      "Yes. Browsing portfolios, filtering artists, posting your space, and submitting enquiries are all free. Wallplace is funded by artist memberships.",
   },
   {
     question: "Do you handle installation?",
@@ -142,7 +142,7 @@ const faqItems = [
   {
     question: "What do my staff need to do?",
     answer:
-      "Point to the QR card if a customer asks. The artist provides this. Sales are handled automatically through Wallspace's payment infrastructure.",
+      "Point to the QR card if a customer asks. The artist provides this. Sales are handled automatically through Wallplace's payment infrastructure.",
   },
   {
     question: "How does revenue share work?",
@@ -255,7 +255,7 @@ export default function VenuesPage() {
               <span className="text-muted shrink-0">&rarr;</span>
               <span className="bg-background border border-border text-foreground rounded-sm px-3 py-1.5 whitespace-nowrap">Scans QR</span>
               <span className="text-muted shrink-0">&rarr;</span>
-              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-1.5 whitespace-nowrap">Buys via Wallspace</span>
+              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-1.5 whitespace-nowrap">Buys via Wallplace</span>
               <span className="text-muted shrink-0">&rarr;</span>
               <span className="bg-accent/10 border border-accent/30 text-accent rounded-sm px-3 py-1.5 font-medium whitespace-nowrap">You share in the sale</span>
             </div>
@@ -264,7 +264,7 @@ export default function VenuesPage() {
               <span className="text-muted">&darr;</span>
               <span className="bg-background border border-border text-foreground rounded-sm px-3 py-2 w-full text-center">Scans QR code</span>
               <span className="text-muted">&darr;</span>
-              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-2 w-full text-center">Buys via Wallspace</span>
+              <span className="bg-background border border-border text-foreground rounded-sm px-3 py-2 w-full text-center">Buys via Wallplace</span>
               <span className="text-muted">&darr;</span>
               <span className="bg-accent/10 border border-accent/30 text-accent rounded-sm px-3 py-2 w-full text-center font-medium">You share in the sale</span>
             </div>

@@ -3,8 +3,8 @@ import Image from "next/image";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign Up – Wallspace",
-  description: "Join Wallspace as an artist, venue, or customer.",
+  title: "Sign Up – Wallplace",
+  description: "Join Wallplace as an artist, venue, or customer.",
 };
 
 const options = [
@@ -63,7 +63,7 @@ export default function SignUpPage() {
       <div className="w-full max-w-lg px-6 py-16">
         {/* Heading */}
         <div className="text-center mb-10">
-          <h1 className="text-3xl lg:text-4xl font-serif mb-2 text-white">Join Wallspace</h1>
+          <h1 className="text-3xl lg:text-4xl font-serif mb-2 text-white">Join Wallplace</h1>
           <p className="text-white/50 text-sm">Choose your account type to get started</p>
         </div>
 

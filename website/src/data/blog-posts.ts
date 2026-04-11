@@ -19,13 +19,13 @@ export const blogPosts: BlogPost[] = [
 
 Studies consistently show that environments with curated artwork increase dwell time by up to 30%. For a cafe, that means more coffee sold. For a coworking space, higher retention. For a hotel lobby, better first impressions that translate to reviews.
 
-The best part? With platforms like Wallspace, you don't need to buy art outright. Free loan and revenue share arrangements mean you can rotate artwork regularly, keeping your space fresh without the upfront cost.
+The best part? With platforms like Wallplace, you don't need to buy art outright. Free loan and revenue share arrangements mean you can rotate artwork regularly, keeping your space fresh without the upfront cost.
 
 Whether you run a neighbourhood coffee shop or a boutique hotel, the art on your walls tells your customers who you are. Make it count.`,
     image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=500&fit=crop",
     date: "2026-04-08",
     readTime: "4 min read",
-    author: "Wallspace Team",
+    author: "Wallplace Team",
     category: "For Venues",
   },
   {
@@ -44,7 +44,7 @@ Start with revenue share at 5-15% to the venue — it's the most flexible and al
     image: "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=800&h=500&fit=crop",
     date: "2026-04-03",
     readTime: "5 min read",
-    author: "Wallspace Team",
+    author: "Wallplace Team",
     category: "For Artists",
   },
   {
@@ -57,11 +57,11 @@ This isn't just about aesthetics. Instagram culture means every corner of a venu
 
 For independent artists, this shift is transformative. Where once you needed a gallery to reach buyers, now a well-placed piece in a busy restaurant can generate more visibility — and more sales — than a month-long exhibition.
 
-The key is accessibility. Venues don't want to navigate the traditional art world. They want a simple way to find, trial, and display artwork. That's exactly what Wallspace was built to do.`,
+The key is accessibility. Venues don't want to navigate the traditional art world. They want a simple way to find, trial, and display artwork. That's exactly what Wallplace was built to do.`,
     image: "https://images.unsplash.com/photo-1577083552431-6e5fd01988a5?w=800&h=500&fit=crop",
     date: "2026-03-28",
     readTime: "4 min read",
-    author: "Wallspace Team",
+    author: "Wallplace Team",
     category: "Industry",
   },
   {
@@ -74,7 +74,7 @@ The key is accessibility. Venues don't want to navigate the traditional art worl
 
 2. Be professional about delivery and installation. Arrive on time, bring proper hanging hardware, and leave the wall exactly as you found it when the placement ends.
 
-3. Set clear terms upfront. Whether it's free loan, revenue share, or purchase — get it in writing. Wallspace handles this automatically, but if you're arranging independently, don't skip this step.
+3. Set clear terms upfront. Whether it's free loan, revenue share, or purchase — get it in writing. Wallplace handles this automatically, but if you're arranging independently, don't skip this step.
 
 4. Promote the placement. Tag the venue on social media, mention it in your newsletter. The venue will appreciate the exposure, and it strengthens the relationship.
 
@@ -82,7 +82,7 @@ The key is accessibility. Venues don't want to navigate the traditional art worl
     image: "https://images.unsplash.com/photo-1594732832278-abd644401426?w=800&h=500&fit=crop",
     date: "2026-03-20",
     readTime: "3 min read",
-    author: "Wallspace Team",
+    author: "Wallplace Team",
     category: "For Artists",
   },
 ];

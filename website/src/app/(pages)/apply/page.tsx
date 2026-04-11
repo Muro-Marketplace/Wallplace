@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import ApplicationForm from "@/components/ApplicationForm";
 
 export const metadata: Metadata = {
-  title: "Apply to Join – Wallspace",
+  title: "Apply to Join – Wallplace",
   description:
-    "Apply to join Wallspace, the curated platform connecting artists with independent venues. First month free for all accepted artists.",
+    "Apply to join Wallplace, the curated platform connecting artists with independent venues. First month free for all accepted artists.",
 };
 
 export default function ApplyPage() {
@@ -18,10 +18,10 @@ export default function ApplyPage() {
               Artist Applications
             </p>
             <h1 className="text-4xl lg:text-5xl mb-6">
-              Apply to Join Wallspace
+              Apply to Join Wallplace
             </h1>
             <p className="text-xl text-muted leading-relaxed mb-6">
-              Wallspace is a curated platform connecting artists with venues
+              Wallplace is a curated platform connecting artists with venues
               that are genuinely looking for artwork. We review every
               application personally. We accept roughly half. Being accepted
               means your work has been judged ready for commercial spaces.

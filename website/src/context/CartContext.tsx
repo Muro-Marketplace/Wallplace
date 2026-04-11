@@ -19,7 +19,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const hasMounted = useRef(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("wallspace-cart");
+    const stored = localStorage.getItem("wallplace-cart");
     if (stored) {
       try { setItems(JSON.parse(stored)); } catch { /* ignore */ }
     }
@@ -28,7 +28,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (hasMounted.current) {
-      localStorage.setItem("wallspace-cart", JSON.stringify(items));
+      localStorage.setItem("wallplace-cart", JSON.stringify(items));
     }
   }, [items]);
 

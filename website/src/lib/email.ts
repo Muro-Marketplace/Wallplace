@@ -7,7 +7,7 @@ function getResend(): Resend | null {
   return _resend;
 }
 
-const FROM = "Wallspace <notifications@wallspace.art>";
+const FROM = "Wallplace <notifications@wallplace.art>";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "fcoles2598@gmail.com";
 
 /**
@@ -28,7 +28,7 @@ export async function notifyAdminNewApplication(applicant: {
       subject: `New artist application: ${applicant.name}`,
       html: `
         <h2>New Artist Application</h2>
-        <p><strong>${applicant.name}</strong> has applied to join Wallspace.</p>
+        <p><strong>${applicant.name}</strong> has applied to join Wallplace.</p>
         <ul>
           <li><strong>Email:</strong> ${applicant.email}</li>
           <li><strong>Location:</strong> ${applicant.location}</li>
@@ -55,14 +55,14 @@ export async function confirmApplicationToArtist(applicant: {
     await resend.emails.send({
       from: FROM,
       to: applicant.email,
-      subject: "We received your Wallspace application",
+      subject: "We received your Wallplace application",
       html: `
         <h2>Thanks for applying, ${applicant.name}!</h2>
-        <p>We've received your application to join Wallspace as an artist.</p>
+        <p>We've received your application to join Wallplace as an artist.</p>
         <p>Our team reviews applications within 2-3 working days. We'll email you once a decision has been made.</p>
-        <p>In the meantime, follow us on <a href="https://instagram.com/wallspace.art">Instagram</a> to see what's happening.</p>
+        <p>In the meantime, follow us on <a href="https://instagram.com/wallplace.art">Instagram</a> to see what's happening.</p>
         <br/>
-        <p>The Wallspace Team</p>
+        <p>The Wallplace Team</p>
       `,
     });
   } catch (err) {
@@ -150,14 +150,14 @@ export async function notifyNewMessage(recipient: {
     await resend.emails.send({
       from: FROM,
       to: recipient.email,
-      subject: `New message from ${recipient.senderName} on Wallspace`,
+      subject: `New message from ${recipient.senderName} on Wallplace`,
       html: `
         <h2>You have a new message</h2>
-        <p><strong>${recipient.senderName}</strong> sent you a message on Wallspace:</p>
+        <p><strong>${recipient.senderName}</strong> sent you a message on Wallplace:</p>
         <blockquote style="border-left: 3px solid #C17C5A; padding-left: 12px; color: #555; margin: 16px 0;">${recipient.messagePreview.slice(0, 200)}${recipient.messagePreview.length > 200 ? "..." : ""}</blockquote>
         <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/artist-portal/messages" style="color: #C17C5A; font-weight: 600;">Reply in your portal</a></p>
         <br/>
-        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+        <p style="color: #999; font-size: 12px;">The Wallplace Team</p>
       `,
     });
   } catch (err) {
@@ -197,7 +197,7 @@ export async function notifyPlacementRequest(venue: {
         ${venue.message ? `<p><strong>Message:</strong></p><blockquote style="border-left: 3px solid #C17C5A; padding-left: 12px; color: #555;">${venue.message}</blockquote>` : ""}
         <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/venue-portal/placements" style="color: #C17C5A; font-weight: 600;">Review in your portal</a></p>
         <br/>
-        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+        <p style="color: #999; font-size: 12px;">The Wallplace Team</p>
       `,
     });
   } catch (err) {
@@ -231,7 +231,7 @@ export async function notifyPlacementResponse(artist: {
         }
         <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/artist-portal/placements" style="color: #C17C5A; font-weight: 600;">View in your portal</a></p>
         <br/>
-        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+        <p style="color: #999; font-size: 12px;">The Wallplace Team</p>
       `,
     });
   } catch (err) {
@@ -300,7 +300,7 @@ export async function notifyArtistNewOrder(order: {
         </ul>
         <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/artist-portal/orders" style="color: #C17C5A; font-weight: 600;">View in your portal</a></p>
         <br/>
-        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+        <p style="color: #999; font-size: 12px;">The Wallplace Team</p>
       `,
     });
   } catch (err) {
@@ -332,7 +332,7 @@ export async function notifyBuyerStatusUpdate(buyer: {
         ${buyer.trackingNumber ? `<p><strong>Tracking number:</strong> ${buyer.trackingNumber}</p>` : ""}
         <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/customer-portal/orders" style="color: #C17C5A; font-weight: 600;">Track your order</a></p>
         <br/>
-        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+        <p style="color: #999; font-size: 12px;">The Wallplace Team</p>
       `,
     });
   } catch (err) {
@@ -367,7 +367,7 @@ export async function notifyVenueOrderFromPlacement(venue: {
         </ul>
         <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/venue-portal/orders" style="color: #C17C5A; font-weight: 600;">View in your portal</a></p>
         <br/>
-        <p style="color: #999; font-size: 12px;">The Wallspace Team</p>
+        <p style="color: #999; font-size: 12px;">The Wallplace Team</p>
       `,
     });
   } catch (err) {

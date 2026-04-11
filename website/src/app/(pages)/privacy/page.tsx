@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy – Wallspace",
+  title: "Privacy Policy – Wallplace",
   description:
-    "Wallspace Privacy Policy. Learn how we collect, use, and protect your personal data.",
+    "Wallplace Privacy Policy. Learn how we collect, use, and protect your personal data.",
 };
 
 export default function PrivacyPage() {
@@ -21,17 +21,17 @@ export default function PrivacyPage() {
               <div>
                 <h2 className="text-2xl mb-4">1. Who We Are</h2>
                 <p className="text-muted leading-relaxed">
-                  Wallspace Ltd (&ldquo;Wallspace&rdquo;, &ldquo;we&rdquo;,
+                  Wallplace Ltd (&ldquo;Wallplace&rdquo;, &ldquo;we&rdquo;,
                   &ldquo;us&rdquo;, or &ldquo;our&rdquo;) operates the website
-                  at wallspace.co and provides a curated art placement service
+                  at wallplace.co and provides a curated art placement service
                   connecting artists with commercial venues. We are the
                   data controller for the personal information we hold about you.
                   You can contact us at{" "}
                   <a
-                    href="mailto:hello@wallspace.co"
+                    href="mailto:hello@wallplace.co"
                     className="text-accent hover:underline"
                   >
-                    hello@wallspace.co
+                    hello@wallplace.co
                   </a>
                   .
                 </p>
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
                       We may receive information about you from third-party
                       sources, such as when you sign up or log in using a
                       third-party service, or when another user refers you to
-                      Wallspace.
+                      Wallplace.
                     </p>
                   </div>
                 </div>
@@ -120,7 +120,7 @@ export default function PrivacyPage() {
                 </p>
                 <ul className="space-y-2">
                   {[
-                    "With venues on the Wallspace platform, where you have applied or given consent to be introduced",
+                    "With venues on the Wallplace platform, where you have applied or given consent to be introduced",
                     "With trusted third-party service providers who help us operate the platform (such as payment processors, email services, and hosting providers), under strict data processing agreements",
                     "With professional advisors such as lawyers and accountants, where necessary",
                     "With law enforcement or regulatory authorities if required by law",
@@ -195,10 +195,10 @@ export default function PrivacyPage() {
                 <p className="text-muted leading-relaxed mt-4">
                   To exercise any of these rights, please email us at{" "}
                   <a
-                    href="mailto:hello@wallspace.co"
+                    href="mailto:hello@wallplace.co"
                     className="text-accent hover:underline"
                   >
-                    hello@wallspace.co
+                    hello@wallplace.co
                   </a>
                   . We will respond within 30 days. You also have the right to
                   lodge a complaint with the Information Commissioner&rsquo;s
@@ -269,14 +269,14 @@ export default function PrivacyPage() {
                 </p>
                 <div className="mt-4 bg-surface border border-border rounded-sm p-6">
                   <p className="text-sm text-foreground font-medium">
-                    Wallspace Ltd
+                    Wallplace Ltd
                   </p>
                   <p className="text-sm text-muted mt-1">London, UK</p>
                   <a
-                    href="mailto:hello@wallspace.co"
+                    href="mailto:hello@wallplace.co"
                     className="text-sm text-accent hover:underline mt-1 block"
                   >
-                    hello@wallspace.co
+                    hello@wallplace.co
                   </a>
                 </div>
               </div>

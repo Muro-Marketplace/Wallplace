@@ -135,7 +135,7 @@ export default function ProfileEditorPage() {
 
   function saveWorks(updated: ArtistWork[]) {
     setWorks(updated);
-    localStorage.setItem("wallspace-artist-works", JSON.stringify(updated));
+    localStorage.setItem("wallplace-artist-works", JSON.stringify(updated));
   }
 
   function openAddWork() {
@@ -242,7 +242,7 @@ export default function ProfileEditorPage() {
     }
 
     // Also keep localStorage as fallback
-    localStorage.setItem("wallspace-artist-profile", JSON.stringify(profile));
+    localStorage.setItem("wallplace-artist-profile", JSON.stringify(profile));
     setSaved(true);
     refetch();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -259,7 +259,7 @@ export default function ProfileEditorPage() {
         <div className="flex items-start justify-between mb-8">
           <div>
             <h1 className="text-2xl font-serif">Edit Profile</h1>
-            <p className="text-sm text-muted mt-1">Customise how venues and buyers see you on Wallspace.</p>
+            <p className="text-sm text-muted mt-1">Customise how venues and buyers see you on Wallplace.</p>
           </div>
           <div className="flex items-center gap-3">
             <Link

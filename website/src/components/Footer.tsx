@@ -42,14 +42,14 @@ export default function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <Link href="/" className="font-serif text-xl tracking-tight">
-              Wallspace
+              Wallplace
             </Link>
             <p className="mt-3 text-sm text-muted leading-relaxed max-w-xs">
               The curated art marketplace connecting artists with commercial spaces.
             </p>
             {/* Instagram */}
             <a
-              href="https://instagram.com/wallspace"
+              href="https://instagram.com/wallplace"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 mt-6 text-sm text-muted hover:text-foreground transition-colors duration-200"
@@ -97,7 +97,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-16 pt-8 border-t border-border">
           <p className="text-xs text-muted">
-            &copy; {new Date().getFullYear()} Wallspace. All rights reserved.
+            &copy; {new Date().getFullYear()} Wallplace. All rights reserved.
           </p>
         </div>
       </div>

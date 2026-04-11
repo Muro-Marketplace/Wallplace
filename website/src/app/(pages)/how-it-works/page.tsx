@@ -3,9 +3,9 @@ import { Metadata } from "next";
 import Button from "@/components/Button";
 
 export const metadata: Metadata = {
-  title: "How It Works – Wallspace",
+  title: "How It Works – Wallplace",
   description:
-    "A simple process for artists and venues. Learn how Wallspace places curated art into independent spaces.",
+    "A simple process for artists and venues. Learn how Wallplace places curated art into independent spaces.",
 };
 
 const artistSteps = [
@@ -84,7 +84,7 @@ export default function HowItWorksPage() {
         </div>
         <div className="max-w-[1200px] mx-auto px-6 text-center">
           <h1 className="font-serif text-5xl md:text-6xl text-white tracking-tight">
-            How Wallspace Works
+            How Wallplace Works
           </h1>
           <p className="mt-6 text-lg text-white/60 max-w-lg mx-auto">
             A simple process for artists and venues.

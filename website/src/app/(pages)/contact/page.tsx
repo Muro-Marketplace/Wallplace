@@ -3,9 +3,9 @@ import ContactForm from "@/components/ContactForm";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contact – Wallspace",
+  title: "Contact – Wallplace",
   description:
-    "Get in touch with the Wallspace team. Whether you're an artist, a venue, or just curious – we'd love to hear from you.",
+    "Get in touch with the Wallplace team. Whether you're an artist, a venue, or just curious – we'd love to hear from you.",
 };
 
 export default function ContactPage() {
@@ -57,10 +57,10 @@ export default function ContactPage() {
                       Email
                     </p>
                     <a
-                      href="mailto:hello@wallspace.co"
+                      href="mailto:hello@wallplace.co"
                       className="text-sm text-accent hover:text-accent-hover transition-colors duration-200"
                     >
-                      hello@wallspace.co
+                      hello@wallplace.co
                     </a>
                   </div>
 
@@ -78,7 +78,7 @@ export default function ContactPage() {
                       Instagram
                     </p>
                     <a
-                      href="https://instagram.com/wallspace"
+                      href="https://instagram.com/wallplace"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-sm text-accent hover:text-accent-hover transition-colors duration-200"
@@ -103,7 +103,7 @@ export default function ContactPage() {
                           stroke="none"
                         />
                       </svg>
-                      @wallspace
+                      @wallplace
                     </a>
                   </div>
                 </div>
@@ -114,10 +114,10 @@ export default function ContactPage() {
                     For urgent matters or press enquiries, please email us
                     directly at{" "}
                     <a
-                      href="mailto:hello@wallspace.co"
+                      href="mailto:hello@wallplace.co"
                       className="text-foreground hover:text-accent transition-colors duration-200"
                     >
-                      hello@wallspace.co
+                      hello@wallplace.co
                     </a>
                     .
                   </p>
