@@ -758,7 +758,7 @@ export default function BrowsePortfoliosPage() {
 
       {activeCategory !== "collections" && viewAs === "artists" && (
         /* ── Artists view ── */
-        <section className="py-10 lg:py-14">
+        <section className="pt-4 pb-10 lg:py-14">
           <div className="max-w-[1400px] mx-auto px-6">
             <div className="flex gap-10 lg:gap-14 items-start">
               {/* Sidebar – desktop */}
@@ -793,7 +793,7 @@ export default function BrowsePortfoliosPage() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 {/* Mobile filter toggle */}
-                <div className="lg:hidden mb-6 flex items-center justify-between">
+                <div className="lg:hidden mb-4 flex items-center justify-between">
                   <p className="text-sm text-muted">
                     {filteredArtists.length} artist
                     {filteredArtists.length !== 1 ? "s" : ""}
@@ -1016,7 +1016,7 @@ export default function BrowsePortfoliosPage() {
 
       {activeCategory !== "collections" && viewAs === "works" && (
         /* ── Gallery mode with sidebar ── */
-        <section className="py-10 lg:py-14">
+        <section className="pt-4 pb-10 lg:py-14">
           <div className="max-w-[1400px] mx-auto px-6">
             <div className="flex gap-10 lg:gap-14 items-start">
               {/* Sidebar – desktop */}
@@ -1121,7 +1121,7 @@ export default function BrowsePortfoliosPage() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 {/* Mobile filter toggle */}
-                <div className="lg:hidden mb-6 flex items-center justify-between">
+                <div className="lg:hidden mb-4 flex items-center justify-between">
                   <p className="text-sm text-muted">
                     {filteredGalleryWorks.length} work{filteredGalleryWorks.length !== 1 ? "s" : ""}
                   </p>
