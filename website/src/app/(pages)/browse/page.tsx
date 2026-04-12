@@ -1187,11 +1187,19 @@ export default function BrowsePortfoliosPage() {
                   </div>
                 )}
 
-                {/* Results count */}
+                {/* Results count + toggle – desktop */}
                 <div className="hidden lg:flex items-center justify-between mb-6">
                   <p className="text-sm text-muted">
                     {filteredGalleryWorks.length} work{filteredGalleryWorks.length !== 1 ? "s" : ""}
                   </p>
+                  <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
+                    <button type="button" onClick={() => setViewAs("artists")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      Portfolios
+                    </button>
+                    <button type="button" onClick={() => setViewAs("works")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      Gallery
+                    </button>
+                  </div>
                 </div>
 
                 {filteredGalleryWorks.length === 0 ? (
