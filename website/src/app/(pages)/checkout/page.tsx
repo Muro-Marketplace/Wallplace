@@ -23,7 +23,11 @@ export default function CheckoutPage() {
   });
   const [errors, setErrors] = useState<Record<string, boolean>>({});
 
-  const shippingCost = subtotal >= 300 ? 0 : 9.95;
+  const DEFAULT_SHIPPING = 9.95;
+  const shippingCost = items.reduce((sum, item) => {
+    const perItem = item.shippingPrice ?? DEFAULT_SHIPPING;
+    return sum + perItem * item.quantity;
+  }, 0);
   const total = subtotal + shippingCost;
 
   function updateField(field: keyof ShippingInfo, value: string) {
@@ -243,7 +247,7 @@ export default function CheckoutPage() {
                 <span>{shippingCost === 0 ? "Free" : `£${shippingCost.toFixed(2)}`}</span>
               </div>
               {shippingCost > 0 && (
-                <p className="text-[10px] text-muted">Free shipping on orders over £300</p>
+                <p className="text-[10px] text-muted">Shipping costs set by each artist</p>
               )}
               <div className="flex justify-between text-sm font-medium pt-2 border-t border-border">
                 <span>Total</span>

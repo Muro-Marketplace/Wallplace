@@ -29,12 +29,16 @@ export async function POST(request: Request) {
       quantity: item.quantity,
     }));
 
-    // Calculate shipping
+    // Calculate per-item shipping
+    const DEFAULT_SHIPPING = 9.95;
     const subtotal = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
-    const shippingCost = subtotal >= 300 ? 0 : 9.95;
+    const shippingCost = items.reduce(
+      (sum, item) => sum + (item.shippingPrice ?? DEFAULT_SHIPPING) * item.quantity,
+      0
+    );
 
     // Add shipping as a line item if applicable
     if (shippingCost > 0) {
@@ -43,7 +47,7 @@ export async function POST(request: Request) {
           currency: "gbp",
           product_data: {
             name: "Shipping",
-            description: "Standard delivery (free on orders over £300)",
+            description: "Delivery costs set by artist",
           },
           unit_amount: Math.round(shippingCost * 100),
         },

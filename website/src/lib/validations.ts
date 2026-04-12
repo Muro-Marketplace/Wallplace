@@ -108,6 +108,7 @@ export const checkoutSchema = z.object({
     price: z.number().positive().max(100000),
     quantity: z.number().int().positive().max(10),
     image: optionalString(2000),
+    shippingPrice: z.number().min(0).max(1000).optional(),
   })).min(1).max(50),
   shipping: z.object({
     fullName: safeString(100),

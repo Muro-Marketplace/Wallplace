@@ -36,9 +36,11 @@ export async function POST(request: Request) {
     // Only process one-time payment checkouts (art purchases), not subscriptions
     if (session.mode === "payment") {
       try {
-        const subtotal = (session.amount_total || 0) / 100;
-        const shippingCost = subtotal >= 300 ? 0 : 9.95;
-        const total = subtotal + shippingCost;
+        // Stripe amount_total already includes shipping (added as line item in checkout)
+        const total = (session.amount_total || 0) / 100;
+        const cartItems = session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [];
+        const subtotal = cartItems.reduce((sum: number, i: { price?: number; qty?: number }) => sum + (i.price || 0) * (i.qty || 1), 0) || total;
+        const shippingCost = Math.max(0, total - subtotal);
         const orderId = `WS-${session.id.slice(-8)}`;
         const source = session.metadata?.source || "direct";
         const venueSlug = session.metadata?.venue_slug || "";

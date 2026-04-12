@@ -68,7 +68,11 @@ CREATE POLICY "saved_items_select" ON saved_items FOR SELECT USING (auth.uid() =
 CREATE POLICY "saved_items_insert" ON saved_items FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "saved_items_delete" ON saved_items FOR DELETE USING (auth.uid() = user_id);
 
--- 6. Enforce one active placement per artist+venue combo
+-- 6. Per-work shipping prices + artist default
+ALTER TABLE artist_works ADD COLUMN IF NOT EXISTS shipping_price NUMERIC DEFAULT NULL;
+ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS default_shipping_price NUMERIC DEFAULT NULL;
+
+-- 7. Enforce one active placement per artist+venue combo
 CREATE UNIQUE INDEX IF NOT EXISTS idx_placements_unique_active
   ON placements(artist_slug, venue_slug)
   WHERE status = 'active';

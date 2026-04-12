@@ -12,6 +12,7 @@ export interface CartItem {
   size: string;
   price: number;
   quantity: number;
+  shippingPrice?: number;
 }
 
 export interface ShippingInfo {
