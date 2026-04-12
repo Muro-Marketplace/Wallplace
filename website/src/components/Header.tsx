@@ -180,8 +180,8 @@ export default function Header() {
             Wallplace
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-7" role="navigation" aria-label="Main navigation">
+          {/* Desktop Navigation — centered on page */}
+          <nav className="hidden lg:flex items-center gap-7 absolute left-1/2 -translate-x-1/2" role="navigation" aria-label="Main navigation">
             {navLinks.map((link) => (
               <Link
                 key={link.href}

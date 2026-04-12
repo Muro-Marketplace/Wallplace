@@ -12,15 +12,10 @@ export default function BlogPage() {
   return (
     <div className="bg-background">
       {/* Hero */}
-      <section className="relative -mt-14 lg:-mt-16 min-h-[50vh] lg:min-h-[60vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0 -z-10">
-          <img
-            src="https://images.unsplash.com/photo-1471107340929-a87cd0f5b5f3?w=1920&h=800&fit=crop&crop=center"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/70" />
-        </div>
+      <section className="relative -mt-14 lg:-mt-16 min-h-[50vh] lg:min-h-[60vh] flex items-center overflow-hidden"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1471107340929-a87cd0f5b5f3?w=1920&h=800&fit=crop&crop=center')", backgroundSize: "cover", backgroundPosition: "center" }}
+      >
+        <div className="absolute inset-0 bg-black/70" />
         <div className="max-w-[1000px] mx-auto px-6 text-center relative z-10">
           <p className="text-xs font-medium tracking-[0.2em] uppercase text-accent mb-4">Blog</p>
           <h1 className="font-serif text-4xl lg:text-5xl text-white mb-4">Insights & Stories</h1>
