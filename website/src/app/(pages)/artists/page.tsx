@@ -630,7 +630,7 @@ export default function ArtistsPage() {
             </a>
           </div>
           <p className="mt-6 text-sm text-white/40">
-            First month free. First 20 approved artists get 6 months free. Membership from &pound;9.99/month.
+            First month free. Membership from &pound;9.99/month.
           </p>
         </div>
       </section>
