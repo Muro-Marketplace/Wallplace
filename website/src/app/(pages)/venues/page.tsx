@@ -173,7 +173,7 @@ export default function VenuesPage() {
     <div className="relative">
       <VenueArtistToggle />
       {/* Immersive Hero – pulls behind the header with negative margin */}
-      <section className="relative -mt-14 lg:-mt-16 min-h-screen flex flex-col justify-center pt-28 lg:pt-32 pb-56">
+      <section className="relative -mt-14 lg:-mt-16 min-h-screen flex flex-col pt-28 lg:pt-32">
         {/* Hero background image */}
         <div className="absolute inset-0 -z-10">
           <Image
@@ -185,31 +185,35 @@ export default function VenuesPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-br from-black/65 via-black/50 to-black/35" />
         </div>
-        <div className="max-w-[1200px] mx-auto px-6 w-full">
-          <div className="max-w-2xl">
-            <p className="text-xs font-medium tracking-[0.25em] uppercase text-accent mb-5">
-              For Venues
-            </p>
-            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight text-white leading-[1.05] mb-6">
-              Display curated art for free. Earn when it sells.
-            </h1>
-            <p className="text-lg lg:text-xl text-white/60 leading-relaxed max-w-xl mb-10">
-              Browse portfolios from independent artists. Pick what fits your space.
-              Art goes on your wall at zero cost &mdash; and if a visitor buys via the QR label, you earn a share.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <a href="/browse" className="inline-flex items-center justify-center min-w-[220px] px-8 py-3.5 text-sm font-semibold tracking-wider uppercase bg-accent text-white rounded-sm hover:bg-accent-hover transition-colors">
-                DISCOVER ART
-              </a>
-              <a href="/register-venue" className="inline-flex items-center justify-center min-w-[220px] px-8 py-3.5 text-sm font-semibold tracking-wider uppercase bg-white text-foreground rounded-sm hover:bg-white/90 transition-colors">
-                REGISTER YOUR VENUE
-              </a>
+        <div className="flex-1 flex items-center">
+          <div className="max-w-[1200px] mx-auto px-6 w-full">
+            <div className="max-w-2xl">
+              <p className="text-xs font-medium tracking-[0.25em] uppercase text-accent mb-5">
+                For Venues
+              </p>
+              <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight text-white leading-[1.05] mb-6">
+                Display curated art for free. Earn when it sells.
+              </h1>
+              <p className="text-lg lg:text-xl text-white/60 leading-relaxed max-w-xl mb-10">
+                Browse portfolios from independent artists. Pick what fits your space.
+                Art goes on your wall at zero cost &mdash; and if a visitor buys via the QR label, you earn a share.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <a href="/browse" className="inline-flex items-center justify-center min-w-[220px] px-8 py-3.5 text-sm font-semibold tracking-wider uppercase bg-accent text-white rounded-sm hover:bg-accent-hover transition-colors">
+                  DISCOVER ART
+                </a>
+                <a href="/register-venue" className="inline-flex items-center justify-center min-w-[220px] px-8 py-3.5 text-sm font-semibold tracking-wider uppercase bg-white text-foreground rounded-sm hover:bg-white/90 transition-colors">
+                  REGISTER YOUR VENUE
+                </a>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Scroll indicator */}
-        <ScrollButton targetId="venue-content" label="See what you get" />
+        <div className="relative z-10 mt-auto py-3 flex justify-center">
+          <ScrollButton targetId="venue-content" label="See what you get" inline />
+        </div>
       </section>
 
       {/* Content sections with solid backgrounds */}
