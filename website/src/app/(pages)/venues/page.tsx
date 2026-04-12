@@ -44,7 +44,7 @@ const freeBenefits = [
     ),
     title: "Post your space",
     description:
-      "Create a venue profile to attract artist interest. Let artists come to you.",
+      "Create a venue profile so artists can see what you're looking for and reach out directly.",
   },
   {
     icon: (
@@ -225,9 +225,9 @@ export default function VenuesPage() {
             {freeBenefits.map((benefit) => (
               <div
                 key={benefit.title}
-                className="flex items-start gap-4 bg-surface border border-border rounded-sm p-5 hover:shadow-sm transition-shadow duration-300"
+                className="flex items-center gap-4 bg-surface border border-border rounded-sm p-5 hover:shadow-sm transition-shadow duration-300"
               >
-                <div className="text-accent shrink-0 mt-0.5">{benefit.icon}</div>
+                <div className="text-accent shrink-0">{benefit.icon}</div>
                 <div>
                   <h3 className="text-base font-medium mb-1">{benefit.title}</h3>
                   <p className="text-muted text-sm leading-relaxed">
