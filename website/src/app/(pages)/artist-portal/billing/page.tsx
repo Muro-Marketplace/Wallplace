@@ -48,11 +48,21 @@ function statusBadge(status: string) {
   );
 }
 
+interface ConnectStatus {
+  hasAccount: boolean;
+  onboardingComplete?: boolean;
+  chargesEnabled?: boolean;
+  payoutsEnabled?: boolean;
+}
+
 export default function BillingPage() {
   const [sub, setSub] = useState<ProfileSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
   const [planChanged, setPlanChanged] = useState(false);
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
+  const [connectLoading, setConnectLoading] = useState(true);
+  const [connectRedirecting, setConnectRedirecting] = useState(false);
 
   // Check for ?changed=true from plan switch
   useEffect(() => {
@@ -80,6 +90,15 @@ export default function BillingPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Fetch Stripe Connect status
+  useEffect(() => {
+    authFetch("/api/stripe-connect/status")
+      .then((res) => res.json())
+      .then((data) => setConnectStatus(data))
+      .catch(() => {})
+      .finally(() => setConnectLoading(false));
+  }, []);
+
   async function handleSubscribe(plan: string) {
     setRedirecting(true);
     try {
@@ -97,6 +116,43 @@ export default function BillingPage() {
     } catch {
       alert("Something went wrong. Please try again.");
       setRedirecting(false);
+    }
+  }
+
+  async function handleConnectOnboard() {
+    setConnectRedirecting(true);
+    try {
+      const res = await authFetch("/api/stripe-connect/onboard", {
+        method: "POST",
+        body: JSON.stringify({ accountType: "artist" }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Failed to start payout setup");
+        setConnectRedirecting(false);
+      }
+    } catch {
+      alert("Something went wrong. Please try again.");
+      setConnectRedirecting(false);
+    }
+  }
+
+  async function handleConnectDashboard() {
+    setConnectRedirecting(true);
+    try {
+      const res = await authFetch("/api/stripe-connect/dashboard", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Failed to open Stripe dashboard");
+        setConnectRedirecting(false);
+      }
+    } catch {
+      alert("Something went wrong. Please try again.");
+      setConnectRedirecting(false);
     }
   }
 
@@ -302,6 +358,61 @@ export default function BillingPage() {
           </button>
         </div>
       )}
+
+      {/* Payouts */}
+      <div className="bg-surface border border-border rounded-sm p-6">
+        <h2 className="text-base font-medium mb-3">Payouts</h2>
+        {connectLoading ? (
+          <p className="text-sm text-muted">Loading payout status...</p>
+        ) : connectStatus?.onboardingComplete ? (
+          <>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                Payouts Active
+              </span>
+            </div>
+            <p className="text-sm text-muted mb-4">
+              Your payout account is connected. Earnings from sales will be transferred automatically.
+            </p>
+            <button
+              type="button"
+              onClick={handleConnectDashboard}
+              disabled={connectRedirecting}
+              className="px-4 py-2 text-sm font-medium bg-foreground text-background rounded-sm hover:bg-foreground/90 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {connectRedirecting ? "Opening..." : "Open Stripe Dashboard"}
+            </button>
+          </>
+        ) : connectStatus?.hasAccount ? (
+          <>
+            <p className="text-sm text-muted mb-4">
+              Complete your payout setup to start receiving transfers.
+            </p>
+            <button
+              type="button"
+              onClick={handleConnectOnboard}
+              disabled={connectRedirecting}
+              className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-sm hover:bg-accent-hover transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {connectRedirecting ? "Redirecting..." : "Continue Setup"}
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-muted mb-4">
+              Set up payouts to receive earnings directly to your bank account.
+            </p>
+            <button
+              type="button"
+              onClick={handleConnectOnboard}
+              disabled={connectRedirecting}
+              className="px-4 py-2 text-sm font-medium bg-accent text-white rounded-sm hover:bg-accent-hover transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {connectRedirecting ? "Redirecting..." : "Set Up Payouts"}
+            </button>
+          </>
+        )}
+      </div>
     </ArtistPortalLayout>
   );
 }

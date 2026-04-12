@@ -3,8 +3,11 @@ import { supabase } from "@/lib/supabase";
 import { enquirySchema } from "@/lib/validations";
 import { notifyAdminNewEnquiry, notifyNewMessage } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const limited = checkRateLimit(request, 5, 60000);
+  if (limited) return limited;
   try {
     const body = await request.json();
     const parsed = enquirySchema.safeParse(body);

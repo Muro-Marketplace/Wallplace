@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { slugify } from "@/lib/slugify";
+import TermsCheckbox from "@/components/TermsCheckbox";
 
 const venueTypes = [
   "Café / Coffee Shop",
@@ -86,6 +87,8 @@ export default function RegisterVenuePage() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [agreedToTos, setAgreedToTos] = useState(false);
+  const [agreedToVenueTerms, setAgreedToVenueTerms] = useState(false);
 
   function updateField(field: keyof VenueFormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -176,6 +179,23 @@ export default function RegisterVenuePage() {
           }),
         }).catch((err) => console.error("Venue profile creation error:", err));
       }
+
+      // Record terms acceptances (fire-and-forget)
+      const termsPayload = {
+        userEmail: form.email,
+        userType: "venue",
+        termsVersion: "v1.0-2026-04",
+      };
+      fetch("/api/terms/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...termsPayload, termsType: "platform_tos" }),
+      }).catch(() => {});
+      fetch("/api/terms/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...termsPayload, termsType: "venue_agreement" }),
+      }).catch(() => {});
 
       // Redirect straight to browse
       router.push("/browse");
@@ -369,18 +389,29 @@ export default function RegisterVenuePage() {
               {/* Error */}
               {error && <p className="text-red-500 text-sm">{error}</p>}
 
+              {/* Terms */}
+              <div className="space-y-3">
+                <TermsCheckbox
+                  termsType="platform_tos"
+                  checked={agreedToTos}
+                  onChange={setAgreedToTos}
+                />
+                <TermsCheckbox
+                  termsType="venue_agreement"
+                  checked={agreedToVenueTerms}
+                  onChange={setAgreedToVenueTerms}
+                />
+              </div>
+
               {/* Submit */}
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !agreedToTos || !agreedToVenueTerms}
                   className="px-8 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? "Registering..." : "Register Your Venue"}
                 </button>
-                <p className="mt-4 text-xs text-muted max-w-md">
-                  By submitting you agree to Wallplace contacting you about art for your venue. We will not share your details with third parties.
-                </p>
               </div>
             </form>
           </div>

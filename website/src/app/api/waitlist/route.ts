@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { waitlistSchema } from "@/lib/validations";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const limited = checkRateLimit(request, 5, 60000);
+  if (limited) return limited;
   try {
     const body = await request.json();
     const parsed = waitlistSchema.safeParse(body);

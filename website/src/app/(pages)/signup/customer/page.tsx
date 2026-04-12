@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
+import TermsCheckbox from "@/components/TermsCheckbox";
 
 export default function CustomerSignUpPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function CustomerSignUpPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreedToTos, setAgreedToTos] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +49,18 @@ export default function CustomerSignUpPage() {
         setLoading(false);
         return;
       }
+
+      // Record terms acceptance (fire-and-forget)
+      fetch("/api/terms/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userEmail: email,
+          userType: "customer",
+          termsVersion: "v1.0-2026-04",
+          termsType: "platform_tos",
+        }),
+      }).catch(() => {});
 
       router.push("/browse");
     } catch {
@@ -148,9 +162,17 @@ export default function CustomerSignUpPage() {
               </button>
             </div>
 
+            <div className="py-1">
+              <TermsCheckbox
+                termsType="platform_tos"
+                checked={agreedToTos}
+                onChange={setAgreedToTos}
+              />
+            </div>
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !agreedToTos}
               className="w-full px-6 py-3 bg-accent text-white text-sm font-semibold uppercase tracking-wider rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-50"
             >
               {loading ? "Creating Account..." : "Create Account"}

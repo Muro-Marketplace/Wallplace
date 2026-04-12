@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { applySchema } from "@/lib/validations";
 import { notifyAdminNewApplication, confirmApplicationToArtist } from "@/lib/email";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const limited = checkRateLimit(request, 5, 60000);
+  if (limited) return limited;
   try {
     const body = await request.json();
     const parsed = applySchema.safeParse(body);

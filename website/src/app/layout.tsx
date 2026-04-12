@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import Providers from "@/components/Providers";
+import CookieBanner from "@/components/CookieBanner";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -38,7 +39,10 @@ export default function RootLayout({
       className={`${dmSans.variable} ${dmSerifDisplay.variable}`}
     >
       <body className="antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <CookieBanner />
+        </Providers>
       </body>
     </html>
   );

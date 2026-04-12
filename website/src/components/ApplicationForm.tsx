@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import TermsCheckbox from "@/components/TermsCheckbox";
 
 const primaryMediums = [
   "Oil Painting",
@@ -148,6 +149,8 @@ export default function ApplicationForm() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [agreedToTos, setAgreedToTos] = useState(false);
+  const [agreedToArtistTerms, setAgreedToArtistTerms] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -193,6 +196,23 @@ export default function ApplicationForm() {
         setSubmitting(false);
         return;
       }
+
+      // Record terms acceptances (fire-and-forget)
+      const termsPayload = {
+        userEmail: form.email,
+        userType: "artist",
+        termsVersion: "v1.0-2026-04",
+      };
+      fetch("/api/terms/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...termsPayload, termsType: "platform_tos" }),
+      }).catch(() => {});
+      fetch("/api/terms/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...termsPayload, termsType: "artist_agreement" }),
+      }).catch(() => {});
 
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -604,20 +624,29 @@ export default function ApplicationForm() {
       {/* Error */}
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
+      {/* Terms */}
+      <div className="space-y-3">
+        <TermsCheckbox
+          termsType="platform_tos"
+          checked={agreedToTos}
+          onChange={setAgreedToTos}
+        />
+        <TermsCheckbox
+          termsType="artist_agreement"
+          checked={agreedToArtistTerms}
+          onChange={setAgreedToArtistTerms}
+        />
+      </div>
+
       {/* Submit */}
       <div className="pt-2">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || !agreedToTos || !agreedToArtistTerms}
           className="px-8 py-3.5 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? "Submitting..." : "Submit Application"}
         </button>
-        <p className="mt-4 text-xs text-muted leading-relaxed max-w-md">
-          By submitting this form you agree to Wallplace reviewing your
-          application and contacting you about your submission. We will not
-          share your details with third parties without your consent.
-        </p>
       </div>
     </form>
   );

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAllArtists } from "@/lib/db/merged-data";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // GET: return all artists (static + database) for the browse page
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = checkRateLimit(request, 60, 60000);
+  if (limited) return limited;
   try {
     const artists = await getAllArtists();
     return NextResponse.json({ artists });

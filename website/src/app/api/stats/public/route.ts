@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const revalidate = 300; // Cache for 5 minutes
 
@@ -7,7 +8,9 @@ export const revalidate = 300; // Cache for 5 minutes
  * GET /api/stats/public
  * Unauthenticated — returns aggregate platform stats for the homepage trust bar.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = checkRateLimit(request, 60, 60000);
+  if (limited) return limited;
   try {
     const [artistsRes, worksRes, placementsRes, venuesRes] = await Promise.all([
       supabase.from("artist_profiles").select("id", { count: "exact", head: true }),

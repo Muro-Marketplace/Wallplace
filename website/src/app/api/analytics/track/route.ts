@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { trackEvent, extractTrackingContext, generateVisitorId } from "@/lib/analytics";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const ALLOWED_EVENTS = new Set([
   "venue_viewed_artist",
@@ -13,6 +14,8 @@ const ALLOWED_EVENTS = new Set([
  * Accepts events from browser JS (venue views, artwork lightbox opens, etc.)
  */
 export async function POST(request: NextRequest) {
+  const limited = checkRateLimit(request, 30, 60000);
+  if (limited) return limited;
   try {
     const body = await request.json();
     const { event_type, artist_slug, work_id, venue_user_id } = body;

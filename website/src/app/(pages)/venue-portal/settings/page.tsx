@@ -86,6 +86,13 @@ const defaultNotifs: NotifPref[] = [
   },
 ];
 
+interface ConnectStatus {
+  hasAccount: boolean;
+  onboardingComplete?: boolean;
+  chargesEnabled?: boolean;
+  payoutsEnabled?: boolean;
+}
+
 export default function VenueSettingsPage() {
   const { venue } = useCurrentVenue();
   const { user } = useAuth();
@@ -93,6 +100,9 @@ export default function VenueSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [messageNotifsEnabled, setMessageNotifsEnabled] = useState(true);
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
+  const [connectLoading, setConnectLoading] = useState(true);
+  const [connectRedirecting, setConnectRedirecting] = useState(false);
 
   // Load message notification preference from DB
   useEffect(() => {
@@ -105,6 +115,52 @@ export default function VenueSettingsPage() {
       })
       .catch(() => {});
   }, []);
+
+  // Fetch Stripe Connect status
+  useEffect(() => {
+    authFetch("/api/stripe-connect/status")
+      .then((res) => res.json())
+      .then((data) => setConnectStatus(data))
+      .catch(() => {})
+      .finally(() => setConnectLoading(false));
+  }, []);
+
+  async function handleConnectOnboard() {
+    setConnectRedirecting(true);
+    try {
+      const res = await authFetch("/api/stripe-connect/onboard", {
+        method: "POST",
+        body: JSON.stringify({ accountType: "venue" }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Failed to start payout setup");
+        setConnectRedirecting(false);
+      }
+    } catch {
+      alert("Something went wrong. Please try again.");
+      setConnectRedirecting(false);
+    }
+  }
+
+  async function handleConnectDashboard() {
+    setConnectRedirecting(true);
+    try {
+      const res = await authFetch("/api/stripe-connect/dashboard", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Failed to open Stripe dashboard");
+        setConnectRedirecting(false);
+      }
+    } catch {
+      alert("Something went wrong. Please try again.");
+      setConnectRedirecting(false);
+    }
+  }
 
   const toggleNotif = (id: string) => {
     setNotifs((prev) =>
@@ -245,6 +301,60 @@ export default function VenueSettingsPage() {
               Upgrade to Premium
             </button>
           </div>
+        </SectionCard>
+
+        {/* Payouts */}
+        <SectionCard title="Payouts">
+          {connectLoading ? (
+            <p className="text-sm text-muted">Loading payout status...</p>
+          ) : connectStatus?.onboardingComplete ? (
+            <>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                  Payouts Active
+                </span>
+              </div>
+              <p className="text-sm text-muted mb-4">
+                Your payout account is connected. Revenue share from sales will be transferred automatically.
+              </p>
+              <button
+                type="button"
+                onClick={handleConnectDashboard}
+                disabled={connectRedirecting}
+                className="px-4 py-2 text-sm font-medium bg-foreground text-white rounded-sm hover:bg-foreground/90 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {connectRedirecting ? "Opening..." : "Open Stripe Dashboard"}
+              </button>
+            </>
+          ) : connectStatus?.hasAccount ? (
+            <>
+              <p className="text-sm text-muted mb-4">
+                Complete your payout setup to start receiving transfers.
+              </p>
+              <button
+                type="button"
+                onClick={handleConnectOnboard}
+                disabled={connectRedirecting}
+                className="px-5 py-2 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {connectRedirecting ? "Redirecting..." : "Continue Setup"}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted mb-4">
+                Set up payouts to receive your revenue share directly to your bank account.
+              </p>
+              <button
+                type="button"
+                onClick={handleConnectOnboard}
+                disabled={connectRedirecting}
+                className="px-5 py-2 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {connectRedirecting ? "Redirecting..." : "Set Up Payouts"}
+              </button>
+            </>
+          )}
         </SectionCard>
 
         {/* Save button */}

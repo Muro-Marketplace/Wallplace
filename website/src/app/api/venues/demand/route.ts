@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { venues as staticVenues } from "@/data/venues";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const revalidate = 300; // Cache 5 minutes
 
@@ -9,7 +10,9 @@ export const revalidate = 300; // Cache 5 minutes
  * Public — returns all venues with preferences for the demand tracker.
  * Merges static venues with database venue profiles.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = checkRateLimit(request, 30, 60000);
+  if (limited) return limited;
   try {
     const db = getSupabaseAdmin();
 

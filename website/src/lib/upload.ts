@@ -1,11 +1,12 @@
 import { supabase } from "./supabase";
+import { resizeImage } from "./image";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 /**
  * Upload an image to Supabase Storage and return the public URL.
- * Validates file size and MIME type before uploading.
+ * Validates file size and MIME type, resizes large images before uploading.
  * Throws on failure — callers should handle errors.
  */
 export async function uploadImage(
@@ -28,14 +29,31 @@ export async function uploadImage(
     throw new Error("You must be signed in to upload images.");
   }
 
-  const ext = file.name.split(".").pop() || "jpg";
+  // Resize large images before upload (max 2000px, converts to WebP if supported)
+  let uploadBlob: Blob = file;
+  try {
+    uploadBlob = await resizeImage(file, bucket === "avatars" ? 800 : 2000);
+  } catch {
+    // If resize fails, upload original
+    uploadBlob = file;
+  }
+
+  // Determine extension from resulting blob type
+  const mimeToExt: Record<string, string> = {
+    "image/webp": "webp",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+  };
+  const ext = mimeToExt[uploadBlob.type] || file.name.split(".").pop() || "jpg";
   const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
   const { error } = await supabase.storage
     .from(bucket)
-    .upload(path, file, {
-      cacheControl: "3600",
+    .upload(path, uploadBlob, {
+      cacheControl: "86400",
       upsert: false,
+      contentType: uploadBlob.type || file.type,
     });
 
   if (error) {

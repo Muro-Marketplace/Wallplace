@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { createTransfer } from "@/lib/stripe-connect";
 import { notifyArtistNewOrder, notifyVenueOrderFromPlacement } from "@/lib/email";
 import type Stripe from "stripe";
 
@@ -164,6 +165,51 @@ export async function POST(request: Request) {
               }
             }
           }
+
+          // ─── Stripe Connect transfers ───
+          // Transfer venue revenue share
+          if (venueSlug && venueRevenue > 0) {
+            try {
+              const { data: venueConnect } = await db
+                .from("venue_profiles")
+                .select("user_id, stripe_connect_account_id, stripe_connect_onboarding_complete")
+                .eq("slug", venueSlug)
+                .single();
+              if (venueConnect?.stripe_connect_account_id && venueConnect.stripe_connect_onboarding_complete) {
+                await createTransfer({
+                  orderId,
+                  recipientType: "venue",
+                  recipientUserId: venueConnect.user_id,
+                  connectAccountId: venueConnect.stripe_connect_account_id,
+                  amountCents: Math.round(venueRevenue * 100),
+                });
+              }
+            } catch (transferErr) {
+              console.error("Venue transfer error:", transferErr);
+            }
+          }
+
+          // Transfer artist revenue
+          if (artistUserId && artistRevenue > 0) {
+            try {
+              const { data: artistConnect } = await db
+                .from("artist_profiles")
+                .select("stripe_connect_account_id, stripe_connect_onboarding_complete")
+                .eq("user_id", artistUserId)
+                .single();
+              if (artistConnect?.stripe_connect_account_id && artistConnect.stripe_connect_onboarding_complete) {
+                await createTransfer({
+                  orderId,
+                  recipientType: "artist",
+                  recipientUserId: artistUserId,
+                  connectAccountId: artistConnect.stripe_connect_account_id,
+                  amountCents: Math.round(artistRevenue * 100),
+                });
+              }
+            } catch (transferErr) {
+              console.error("Artist transfer error:", transferErr);
+            }
+          }
         }
       } catch (err) {
         console.error("Order processing error:", err);
@@ -220,6 +266,23 @@ export async function POST(request: Request) {
 
       if (error) console.error("Payment failed update error:", error);
     }
+  }
+
+  // ─── Connect account onboarding updates ───
+  if (event.type === "account.updated") {
+    const account = event.data.object as Stripe.Account;
+    const isComplete = account.charges_enabled && account.details_submitted;
+
+    // Update whichever profile has this account ID
+    await db
+      .from("venue_profiles")
+      .update({ stripe_connect_onboarding_complete: isComplete })
+      .eq("stripe_connect_account_id", account.id);
+
+    await db
+      .from("artist_profiles")
+      .update({ stripe_connect_onboarding_complete: isComplete })
+      .eq("stripe_connect_account_id", account.id);
   }
 
   return NextResponse.json({ received: true });
