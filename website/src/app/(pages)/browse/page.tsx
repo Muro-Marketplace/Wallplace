@@ -498,7 +498,7 @@ export default function BrowsePortfoliosPage() {
               filters.freeLoan ? "border-accent bg-accent/5 text-foreground" : "border-border text-muted hover:border-foreground/30"
             }`}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={filters.freeLoan ? "text-accent" : "text-muted"}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={filters.freeLoan ? "text-accent" : "text-muted"}>
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
             </svg>
             <div>
@@ -529,7 +529,7 @@ export default function BrowsePortfoliosPage() {
               filters.outrightPurchase ? "border-accent bg-accent/5 text-foreground" : "border-border text-muted hover:border-foreground/30"
             }`}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={filters.outrightPurchase ? "text-accent" : "text-muted"}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={filters.outrightPurchase ? "text-accent" : "text-muted"}>
               <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 10h20" />
             </svg>
             <div>
@@ -797,10 +797,10 @@ export default function BrowsePortfoliosPage() {
                   <div className="flex items-center gap-2">
                     {/* Portfolio/Gallery toggle */}
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                      <button type="button" onClick={() => setViewAs("artists")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                      <button type="button" onClick={() => setViewAs("artists")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => setViewAs("works")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                      <button type="button" onClick={() => setViewAs("works")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}>
                         Gallery
                       </button>
                     </div>
@@ -1138,10 +1138,10 @@ export default function BrowsePortfoliosPage() {
                   <div className="flex items-center gap-2">
                     {/* Portfolio/Gallery toggle */}
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                      <button type="button" onClick={() => setViewAs("artists")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                      <button type="button" onClick={() => setViewAs("artists")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => setViewAs("works")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                      <button type="button" onClick={() => setViewAs("works")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}>
                         Gallery
                       </button>
                     </div>
