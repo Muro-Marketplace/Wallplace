@@ -14,7 +14,7 @@ export default function HowItWorksPage() {
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-3.5rem)] lg:min-h-[calc(100vh-4rem)] flex items-center justify-center -mt-14 lg:-mt-16 pt-14 lg:pt-16">
+    <div className="relative min-h-screen flex items-center justify-center -mt-14 lg:-mt-16">
       <div className="absolute inset-0 -z-10">
         <Image
           src="https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=1920&h=1080&fit=crop&crop=center"
@@ -36,7 +36,7 @@ export default function HowItWorksPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
           <button
             onClick={() => setSelected("venues")}
-            className="group w-64 bg-white/10 backdrop-blur-sm border border-white/20 rounded-sm p-8 hover:bg-white/20 hover:border-white/40 transition-all"
+            className="group w-72 h-64 bg-white/10 backdrop-blur-sm border border-white/20 rounded-sm p-8 flex flex-col items-center justify-center hover:bg-white/20 hover:border-white/40 transition-all"
           >
             <div className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-accent/30 transition-colors">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C17C5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -50,7 +50,7 @@ export default function HowItWorksPage() {
 
           <button
             onClick={() => setSelected("artists")}
-            className="group w-64 bg-white/10 backdrop-blur-sm border border-white/20 rounded-sm p-8 hover:bg-white/20 hover:border-white/40 transition-all"
+            className="group w-72 h-64 bg-white/10 backdrop-blur-sm border border-white/20 rounded-sm p-8 flex flex-col items-center justify-center hover:bg-white/20 hover:border-white/40 transition-all"
           >
             <div className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-accent/30 transition-colors">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C17C5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

@@ -67,6 +67,7 @@ export default function SpacesLookingForArtPage() {
   const { user, userType } = useAuth();
   const router = useRouter();
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscriptionPlan, setSubscriptionPlan] = useState("");
 
   useEffect(() => {
     fetch("/api/venues/demand")
@@ -85,11 +86,13 @@ export default function SpacesLookingForArtPage() {
       .then((data) => {
         const status = data.profile?.subscription_status;
         if (status === "active" || status === "trialing") setIsSubscribed(true);
+        setSubscriptionPlan(data.profile?.subscription_plan || "core");
       })
       .catch(() => {});
   }, [user, userType]);
 
   const canSeeDetails = isSubscribed || userType === "venue" || userType === "customer";
+  const canMessageVenues = userType === "venue" || userType === "customer" || subscriptionPlan === "premium" || subscriptionPlan === "pro";
 
   async function handlePostcodeSearch() {
     if (!postcode.trim()) return;
@@ -325,7 +328,7 @@ export default function SpacesLookingForArtPage() {
                     </div>
 
                     {/* Message button for subscribers / Lock for non-subscribers */}
-                    {canSeeDetails ? (
+                    {canSeeDetails && canMessageVenues ? (
                       <div className="mt-3 pt-3 border-t border-border">
                         <button
                           onClick={() => {
@@ -336,6 +339,13 @@ export default function SpacesLookingForArtPage() {
                         >
                           Message this venue &rarr;
                         </button>
+                      </div>
+                    ) : canSeeDetails && !canMessageVenues ? (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <Link href="/pricing" className="flex items-center gap-1.5 text-xs text-muted hover:text-accent transition-colors">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                          Upgrade to Premium to message venues
+                        </Link>
                       </div>
                     ) : (
                       <div className="mt-3 pt-3 border-t border-border">
