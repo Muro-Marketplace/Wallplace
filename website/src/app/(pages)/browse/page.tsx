@@ -650,12 +650,6 @@ export default function BrowsePortfoliosPage() {
                 ? `Browse ${activeCategoryObj.label.toLowerCase()} from curated artists.`
                 : "Explore curated artist profiles. Discover commercial terms, styles, and availability."}
             </p>
-            <div className="mt-5 max-w-lg">
-              <SearchBar variant="dark" mode="desktop" />
-            </div>
-            <div className="mt-4 sm:hidden">
-              <SearchBar variant="dark" mode="mobile" />
-            </div>
           </div>
         </div>
       </section>
@@ -841,13 +835,18 @@ export default function BrowsePortfoliosPage() {
                   </div>
                 )}
 
-                {/* Result count + view toggle – desktop */}
-                <div className="hidden lg:flex items-center justify-between mb-6">
-                  <p className="text-sm text-muted">
-                    {filteredArtists.length} artist
-                    {filteredArtists.length !== 1 ? "s" : ""}
-                    {hasActiveFilters && " matching your filters"}
-                  </p>
+                {/* Search + count + view toggle – desktop */}
+                <div className="hidden lg:flex items-center justify-between mb-6 gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-64">
+                      <SearchBar variant="light" mode="desktop" />
+                    </div>
+                    <p className="text-sm text-muted whitespace-nowrap">
+                      {filteredArtists.length} artist
+                      {filteredArtists.length !== 1 ? "s" : ""}
+                      {hasActiveFilters && " matching your filters"}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2">
                     {/* Portfolio/Gallery toggle */}
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5 mr-1">
@@ -1194,11 +1193,16 @@ export default function BrowsePortfoliosPage() {
                   </div>
                 )}
 
-                {/* Results count + toggle – desktop */}
-                <div className="hidden lg:flex items-center justify-between mb-6">
-                  <p className="text-sm text-muted">
-                    {filteredGalleryWorks.length} work{filteredGalleryWorks.length !== 1 ? "s" : ""}
-                  </p>
+                {/* Search + count + toggle – desktop */}
+                <div className="hidden lg:flex items-center justify-between mb-6 gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-64">
+                      <SearchBar variant="light" mode="desktop" />
+                    </div>
+                    <p className="text-sm text-muted whitespace-nowrap">
+                      {filteredGalleryWorks.length} work{filteredGalleryWorks.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
                   <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
                     <button type="button" onClick={() => setViewAs("artists")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                       Portfolios
