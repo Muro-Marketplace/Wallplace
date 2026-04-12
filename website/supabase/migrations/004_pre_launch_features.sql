@@ -73,7 +73,34 @@ CREATE POLICY "saved_items_delete" ON saved_items FOR DELETE USING (auth.uid() =
 ALTER TABLE artist_works ADD COLUMN IF NOT EXISTS shipping_price NUMERIC DEFAULT NULL;
 ALTER TABLE artist_profiles ADD COLUMN IF NOT EXISTS default_shipping_price NUMERIC DEFAULT NULL;
 
--- 7. Enforce one active placement per artist+venue combo
+-- 7. Refund requests
+CREATE TABLE IF NOT EXISTS refund_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id TEXT NOT NULL,
+  requester_user_id UUID,
+  requester_email TEXT NOT NULL,
+  requester_type TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'full',
+  amount NUMERIC,
+  status TEXT DEFAULT 'pending',
+  processed_by UUID,
+  processed_at TIMESTAMPTZ,
+  rejection_reason TEXT,
+  stripe_refund_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_refund_requests_order ON refund_requests(order_id);
+ALTER TABLE refund_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "refund_requests_insert" ON refund_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "refund_requests_select" ON refund_requests FOR SELECT USING (true);
+CREATE POLICY "refund_requests_update" ON refund_requests FOR UPDATE USING (true);
+
+-- 8. Store Stripe payment intent ID on orders for refunds
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_payment_intent_id TEXT DEFAULT '';
+
+-- 9. Enforce one active placement per artist+venue combo
 CREATE UNIQUE INDEX IF NOT EXISTS idx_placements_unique_active
   ON placements(artist_slug, venue_slug)
   WHERE status = 'active';

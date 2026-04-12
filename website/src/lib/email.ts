@@ -374,3 +374,98 @@ export async function notifyVenueOrderFromPlacement(venue: {
     console.error("Email send error (venue order from placement):", err);
   }
 }
+
+/**
+ * Notify artist and admin when a refund is requested.
+ */
+export async function notifyRefundRequested(params: {
+  artistEmail?: string;
+  artistName?: string;
+  requesterName: string;
+  requesterType: string;
+  orderId: string;
+  reason: string;
+  amount: number;
+  type: "full" | "partial";
+}) {
+  const resend = getResend();
+  if (!resend) return;
+  const typeLabel = params.type === "full" ? "Full refund" : `Partial refund (\u00a3${params.amount.toFixed(2)})`;
+  // Notify admin
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: ADMIN_EMAIL,
+      subject: `Refund request for order ${params.orderId}`,
+      html: `
+        <h2>Refund Requested</h2>
+        <ul>
+          <li><strong>Order:</strong> ${params.orderId}</li>
+          <li><strong>Requester:</strong> ${params.requesterName} (${params.requesterType})</li>
+          <li><strong>Type:</strong> ${typeLabel}</li>
+          <li><strong>Reason:</strong> ${params.reason}</li>
+        </ul>
+        <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin">Review in admin dashboard</a></p>
+      `,
+    });
+  } catch (err) {
+    console.error("Email send error (admin refund request):", err);
+  }
+  // Notify artist
+  if (params.artistEmail) {
+    try {
+      await resend.emails.send({
+        from: FROM,
+        to: params.artistEmail,
+        subject: `Refund request for order ${params.orderId}`,
+        html: `
+          <h2>A refund has been requested</h2>
+          <p>Hi ${params.artistName || "there"},</p>
+          <p>A ${params.type} refund has been requested for order <strong>${params.orderId}</strong>.</p>
+          <ul>
+            <li><strong>Type:</strong> ${typeLabel}</li>
+            <li><strong>Reason:</strong> ${params.reason}</li>
+          </ul>
+          <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/artist-portal/orders" style="color: #C17C5A; font-weight: 600;">Review in your portal</a></p>
+          <br/>
+          <p style="color: #999; font-size: 12px;">The Wallplace Team</p>
+        `,
+      });
+    } catch (err) {
+      console.error("Email send error (artist refund request):", err);
+    }
+  }
+}
+
+/**
+ * Notify buyer when their refund request is approved or rejected.
+ */
+export async function notifyRefundDecision(params: {
+  buyerEmail: string;
+  orderId: string;
+  approved: boolean;
+  reason?: string;
+  amount?: number;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+  try {
+    const status = params.approved ? "approved" : "rejected";
+    await resend.emails.send({
+      from: FROM,
+      to: params.buyerEmail,
+      subject: `Refund ${status} for order ${params.orderId}`,
+      html: `
+        <h2>Refund ${params.approved ? "Approved" : "Rejected"}</h2>
+        <p>Your refund request for order <strong>${params.orderId}</strong> has been <strong>${status}</strong>.</p>
+        ${params.approved && params.amount ? `<p>A refund of <strong>\u00a3${params.amount.toFixed(2)}</strong> will be returned to your original payment method within 5-10 business days.</p>` : ""}
+        ${params.reason ? `<p><strong>Reason:</strong> ${params.reason}</p>` : ""}
+        <p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/customer-portal/orders" style="color: #C17C5A; font-weight: 600;">View your orders</a></p>
+        <br/>
+        <p style="color: #999; font-size: 12px;">The Wallplace Team</p>
+      `,
+    });
+  } catch (err) {
+    console.error("Email send error (refund decision):", err);
+  }
+}

@@ -27,11 +27,28 @@ interface Order {
   venue_slug?: string;
 }
 
+interface RefundRequest {
+  id: string;
+  order_id: string;
+  status: "pending" | "approved" | "rejected";
+  type: "full" | "partial";
+  amount?: number;
+  reason: string;
+  created_at: string;
+}
+
 export default function CustomerPortalPage() {
   const { displayName } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [showRefundForm, setShowRefundForm] = useState(false);
+  const [refundType, setRefundType] = useState<"full" | "partial">("full");
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundReason, setRefundReason] = useState("");
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundSuccess, setRefundSuccess] = useState(false);
+  const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([]);
 
   useEffect(() => {
     authFetch("/api/orders")
@@ -40,6 +57,37 @@ export default function CustomerPortalPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    authFetch("/api/refunds")
+      .then((r) => r.json())
+      .then((data) => { if (data.requests) setRefundRequests(data.requests); })
+      .catch(() => {});
+  }, []);
+
+  async function submitRefundRequest(orderId: string) {
+    setRefundSubmitting(true);
+    try {
+      const body: Record<string, unknown> = { orderId, reason: refundReason, type: refundType };
+      if (refundType === "partial" && refundAmount) body.amount = parseFloat(refundAmount);
+      const res = await authFetch("/api/refunds/request", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.request) setRefundRequests((prev) => [...prev, data.request]);
+        setRefundSuccess(true);
+        setShowRefundForm(false);
+        setRefundReason("");
+        setRefundAmount("");
+        setRefundType("full");
+      }
+    } catch (err) {
+      console.error("Refund request failed:", err);
+    }
+    setRefundSubmitting(false);
+  }
 
   const totalSpent = orders.reduce((sum, o) => sum + (o.total || 0), 0);
   const rawSelected = orders.find((o) => o.id === selectedOrder);
@@ -107,10 +155,126 @@ export default function CustomerPortalPage() {
             <p className="text-sm text-muted">{selected.shipping?.addressLine1}, {selected.shipping?.city} {selected.shipping?.postcode}</p>
           </div>
 
+          {/* Refund section */}
           <div className="mt-6 pt-4 border-t border-border">
-            <Link href={`/contact?subject=Order ${selected.id}`} className="text-sm text-accent hover:text-accent-hover transition-colors">
-              Something wrong? Contact us
-            </Link>
+            {(() => {
+              const orderRefund = refundRequests.find((r) => r.order_id === selected.id);
+              const refundEligible = ["confirmed", "processing", "shipped", "delivered"].includes(selected.status);
+
+              if (refundSuccess && orderRefund?.order_id === selected.id) {
+                return (
+                  <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-sm px-3 py-2">
+                    Refund request submitted. The artist will review your request.
+                  </p>
+                );
+              }
+
+              if (orderRefund && orderRefund.status === "pending") {
+                return (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-sm font-medium rounded-sm">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    Refund requested &mdash; pending review
+                  </span>
+                );
+              }
+
+              if (orderRefund && orderRefund.status === "approved") {
+                return (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 text-sm font-medium rounded-sm">
+                    Refund approved
+                  </span>
+                );
+              }
+
+              if (orderRefund && orderRefund.status === "rejected") {
+                return (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 text-sm font-medium rounded-sm">
+                    Refund request declined
+                  </span>
+                );
+              }
+
+              if (!refundEligible) return null;
+
+              if (showRefundForm) {
+                return (
+                  <div className="space-y-4">
+                    <p className="text-xs text-muted uppercase tracking-wider">Request a Refund</p>
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="radio"
+                          name="refundType"
+                          checked={refundType === "full"}
+                          onChange={() => setRefundType("full")}
+                          className="accent-accent"
+                        />
+                        Full refund
+                      </label>
+                      <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="radio"
+                          name="refundType"
+                          checked={refundType === "partial"}
+                          onChange={() => setRefundType("partial")}
+                          className="accent-accent"
+                        />
+                        Partial refund
+                      </label>
+                    </div>
+                    {refundType === "partial" && (
+                      <div>
+                        <label className="block text-xs text-muted mb-1">Refund amount (&pound;)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          max={selected.total}
+                          value={refundAmount}
+                          onChange={(e) => setRefundAmount(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 bg-white border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs text-muted mb-1">Reason</label>
+                      <textarea
+                        value={refundReason}
+                        onChange={(e) => setRefundReason(e.target.value)}
+                        placeholder="Please describe why you'd like a refund"
+                        rows={3}
+                        className="w-full px-3 py-2 bg-white border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50 resize-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => submitRefundRequest(selected.id)}
+                        disabled={refundSubmitting || !refundReason.trim()}
+                        className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-50"
+                      >
+                        {refundSubmitting ? "Submitting..." : "Submit Refund Request"}
+                      </button>
+                      <button
+                        onClick={() => { setShowRefundForm(false); setRefundReason(""); setRefundAmount(""); setRefundType("full"); }}
+                        className="px-4 py-2 text-sm text-muted hover:text-foreground transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  onClick={() => { setShowRefundForm(true); setRefundSuccess(false); }}
+                  className="text-sm text-accent hover:text-accent-hover transition-colors"
+                >
+                  Request Refund
+                </button>
+              );
+            })()}
           </div>
         </div>
       )}

@@ -23,6 +23,18 @@ interface Order {
   created_at: string;
 }
 
+interface RefundRequest {
+  id: string;
+  order_id: string;
+  status: "pending" | "approved" | "rejected";
+  type: "full" | "partial";
+  amount?: number;
+  reason: string;
+  requester_type?: string;
+  created_at: string;
+  resolved_reason?: string;
+}
+
 const statusActions: Record<string, { next: string; label: string; color: string }> = {
   confirmed: { next: "processing", label: "Mark as Processing", color: "bg-blue-600 hover:bg-blue-700" },
   processing: { next: "shipped", label: "Mark as Shipped", color: "bg-accent hover:bg-accent-hover" },
@@ -35,6 +47,14 @@ export default function ArtistOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [trackingInput, setTrackingInput] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([]);
+  const [rejectReasonInput, setRejectReasonInput] = useState("");
+  const [showRejectInput, setShowRejectInput] = useState<string | null>(null);
+  const [refundProcessing, setRefundProcessing] = useState(false);
+  const [showIssueRefund, setShowIssueRefund] = useState(false);
+  const [issueRefundType, setIssueRefundType] = useState<"full" | "partial">("full");
+  const [issueRefundAmount, setIssueRefundAmount] = useState("");
+  const [issueRefundReason, setIssueRefundReason] = useState("");
 
   useEffect(() => {
     authFetch("/api/orders")
@@ -69,6 +89,66 @@ export default function ArtistOrdersPage() {
       console.error("Status update failed:", err);
     }
     setUpdating(false);
+  }
+
+  useEffect(() => {
+    authFetch("/api/refunds")
+      .then((r) => r.json())
+      .then((data) => { if (data.requests) setRefundRequests(data.requests); })
+      .catch(() => {});
+  }, []);
+
+  async function processRefund(refundRequestId: string, action: "approve" | "reject") {
+    setRefundProcessing(true);
+    try {
+      const body: Record<string, string> = { refundRequestId, action };
+      if (action === "reject" && rejectReasonInput) body.reason = rejectReasonInput;
+      const res = await authFetch("/api/refunds/process", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setRefundRequests((prev) =>
+          prev.map((r) => r.id === refundRequestId ? { ...r, status: action === "approve" ? "approved" : "rejected", resolved_reason: rejectReasonInput || undefined } as RefundRequest : r)
+        );
+        setRejectReasonInput("");
+        setShowRejectInput(null);
+      }
+    } catch (err) {
+      console.error("Refund processing failed:", err);
+    }
+    setRefundProcessing(false);
+  }
+
+  async function issueProactiveRefund(orderId: string) {
+    setRefundProcessing(true);
+    try {
+      const body: Record<string, unknown> = { orderId, reason: issueRefundReason, type: issueRefundType };
+      if (issueRefundType === "partial" && issueRefundAmount) body.amount = parseFloat(issueRefundAmount);
+      const reqRes = await authFetch("/api/refunds/request", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (reqRes.ok) {
+        const reqData = await reqRes.json();
+        if (reqData.request) {
+          const approveRes = await authFetch("/api/refunds/process", {
+            method: "POST",
+            body: JSON.stringify({ refundRequestId: reqData.request.id, action: "approve" }),
+          });
+          if (approveRes.ok) {
+            setRefundRequests((prev) => [...prev, { ...reqData.request, status: "approved" }]);
+          }
+        }
+      }
+      setShowIssueRefund(false);
+      setIssueRefundReason("");
+      setIssueRefundAmount("");
+      setIssueRefundType("full");
+    } catch (err) {
+      console.error("Issue refund failed:", err);
+    }
+    setRefundProcessing(false);
   }
 
   const rawSelected = orders.find((o) => o.id === selectedOrder);
@@ -159,6 +239,162 @@ export default function ArtistOrdersPage() {
             <p className="text-sm text-muted">{selected.shipping?.city}, {selected.shipping?.postcode}</p>
             {selected.shipping?.phone && <p className="text-sm text-muted mt-1">Phone: {selected.shipping.phone}</p>}
           </div>
+
+          {/* Refund management */}
+          {(() => {
+            const orderRefunds = refundRequests.filter((r) => r.order_id === selected.id);
+            const pendingRefunds = orderRefunds.filter((r) => r.status === "pending");
+            const pastRefunds = orderRefunds.filter((r) => r.status !== "pending");
+            const refundEligible = ["confirmed", "processing", "shipped", "delivered"].includes(selected.status);
+
+            return (
+              <div className="mt-5 pt-4 border-t border-border space-y-4">
+                {/* Pending refund requests */}
+                {pendingRefunds.map((req) => (
+                  <div key={req.id} className="p-4 bg-amber-50 border border-amber-200 rounded-sm space-y-3">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted uppercase tracking-wider">Refund Request</p>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        Pending
+                      </span>
+                    </div>
+                    {req.requester_type && (
+                      <p className="text-sm text-muted">From: <span className="text-foreground capitalize">{req.requester_type}</span></p>
+                    )}
+                    <p className="text-sm text-foreground">{req.reason}</p>
+                    <div className="flex items-center gap-3 text-sm text-muted">
+                      <span className="capitalize">{req.type} refund</span>
+                      {req.type === "partial" && req.amount && <span>&pound;{req.amount.toFixed(2)}</span>}
+                    </div>
+                    <div className="flex items-center gap-3 pt-1">
+                      <button
+                        onClick={() => processRefund(req.id, "approve")}
+                        disabled={refundProcessing}
+                        className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-50"
+                      >
+                        {refundProcessing ? "Processing..." : "Approve Refund"}
+                      </button>
+                      {showRejectInput === req.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <input
+                            type="text"
+                            value={rejectReasonInput}
+                            onChange={(e) => setRejectReasonInput(e.target.value)}
+                            placeholder="Reason for rejection"
+                            className="flex-1 px-3 py-2 bg-white border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50"
+                          />
+                          <button
+                            onClick={() => processRefund(req.id, "reject")}
+                            disabled={refundProcessing}
+                            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-sm hover:bg-red-700 transition-colors disabled:opacity-50"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => { setShowRejectInput(null); setRejectReasonInput(""); }}
+                            className="text-sm text-muted hover:text-foreground"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setShowRejectInput(req.id)}
+                          className="px-4 py-2 border border-border text-sm font-medium rounded-sm hover:bg-background transition-colors"
+                        >
+                          Reject
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Past refund requests */}
+                {pastRefunds.map((req) => (
+                  <div key={req.id} className="p-4 bg-background border border-border rounded-sm space-y-2 opacity-70">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted uppercase tracking-wider">Refund Request</p>
+                      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${req.status === "approved" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                        {req.status === "approved" ? "Approved" : "Rejected"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted">{req.reason}</p>
+                    <p className="text-xs text-muted capitalize">{req.type} refund{req.type === "partial" && req.amount ? ` — \u00A3${req.amount.toFixed(2)}` : ""}</p>
+                    {req.resolved_reason && <p className="text-xs text-muted">Response: {req.resolved_reason}</p>}
+                  </div>
+                ))}
+
+                {/* Issue refund proactively */}
+                {refundEligible && pendingRefunds.length === 0 && (
+                  <>
+                    {showIssueRefund ? (
+                      <div className="p-4 bg-[#FAF8F5] border border-border rounded-sm space-y-4">
+                        <p className="text-xs text-muted uppercase tracking-wider">Issue a Refund</p>
+                        <div className="flex items-center gap-4">
+                          <label className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="radio" name="issueRefundType" checked={issueRefundType === "full"} onChange={() => setIssueRefundType("full")} className="accent-accent" />
+                            Full refund
+                          </label>
+                          <label className="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="radio" name="issueRefundType" checked={issueRefundType === "partial"} onChange={() => setIssueRefundType("partial")} className="accent-accent" />
+                            Partial refund
+                          </label>
+                        </div>
+                        {issueRefundType === "partial" && (
+                          <div>
+                            <label className="block text-xs text-muted mb-1">Amount (&pound;)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              max={selected.total}
+                              value={issueRefundAmount}
+                              onChange={(e) => setIssueRefundAmount(e.target.value)}
+                              placeholder="0.00"
+                              className="w-full px-3 py-2 bg-white border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50"
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <label className="block text-xs text-muted mb-1">Reason</label>
+                          <textarea
+                            value={issueRefundReason}
+                            onChange={(e) => setIssueRefundReason(e.target.value)}
+                            placeholder="Reason for issuing this refund"
+                            rows={2}
+                            className="w-full px-3 py-2 bg-white border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50 resize-none"
+                          />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => issueProactiveRefund(selected.id)}
+                            disabled={refundProcessing || !issueRefundReason.trim()}
+                            className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-50"
+                          >
+                            {refundProcessing ? "Processing..." : "Issue Refund"}
+                          </button>
+                          <button
+                            onClick={() => { setShowIssueRefund(false); setIssueRefundReason(""); setIssueRefundAmount(""); setIssueRefundType("full"); }}
+                            className="px-4 py-2 text-sm text-muted hover:text-foreground transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowIssueRefund(true)}
+                        className="text-sm text-accent hover:text-accent-hover transition-colors"
+                      >
+                        Issue Refund
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 

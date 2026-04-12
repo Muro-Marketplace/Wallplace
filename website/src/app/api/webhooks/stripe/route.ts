@@ -92,8 +92,13 @@ export async function POST(request: Request) {
         platformFee = Math.round(total * (platformFeePct / 100) * 100) / 100;
         artistRevenue = Math.round((total - venueRevenue - platformFee) * 100) / 100;
 
+        const paymentIntentId = typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id || "";
+
         const orderRow: Record<string, unknown> = {
           id: orderId,
+          stripe_payment_intent_id: paymentIntentId,
           buyer_email: session.customer_email || session.metadata?.shipping_email || "",
           items: session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [],
           shipping: {
@@ -131,6 +136,7 @@ export async function POST(request: Request) {
           console.warn("Full order insert failed, trying base:", error.message);
           const baseRow = {
             id: orderId,
+            stripe_payment_intent_id: paymentIntentId,
             buyer_email: orderRow.buyer_email,
             items: orderRow.items,
             shipping: orderRow.shipping,
