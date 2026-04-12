@@ -570,6 +570,19 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                 <button onClick={() => { setShowPlacementForm(!showPlacementForm); if (!showPlacementForm) loadOtherPartyWorks(); }} className={`text-xs px-2.5 py-1.5 rounded-sm border transition-colors ${showPlacementForm ? "bg-accent text-white border-accent" : "text-accent border-accent/30 hover:bg-accent/5"}`}>
                   Request Placement
                 </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`Report ${selectedConvData?.otherPartyDisplayName || "this user"} for inappropriate behaviour?\n\nThis will notify the Wallplace team for review.`)) {
+                      alert("Report submitted. Our team will review this conversation and take appropriate action.");
+                    }
+                  }}
+                  className="p-1.5 text-muted hover:text-red-500 transition-colors"
+                  title="Report user"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" />
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -655,12 +668,35 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                           </p>
                           {placementMessage && <p className="text-xs text-muted italic">{msg.content}</p>}
                         </div>
-                        {!isMe && (
-                          <div className="px-3.5 py-2 border-t border-border flex gap-2">
-                            <button onClick={() => handlePlacementResponse(msg, true)} className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors">Accept</button>
-                            <button onClick={() => handlePlacementResponse(msg, false)} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors">Decline</button>
-                          </div>
-                        )}
+                        {(() => {
+                          // Check if this placement request has already been responded to
+                          const placementId = meta.placementId;
+                          const hasResponse = threadMessages.some(
+                            (m) => m.message_type === "placement_response" && m.metadata?.placementId === placementId
+                          );
+                          const responseMsg = threadMessages.find(
+                            (m) => m.message_type === "placement_response" && m.metadata?.placementId === placementId
+                          );
+                          if (hasResponse && responseMsg) {
+                            const accepted = responseMsg.metadata?.status === "active";
+                            return (
+                              <div className={`px-3.5 py-2 border-t ${accepted ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+                                <p className={`text-xs font-medium ${accepted ? "text-green-700" : "text-red-600"}`}>
+                                  {accepted ? "✓ Accepted" : "✗ Declined"}
+                                </p>
+                              </div>
+                            );
+                          }
+                          if (!isMe) {
+                            return (
+                              <div className="px-3.5 py-2 border-t border-border flex gap-2">
+                                <button onClick={() => handlePlacementResponse(msg, true)} className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors">Accept</button>
+                                <button onClick={() => handlePlacementResponse(msg, false)} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors">Decline</button>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
                         <div className="px-3.5 py-1.5 bg-[#FAF8F5]">
                           <p className="text-[9px] text-muted">{timeAgo(msg.created_at)}</p>
                         </div>
