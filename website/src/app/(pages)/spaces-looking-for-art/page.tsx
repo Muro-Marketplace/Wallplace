@@ -68,6 +68,7 @@ export default function SpacesLookingForArtPage() {
   const router = useRouter();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscriptionPlan, setSubscriptionPlan] = useState("");
+  const [subLoading, setSubLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/venues/demand")
@@ -79,8 +80,8 @@ export default function SpacesLookingForArtPage() {
 
   // Check if artist has active subscription
   useEffect(() => {
-    if (!user) return;
-    if (userType === "venue" || userType === "customer") { setIsSubscribed(true); return; }
+    if (!user) { setSubLoading(false); return; }
+    if (userType === "venue" || userType === "customer") { setIsSubscribed(true); setSubLoading(false); return; }
     authFetch("/api/artist-profile")
       .then((r) => r.json())
       .then((data) => {
@@ -88,10 +89,11 @@ export default function SpacesLookingForArtPage() {
         if (status === "active" || status === "trialing") setIsSubscribed(true);
         setSubscriptionPlan(data.profile?.subscription_plan || "core");
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setSubLoading(false));
   }, [user, userType]);
 
-  const canSeeDetails = isSubscribed || userType === "venue" || userType === "customer";
+  const canSeeDetails = subLoading || isSubscribed || userType === "venue" || userType === "customer";
   const canMessageVenues = userType === "venue" || userType === "customer" || subscriptionPlan === "premium" || subscriptionPlan === "pro";
 
   async function handlePostcodeSearch() {
@@ -265,7 +267,7 @@ export default function SpacesLookingForArtPage() {
             </div>
           ) : (
             <>
-            {!canSeeDetails && filtered.length >= 1 && (
+            {!subLoading && !canSeeDetails && filtered.length >= 1 && (
               <div className="bg-accent/5 border border-accent/20 rounded-sm p-6 mb-8 text-center">
                 <p className="text-sm font-medium text-foreground mb-1">Subscribe to see full venue details</p>
                 <p className="text-xs text-muted mb-4">Get venue names, contact details, and connect directly. Plans from £9.99/month.</p>
