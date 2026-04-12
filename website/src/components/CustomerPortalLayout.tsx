@@ -26,7 +26,7 @@ export default function CustomerPortalLayout({ children }: { children: React.Rea
   if (loading || !user) return null;
 
   return (
-    <div className="flex min-h-[calc(100vh-3.5rem)] lg:min-h-[calc(100vh-4rem)] bg-background">
+    <div className="flex flex-1 bg-background">
       {/* Sidebar */}
       <aside className={`
         fixed top-14 lg:top-16 left-0 h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)]
