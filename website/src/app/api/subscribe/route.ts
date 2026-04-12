@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     // Get artist profile
     const { data: profile } = await db
       .from("artist_profiles")
-      .select("id, stripe_customer_id, is_founding_artist, name")
+      .select("id, stripe_customer_id, is_founding_artist, name, subscription_status, subscription_plan")
       .eq("user_id", auth.user!.id)
       .single();
 
@@ -50,23 +50,49 @@ export async function POST(request: Request) {
         .eq("id", profile.id);
     }
 
-    // Determine trial days
-    const trialDays = profile.is_founding_artist ? 180 : 30;
+    const hasActiveSubscription = profile.subscription_status === "active" || profile.subscription_status === "trialing";
+
+    // If already subscribed, update the existing subscription instead of creating a new checkout
+    if (hasActiveSubscription && customerId) {
+      const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 1 });
+      const existing = subscriptions.data[0];
+      if (existing) {
+        await stripe.subscriptions.update(existing.id, {
+          items: [{ id: existing.items.data[0].id, price: priceId }],
+          proration_behavior: "create_prorations",
+          metadata: { plan, artist_profile_id: profile.id },
+        });
+
+        // Update profile
+        await db
+          .from("artist_profiles")
+          .update({ subscription_plan: plan })
+          .eq("id", profile.id);
+
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+        return NextResponse.json({ url: `${siteUrl}/artist-portal/billing?changed=true` });
+      }
+    }
+
+    // Determine trial days — only for brand new subscriptions
+    const hadPreviousSub = profile.subscription_status === "canceled" || profile.subscription_status === "past_due";
+    const trialDays = hadPreviousSub ? 0 : profile.is_founding_artist ? 180 : 30;
 
     // Create Stripe Checkout Session in subscription mode
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Record<string, unknown> = {
       customer: customerId,
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
-        trial_period_days: trialDays,
+        ...(trialDays > 0 ? { trial_period_days: trialDays } : {}),
         metadata: { plan, artist_profile_id: profile.id },
       },
       success_url: `${siteUrl}/artist-portal/billing?subscribed=true`,
-      cancel_url: `${siteUrl}/pricing`,
+      cancel_url: `${siteUrl}/artist-portal/billing`,
       metadata: { plan, artist_profile_id: profile.id },
-    });
+    };
+    const session = await stripe.checkout.sessions.create(sessionParams as Parameters<typeof stripe.checkout.sessions.create>[0]);
 
     return NextResponse.json({ url: session.url });
   } catch (err) {

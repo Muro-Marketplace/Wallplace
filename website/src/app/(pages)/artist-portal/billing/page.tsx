@@ -52,6 +52,15 @@ export default function BillingPage() {
   const [sub, setSub] = useState<ProfileSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
+  const [planChanged, setPlanChanged] = useState(false);
+
+  // Check for ?changed=true from plan switch
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("changed=true")) {
+      setPlanChanged(true);
+      window.history.replaceState({}, "", "/artist-portal/billing");
+    }
+  }, []);
 
   useEffect(() => {
     authFetch("/api/artist-profile")
@@ -127,6 +136,15 @@ export default function BillingPage() {
       <div className="mb-8">
         <h1 className="text-2xl lg:text-3xl">Billing</h1>
       </div>
+
+      {planChanged && (
+        <div className="bg-green-50 border border-green-200 rounded-sm px-4 py-3 mb-5 flex items-center justify-between">
+          <p className="text-sm text-green-700 font-medium">Your plan has been updated successfully.</p>
+          <button type="button" onClick={() => setPlanChanged(false)} className="text-green-500 hover:text-green-700 cursor-pointer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      )}
 
       {/* Current plan */}
       {hasSubscription ? (
