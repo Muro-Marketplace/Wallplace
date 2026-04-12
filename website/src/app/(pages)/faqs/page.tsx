@@ -12,7 +12,7 @@ const generalFaqs = [
   {
     question: "What is Wallplace?",
     answer:
-      "Wallplace is a curated art placement service. We connect emerging and established artists with independent venues – cafes, restaurants, coworking spaces, offices, and more – that want original artwork on their walls. We handle the curation, logistics, and sales so that artists can focus on making work and venues can focus on running their business.",
+      "Wallplace is a curated marketplace connecting emerging and established artists with independent venues \u2014 cafes, restaurants, coworking spaces, offices, and more \u2014 that want original artwork on their walls. We handle the curation and provide the platform for discovery, communication, and sales. Artists manage their own fulfilment and delivery.",
   },
   {
     question: "How does Wallplace make money?",
@@ -40,7 +40,7 @@ const artistFaqs = [
   {
     question: "What happens when my work sells?",
     answer:
-      "When a piece sells, we handle the transaction and notify you immediately. You receive payment within 14 days of the sale. The sale price is split between you and Wallplace – you keep the majority. We handle all customer communication, invoicing, and delivery coordination.",
+      "When a piece sells, we process the transaction and notify you immediately. You receive payment within 14 days via Stripe Connect. The platform fee (3\u201315% depending on your plan) is deducted automatically \u2014 you keep the majority. You are responsible for packing and shipping the artwork to the buyer.",
   },
   {
     question: "Can I set my own prices?",
@@ -55,12 +55,12 @@ const artistFaqs = [
   {
     question: "What if my work gets damaged in a venue?",
     answer:
-      "All artwork displayed through Wallplace is covered by our damage policy. If a piece is damaged while on display, we work with the venue to resolve the situation and ensure the artist is compensated fairly. Venues agree to our care guidelines when they sign up.",
+      "Venues agree to exercise reasonable care over displayed artwork under our Venue Partnership Agreement. If damage occurs due to venue negligence, the venue is liable. We strongly recommend you insure your artwork for its full value, including periods when it is on display in venues. Wallplace can help facilitate communication between you and the venue, but we are not liable for damage, loss, or theft of artwork.",
   },
   {
     question: "Can I cancel my membership?",
     answer:
-      "Yes. You can withdraw from Wallplace at any time with 30 days notice. We will arrange the return of any artwork currently on display in venues. There are no cancellation fees or penalties.",
+      "Yes. You can cancel at any time with 30 days\u2019 notice. You are responsible for collecting your artwork from any venues where it is currently displayed within 30 days of your cancellation date. No cancellation fees or penalties apply.",
   },
   {
     question: "Is Wallplace exclusive? Can I sell my work elsewhere?",
@@ -78,7 +78,7 @@ const venueFaqs = [
   {
     question: "How much does it cost for a venue to display art?",
     answer:
-      "Nothing. There is no cost to venues for displaying artwork through Wallplace. We provide the art, arrange delivery and installation, and manage the rotation. Venues benefit from beautiful original artwork at zero cost.",
+      "Nothing. There is no cost to venues for browsing, enquiring, or displaying artwork through Wallplace. Delivery and installation are arranged directly between you and the artist. Wallplace is funded by artist memberships, not by charges to venues.",
   },
   {
     question: "Do we need to sign a contract?",
@@ -88,12 +88,12 @@ const venueFaqs = [
   {
     question: "What if a piece of art gets damaged?",
     answer:
-      "We understand that venues are busy, working environments. Minor wear is expected. For significant damage, our partnership agreement includes a damage policy. We assess each situation on a case-by-case basis and work with both the venue and the artist to find a fair resolution.",
+      "Under the Venue Partnership Agreement, venues must exercise reasonable care over displayed artwork. If damage occurs due to negligence by venue staff or contractors, the venue is liable and should cooperate with the artist to resolve it. We recommend reporting any damage to both the artist and Wallplace within 48 hours. Wallplace can facilitate communication but is not liable for artwork damage.",
   },
   {
     question: "Can we choose which art to display?",
     answer:
-      "Absolutely. We work with you to understand your space, your brand, and your preferences. We then propose a selection of artists and works that we think would be a great fit. You have the final say on what goes on your walls. We can also rotate work periodically to keep things fresh.",
+      "Absolutely. You browse artist portfolios on the platform and enquire directly with artists whose work interests you. You have the final say on what goes on your walls. You can also arrange rotations directly with artists to keep things fresh.",
   },
   {
     question: "What happens when a customer wants to buy a piece?",
@@ -103,17 +103,17 @@ const venueFaqs = [
   {
     question: "Do our staff need to do anything?",
     answer:
-      "Very little. We handle delivery, installation, and removal. All your team needs to do is keep an eye on the artwork (as they would any decor), point curious customers to the artwork labels, and let us know if anything needs attention. We provide a brief guide for staff when artwork is installed.",
+      "Very little. Delivery and installation are arranged between you and the artist. Once artwork is up, your team just needs to keep an eye on it (as they would any decor) and point curious customers to the QR label for information and purchasing. No sales handling required.",
   },
   {
     question: "How often does the artwork change?",
     answer:
-      "That depends on your preference. Some venues prefer a rotation every 2-3 months to keep the space feeling fresh. Others prefer to keep pieces longer, especially if they suit the space well. We work with you to find the right cadence. Rotations are scheduled in advance and managed entirely by us.",
+      "That depends on your arrangement with the artist. Some venues prefer a rotation every 2\u20133 months to keep the space feeling fresh. Others prefer to keep pieces longer. You agree this directly with the artist when arranging the placement.",
   },
   {
     question: "Can we buy the artwork ourselves?",
     answer:
-      "Yes. Many venue owners fall in love with the pieces on their walls. You can purchase any artwork at the listed price. If you want to keep a piece permanently, just let us know and we will arrange the sale. Some artists also offer special pricing for venue purchases.",
+      "Yes. You can purchase any artwork at the listed price through the QR code or directly on the platform. Some artists also offer special pricing for venue purchases \u2014 discuss this with the artist directly.",
   },
 ];
 

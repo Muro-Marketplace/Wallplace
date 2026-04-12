@@ -37,11 +37,12 @@ CREATE TABLE IF NOT EXISTS stripe_transfers (
   order_id TEXT NOT NULL,
   recipient_type TEXT NOT NULL,
   recipient_user_id UUID,
-  stripe_transfer_id TEXT NOT NULL,
+  stripe_transfer_id TEXT DEFAULT '',
   stripe_connect_account_id TEXT NOT NULL,
   amount_cents INTEGER NOT NULL,
   currency TEXT DEFAULT 'gbp',
   status TEXT DEFAULT 'pending',
+  payout_after TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

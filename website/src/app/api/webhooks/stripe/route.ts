@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { createTransfer } from "@/lib/stripe-connect";
+import { scheduleTransfer } from "@/lib/stripe-connect";
 import { notifyArtistNewOrder, notifyVenueOrderFromPlacement } from "@/lib/email";
 import type Stripe from "stripe";
 
@@ -178,7 +178,7 @@ export async function POST(request: Request) {
                 .eq("slug", venueSlug)
                 .single();
               if (venueConnect?.stripe_connect_account_id && venueConnect.stripe_connect_onboarding_complete) {
-                await createTransfer({
+                await scheduleTransfer({
                   orderId,
                   recipientType: "venue",
                   recipientUserId: venueConnect.user_id,
@@ -200,7 +200,7 @@ export async function POST(request: Request) {
                 .eq("user_id", artistUserId)
                 .single();
               if (artistConnect?.stripe_connect_account_id && artistConnect.stripe_connect_onboarding_complete) {
-                await createTransfer({
+                await scheduleTransfer({
                   orderId,
                   recipientType: "artist",
                   recipientUserId: artistUserId,

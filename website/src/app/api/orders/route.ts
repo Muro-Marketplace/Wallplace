@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAuthenticatedUser } from "@/lib/api-auth";
 import { notifyBuyerStatusUpdate } from "@/lib/email";
+import { executeTransfer } from "@/lib/stripe-connect";
 
 // GET: fetch orders for the authenticated user (customer, artist, or venue)
 export async function GET(request: Request) {
@@ -94,6 +95,30 @@ export async function PATCH(request: Request) {
         status,
         trackingNumber,
       }).catch((err) => { if (err) console.error("Fire-and-forget error:", err); });
+    }
+
+    // On delivery, release pending payouts immediately (instead of waiting 14 days)
+    if (status === "delivered") {
+      const { data: pendingTransfers } = await db
+        .from("stripe_transfers")
+        .select("id")
+        .eq("order_id", orderId)
+        .eq("status", "pending");
+
+      if (pendingTransfers) {
+        for (const t of pendingTransfers) {
+          executeTransfer(t.id).catch((err) => console.error("Early payout error:", err));
+        }
+      }
+    }
+
+    // On cancellation, cancel pending payouts
+    if (status === "cancelled") {
+      await db
+        .from("stripe_transfers")
+        .update({ status: "cancelled" })
+        .eq("order_id", orderId)
+        .eq("status", "pending");
     }
 
     return NextResponse.json({ success: true });
