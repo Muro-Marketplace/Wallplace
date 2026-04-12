@@ -40,9 +40,9 @@ export default function ArtistAgreementPage() {
                 <div className="space-y-3 text-muted leading-relaxed">
                   <p>You must select one of the following membership plans:</p>
                   <ul className="list-disc pl-6 space-y-1">
-                    <li><strong className="text-foreground">Core:</strong> &pound;9.99/month, 10% platform fee on sales</li>
-                    <li><strong className="text-foreground">Premium:</strong> &pound;29.99/month, 5% platform fee on sales</li>
-                    <li><strong className="text-foreground">Pro:</strong> &pound;69.99/month, 0% platform fee on sales</li>
+                    <li><strong className="text-foreground">Core:</strong> &pound;9.99/month, 15% platform fee on sales</li>
+                    <li><strong className="text-foreground">Premium:</strong> &pound;24.99/month, 8% platform fee on sales</li>
+                    <li><strong className="text-foreground">Pro:</strong> &pound;49.99/month, 3% platform fee on sales</li>
                   </ul>
                   <p>Your first month is free on any plan. The first 20 accepted artists receive 6 months free on any plan, for as long as they maintain an active account.</p>
                   <p>Membership is billed monthly via Stripe. Upgrades are prorated. Downgrades take effect at the next billing period. Wallplace may change pricing with 30 days&rsquo; notice. Existing subscriptions are honoured until the next renewal after the notice period.</p>
@@ -117,7 +117,7 @@ export default function ArtistAgreementPage() {
                 <div className="space-y-3 text-muted leading-relaxed">
                   <p>You may agree a Revenue Share with a venue, where the venue receives a percentage of the sale price of artwork sold from their premises. The percentage is agreed directly between you and the venue.</p>
                   <p>Revenue Share payments are processed via Stripe Connect after the platform fee has been deducted.</p>
-                  <p><strong className="text-foreground">Example:</strong> &pound;500 sale, 5% platform fee (Premium plan), 10% venue share. Platform fee = &pound;25. Venue share = &pound;47.50 (10% of &pound;475). You receive &pound;427.50.</p>
+                  <p><strong className="text-foreground">Example:</strong> &pound;500 sale, 8% platform fee (Premium plan), 10% venue share. Platform fee = &pound;40. Venue share = &pound;46 (10% of &pound;460). You receive &pound;414.</p>
                 </div>
               </div>
 
