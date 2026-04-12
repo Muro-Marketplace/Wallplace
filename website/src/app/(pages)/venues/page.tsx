@@ -185,7 +185,7 @@ export default function VenuesPage() {
           />
           <div className="absolute inset-0 bg-gradient-to-br from-black/65 via-black/50 to-black/35" />
         </div>
-        <div className="flex-1 flex items-center">
+        <div className="flex-1 flex items-center pb-24 lg:pb-28">
           <div className="max-w-[1200px] mx-auto px-6 w-full">
             <div className="max-w-2xl">
               <p className="text-xs font-medium tracking-[0.25em] uppercase text-accent mb-5">
