@@ -508,7 +508,7 @@ export default function Home() {
                   <p className="text-xs font-medium tracking-[0.2em] uppercase text-accent mb-3">Customers</p>
                   <h3 className="font-serif text-xl mb-3">Buy original artwork</h3>
                   <p className="text-sm text-muted mb-6 flex-1">Browse and buy directly from independent artists.</p>
-                  <Link href="/signup/customer" className="inline-flex items-center justify-center w-full px-4 py-3.5 border border-border text-foreground text-xs font-semibold tracking-wide uppercase rounded-sm hover:bg-background transition-colors whitespace-nowrap">
+                  <Link href="/signup/customer" className="inline-flex items-center justify-center w-full px-4 py-3.5 bg-background border border-border text-foreground text-xs font-semibold tracking-wide uppercase rounded-sm hover:bg-border/30 transition-colors whitespace-nowrap">
                     Sign Up
                   </Link>
                 </div>
