@@ -50,7 +50,7 @@ export default function Home() {
   return (
     <div className="relative">
       {/* ─── HERO ─── full screen with transparent nav */}
-      <section className="relative min-h-screen flex flex-col">
+      <section className="relative min-h-[110vh] sm:min-h-screen flex flex-col">
         {/* Hero background image – scoped to hero only */}
         <div className="absolute inset-0 -z-10">
           <Image
@@ -157,8 +157,8 @@ export default function Home() {
               </svg>
             </div>
           </button>
-          {/* Dark trust bar */}
-          <div className="border-t border-white/10 bg-black/50 backdrop-blur-sm">
+          {/* Dark trust bar — hidden on mobile */}
+          <div className="hidden sm:block border-t border-white/10 bg-black/50 backdrop-blur-sm">
             <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-white/90 font-medium">
