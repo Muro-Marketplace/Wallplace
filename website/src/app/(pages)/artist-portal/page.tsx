@@ -31,6 +31,17 @@ const typeLabels: Record<string, string> = {
   view: "View",
 };
 
+/** Convert a slug like "the-copper-kettle" to "The Copper Kettle" */
+function formatName(raw: string): string {
+  if (!raw) return "Venue";
+  // If it already has spaces, it's a proper name
+  if (raw.includes(" ")) return raw;
+  return raw
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 export default function ArtistPortalPage() {
   const { displayName } = useAuth();
   const [stats, setStats] = useState({ placements: 0, sales: "£0", enquiries: 0, views: 0 });
@@ -60,17 +71,18 @@ export default function ArtistPortalPage() {
 
       for (const p of placements.slice(0, 10)) {
         const time = p.responded_at || p.created_at;
+        const venueName = formatName(p.venue);
         if (p.status === "pending") {
-          items.push({ id: "p-" + p.id, text: `Placement request: ${p.work_title || "Artwork"} — ${p.venue || "Venue"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+          items.push({ id: "p-" + p.id, text: `Placement request: ${p.work_title || "Artwork"} — ${venueName}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
         } else if (p.status === "active") {
-          items.push({ id: "pa-" + p.id, text: `Placement accepted: ${p.work_title || "Artwork"} at ${p.venue || "Venue"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+          items.push({ id: "pa-" + p.id, text: `Placement accepted: ${p.work_title || "Artwork"} at ${venueName}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
         } else if (p.status === "declined") {
           items.push({ id: "pd-" + p.id, text: `Placement declined: ${p.work_title || "Artwork"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
         }
       }
 
       for (const c of conversations) {
-        const name = c.otherParty;
+        const name = formatName(c.otherParty);
         const preview = c.latestMessage?.slice(0, 50) || "";
         items.push({ id: "m-" + c.conversationId, text: `${name}: "${preview}${c.latestMessage?.length > 50 ? "..." : ""}"`, time: formatRelativeTime(c.lastActivity), sortTime: new Date(c.lastActivity).getTime(), type: c.unreadCount > 0 ? "enquiry" : "message" });
       }
