@@ -17,7 +17,7 @@ const generalFaqs = [
   {
     question: "How does Wallplace make money?",
     answer:
-      "Wallplace earns through artist membership plans (from £9.99/month) and a platform fee on artwork sales (0–10% depending on the artist's plan). When a piece sells, the artist keeps the majority. We do not charge venues for displaying artwork.",
+      "Wallplace earns through artist membership plans (from £9.99/month) and a platform fee on artwork sales (3–15% depending on the artist's plan). When a piece sells, the artist keeps the majority. We do not charge venues for displaying artwork.",
   },
   {
     question: "Is Wallplace a gallery?",
