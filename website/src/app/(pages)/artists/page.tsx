@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import VenueArtistToggle from "@/components/VenueArtistToggle";
 import Image from "next/image";
 import Button from "@/components/Button";
 import Accordion from "@/components/Accordion";
@@ -198,6 +199,7 @@ const faqItems = [
 export default function ArtistsPage() {
   return (
     <div className="relative">
+      <VenueArtistToggle />
       {/* Immersive Hero */}
       <section className="relative -mt-14 lg:-mt-16 min-h-screen flex flex-col pt-28 lg:pt-32">
         {/* Hero background image */}

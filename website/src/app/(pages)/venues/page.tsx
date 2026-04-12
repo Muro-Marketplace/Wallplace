@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import VenueArtistToggle from "@/components/VenueArtistToggle";
 import Image from "next/image";
 import Link from "next/link";
 import Button from "@/components/Button";
@@ -170,6 +171,7 @@ const neighbourhoods = [
 export default function VenuesPage() {
   return (
     <div className="relative">
+      <VenueArtistToggle />
       {/* Immersive Hero – pulls behind the header with negative margin */}
       <section className="relative -mt-14 lg:-mt-16 min-h-screen flex flex-col justify-center pt-28 lg:pt-32 pb-56">
         {/* Hero background image */}

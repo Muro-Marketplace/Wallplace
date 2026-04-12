@@ -20,8 +20,7 @@ interface PlatformStats {
 
 const navLinks = [
   { label: "Marketplace", href: "/browse" },
-  { label: "For Venues", href: "/venues" },
-  { label: "For Artists", href: "/artists" },
+  { label: "How It Works", href: "/how-it-works" },
   { label: "Blog", href: "/blog" },
   { label: "Spaces", href: "/spaces-looking-for-art" },
   { label: "Waitlist", href: "/waitlist" },
