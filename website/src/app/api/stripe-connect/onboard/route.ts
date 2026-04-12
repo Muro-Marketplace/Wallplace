@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   // Look up the profile for this user
   const { data: profile, error: profileError } = await db
     .from(table)
-    .select("stripe_connect_account_id")
+    .select("*")
     .eq("user_id", user.id)
     .single();
 
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  let accountId = profile.stripe_connect_account_id;
+  let accountId = profile.stripe_connect_account_id || "";
 
   // Create Express account if one doesn't exist yet
   if (!accountId) {
@@ -45,10 +45,15 @@ export async function POST(request: Request) {
     accountId = account.id;
 
     // Store the account ID on the profile
-    await db
+    const { error: updateErr } = await db
       .from(table)
       .update({ stripe_connect_account_id: accountId })
       .eq("user_id", user.id);
+
+    if (updateErr) {
+      console.error("Failed to store Connect account ID:", updateErr.message);
+      // Column may not exist yet — continue anyway, the account is created in Stripe
+    }
   }
 
   // Create an Account Link for onboarding
@@ -61,12 +66,18 @@ export async function POST(request: Request) {
       ? `${siteUrl}/venue-portal/settings?stripe_connect=complete`
       : `${siteUrl}/artist-portal/billing?stripe_connect=complete`;
 
-  const accountLink = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: refreshUrl,
-    return_url: returnUrl,
-    type: "account_onboarding",
-  });
+  try {
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
+      type: "account_onboarding",
+    });
 
-  return NextResponse.json({ url: accountLink.url });
+    return NextResponse.json({ url: accountLink.url });
+  } catch (err) {
+    console.error("Stripe Connect onboard error:", err);
+    const message = err instanceof Error ? err.message : "Failed to create onboarding link";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

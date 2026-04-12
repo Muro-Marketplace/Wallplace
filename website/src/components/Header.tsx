@@ -199,7 +199,7 @@ export default function Header() {
 
           {/* Desktop CTAs */}
           <div className="hidden lg:flex items-center gap-2.5">
-            {!authLoading && user ? (
+            {user ? (
               <>
                 {/* Messages dropdown */}
                 <div className="relative" ref={msgDropdownRef}>
@@ -354,7 +354,7 @@ export default function Header() {
                   Logout
                 </button>
               </>
-            ) : !authLoading ? (
+            ) : !authLoading && !user ? (
               <>
                 <Link
                   href="/login"
