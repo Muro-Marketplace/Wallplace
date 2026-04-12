@@ -36,31 +36,31 @@ export default function HowItWorksPage() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
           <button
             onClick={() => setSelected("venues")}
-            className="group w-72 h-64 bg-white/10 backdrop-blur-sm border border-white/20 rounded-sm p-8 flex flex-col items-center justify-center hover:bg-white/20 hover:border-white/40 transition-all"
+            className="group w-80 sm:w-72 h-48 bg-white/10 backdrop-blur-sm border border-white/20 rounded-sm px-8 py-6 flex flex-col items-center justify-center hover:bg-white/20 hover:border-white/40 transition-all"
           >
-            <div className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-accent/30 transition-colors">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C17C5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-3 group-hover:bg-accent/30 transition-colors">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C17C5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
             </div>
-            <h2 className="text-xl font-serif text-white mb-2">Venue</h2>
+            <h2 className="text-xl font-serif text-white mb-1.5">Venue</h2>
             <p className="text-sm text-white/50">I have a space and want artwork</p>
           </button>
 
           <button
             onClick={() => setSelected("artists")}
-            className="group w-72 h-64 bg-white/10 backdrop-blur-sm border border-white/20 rounded-sm p-8 flex flex-col items-center justify-center hover:bg-white/20 hover:border-white/40 transition-all"
+            className="group w-80 sm:w-72 h-48 bg-white/10 backdrop-blur-sm border border-white/20 rounded-sm px-8 py-6 flex flex-col items-center justify-center hover:bg-white/20 hover:border-white/40 transition-all"
           >
-            <div className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-accent/30 transition-colors">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C17C5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-3 group-hover:bg-accent/30 transition-colors">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C17C5A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 19l7-7 3 3-7 7-3-3z" />
                 <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
                 <path d="M2 2l7.586 7.586" />
                 <circle cx="11" cy="11" r="2" />
               </svg>
             </div>
-            <h2 className="text-xl font-serif text-white mb-2">Artist</h2>
+            <h2 className="text-xl font-serif text-white mb-1.5">Artist</h2>
             <p className="text-sm text-white/50">I create art and want to sell it</p>
           </button>
         </div>

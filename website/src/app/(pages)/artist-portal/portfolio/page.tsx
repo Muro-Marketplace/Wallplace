@@ -43,6 +43,8 @@ const statusColors: Record<string, string> = {
   Sold: "bg-border/50 text-muted",
 };
 
+const PORTFOLIO_LIMITS: Record<string, number> = { core: 8, premium: 20, pro: 9999 };
+
 export default function PortfolioPage() {
   const { artist, loading: artistLoading } = useCurrentArtist();
   const [works, setWorks] = useState<ArtistWork[]>([]);
@@ -214,12 +216,24 @@ export default function PortfolioPage() {
           <Button href="/artist-portal/profile" variant="secondary" size="sm">
             Edit Profile
           </Button>
-          <button
-            onClick={openAdd}
-            className="px-4 py-1.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
-          >
-            + Add New Work
-          </button>
+          {(() => {
+            const plan = artist?.subscriptionPlan || "core";
+            const limit = PORTFOLIO_LIMITS[plan] || 8;
+            const atLimit = works.length >= limit;
+            return atLimit ? (
+              <div className="text-right">
+                <p className="text-xs text-muted">{works.length}/{limit} works</p>
+                <a href="/pricing" className="text-xs text-accent hover:text-accent-hover">Upgrade for more</a>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted">{works.length}/{limit} works</span>
+                <button onClick={openAdd} className="px-4 py-1.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors">
+                  + Add New Work
+                </button>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

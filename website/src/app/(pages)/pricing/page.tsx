@@ -9,35 +9,41 @@ export const metadata: Metadata = {
 };
 
 const coreFeatures = [
+  "Up to 8 works in your portfolio",
   "Standard artist profile",
   "Visibility to venues browsing the platform",
   "Curated matching – we surface you to relevant venues",
-  "15% platform fee on sales",
   "Basic analytics dashboard",
   "Access to Wallplace venue network",
 ];
 
 const premiumFeatures = [
-  "Featured artist profile",
+  "Up to 20 works in your portfolio",
+  "Featured artist profile + badge",
   "Priority visibility in venue recommendations",
-  "Proactive venue matching and introductions",
-  "8% platform fee on sales",
+  "Message venues directly",
   "Full analytics – views, enquiries, conversion",
   "Featured in curated venue suggestion lists",
   "Priority response from Wallplace team",
 ];
 
 const proFeatures = [
+  "Unlimited works in your portfolio",
   "Premium profile with enhanced presentation",
   "Maximum visibility across the platform",
-  "Direct venue matching and relationship management",
-  "3% platform fee on sales",
-  "Priority support with dedicated response SLA",
+  "Message venues directly",
+  "Full analytics + venue breakdown + export",
   "Dedicated account support",
   "Early access to new features and venue partnerships",
 ];
 
 const comparisonRows = [
+  {
+    feature: "Portfolio works",
+    core: "Up to 8",
+    premium: "Up to 20",
+    pro: "Unlimited",
+  },
   {
     feature: "Artist profile",
     core: "Standard",
@@ -49,6 +55,12 @@ const comparisonRows = [
     core: "Standard",
     premium: "Priority",
     pro: "Maximum",
+  },
+  {
+    feature: "Message venues",
+    core: "—",
+    premium: "Yes",
+    pro: "Yes",
   },
   {
     feature: "Venue matching",
