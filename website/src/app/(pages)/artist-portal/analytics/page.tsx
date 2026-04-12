@@ -562,21 +562,26 @@ function ViewsChart({ data }: { data: { date: string; profile_views: number; art
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
               />
-              {hoveredIndex === i && (
-                <g>
-                  <line x1={x} y1={padding.top} x2={x} y2={padding.top + innerHeight} stroke="#E5E2DD" strokeWidth="1" strokeDasharray="3,3" />
-                  <rect x={x - 55} y={padding.top - 2} width="110" height="50" rx="4" fill="#1A1A1A" />
-                  <text x={x} y={padding.top + 14} textAnchor="middle" fill="#C17C5A" fontSize="10">
-                    Profile: {d.profile_views}
-                  </text>
-                  <text x={x} y={padding.top + 28} textAnchor="middle" fill="#7C9A5A" fontSize="10">
-                    Artwork: {d.artwork_views}
-                  </text>
-                  <text x={x} y={padding.top + 42} textAnchor="middle" fill="#5A7C9A" fontSize="10">
-                    QR: {d.qr_scans}
-                  </text>
-                </g>
-              )}
+              {hoveredIndex === i && (() => {
+                const tw = 110;
+                const tx = Math.max(padding.left, Math.min(x - tw / 2, width - padding.right - tw));
+                const tcx = tx + tw / 2;
+                return (
+                  <g>
+                    <line x1={x} y1={padding.top} x2={x} y2={padding.top + innerHeight} stroke="#E5E2DD" strokeWidth="1" strokeDasharray="3,3" />
+                    <rect x={tx} y={padding.top - 2} width={tw} height="50" rx="4" fill="#1A1A1A" />
+                    <text x={tcx} y={padding.top + 14} textAnchor="middle" fill="#C17C5A" fontSize="10">
+                      Profile: {d.profile_views}
+                    </text>
+                    <text x={tcx} y={padding.top + 28} textAnchor="middle" fill="#7C9A5A" fontSize="10">
+                      Artwork: {d.artwork_views}
+                    </text>
+                    <text x={tcx} y={padding.top + 42} textAnchor="middle" fill="#5A7C9A" fontSize="10">
+                      QR: {d.qr_scans}
+                    </text>
+                  </g>
+                );
+              })()}
               {i % labelEvery === 0 && (
                 <text x={x} y={chartHeight - 5} textAnchor="middle" className="fill-muted" fontSize="10">
                   {dateLabel}
@@ -661,17 +666,22 @@ function EarningsChart({ data }: { data: { month: string; earnings: number; sale
               onMouseEnter={() => setHoveredIndex(i)} onMouseLeave={() => setHoveredIndex(null)} />
             <circle cx={p.x} cy={p.y} r={hoveredIndex === i ? 5 : 3}
               fill={hoveredIndex === i ? "#C17C5A" : "#fff"} stroke="#C17C5A" strokeWidth="2" />
-            {hoveredIndex === i && (
-              <g>
-                <rect x={p.x - 55} y={p.y - 48} width="110" height="38" rx="4" fill="#1A1A1A" />
-                <text x={p.x} y={p.y - 28} textAnchor="middle" fill="white" fontSize="12" fontWeight="500">
-                  £{data[i].earnings.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </text>
-                <text x={p.x} y={p.y - 14} textAnchor="middle" fill="#999" fontSize="10">
-                  {data[i].sales} sale{data[i].sales !== 1 ? "s" : ""}
-                </text>
-              </g>
-            )}
+            {hoveredIndex === i && (() => {
+              const tooltipW = 110;
+              const tooltipX = Math.max(padding.left, Math.min(p.x - tooltipW / 2, width - padding.right - tooltipW));
+              const tooltipCenterX = tooltipX + tooltipW / 2;
+              return (
+                <g>
+                  <rect x={tooltipX} y={p.y - 48} width={tooltipW} height="38" rx="4" fill="#1A1A1A" />
+                  <text x={tooltipCenterX} y={p.y - 28} textAnchor="middle" fill="white" fontSize="12" fontWeight="500">
+                    £{data[i].earnings.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </text>
+                  <text x={tooltipCenterX} y={p.y - 14} textAnchor="middle" fill="#999" fontSize="10">
+                    {data[i].sales} sale{data[i].sales !== 1 ? "s" : ""}
+                  </text>
+                </g>
+              );
+            })()}
             <text x={p.x} y={chartHeight - 5} textAnchor="middle" className="fill-muted" fontSize="10">
               {data[i].month}
             </text>
