@@ -10,10 +10,10 @@ export default function VenueArtistToggle() {
 
   return (
     <div className="absolute top-20 lg:top-24 left-1/2 -translate-x-1/2 z-30">
-      <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md rounded-full p-1.5">
+      <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md rounded-full p-1 sm:p-1.5">
         <Link
           href="/venues"
-          className={`px-6 py-2.5 text-sm font-medium rounded-full transition-colors ${
+          className={`px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-full transition-colors whitespace-nowrap ${
             isVenues ? "bg-white text-foreground" : "text-white/70 hover:text-white"
           }`}
         >
@@ -21,7 +21,7 @@ export default function VenueArtistToggle() {
         </Link>
         <Link
           href="/artists"
-          className={`px-6 py-2.5 text-sm font-medium rounded-full transition-colors ${
+          className={`px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-medium rounded-full transition-colors whitespace-nowrap ${
             isArtists ? "bg-white text-foreground" : "text-white/70 hover:text-white"
           }`}
         >
