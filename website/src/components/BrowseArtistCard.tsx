@@ -17,6 +17,7 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
   const router = useRouter();
   const { user, userType } = useAuth();
   const [imgIndex, setImgIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(0);
   const images = artist.works.map((w) => w.image);
 
   const goToPrev = (e: React.MouseEvent) => {
@@ -41,7 +42,17 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
     <Link href={`/browse/${artist.slug}`} className="group block">
       <div className="bg-surface border border-border rounded-sm overflow-hidden hover:border-accent/30 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
         {/* Image area */}
-        <div className="aspect-square relative overflow-hidden bg-border/30">
+        <div
+          className="aspect-square relative overflow-hidden bg-border/30"
+          onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+          onTouchEnd={(e) => {
+            const diff = touchStartX - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 50) {
+              if (diff > 0) setImgIndex((prev) => (prev + 1) % images.length);
+              else setImgIndex((prev) => (prev - 1 + images.length) % images.length);
+            }
+          }}
+        >
           {images.map((src, index) => (
             <div
               key={src}

@@ -130,22 +130,15 @@ export default function ArtistProfileClient({
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl">Portfolio</h2>
             {themes.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {allThemes.slice(0, 6).map((theme) => (
-                  <button
-                    key={theme}
-                    type="button"
-                    onClick={() => setActiveTheme(theme)}
-                    className={`px-3 py-1.5 text-xs rounded-sm border transition-all duration-150 cursor-pointer ${
-                      activeTheme === theme
-                        ? "bg-foreground text-background border-foreground"
-                        : "border-border text-muted hover:border-foreground/30"
-                    }`}
-                  >
-                    {theme}
-                  </button>
+              <select
+                value={activeTheme}
+                onChange={(e) => setActiveTheme(e.target.value)}
+                className="px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer"
+              >
+                {allThemes.map((theme) => (
+                  <option key={theme} value={theme}>{theme}</option>
                 ))}
-              </div>
+              </select>
             )}
           </div>
 
@@ -421,7 +414,7 @@ export default function ArtistProfileClient({
                     onClick={() => { setShowEnquiry(true); setEnquirySent(false); }}
                     className="flex-1 px-5 py-2.5 text-sm font-medium text-foreground border border-border hover:border-foreground/30 rounded-sm transition-colors"
                   >
-                    Message {artistName.split(" ")[0] || artistName}
+                    Message
                   </button>
                   <SaveButton type="work" itemId={currentWork.id} size="md" />
                 </div>

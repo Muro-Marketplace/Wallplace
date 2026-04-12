@@ -27,7 +27,7 @@ type ButtonProps = ButtonAsLink | ButtonAsButton;
 const sizeClasses: Record<ButtonSize, string> = {
   sm: "px-4 py-1.5 text-sm",
   md: "px-6 py-2.5 text-sm",
-  lg: "px-8 py-3.5 text-sm font-semibold tracking-wider uppercase",
+  lg: "px-8 py-3.5 text-sm font-semibold",
 };
 
 const variantClasses: Record<ButtonVariant, string> = {

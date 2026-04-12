@@ -799,19 +799,15 @@ export default function BrowsePortfoliosPage() {
                     {filteredArtists.length !== 1 ? "s" : ""}
                   </p>
                   <div className="flex items-center gap-2">
-                    {/* Grid toggle */}
-                    <button
-                      type="button"
-                      onClick={() => setMobileGrid(mobileGrid === 1 ? 2 : 1)}
-                      className={`p-2 border rounded-sm transition-colors ${mobileGrid === 2 ? "border-foreground bg-foreground text-white" : "border-border text-muted"}`}
-                      title={mobileGrid === 1 ? "Two columns" : "Single column"}
-                    >
-                      {mobileGrid === 2 ? (
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="6" height="6" rx="0.5" /><rect x="8" y="0" width="6" height="6" rx="0.5" /><rect x="0" y="8" width="6" height="6" rx="0.5" /><rect x="8" y="8" width="6" height="6" rx="0.5" /></svg>
-                      ) : (
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="14" height="4" rx="0.5" /><rect x="0" y="5" width="14" height="4" rx="0.5" /><rect x="0" y="10" width="14" height="4" rx="0.5" /></svg>
-                      )}
-                    </button>
+                    {/* Portfolio/Gallery toggle */}
+                    <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
+                      <button type="button" onClick={() => setViewAs("artists")} className={`px-3 py-1.5 text-xs rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                        Portfolios
+                      </button>
+                      <button type="button" onClick={() => setViewAs("works")} className={`px-3 py-1.5 text-xs rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                        Gallery
+                      </button>
+                    </div>
                     {/* Filters */}
                     <button
                       type="button"
