@@ -8,7 +8,7 @@ import ScrollButton from "@/components/ScrollButton";
 export const metadata: Metadata = {
   title: "For Artists – Wallplace",
   description:
-    "Access high-intent venue demand. Get discovered by cafés, restaurants, hotels, galleries, and offices. Curated visibility for commercial spaces.",
+    "Display your work in real venues and sell directly online. Your Wallplace page is your portfolio and your storefront — every QR scan is a sale opportunity.",
 };
 
 const valueBlocks = [
@@ -41,8 +41,8 @@ const valueBlocks = [
         <rect x="14" y="14" width="7" height="7" rx="1" />
       </svg>
     ),
-    title: "Sales infrastructure",
-    description: "QR codes, online listings, payment processing – everything a buyer needs to purchase your work.",
+    title: "Your own online storefront",
+    description: "Your Wallplace page is your shop. QR codes at venues drive customers straight to your store to browse and buy.",
   },
   {
     icon: (
@@ -51,8 +51,8 @@ const valueBlocks = [
         <path d="M8 12h8M12 8v8" />
       </svg>
     ),
-    title: "Commercial visibility",
-    description: "Your profile seen by venues filtering for your style. Curated visibility, not algorithmic noise.",
+    title: "Venue + online visibility",
+    description: "Venues find you by style and medium. Customers find you via QR codes in the venues you're placed in.",
   },
   {
     icon: (
@@ -61,7 +61,7 @@ const valueBlocks = [
       </svg>
     ),
     title: "Fair platform fees",
-    description: "0–10% platform fee. No gallery taking half. You keep the majority of every sale.",
+    description: "3–15% platform fee. No gallery taking half. You keep the majority of every sale.",
   },
   {
     icon: (
@@ -69,8 +69,8 @@ const valueBlocks = [
         <path d="M3 3h18v18H3zM3 9h18M9 3v18" />
       </svg>
     ),
-    title: "Real commercial channel",
-    description: "Physical spaces, not another feed. Daily footfall from people who are already there.",
+    title: "QR to checkout in seconds",
+    description: "Customers scan, browse, and buy — right from the venue wall. Every scan is a sale opportunity with your name on it.",
   },
 ];
 
@@ -88,7 +88,6 @@ const coreFeatures = [
   "Venue enquiry inbox",
   "QR codes & payment processing",
   "Basic analytics",
-  "10% platform fee on sales",
 ];
 
 const premiumFeatures = [
@@ -98,7 +97,6 @@ const premiumFeatures = [
   "Priority venue matching",
   "Full analytics dashboard",
   "Dedicated social feature monthly",
-  "5% platform fee on sales",
 ];
 
 const proFeatures = [
@@ -107,7 +105,6 @@ const proFeatures = [
   "Top-tier profile placement",
   "AI-powered venue matching",
   "White-glove onboarding",
-  "0% platform fee on sales",
 ];
 
 const comparisonData = [
@@ -116,7 +113,7 @@ const comparisonData = [
     gallery: "40–60%",
     marketplace: "15–30%",
     instagram: "N/A",
-    wallplace: "0–10%",
+    wallplace: "3–15%",
   },
   {
     category: "Physical display",
@@ -164,7 +161,7 @@ const faqItems = [
   {
     question: "Why should I pay for this?",
     answer:
-      "Because a gallery would take 40–60% of every sale on top of significant upfront costs. Wallplace gives you a platform fee of 0–10%, ongoing commercial visibility, sales infrastructure, and access to a growing network of venues – for less than the cost of a round of drinks per month.",
+      "Because a gallery would take 40–60% of every sale on top of significant upfront costs. Wallplace gives you a platform fee of 3–15%, ongoing commercial visibility, sales infrastructure, and access to a growing network of venues – for less than the cost of a round of drinks per month.",
   },
   {
     question: "Do you handle delivery and installation?",
@@ -221,12 +218,12 @@ export default function ArtistsPage() {
                 For Artists
               </p>
               <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight text-white leading-[1.05] mb-6">
-                Your work, matched to spaces that want it.
+                Display, discover, sell. All in one place.
               </h1>
               <p className="text-lg lg:text-xl text-white/60 leading-relaxed max-w-xl mb-10">
-                Wallplace is the curated art marketplace for independent venues.
                 Access high-intent venue demand. Get discovered by cafés, restaurants,
-                hotels, galleries, offices, and salons looking for original artwork.
+                hotels, galleries, offices, and salons looking for original artwork
+                &mdash; and sell directly to anyone who scans your QR code.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button href="/apply" size="lg" variant="accent">
@@ -511,7 +508,7 @@ export default function ArtistsPage() {
                   Wallplace Core
                 </p>
                 <p className="text-sm text-white/40">
-                  &pound;9.99/month. Access high-intent venue demand. First month free.
+                  &pound;9.99/month. Venue placements + your own online store. First month free.
                 </p>
               </div>
               <svg
@@ -625,7 +622,7 @@ export default function ArtistsPage() {
       <section className="py-20 lg:py-28 bg-foreground">
         <div className="max-w-[1200px] mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl lg:text-5xl mb-4 max-w-2xl mx-auto text-white">
-            Apply to Wallplace. Get discovered by the spaces that want your work.
+            Your portfolio. Your storefront. Your venues. All in one place.
           </h2>
           <div className="mt-8">
             <a href="/apply" className="inline-flex items-center justify-center px-8 py-3.5 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors">

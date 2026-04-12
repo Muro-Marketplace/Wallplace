@@ -327,18 +327,18 @@ export default function Home() {
                     For Artists
                   </p>
                   <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground mb-6 leading-tight">
-                    Your art, in the spaces people love
+                    Your art, in the spaces people love.
                   </h2>
                   <p className="text-lg text-muted leading-relaxed mb-8">
-                    Wallplace puts your work in front of venues that are
-                    actively looking for art. No exclusivity. Keep selling
-                    through your own channels.
+                    Showcase, get discovered, and sell &mdash; all in one place.
+                    Your Wallplace profile is your portfolio, your storefront,
+                    and your route into the best commercial venues.
                   </p>
 
                   <ul className="space-y-3 mb-10">
-                    <BulletPoint text="Display your art in venues for free, or sell outright" />
+                    <BulletPoint text="Get displayed in cafés, restaurants, hotels, and offices" />
+                    <BulletPoint text="Sell directly online — every QR scan leads to your store" />
                     <BulletPoint text="3–15% platform fee. No gallery taking 50%." />
-                    <BulletPoint text="First month free. First 20 artists get 6 months free." />
                   </ul>
 
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
