@@ -227,7 +227,7 @@ export default function ArtistsPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button href="/apply" size="lg" variant="accent">
-                  Apply to Join
+                  APPLY TO JOIN
                 </Button>
               </div>
             </div>
@@ -373,7 +373,7 @@ export default function ArtistsPage() {
                 ))}
               </ul>
               <Button href="/apply" size="md" variant="secondary">
-                Apply to Join
+                APPLY TO JOIN
               </Button>
             </div>
 
@@ -416,7 +416,7 @@ export default function ArtistsPage() {
                 ))}
               </ul>
               <Button href="/apply" size="md">
-                Apply to Join
+                APPLY TO JOIN
               </Button>
             </div>
 
@@ -456,7 +456,7 @@ export default function ArtistsPage() {
                 ))}
               </ul>
               <Button href="/apply" size="md" variant="secondary">
-                Apply to Join
+                APPLY TO JOIN
               </Button>
             </div>
           </div>
@@ -608,11 +608,11 @@ export default function ArtistsPage() {
             Real commercial spaces actively seeking artwork to display. Enter your postcode to see demand in your area.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a href="/spaces-looking-for-art" className="inline-flex items-center justify-center px-7 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
-              See Venue Demand
+            <a href="/spaces-looking-for-art" className="inline-flex items-center justify-center min-w-[200px] px-7 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
+              SEE VENUE DEMAND
             </a>
-            <a href="/spaces-looking-for-art" className="inline-flex items-center justify-center px-7 py-3.5 border border-border text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-background transition-colors">
-              Search by Postcode
+            <a href="/spaces-looking-for-art" className="inline-flex items-center justify-center min-w-[200px] px-7 py-3.5 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors">
+              SEARCH BY POSTCODE
             </a>
           </div>
         </div>
@@ -626,7 +626,7 @@ export default function ArtistsPage() {
           </h2>
           <div className="mt-8">
             <a href="/apply" className="inline-flex items-center justify-center px-8 py-3.5 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors">
-              Apply to Join
+              APPLY TO JOIN
             </a>
           </div>
           <p className="mt-6 text-sm text-white/40">

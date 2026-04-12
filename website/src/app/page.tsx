@@ -280,7 +280,7 @@ export default function Home() {
                       Discover Art
                     </Link>
                     <Link href="/register-venue" className="inline-flex items-center justify-center px-5 sm:px-7 py-3 sm:py-3.5 border border-border text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-background transition-colors">
-                      Register Your Venue
+                      REGISTER YOUR VENUE
                     </Link>
                   </div>
                 </div>
@@ -346,7 +346,7 @@ export default function Home() {
                       Apply to Join
                     </Link>
                     <Link href="/artists" className="inline-flex items-center justify-center px-5 sm:px-7 py-3 sm:py-3.5 border border-border text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-background transition-colors">
-                      Learn More
+                      LEARN MORE
                     </Link>
                   </div>
                 </div>
@@ -485,15 +485,15 @@ export default function Home() {
                 Ready to get started?
               </h2>
               <p className="text-muted text-lg mb-12 max-w-lg mx-auto">
-                Whether you&rsquo;re looking for art or looking to be discovered.
+                Whether you&rsquo;re looking for art, looking to be discovered, or looking to buy.
               </p>
-              <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto items-stretch">
+              <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto items-stretch">
                 <div className="bg-surface border border-border rounded-sm p-5 sm:p-8 text-center flex flex-col">
                   <p className="text-xs font-medium tracking-[0.2em] uppercase text-accent mb-3">Venues</p>
                   <h3 className="font-serif text-xl mb-3">Source artwork risk-free</h3>
                   <p className="text-sm text-muted mb-6 flex-1">Free to browse and enquire. No contracts.</p>
-                  <Link href="/browse" className="inline-flex items-center justify-center w-full px-6 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
-                    Discover Art
+                  <Link href="/register-venue" className="inline-flex items-center justify-center w-full px-6 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
+                    Register Your Venue
                   </Link>
                 </div>
                 <div className="bg-surface border border-border rounded-sm p-5 sm:p-8 text-center flex flex-col">
@@ -502,6 +502,14 @@ export default function Home() {
                   <p className="text-sm text-muted mb-6 flex-1">First month free. From &pound;9.99/month.</p>
                   <Link href="/apply" className="inline-flex items-center justify-center w-full px-6 py-3.5 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors">
                     Apply to Join
+                  </Link>
+                </div>
+                <div className="bg-surface border border-border rounded-sm p-5 sm:p-8 text-center flex flex-col">
+                  <p className="text-xs font-medium tracking-[0.2em] uppercase text-accent mb-3">Customers</p>
+                  <h3 className="font-serif text-xl mb-3">Buy original artwork</h3>
+                  <p className="text-sm text-muted mb-6 flex-1">Browse and buy directly from independent artists.</p>
+                  <Link href="/signup/customer" className="inline-flex items-center justify-center w-full px-6 py-3.5 border border-border text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-background transition-colors">
+                    Sign Up
                   </Link>
                 </div>
               </div>
