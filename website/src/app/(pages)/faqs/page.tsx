@@ -67,6 +67,11 @@ const artistFaqs = [
     answer:
       "Wallplace is non-exclusive. You are free to sell your work through other channels, galleries, your own website, or any other platform. We only ask that if a piece is currently on display in a venue through Wallplace, you let us know before selling it through another channel so we can arrange a replacement.",
   },
+  {
+    question: "Is my artwork protected from theft?",
+    answer:
+      "Every image on Wallplace is served at reduced resolution with compressed quality \u2014 good enough for browsing, not enough for reproduction. Right-click saving is disabled, and images cannot be dragged or selected. The original high-resolution file never leaves your hands \u2014 we only display a web-optimised version. Our Terms of Service prohibit unauthorised reproduction, and every sale is tracked and attributed to you as the creator.",
+  },
 ];
 
 const venueFaqs = [

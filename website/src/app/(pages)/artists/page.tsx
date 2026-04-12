@@ -194,6 +194,11 @@ const faqItems = [
     answer:
       "You can cancel any time. You'll be responsible for collecting your work from venues you've placed in. No penalties, no hard feelings.",
   },
+  {
+    question: "Is my artwork protected?",
+    answer:
+      "Every image on Wallplace is served at reduced resolution with compressed quality \u2014 good enough for browsing, not enough for reproduction. Right-click saving is disabled, and images cannot be dragged or selected. The original high-resolution file never leaves your hands \u2014 we only display a web-optimised version. Our Terms of Service prohibit unauthorised reproduction, and every sale is tracked and attributed to you as the creator.",
+  },
 ];
 
 export default function ArtistsPage() {
