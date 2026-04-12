@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { geocodePostcode } from "@/lib/geocode";
 import { useAuth } from "@/context/AuthContext";
-import { authFetch } from "@/lib/api-client";
 
 interface DemandVenue {
   slug: string;
@@ -64,11 +63,8 @@ export default function SpacesLookingForArtPage() {
     { label: "All", value: 9999 },
   ];
 
-  const { user, userType } = useAuth();
+  const { user, userType, loading: authLoading, subscriptionStatus, subscriptionPlan } = useAuth();
   const router = useRouter();
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [subscriptionPlan, setSubscriptionPlan] = useState("");
-  const [subLoading, setSubLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/venues/demand")
@@ -78,21 +74,7 @@ export default function SpacesLookingForArtPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Check if artist has active subscription
-  useEffect(() => {
-    if (!user) { setSubLoading(false); return; }
-    if (userType === "venue" || userType === "customer") { setIsSubscribed(true); setSubLoading(false); return; }
-    authFetch("/api/artist-profile")
-      .then((r) => r.json())
-      .then((data) => {
-        const status = data.profile?.subscription_status;
-        if (status === "active" || status === "trialing") setIsSubscribed(true);
-        setSubscriptionPlan(data.profile?.subscription_plan || "core");
-      })
-      .catch(() => {})
-      .finally(() => setSubLoading(false));
-  }, [user, userType]);
-
+  const isSubscribed = subscriptionStatus === "active" || subscriptionStatus === "trialing";
   const canSeeDetails = isSubscribed || userType === "venue" || userType === "customer";
   const canMessageVenues = userType === "venue" || userType === "customer" || subscriptionPlan === "premium" || subscriptionPlan === "pro";
 
@@ -258,7 +240,7 @@ export default function SpacesLookingForArtPage() {
       {/* Venue cards */}
       <section className="py-10 lg:py-14">
         <div className="max-w-[1200px] mx-auto px-6">
-          {loading || subLoading ? (
+          {loading || authLoading ? (
             <p className="text-muted text-sm text-center py-16">Loading venues...</p>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16">
