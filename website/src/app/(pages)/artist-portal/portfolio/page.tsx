@@ -23,10 +23,47 @@ interface WorkFormState {
   orientation: "portrait" | "landscape" | "square";
   sizes: SizeEntry[];
   shippingPrice: string;
+  detectedRatio: number | null;
+}
+
+// Standard print sizes in inches [width, height] — always width <= height
+const STANDARD_SIZES: [number, number, string][] = [
+  [6, 4, 'A6'],
+  [7, 5, '7×5"'],
+  [8, 6, '8×6"'],
+  [10, 8, 'A4'],
+  [12, 8, '12×8"'],
+  [14, 11, 'A3'],
+  [16, 12, '16×12"'],
+  [20, 16, 'A2'],
+  [24, 16, '24×16"'],
+  [24, 18, '24×18"'],
+  [30, 20, 'A1'],
+  [36, 24, '36×24"'],
+  [40, 30, 'A0'],
+];
+
+/** Given an aspect ratio (w/h), return standard sizes that closely match */
+function getSuggestedSizes(ratio: number): SizeEntry[] {
+  const isLandscape = ratio >= 1;
+  const normalRatio = isLandscape ? ratio : 1 / ratio;
+
+  return STANDARD_SIZES
+    .map(([w, h, name]) => {
+      const sizeRatio = Math.max(w, h) / Math.min(w, h);
+      const diff = Math.abs(sizeRatio - normalRatio);
+      const wDisplay = isLandscape ? Math.max(w, h) : Math.min(w, h);
+      const hDisplay = isLandscape ? Math.min(w, h) : Math.max(w, h);
+      return { label: `${wDisplay}×${hDisplay}" (${name})`, price: 0, diff };
+    })
+    .filter((s) => s.diff < 0.3) // Within 30% aspect ratio tolerance
+    .sort((a, b) => a.diff - b.diff)
+    .slice(0, 5)
+    .map(({ label, price }) => ({ label, price }));
 }
 
 const defaultSizes: SizeEntry[] = [
-  { label: '8\u00d710" (A4)', price: 0 },
+  { label: '10×8" (A4)', price: 0 },
 ];
 
 const emptyWork: WorkFormState = {
@@ -38,6 +75,7 @@ const emptyWork: WorkFormState = {
   orientation: "landscape",
   sizes: [...defaultSizes],
   shippingPrice: "",
+  detectedRatio: null,
 };
 
 const statusColors: Record<string, string> = {
@@ -134,17 +172,53 @@ export default function PortfolioPage() {
       orientation: w.orientation || "landscape",
       sizes: w.pricing.map((p) => ({ label: p.label, price: p.price })),
       shippingPrice: w.shippingPrice != null ? String(w.shippingPrice) : "",
+      detectedRatio: null,
     });
     setEditingIndex(index);
     setShowForm(true);
+
+    // Detect ratio from existing image for size suggestions
+    if (w.image) {
+      const img = new window.Image();
+      img.onload = () => {
+        const ratio = img.naturalWidth / img.naturalHeight;
+        setForm((p) => ({ ...p, detectedRatio: ratio }));
+      };
+      img.src = w.image;
+    }
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+
+    // Detect image dimensions before upload
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
+    await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
+    const ratio = img.naturalWidth / img.naturalHeight;
+    URL.revokeObjectURL(objectUrl);
+
+    // Auto-detect orientation
+    const orientation: "landscape" | "portrait" | "square" =
+      ratio > 1.05 ? "landscape" : ratio < 0.95 ? "portrait" : "square";
+
+    // Generate suggested sizes matching this ratio
+    const suggested = getSuggestedSizes(ratio);
+    const sizesToUse = suggested.length > 0 ? suggested : [{ label: '10×8" (A4)', price: 0 }];
+
     const url = await uploadImage(file, "artworks");
-    setForm((p) => ({ ...p, imagePreview: url }));
+    setForm((p) => ({
+      ...p,
+      imagePreview: url,
+      orientation,
+      detectedRatio: ratio,
+      dimensions: `${img.naturalWidth} × ${img.naturalHeight} px`,
+      // Only auto-set sizes if user hasn't already entered prices
+      sizes: p.sizes.some((s) => s.price > 0) ? p.sizes : sizesToUse,
+    }));
     setUploading(false);
   }
 
@@ -397,9 +471,43 @@ export default function PortfolioPage() {
                   onClick={addSize}
                   className="text-xs text-accent hover:text-accent-hover transition-colors"
                 >
-                  + Add size
+                  + Add custom size
                 </button>
               </div>
+
+              {/* Quick-add standard sizes */}
+              {form.detectedRatio && (
+                <div className="mb-3">
+                  <p className="text-[10px] text-muted mb-2">
+                    Suggested sizes for your image ({form.orientation}, {form.detectedRatio.toFixed(2)} ratio):
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {getSuggestedSizes(form.detectedRatio).map((s) => {
+                      const alreadyAdded = form.sizes.some((existing) => existing.label === s.label);
+                      return (
+                        <button
+                          key={s.label}
+                          type="button"
+                          disabled={alreadyAdded}
+                          onClick={() => {
+                            if (!alreadyAdded) {
+                              setForm((p) => ({ ...p, sizes: [...p.sizes, { label: s.label, price: 0 }] }));
+                            }
+                          }}
+                          className={`px-2.5 py-1 text-[11px] rounded-sm border transition-colors ${
+                            alreadyAdded
+                              ? "bg-accent/10 border-accent/30 text-accent cursor-default"
+                              : "border-border text-muted hover:border-accent hover:text-accent cursor-pointer"
+                          }`}
+                        >
+                          {alreadyAdded ? "✓ " : "+ "}{s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 {form.sizes.map((size, i) => (
                   <div key={i} className="flex items-center gap-3">
@@ -433,7 +541,7 @@ export default function PortfolioPage() {
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] text-muted mt-2">Add each size you offer with its price. Venues and buyers will choose from these options.</p>
+              <p className="text-[10px] text-muted mt-2">Set a price for each size. You can type custom sizes or use the suggestions above.</p>
             </div>
 
             {/* Shipping price */}
