@@ -262,7 +262,7 @@ export default function Home() {
                     For Venues
                   </p>
                   <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground mb-6 leading-tight">
-                    Art for your space. Zero risk.
+                    Earn from your empty walls. Zero risk.
                   </h2>
                   <p className="text-lg text-muted leading-relaxed mb-8">
                     Browse curated portfolios and source original artwork for
@@ -327,7 +327,7 @@ export default function Home() {
                     For Artists
                   </p>
                   <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground mb-6 leading-tight">
-                    Get discovered by commercial spaces
+                    Your art, in the spaces people love
                   </h2>
                   <p className="text-lg text-muted leading-relaxed mb-8">
                     Wallplace puts your work in front of venues that are
