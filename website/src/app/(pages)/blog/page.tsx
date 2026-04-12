@@ -12,7 +12,7 @@ export default function BlogPage() {
   return (
     <div className="bg-background">
       {/* Hero */}
-      <section className="relative py-16 lg:py-20 overflow-hidden">
+      <section className="relative -mt-14 lg:-mt-16 min-h-[50vh] lg:min-h-[60vh] flex items-center overflow-hidden">
         <div className="absolute inset-0 -z-10">
           <Image
             src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1920&h=600&fit=crop&crop=center"
