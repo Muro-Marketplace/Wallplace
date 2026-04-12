@@ -547,6 +547,9 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                 {selectedConvData?.otherPartyType === "artist" && (
                   <Link href={`/browse/${selectedConvData.otherParty}`} className="text-xs text-accent hover:text-accent-hover transition-colors">View Portfolio</Link>
                 )}
+                {selectedConvData?.otherPartyType === "venue" && (
+                  <Link href="/spaces-looking-for-art" className="text-xs text-accent hover:text-accent-hover transition-colors">View Spaces</Link>
+                )}
                 <button onClick={() => { setShowPlacementForm(!showPlacementForm); if (!showPlacementForm) loadOtherPartyWorks(); }} className={`text-xs px-2.5 py-1.5 rounded-sm border transition-colors ${showPlacementForm ? "bg-accent text-white border-accent" : "text-accent border-accent/30 hover:bg-accent/5"}`}>
                   Request Placement
                 </button>

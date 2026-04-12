@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from "@/lib/api-auth";
 import { messageSchema } from "@/lib/validations";
 import { notifyNewMessage, notifyPlacementRequest, notifyPlacementResponse } from "@/lib/email";
 import { artists as staticArtists } from "@/data/artists";
+import { venues as staticVenues } from "@/data/venues";
 
 // GET: fetch conversations for the authenticated user, enriched with profile data
 export async function GET(request: Request) {
@@ -109,12 +110,17 @@ export async function GET(request: Request) {
         profileMap.set(vp.slug, { displayName: vp.name, image: vp.image || null, type: "venue" });
       }
     }
-    // Fallback to static artists for seed/demo data
+    // Fallback to static data for seed/demo profiles
     for (const slug of otherPartySlugs) {
       if (!profileMap.has(slug)) {
         const staticArtist = staticArtists.find((a) => a.slug === slug);
         if (staticArtist) {
           profileMap.set(slug, { displayName: staticArtist.name, image: staticArtist.image || null, type: "artist" });
+        } else {
+          const staticVenue = staticVenues.find((v) => v.slug === slug);
+          if (staticVenue) {
+            profileMap.set(slug, { displayName: staticVenue.name, image: staticVenue.image || null, type: "venue" });
+          }
         }
       }
     }
