@@ -797,10 +797,10 @@ export default function BrowsePortfoliosPage() {
                   <div className="flex items-center gap-2">
                     {/* Portfolio/Gallery toggle */}
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                      <button type="button" onClick={() => setViewAs("artists")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}>
+                      <button type="button" onClick={() => setViewAs("artists")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => setViewAs("works")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}>
+                      <button type="button" onClick={() => setViewAs("works")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
                         Gallery
                       </button>
                     </div>
@@ -1138,10 +1138,10 @@ export default function BrowsePortfoliosPage() {
                   <div className="flex items-center gap-2">
                     {/* Portfolio/Gallery toggle */}
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                      <button type="button" onClick={() => setViewAs("artists")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}>
+                      <button type="button" onClick={() => setViewAs("artists")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => setViewAs("works")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}>
+                      <button type="button" onClick={() => setViewAs("works")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
                         Gallery
                       </button>
                     </div>
