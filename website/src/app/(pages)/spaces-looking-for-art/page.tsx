@@ -93,7 +93,7 @@ export default function SpacesLookingForArtPage() {
       .finally(() => setSubLoading(false));
   }, [user, userType]);
 
-  const canSeeDetails = subLoading || isSubscribed || userType === "venue" || userType === "customer";
+  const canSeeDetails = isSubscribed || userType === "venue" || userType === "customer";
   const canMessageVenues = userType === "venue" || userType === "customer" || subscriptionPlan === "premium" || subscriptionPlan === "pro";
 
   async function handlePostcodeSearch() {
@@ -258,7 +258,7 @@ export default function SpacesLookingForArtPage() {
       {/* Venue cards */}
       <section className="py-10 lg:py-14">
         <div className="max-w-[1200px] mx-auto px-6">
-          {loading ? (
+          {loading || subLoading ? (
             <p className="text-muted text-sm text-center py-16">Loading venues...</p>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16">
@@ -267,7 +267,7 @@ export default function SpacesLookingForArtPage() {
             </div>
           ) : (
             <>
-            {!subLoading && !canSeeDetails && filtered.length >= 1 && (
+            {!canSeeDetails && filtered.length >= 1 && (
               <div className="bg-accent/5 border border-accent/20 rounded-sm p-6 mb-8 text-center">
                 <p className="text-sm font-medium text-foreground mb-1">Subscribe to see full venue details</p>
                 <p className="text-xs text-muted mb-4">Get venue names, contact details, and connect directly. Plans from £9.99/month.</p>
