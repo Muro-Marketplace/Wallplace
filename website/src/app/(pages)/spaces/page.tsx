@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { venues } from "@/data/venues";
 import Button from "@/components/Button";
+import { useAuth } from "@/context/AuthContext";
 
 const venueTypes = Array.from(new Set(venues.map((v) => v.type))).sort();
 const venueLocations = Array.from(new Set(venues.map((v) => v.location))).sort();
@@ -25,6 +27,8 @@ function DealBadge({
 }
 
 export default function SpacesPage() {
+  const { user, userType } = useAuth();
+  const router = useRouter();
   const [typeFilter, setTypeFilter] = useState("All");
   const [locationFilter, setLocationFilter] = useState("All");
 
@@ -219,9 +223,24 @@ export default function SpacesPage() {
                         {venue.description}
                       </p>
 
-                      <p className="text-xs text-accent mt-3 group-hover:underline underline-offset-2 transition-all duration-150">
-                        View venue &rarr;
-                      </p>
+                      <div className="flex items-center gap-2 mt-3">
+                        {user && (userType === "artist" || userType === "venue") && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const portalBase = userType === "artist" ? "/artist-portal" : "/venue-portal";
+                              router.push(`${portalBase}/messages?artist=${venue.slug}&artistName=${encodeURIComponent(venue.name)}`);
+                            }}
+                            className="px-3 py-1.5 text-xs font-medium border border-border rounded-sm text-foreground hover:border-accent hover:text-accent transition-colors"
+                          >
+                            Message
+                          </button>
+                        )}
+                        <span className="text-xs text-accent group-hover:underline underline-offset-2 transition-all duration-150">
+                          View venue &rarr;
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </Link>

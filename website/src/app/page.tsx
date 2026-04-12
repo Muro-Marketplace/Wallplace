@@ -23,6 +23,7 @@ const navLinks = [
   { label: "For Venues", href: "/venues" },
   { label: "For Artists", href: "/artists" },
   { label: "Blog", href: "/blog" },
+  { label: "Spaces", href: "/spaces" },
   { label: "Waitlist", href: "/waitlist" },
 ];
 

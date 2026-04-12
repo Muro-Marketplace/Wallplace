@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { geocodePostcode } from "@/lib/geocode";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
@@ -56,6 +57,7 @@ export default function SpacesLookingForArtPage() {
   const [filterArrangement, setFilterArrangement] = useState<"all" | "display" | "revenue" | "purchase">("all");
 
   const { user, userType } = useAuth();
+  const router = useRouter();
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
@@ -299,8 +301,20 @@ export default function SpacesLookingForArtPage() {
                       {venue.approximateFootfall && <><span className="w-0.5 h-0.5 rounded-full bg-muted" /><span>{venue.approximateFootfall}</span></>}
                     </div>
 
-                    {/* Lock overlay for non-subscribers */}
-                    {!canSeeDetails && (
+                    {/* Message button for subscribers / Lock for non-subscribers */}
+                    {canSeeDetails ? (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <button
+                          onClick={() => {
+                            const portalBase = userType === "artist" ? "/artist-portal" : "/venue-portal";
+                            router.push(`${portalBase}/messages?artist=${venue.slug}&artistName=${encodeURIComponent(venue.name)}`);
+                          }}
+                          className="text-xs font-medium text-accent hover:text-accent-hover transition-colors"
+                        >
+                          Message this venue &rarr;
+                        </button>
+                      </div>
+                    ) : (
                       <div className="mt-3 pt-3 border-t border-border">
                         <Link href="/pricing" className="flex items-center gap-2 text-xs text-accent hover:text-accent-hover transition-colors">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
