@@ -38,10 +38,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    // Validate the user is the buyer or a venue associated with this order
-    let requesterType: "buyer" | "venue";
+    // Validate the user is the buyer, venue, or the artist who owns this order
+    let requesterType: "buyer" | "venue" | "artist";
 
     const isBuyer = order.buyer_email === userEmail;
+    const isArtist = order.artist_user_id === userId;
 
     const { data: venueProfile } = await db
       .from("venue_profiles")
@@ -51,7 +52,9 @@ export async function POST(request: Request) {
 
     const isVenue = venueProfile && order.venue_slug === venueProfile.slug;
 
-    if (isBuyer) {
+    if (isArtist) {
+      requesterType = "artist";
+    } else if (isBuyer) {
       requesterType = "buyer";
     } else if (isVenue) {
       requesterType = "venue";
