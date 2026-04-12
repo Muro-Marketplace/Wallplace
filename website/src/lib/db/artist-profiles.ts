@@ -56,6 +56,7 @@ export interface DbArtistWork {
   image: string;
   orientation: string;
   sort_order: number;
+  shipping_price?: number | null;
 }
 
 /** Convert a DB profile row + works to the Artist shape used everywhere in the app */
