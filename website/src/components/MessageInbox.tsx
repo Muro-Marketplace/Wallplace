@@ -671,10 +671,10 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                         {(() => {
                           // Check if this placement request has already been responded to
                           const placementId = meta.placementId;
-                          const hasResponse = threadMessages.some(
+                          const hasResponse = messages.some(
                             (m) => m.message_type === "placement_response" && m.metadata?.placementId === placementId
                           );
-                          const responseMsg = threadMessages.find(
+                          const responseMsg = messages.find(
                             (m) => m.message_type === "placement_response" && m.metadata?.placementId === placementId
                           );
                           if (hasResponse && responseMsg) {
