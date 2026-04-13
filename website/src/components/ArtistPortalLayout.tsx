@@ -11,6 +11,7 @@ const navItems = [
   { label: "Edit Profile", href: "/artist-portal/profile" },
   { label: "My Portfolio", href: "/artist-portal/portfolio" },
   { label: "Collections", href: "/artist-portal/collections" },
+  { label: "Saved", href: "/artist-portal/saved" },
   { label: "QR Labels", href: "/artist-portal/labels" },
   { label: "Placements", href: "/artist-portal/placements" },
   { label: "Orders", href: "/artist-portal/orders" },
