@@ -52,31 +52,19 @@ export async function POST(request: Request) {
 
     const hasActiveSubscription = profile.subscription_status === "active" || profile.subscription_status === "trialing";
 
-    // If already subscribed, cancel existing and create new checkout for the new plan
+    // If already subscribed, store existing subscription ID so we can cancel it AFTER checkout completes
+    let existingSubscriptionId: string | null = null;
     if (hasActiveSubscription && customerId) {
       try {
-        const subscriptions = await stripe.subscriptions.list({
-          customer: customerId,
-          status: "active",
-          limit: 1,
-        });
+        const subscriptions = await stripe.subscriptions.list({ customer: customerId, status: "active", limit: 1 });
         let existing = subscriptions.data[0];
         if (!existing) {
-          const trialingSubs = await stripe.subscriptions.list({
-            customer: customerId,
-            status: "trialing",
-            limit: 1,
-          });
+          const trialingSubs = await stripe.subscriptions.list({ customer: customerId, status: "trialing", limit: 1 });
           existing = trialingSubs.data[0];
         }
-
-        // Cancel existing subscription at period end so new one takes over
-        if (existing) {
-          await stripe.subscriptions.cancel(existing.id, { prorate: true });
-        }
-      } catch (cancelErr) {
-        console.error("Cancel existing subscription error:", cancelErr);
-        // Continue anyway — create the new checkout
+        if (existing) existingSubscriptionId = existing.id;
+      } catch (err) {
+        console.error("List subscriptions error:", err);
       }
     }
 
@@ -92,11 +80,11 @@ export async function POST(request: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
         ...(trialDays > 0 ? { trial_period_days: trialDays } : {}),
-        metadata: { plan, artist_profile_id: profile.id },
+        metadata: { plan, artist_profile_id: profile.id, cancel_previous: existingSubscriptionId || "" },
       },
       success_url: `${siteUrl}/artist-portal/billing?subscribed=true`,
       cancel_url: `${siteUrl}/artist-portal/billing`,
-      metadata: { plan, artist_profile_id: profile.id },
+      metadata: { plan, artist_profile_id: profile.id, cancel_previous: existingSubscriptionId || "" },
     };
     const session = await stripe.checkout.sessions.create(sessionParams as Parameters<typeof stripe.checkout.sessions.create>[0]);
 

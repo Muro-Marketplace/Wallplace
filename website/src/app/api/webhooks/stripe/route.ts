@@ -247,6 +247,18 @@ export async function POST(request: Request) {
       })
       .eq("stripe_customer_id", customerId);
 
+    // If this was an upgrade, cancel the previous subscription now that the new one is active
+    if (event.type === "customer.subscription.created") {
+      const cancelPrevious = subscription.metadata?.cancel_previous;
+      if (cancelPrevious && cancelPrevious !== subscription.id) {
+        try {
+          await stripe.subscriptions.cancel(cancelPrevious, { prorate: true });
+        } catch (cancelErr) {
+          console.error("Cancel previous subscription error:", cancelErr);
+        }
+      }
+    }
+
     if (error) console.error("Subscription update error:", error);
   }
 
