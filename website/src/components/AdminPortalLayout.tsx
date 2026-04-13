@@ -10,7 +10,6 @@ const navItems = [
   { label: "Applications", href: "/admin/applications" },
   { label: "Artists", href: "/admin/artists" },
   { label: "Venues", href: "/admin/venues" },
-  { label: "Messages", href: "/admin/messages" },
 ];
 
 const secondaryItems = [
