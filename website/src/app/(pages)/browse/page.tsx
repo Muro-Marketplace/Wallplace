@@ -1116,17 +1116,18 @@ export default function BrowsePortfoliosPage() {
                     </select>
                   </div>
 
-                  {/* Commercial Terms */}
+                  {/* Arrangement */}
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Commercial Terms</p>
-                    <div className="space-y-2.5">
-                      <CheckPill checked={galleryFreeLoan} onChange={setGalleryFreeLoan} label="Display" />
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-muted">Min Revenue Share</span>
-                        <input type="number" min={0} max={50} value={galleryRevenueShareMin === 0 ? "" : galleryRevenueShareMin} onChange={(e) => setGalleryRevenueShareMin(e.target.value === "" ? 0 : Number(e.target.value))} placeholder="e.g. 10" className="w-16 px-2 py-1 bg-surface border border-border rounded-sm text-xs text-foreground text-center focus:outline-none focus:border-accent/50" />
-                        <span className="text-xs text-muted">%</span>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Arrangement</p>
+                    <div className="space-y-3">
+                      <div>
+                        <CheckPill checked={galleryFreeLoan} onChange={setGalleryFreeLoan} label="Display" />
+                        <p className="text-[10px] text-muted mt-1 ml-0.5">Free loan or revenue share</p>
                       </div>
-                      <CheckPill checked={galleryPurchase} onChange={setGalleryPurchase} label="Purchase" />
+                      <div>
+                        <CheckPill checked={galleryPurchase} onChange={setGalleryPurchase} label="Purchase" />
+                        <p className="text-[10px] text-muted mt-1 ml-0.5">Buy artwork outright</p>
+                      </div>
                     </div>
                   </div>
 
@@ -1210,10 +1211,16 @@ export default function BrowsePortfoliosPage() {
                       </select>
                     </div>
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Commercial Terms</p>
-                      <div className="space-y-1.5">
-                        <CheckPill checked={galleryFreeLoan} onChange={setGalleryFreeLoan} label="Display" />
-                        <CheckPill checked={galleryPurchase} onChange={setGalleryPurchase} label="Purchase" />
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Arrangement</p>
+                      <div className="space-y-2">
+                        <div>
+                          <CheckPill checked={galleryFreeLoan} onChange={setGalleryFreeLoan} label="Display" />
+                          <p className="text-[10px] text-muted mt-0.5 ml-0.5">Free loan or revenue share</p>
+                        </div>
+                        <div>
+                          <CheckPill checked={galleryPurchase} onChange={setGalleryPurchase} label="Purchase" />
+                          <p className="text-[10px] text-muted mt-0.5 ml-0.5">Buy artwork outright</p>
+                        </div>
                       </div>
                     </div>
                     <div>
