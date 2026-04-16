@@ -1098,24 +1098,6 @@ export default function BrowsePortfoliosPage() {
                     )}
                   </div>
 
-                  {/* Style */}
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Style</p>
-                    <select value={galleryStyle} onChange={(e) => setGalleryStyle(e.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer">
-                      <option value="">All styles</option>
-                      {allMediums.map((m) => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                  </div>
-
-                  {/* Theme */}
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Theme</p>
-                    <select value={galleryTheme} onChange={(e) => setGalleryTheme(e.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer">
-                      <option value="">All themes</option>
-                      {themes.map((t) => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-
                   {/* Arrangement */}
                   <div>
                     <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Arrangement</p>
@@ -1166,6 +1148,24 @@ export default function BrowsePortfoliosPage() {
                         </div>
                       </button>
                     </div>
+                  </div>
+
+                  {/* Style */}
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Style</p>
+                    <select value={galleryStyle} onChange={(e) => setGalleryStyle(e.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer">
+                      <option value="">All styles</option>
+                      {allMediums.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Theme */}
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Theme</p>
+                    <select value={galleryTheme} onChange={(e) => setGalleryTheme(e.target.value)} className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer">
+                      <option value="">All themes</option>
+                      {themes.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
                   </div>
 
                   {/* Availability */}
@@ -1234,20 +1234,6 @@ export default function BrowsePortfoliosPage() {
                       <button type="button" onClick={() => setSidebarOpen(false)} className="text-xs text-muted hover:text-foreground cursor-pointer">Close</button>
                     </div>
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Style</p>
-                      <select value={galleryStyle} onChange={(e) => setGalleryStyle(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm">
-                        <option value="">All styles</option>
-                        {allMediums.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Theme</p>
-                      <select value={galleryTheme} onChange={(e) => setGalleryTheme(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm">
-                        <option value="">All themes</option>
-                        {themes.map((t) => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </div>
-                    <div>
                       <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Arrangement</p>
                       <div className="space-y-2">
                         <button
@@ -1296,6 +1282,20 @@ export default function BrowsePortfoliosPage() {
                           </div>
                         </button>
                       </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Style</p>
+                      <select value={galleryStyle} onChange={(e) => setGalleryStyle(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm">
+                        <option value="">All styles</option>
+                        {allMediums.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Theme</p>
+                      <select value={galleryTheme} onChange={(e) => setGalleryTheme(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm">
+                        <option value="">All themes</option>
+                        {themes.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
                     </div>
                     <div>
                       <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Availability</p>
