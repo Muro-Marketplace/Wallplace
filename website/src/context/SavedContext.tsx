@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import { authFetch } from "@/lib/api-client";
 import type { SavedItem } from "@/lib/types";
 
@@ -19,6 +20,7 @@ const SavedContext = createContext<SavedContextValue | null>(null);
 
 export function SavedProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
   const hasMounted = useRef(false);
   const hasSynced = useRef(false);
@@ -108,6 +110,7 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
     (type: "work" | "collection" | "artist", id: string) => {
       const exists = savedItems.find((s) => s.type === type && s.id === id);
 
+      const label = type === "collection" ? "Collection" : type === "artist" ? "Artist" : "Work";
       if (exists) {
         // Remove
         setSavedItems((prev) => prev.filter((s) => !(s.type === type && s.id === id)));
@@ -117,6 +120,7 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({ itemType: type, itemId: id }),
           }).catch(() => {});
         }
+        showToast(`${label} removed from favourites`);
       } else {
         // Add
         setSavedItems((prev) => [...prev, { type, id, savedAt: new Date().toISOString() }]);
@@ -126,9 +130,10 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({ itemType: type, itemId: id }),
           }).catch(() => {});
         }
+        showToast(`${label} added to favourites`);
       }
     },
-    [savedItems, user]
+    [savedItems, user, showToast]
   );
 
   const isSaved = useCallback(

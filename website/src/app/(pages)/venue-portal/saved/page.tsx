@@ -8,7 +8,7 @@ import { useSaved } from "@/context/SavedContext";
 import { artists } from "@/data/artists";
 import { getGalleryWorks } from "@/data/galleries";
 
-type Tab = "artists" | "works";
+type Tab = "artists" | "works" | "collections";
 
 export default function SavedPage() {
   const [activeTab, setActiveTab] = useState<Tab>("works");
@@ -46,7 +46,7 @@ export default function SavedPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-8 border-b border-border">
-        {(["works", "artists"] as Tab[]).map((tab) => (
+        {(["works", "artists", "collections"] as Tab[]).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -57,9 +57,9 @@ export default function SavedPage() {
                 : "border-transparent text-muted hover:text-foreground"
             }`}
           >
-            {tab === "artists" ? "Artists" : "Saved Works"}
+            {tab === "artists" ? "Artists" : tab === "collections" ? "Collections" : "Saved Works"}
             <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-background border border-border rounded-full text-muted">
-              {tab === "artists" ? savedArtistSlugs.length : savedWorks.length}
+              {tab === "artists" ? savedArtistSlugs.length : tab === "collections" ? savedItems.filter((s) => s.type === "collection").length : savedWorks.length}
             </span>
           </button>
         ))}
@@ -170,6 +170,47 @@ export default function SavedPage() {
           )}
         </>
       )}
+
+      {/* Collections tab */}
+      {activeTab === "collections" && (() => {
+        const savedCollections = savedItems.filter((s) => s.type === "collection");
+        return savedCollections.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-muted mb-4">No saved collections yet.</p>
+            <p className="text-xs text-muted mb-4">Browse collections and tap the heart icon to save them.</p>
+            <Link href="/browse" className="text-sm text-accent hover:underline">
+              Browse Collections
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {savedCollections.map((item) => (
+              <div key={item.id} className="bg-white border border-border rounded-sm p-4 sm:p-5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded bg-accent/10 shrink-0 flex items-center justify-center">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-accent"><rect x="2" y="7" width="20" height="14" rx="2" strokeWidth="1.5" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" strokeWidth="1.5" /></svg>
+                  </div>
+                  <div className="min-w-0">
+                    <Link href="/browse#collections" className="text-sm font-medium text-foreground hover:text-accent transition-colors truncate block">
+                      {item.id.includes(" ") ? item.id : item.id.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                    </Link>
+                    <p className="text-xs text-muted mt-0.5">
+                      Saved {new Date(item.savedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleSaved("collection", item.id)}
+                  className="text-xs text-muted hover:text-red-600 transition-colors shrink-0"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
     </VenuePortalLayout>
   );
 }

@@ -33,6 +33,12 @@ function linkForItem(type: ItemType, itemId: string): string {
   }
 }
 
+function formatName(raw: string): string {
+  if (!raw) return "";
+  if (raw.includes(" ")) return raw;
+  return raw.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
 export default function CustomerSavedPage() {
   const [items, setItems] = useState<SavedItemRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,26 +119,37 @@ export default function CustomerSavedPage() {
               key={item.id}
               className="bg-surface border border-border rounded-sm p-4 sm:p-5 flex items-center justify-between gap-4"
             >
-              <div>
-                <Link
-                  href={linkForItem(item.item_type, item.item_id)}
-                  className="text-sm font-medium text-foreground hover:text-accent transition-colors"
-                >
-                  {item.item_id}
-                </Link>
-                <p className="text-xs text-muted mt-0.5">
-                  Saved{" "}
-                  {new Date(item.created_at).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </p>
+              <div className="flex items-center gap-3 min-w-0">
+                {item.item_type === "collection" ? (
+                  <div className="w-10 h-10 rounded bg-accent/10 shrink-0 flex items-center justify-center">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-accent"><rect x="2" y="7" width="20" height="14" rx="2" strokeWidth="1.5" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" strokeWidth="1.5" /></svg>
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded bg-border/20 shrink-0 flex items-center justify-center">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-muted"><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="1.5" /><circle cx="8.5" cy="8.5" r="1.5" strokeWidth="1.5" /><path d="m21 15-5-5L5 21" strokeWidth="1.5" /></svg>
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <Link
+                    href={linkForItem(item.item_type, item.item_id)}
+                    className="text-sm font-medium text-foreground hover:text-accent transition-colors truncate block"
+                  >
+                    {formatName(item.item_id)}
+                  </Link>
+                  <p className="text-xs text-muted mt-0.5">
+                    Saved{" "}
+                    {new Date(item.created_at).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => handleRemove(item)}
                 disabled={removing === item.id}
-                className="text-xs text-muted hover:text-red-600 transition-colors disabled:opacity-50"
+                className="text-xs text-muted hover:text-red-600 transition-colors disabled:opacity-50 shrink-0"
               >
                 {removing === item.id ? "Removing..." : "Remove"}
               </button>
