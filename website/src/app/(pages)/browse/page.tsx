@@ -131,6 +131,8 @@ export default function BrowsePortfoliosPage() {
   const [activeCategory, setActiveCategory] = useState<string>(initialMode);
   const [activeSubcategories, setActiveSubcategories] = useState<Set<string>>(new Set());
   const [viewAs, setViewAs] = useState<"artists" | "works">("artists");
+  const [artistSort, setArtistSort] = useState<"name" | "revenue_share">("name");
+  const [gallerySort, setGallerySort] = useState<"az" | "price_low" | "price_high" | "revenue_share">("az");
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [artists, setArtists] = useState<Artist[]>(staticArtists);
 
@@ -309,8 +311,11 @@ export default function BrowsePortfoliosPage() {
       )
         return false;
       return true;
+    }).sort((a, b) => {
+      if (artistSort === "revenue_share") return (b.revenueSharePercent || 0) - (a.revenueSharePercent || 0);
+      return a.name.localeCompare(b.name);
     });
-  }, [artists, filters, userCoords, activeCategoryObj, activeSubcategories]);
+  }, [artists, filters, userCoords, activeCategoryObj, activeSubcategories, artistSort]);
 
   const allMediums = useMemo(
     () => Array.from(new Set(artists.map((a) => a.primaryMedium))).sort(),
@@ -368,8 +373,21 @@ export default function BrowsePortfoliosPage() {
         if (dist > filters.maxDistance) return false;
       }
       return true;
+    }).sort((a, b) => {
+      if (gallerySort === "price_low") {
+        const aPrice = a.pricing[0]?.price ?? 0;
+        const bPrice = b.pricing[0]?.price ?? 0;
+        return aPrice - bPrice;
+      }
+      if (gallerySort === "price_high") {
+        const aPrice = a.pricing[0]?.price ?? 0;
+        const bPrice = b.pricing[0]?.price ?? 0;
+        return bPrice - aPrice;
+      }
+      if (gallerySort === "revenue_share") return (b.revenueSharePercent || 0) - (a.revenueSharePercent || 0);
+      return a.title.localeCompare(b.title);
     });
-  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.maxDistance, activeCategoryObj, activeSubcategories]);
+  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.maxDistance, activeCategoryObj, activeSubcategories, gallerySort]);
 
   const hasGalleryFilters =
     !!galleryTheme || !!galleryMedium || !!galleryStyle || galleryAvailableOnly || galleryPriceMin > 0 || galleryPriceMax < 1000 || galleryOriginals || galleryPrints || galleryFraming || galleryFreeLoan || galleryRevenueShare || galleryPurchase || galleryLocationMode === "local";
@@ -897,6 +915,15 @@ export default function BrowsePortfoliosPage() {
                         <rect x="0" y="10" width="14" height="4" rx="0.5" />
                       </svg>
                     </button>
+                    {/* Sort */}
+                    <select
+                      value={artistSort}
+                      onChange={(e) => setArtistSort(e.target.value as typeof artistSort)}
+                      className="px-2.5 py-1.5 text-xs border border-border rounded-sm bg-background text-foreground cursor-pointer focus:outline-none focus:border-accent/50"
+                    >
+                      <option value="name">Sort: A-Z</option>
+                      <option value="revenue_share">Sort: Revenue Share %</option>
+                    </select>
                   </div>
                 </div>
 
@@ -1216,13 +1243,25 @@ export default function BrowsePortfoliosPage() {
                       {filteredGalleryWorks.length} work{filteredGalleryWorks.length !== 1 ? "s" : ""}
                     </p>
                   </div>
-                  <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                    <button type="button" onClick={() => setViewAs("artists")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
-                      Portfolios
-                    </button>
-                    <button type="button" onClick={() => setViewAs("works")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
-                      Gallery
-                    </button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5 mr-1">
+                      <button type="button" onClick={() => setViewAs("artists")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                        Portfolios
+                      </button>
+                      <button type="button" onClick={() => setViewAs("works")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                        Gallery
+                      </button>
+                    </div>
+                    <select
+                      value={gallerySort}
+                      onChange={(e) => setGallerySort(e.target.value as typeof gallerySort)}
+                      className="px-2.5 py-1.5 text-xs border border-border rounded-sm bg-background text-foreground cursor-pointer focus:outline-none focus:border-accent/50"
+                    >
+                      <option value="az">Sort: A-Z</option>
+                      <option value="price_low">Sort: Price (low to high)</option>
+                      <option value="price_high">Sort: Price (high to low)</option>
+                      <option value="revenue_share">Sort: Revenue Share %</option>
+                    </select>
                   </div>
                 </div>
 

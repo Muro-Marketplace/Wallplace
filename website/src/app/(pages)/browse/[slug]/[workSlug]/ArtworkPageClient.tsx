@@ -6,7 +6,6 @@ import type { ArtistWork } from "@/data/artists";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import SaveButton from "@/components/SaveButton";
-import MessageArtistButton from "@/components/MessageArtistButton";
 import { useToast } from "@/context/ToastContext";
 
 interface ArtworkPageClientProps {
@@ -57,8 +56,8 @@ export default function ArtworkPageClient({
           </div>
         </div>
 
-        {/* Availability */}
-        <div className="mb-5">
+        {/* Availability + Save */}
+        <div className="flex items-center justify-between mb-5">
           {work.available ? (
             <span className="inline-flex items-center gap-1.5 text-sm text-accent">
               <span className="w-2 h-2 rounded-full bg-accent" />
@@ -70,6 +69,7 @@ export default function ArtworkPageClient({
               Sold
             </span>
           )}
+          <SaveButton type="work" itemId={work.id} size="sm" />
         </div>
 
         {/* Size & Price dropdown */}
@@ -196,15 +196,23 @@ export default function ArtworkPageClient({
             Buy Original (In Store) – £{work.inStorePrice}
           </button>
         )}
-        <div className="flex gap-2">
-          <MessageArtistButton
-            artistSlug={artistSlug}
-            artistName={artistName}
-            variant="accent"
-            size="md"
-          />
-          <SaveButton type="work" itemId={work.id} size="md" />
-        </div>
+        <button
+          onClick={() => {
+            const nameParam = artistName ? `&artistName=${encodeURIComponent(artistName)}` : "";
+            if (user && userType === "venue") {
+              router.push(`/venue-portal/messages?artist=${artistSlug}${nameParam}`);
+            } else if (user && userType === "artist") {
+              router.push(`/artist-portal/messages?artist=${artistSlug}${nameParam}`);
+            } else if (user) {
+              router.push(`/customer-portal/messages?artist=${artistSlug}${nameParam}`);
+            } else {
+              router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+            }
+          }}
+          className="w-full px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
+        >
+          Message Artist
+        </button>
       </div>
     </div>
   );
