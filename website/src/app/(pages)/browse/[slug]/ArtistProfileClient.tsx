@@ -120,6 +120,32 @@ export default function ArtistProfileClient({
     }
   }, [lightboxIndex, artistSlug, filteredWorks]);
 
+  // Sync URL with lightbox state so each artwork gets a shareable link
+  useEffect(() => {
+    if (lightboxIndex !== null && filteredWorks[lightboxIndex]) {
+      const workSlug = slugify(filteredWorks[lightboxIndex].title);
+      window.history.pushState(null, "", `/browse/${artistSlug}/${workSlug}`);
+    } else if (lightboxIndex === null) {
+      // Only restore if URL currently has a workSlug segment
+      const segments = window.location.pathname.split("/").filter(Boolean);
+      if (segments.length > 2) {
+        window.history.pushState(null, "", `/browse/${artistSlug}`);
+      }
+    }
+  }, [lightboxIndex, filteredWorks, artistSlug]);
+
+  // Handle browser back button closing the lightbox
+  useEffect(() => {
+    const handlePop = () => {
+      const segments = window.location.pathname.split("/").filter(Boolean);
+      if (segments.length <= 2) {
+        setLightboxIndex(null);
+      }
+    };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, []);
+
   const currentWork = lightboxIndex !== null ? filteredWorks[lightboxIndex] : null;
 
   return (

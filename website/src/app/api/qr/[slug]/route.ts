@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { trackEvent, extractTrackingContext, generateVisitorId } from "@/lib/analytics";
+import { slugify } from "@/lib/slugify";
 
 /**
  * QR scan tracking redirect.
@@ -31,7 +32,7 @@ export async function GET(
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
   const sourceParams = `?ref=qr${venue ? `&venue=${encodeURIComponent(venue)}` : ""}`;
   const redirectPath = work
-    ? `/browse/${slug}${sourceParams}#work-${encodeURIComponent(work)}`
+    ? `/browse/${slug}/${slugify(work)}${sourceParams}`
     : `/browse/${slug}${sourceParams}`;
 
   return NextResponse.redirect(new URL(redirectPath, baseUrl), 302);
