@@ -24,6 +24,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+a, button, [role="button"], select, [type="checkbox"], [type="radio"],
+label[for], summary, [onclick], .cursor-pointer {
+  cursor: pointer;
+}
+
 h1,
 h2,
 h3,
