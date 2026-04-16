@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { ArtistWork } from "@/data/artists";
@@ -33,6 +33,7 @@ export default function ArtistProfileClient({
   const [selectedSizeIdx, setSelectedSizeIdx] = useState(0);
   const [showEnquiry, setShowEnquiry] = useState(false);
   const [selectedForPlacement, setSelectedForPlacement] = useState<Set<number>>(new Set());
+  const touchStartX = useRef<number | null>(null);
 
   function togglePlacementSelection(index: number) {
     setSelectedForPlacement((prev) => {
@@ -298,14 +299,26 @@ export default function ArtistProfileClient({
 
           {/* Content */}
           <div
-            className="relative z-10 flex flex-col lg:flex-row max-w-5xl w-full mx-2 sm:mx-4 max-h-[90vh] bg-white rounded-sm overflow-hidden shadow-2xl"
+            className="relative z-10 flex flex-col lg:flex-row max-w-5xl w-full mx-2 sm:mx-4 mt-12 sm:mt-0 max-h-[85vh] sm:max-h-[90vh] bg-white rounded-sm overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Image side */}
+            {/* Image side — swipeable on mobile */}
             <div
               className="relative flex-1 min-h-[250px] sm:min-h-[350px] lg:min-h-[500px] bg-[#f5f5f3] select-none"
               onContextMenu={(e) => e.preventDefault()}
               draggable={false}
+              onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+              onTouchEnd={(e) => {
+                if (touchStartX.current === null) return;
+                const diff = e.changedTouches[0].clientX - touchStartX.current;
+                touchStartX.current = null;
+                if (Math.abs(diff) < 50) return;
+                if (diff < 0 && lightboxIndex !== null && lightboxIndex < filteredWorks.length - 1) {
+                  setLightboxIndex(lightboxIndex + 1);
+                } else if (diff > 0 && lightboxIndex !== null && lightboxIndex > 0) {
+                  setLightboxIndex(lightboxIndex - 1);
+                }
+              }}
             >
               <Image
                 src={currentWork.image}
