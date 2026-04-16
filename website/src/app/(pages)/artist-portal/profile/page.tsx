@@ -523,7 +523,7 @@ export default function ProfileEditorPage() {
           {profile.openToFreeLoan && (
             <div className="mb-6">
               <label className={labelClass}>Revenue share for venues (%)</label>
-              <p className="text-xs text-muted mb-2">Optional — the % you offer venues on sales from their space. Leave at 0 for a pure free display.</p>
+              <p className="text-xs text-muted mb-2">Optional: the % you offer venues on sales from their space. Leave at 0 for a pure free display.</p>
               <div className="flex items-center gap-2">
                 <input
                   type="number"

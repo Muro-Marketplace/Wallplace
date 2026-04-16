@@ -173,7 +173,7 @@ export default function CustomerPortalPage() {
                 return (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-sm font-medium rounded-sm">
                     <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    Refund requested &mdash; pending review
+                    Refund requested: pending review
                   </span>
                 );
               }

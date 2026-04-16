@@ -142,7 +142,7 @@ export default function SpacesLookingForArtPage() {
               {searching ? "..." : "Search"}
             </button>
           </div>
-          {postcodeError && <p className="text-red-400 text-xs mt-2">Postcode not found — try again</p>}
+          {postcodeError && <p className="text-red-400 text-xs mt-2">Postcode not found, try again</p>}
           {userCoords && (
             <div className="mt-4 space-y-3">
               <p className="text-accent text-xs flex items-center justify-center gap-1.5">

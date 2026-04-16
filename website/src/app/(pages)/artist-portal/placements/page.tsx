@@ -272,7 +272,7 @@ export default function PlacementsPage() {
                   <option value="">Select a venue</option>
                   {venues.map((v) => (
                     <option key={v.slug} value={v.slug}>
-                      {v.name}{v.location ? ` — ${v.location}` : ""}
+                      {v.name}{v.location ? `, ${v.location}` : ""}
                     </option>
                   ))}
                 </select>

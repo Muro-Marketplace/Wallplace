@@ -145,7 +145,7 @@ export default function VenueDashboardPage() {
                 <p className="text-xs text-muted mt-0.5">
                   {allComplete
                     ? "Your venue portal is fully set up. Start discovering artists!"
-                    : `${onboardingComplete} of ${onboardingTotal} complete — finish setting up to start finding art for your space`}
+                    : `${onboardingComplete} of ${onboardingTotal} complete. Finish setting up to start finding art for your space`}
                 </p>
               </div>
               {!allComplete && (

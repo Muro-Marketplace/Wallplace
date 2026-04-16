@@ -74,7 +74,7 @@ export default function PremiumToolsPage() {
           <span className="px-2.5 py-0.5 text-xs font-medium bg-accent/10 text-accent border border-accent/20 rounded-full">
             Premium Plan
           </span>
-          <span className="text-xs text-muted">— currently on Free</span>
+          <span className="text-xs text-muted">(currently on Free)</span>
         </div>
         <h2 className="font-serif text-xl lg:text-2xl text-foreground mb-2">
           Unlock Premium

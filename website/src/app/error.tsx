@@ -40,7 +40,7 @@ export default function Error({
           Something went wrong
         </h1>
         <p className="text-sm sm:text-base text-muted leading-relaxed mb-8">
-          We&apos;re sorry &mdash; something unexpected happened. Please try again.
+          We&apos;re sorry, something unexpected happened. Please try again.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

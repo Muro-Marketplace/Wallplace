@@ -196,7 +196,7 @@ export default function VenuesPage() {
               </h1>
               <p className="text-lg lg:text-xl text-white/60 leading-relaxed max-w-xl mb-10">
                 Browse portfolios from independent artists. Pick what fits your space.
-                Art goes on your wall at zero cost &mdash; and if a visitor buys via the QR label, you earn a share.
+                Art goes on your wall at zero cost, and if a visitor buys via the QR label, you earn a share.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <a href="/browse" className="inline-flex items-center justify-center min-w-[220px] px-8 py-3.5 text-sm font-semibold tracking-wider uppercase bg-accent text-white rounded-sm hover:bg-accent-hover transition-colors">

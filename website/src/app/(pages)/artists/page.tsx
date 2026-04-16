@@ -9,7 +9,7 @@ import ScrollButton from "@/components/ScrollButton";
 export const metadata: Metadata = {
   title: "For Artists – Wallplace",
   description:
-    "Display your work in real venues and sell directly online. Your Wallplace page is your portfolio and your storefront — every QR scan is a sale opportunity.",
+    "Display your work in real venues and sell directly online. Your Wallplace page is your portfolio and your storefront. Every QR scan is a sale opportunity.",
 };
 
 const valueBlocks = [
@@ -71,7 +71,7 @@ const valueBlocks = [
       </svg>
     ),
     title: "QR to checkout in seconds",
-    description: "Customers scan, browse, and buy — right from the venue wall. Every scan is a sale opportunity with your name on it.",
+    description: "Customers scan, browse, and buy, right from the venue wall. Every scan is a sale opportunity with your name on it.",
   },
 ];
 
@@ -230,7 +230,7 @@ export default function ArtistsPage() {
               <p className="text-lg lg:text-xl text-white/60 leading-relaxed max-w-xl mb-10">
                 Access high-intent venue demand. Get discovered by cafés, restaurants,
                 hotels, galleries, offices, and salons looking for original artwork
-                &mdash; and sell directly to anyone who scans your QR code.
+                and sell directly to anyone who scans your QR code.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button href="/apply" size="lg" variant="accent">

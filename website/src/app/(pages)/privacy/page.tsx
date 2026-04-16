@@ -49,7 +49,7 @@ export default function PrivacyPage() {
                     </h3>
                     <p className="text-sm text-muted leading-relaxed">
                       When you submit an artist application, contact form, or
-                      venue enquiry, we collect the information you provide —
+                      venue enquiry, we collect the information you provide,
                       including your name, email address, location, social media
                       handles, portfolio links, and any statements you write.
                     </p>

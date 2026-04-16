@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Footer from "@/components/Footer";
@@ -11,13 +11,6 @@ import { venues } from "@/data/venues";
 import { useAuth } from "@/context/AuthContext";
 
 const featuredArtists = artists.slice(0, 6);
-
-interface PlatformStats {
-  total_artists: number;
-  total_artworks: number;
-  total_placements: number;
-  total_venues: number;
-}
 
 const navLinks = [
   { label: "Marketplace", href: "/browse" },
@@ -30,18 +23,10 @@ const navLinks = [
 export default function Home() {
   const contentRef = useRef<HTMLDivElement>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [stats, setStats] = useState<PlatformStats | null>(null);
   const { user, userType } = useAuth();
 
   const portalBase = userType === "venue" ? "/venue-portal" : userType === "customer" ? "/customer-portal" : "/artist-portal";
-  const portalLabel = userType === "venue" ? "Venue Portal" : userType === "customer" ? "My Account" : "Artist Portal";
-
-  useEffect(() => {
-    fetch("/api/stats/public")
-      .then((r) => r.json())
-      .then((data) => setStats(data))
-      .catch(() => {});
-  }, []);
+  const portalLabel = userType === "venue" ? "Venue Portal" : userType === "customer" ? "Customer Portal" : "Artist Portal";
 
   function scrollToContent() {
     contentRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -133,10 +118,10 @@ export default function Home() {
                   Discover Art
                 </Link>
                 <Link
-                  href="/signup"
+                  href={user ? portalBase : "/signup"}
                   className="inline-flex items-center justify-center min-w-[180px] px-8 py-3 sm:py-4 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors"
                 >
-                  Sign Up
+                  {user ? portalLabel : "Sign Up"}
                 </Link>
               </div>
             </div>
@@ -161,27 +146,11 @@ export default function Home() {
           <div className="hidden sm:block border-t border-white/10 bg-black/50 backdrop-blur-sm">
             <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-4 text-sm">
-                <span className="text-white/90 font-medium">
-                  {stats ? `${stats.total_artists} curated artist${stats.total_artists !== 1 ? "s" : ""}` : "30+ curated artists"}
-                </span>
-                {stats && stats.total_artworks > 0 && (
-                  <>
-                    <span className="w-1 h-1 rounded-full bg-white/30" />
-                    <span className="text-white/60">{stats.total_artworks} original artworks</span>
-                  </>
-                )}
-                {stats && stats.total_venues > 0 && (
-                  <>
-                    <span className="w-1 h-1 rounded-full bg-white/30" />
-                    <span className="text-white/60">{stats.total_venues} active venues</span>
-                  </>
-                )}
-                {stats && stats.total_placements > 0 && (
-                  <>
-                    <span className="w-1 h-1 rounded-full bg-white/30" />
-                    <span className="text-white/60">{stats.total_placements} placements</span>
-                  </>
-                )}
+                <span className="text-white/90 font-medium">Curated Artists</span>
+                <span className="w-1 h-1 rounded-full bg-white/30" />
+                <span className="text-white/60">Original Artworks</span>
+                <span className="w-1 h-1 rounded-full bg-white/30" />
+                <span className="text-white/60">Active Venues</span>
               </div>
               <div className="hidden sm:flex items-center gap-4 text-xs text-white/40 tracking-widest uppercase">
                 <span>Original work only</span>
@@ -276,7 +245,7 @@ export default function Home() {
                     Your art, in the spaces people love.
                   </h2>
                   <p className="text-lg text-muted leading-relaxed mb-8">
-                    Showcase, get discovered, and sell &mdash; all in one place.
+                    Showcase, get discovered, and sell, all in one place.
                     Your Wallplace profile is your portfolio, your storefront,
                     and your route into the best commercial venues.
                   </p>

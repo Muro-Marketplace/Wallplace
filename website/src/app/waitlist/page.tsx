@@ -170,7 +170,7 @@ export default function WaitlistPage() {
                 <p className="text-center mt-4">
                   <Link
                     href="/login"
-                    className="text-xs text-white/30 hover:text-white/60 transition-colors duration-200"
+                    className="text-sm text-white/50 hover:text-white/80 font-medium transition-colors duration-200"
                   >
                     Already have access? Sign in
                   </Link>
@@ -236,7 +236,7 @@ function HowItWorks() {
               </h2>
               <p className="text-lg text-white/50 leading-relaxed max-w-xl mx-auto">
                 Wallplace connects artists who want commercial
-                exposure with venues that want original art on their walls —
+                exposure with venues that want original art on their walls,
                 with flexible, risk-free arrangements for both sides.
               </p>
             </div>

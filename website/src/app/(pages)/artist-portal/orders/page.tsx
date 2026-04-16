@@ -320,7 +320,7 @@ export default function ArtistOrdersPage() {
                       </span>
                     </div>
                     <p className="text-sm text-muted">{req.reason}</p>
-                    <p className="text-xs text-muted capitalize">{req.type} refund{req.type === "partial" && req.amount ? ` — \u00A3${req.amount.toFixed(2)}` : ""}</p>
+                    <p className="text-xs text-muted capitalize">{req.type} refund{req.type === "partial" && req.amount ? `: \u00A3${req.amount.toFixed(2)}` : ""}</p>
                     {req.resolved_reason && <p className="text-xs text-muted">Response: {req.resolved_reason}</p>}
                   </div>
                 ))}

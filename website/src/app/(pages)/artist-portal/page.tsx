@@ -151,7 +151,7 @@ export default function ArtistPortalPage() {
         const time = p.responded_at || p.created_at;
         const venueName = formatName(p.venue);
         if (p.status === "pending") {
-          activityItems.push({ id: "p-" + p.id, text: `Placement request: ${p.work_title || "Artwork"} — ${venueName}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+          activityItems.push({ id: "p-" + p.id, text: `Placement request: ${p.work_title || "Artwork"} at ${venueName}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
         } else if (p.status === "active") {
           activityItems.push({ id: "pa-" + p.id, text: `Placement accepted: ${p.work_title || "Artwork"} at ${venueName}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
         } else if (p.status === "declined") {
@@ -229,8 +229,8 @@ export default function ArtistPortalPage() {
                 </h2>
                 <p className="text-xs text-muted mt-0.5">
                   {allComplete
-                    ? "Great work — your artist portal is fully set up."
-                    : `${onboardingComplete} of ${onboardingTotal} complete — finish setting up to start getting placements`}
+                    ? "Great work! Your artist portal is fully set up."
+                    : `${onboardingComplete} of ${onboardingTotal} complete. Finish setting up to start getting placements`}
                 </p>
               </div>
               {!allComplete && (

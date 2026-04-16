@@ -455,7 +455,7 @@ export default function BrowsePortfoliosPage() {
                   </button>
                 </div>
                 {postcodeError && (
-                  <p className="text-[10px] text-red-400 mt-1">Postcode not found — try again</p>
+                  <p className="text-[10px] text-red-400 mt-1">Postcode not found, try again</p>
                 )}
               </div>
             )}
