@@ -387,8 +387,8 @@ export default function ArtistProfileClient({
                 </div>
               </div>
 
-              {/* Availability */}
-              <div className="mb-4">
+              {/* Availability + Save */}
+              <div className="flex items-center justify-between mb-4">
                 {currentWork.available ? (
                   <span className="inline-flex items-center gap-1.5 text-sm text-accent">
                     <span className="w-2 h-2 rounded-full bg-accent" />
@@ -400,6 +400,7 @@ export default function ArtistProfileClient({
                     Sold
                   </span>
                 )}
+                <SaveButton type="work" itemId={currentWork.id} size="sm" />
               </div>
 
               {/* Size & Price dropdown */}
@@ -482,15 +483,12 @@ export default function ArtistProfileClient({
                     </button>
                   </>
                 )}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setShowEnquiry(true); setEnquirySent(false); }}
-                    className="flex-1 px-5 py-2.5 text-sm font-medium text-foreground border border-border hover:border-foreground/30 rounded-sm transition-colors"
-                  >
-                    Message
-                  </button>
-                  <SaveButton type="work" itemId={currentWork.id} size="md" />
-                </div>
+                <button
+                  onClick={() => { setShowEnquiry(true); setEnquirySent(false); }}
+                  className="w-full px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
+                >
+                  Message Artist
+                </button>
               </div>
 
               {/* Counter */}

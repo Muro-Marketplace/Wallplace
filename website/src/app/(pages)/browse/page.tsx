@@ -131,8 +131,8 @@ export default function BrowsePortfoliosPage() {
   const [activeCategory, setActiveCategory] = useState<string>(initialMode);
   const [activeSubcategories, setActiveSubcategories] = useState<Set<string>>(new Set());
   const [viewAs, setViewAs] = useState<"artists" | "works">("artists");
-  const [artistSort, setArtistSort] = useState<"name" | "revenue_share">("name");
-  const [gallerySort, setGallerySort] = useState<"az" | "price_low" | "price_high" | "revenue_share">("az");
+  const [artistSort, setArtistSort] = useState<"featured" | "name" | "revenue_share">("featured");
+  const [gallerySort, setGallerySort] = useState<"featured" | "az" | "price_low" | "price_high" | "revenue_share">("featured");
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [artists, setArtists] = useState<Artist[]>(staticArtists);
 
@@ -312,8 +312,12 @@ export default function BrowsePortfoliosPage() {
         return false;
       return true;
     }).sort((a, b) => {
+      if (artistSort === "name") return a.name.localeCompare(b.name);
       if (artistSort === "revenue_share") return (b.revenueSharePercent || 0) - (a.revenueSharePercent || 0);
-      return a.name.localeCompare(b.name);
+      // "featured": founding artists first, then original order
+      if (a.isFoundingArtist && !b.isFoundingArtist) return -1;
+      if (!a.isFoundingArtist && b.isFoundingArtist) return 1;
+      return 0;
     });
   }, [artists, filters, userCoords, activeCategoryObj, activeSubcategories, artistSort]);
 
@@ -374,6 +378,7 @@ export default function BrowsePortfoliosPage() {
       }
       return true;
     }).sort((a, b) => {
+      if (gallerySort === "az") return a.title.localeCompare(b.title);
       if (gallerySort === "price_low") {
         const aPrice = a.pricing[0]?.price ?? 0;
         const bPrice = b.pricing[0]?.price ?? 0;
@@ -385,7 +390,7 @@ export default function BrowsePortfoliosPage() {
         return bPrice - aPrice;
       }
       if (gallerySort === "revenue_share") return (b.revenueSharePercent || 0) - (a.revenueSharePercent || 0);
-      return a.title.localeCompare(b.title);
+      return 0; // "featured": original order
     });
   }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.maxDistance, activeCategoryObj, activeSubcategories, gallerySort]);
 
@@ -921,6 +926,7 @@ export default function BrowsePortfoliosPage() {
                       onChange={(e) => setArtistSort(e.target.value as typeof artistSort)}
                       className="px-2.5 py-1.5 text-xs border border-border rounded-sm bg-background text-foreground cursor-pointer focus:outline-none focus:border-accent/50"
                     >
+                      <option value="featured">Sort: Featured</option>
                       <option value="name">Sort: A-Z</option>
                       <option value="revenue_share">Sort: Revenue Share %</option>
                     </select>
@@ -1257,6 +1263,7 @@ export default function BrowsePortfoliosPage() {
                       onChange={(e) => setGallerySort(e.target.value as typeof gallerySort)}
                       className="px-2.5 py-1.5 text-xs border border-border rounded-sm bg-background text-foreground cursor-pointer focus:outline-none focus:border-accent/50"
                     >
+                      <option value="featured">Sort: Featured</option>
                       <option value="az">Sort: A-Z</option>
                       <option value="price_low">Sort: Price (low to high)</option>
                       <option value="price_high">Sort: Price (high to low)</option>
