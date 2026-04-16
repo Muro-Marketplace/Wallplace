@@ -51,25 +51,6 @@ const DISTANCE_OPTIONS = [
   { label: "UK-wide", value: 9999 },
 ];
 
-const PRICE_BANDS = [
-  { label: "All prices", value: "" },
-  { label: "Under £150", value: "under150" },
-  { label: "£150 – £300", value: "150-300" },
-  { label: "£300 – £500", value: "300-500" },
-  { label: "£500+", value: "500plus" },
-];
-
-function priceBandMatches(priceBand: string, filter: string): boolean {
-  if (!filter) return true;
-  const match = priceBand.replace(/[£,]/g, "").match(/\d+/);
-  if (!match) return true;
-  const low = parseInt(match[0], 10);
-  if (filter === "under150") return low < 150;
-  if (filter === "150-300") return low >= 150 && low < 300;
-  if (filter === "300-500") return low >= 300 && low < 500;
-  if (filter === "500plus") return low >= 500;
-  return true;
-}
 
 interface Filters {
   mode: "local" | "global";
@@ -178,7 +159,8 @@ export default function BrowsePortfoliosPage() {
   const [galleryTheme, setGalleryTheme] = useState("");
   const [galleryMedium, setGalleryMedium] = useState("");
   const [galleryAvailableOnly, setGalleryAvailableOnly] = useState(false);
-  const [galleryPriceFilter, setGalleryPriceFilter] = useState("");
+  const [galleryPriceMin, setGalleryPriceMin] = useState(0);
+  const [galleryPriceMax, setGalleryPriceMax] = useState(1000);
   const [galleryLocationMode, setGalleryLocationMode] = useState<"global" | "local">("global");
   const [galleryStyle, setGalleryStyle] = useState("");
   const [galleryOriginals, setGalleryOriginals] = useState(false);
@@ -360,8 +342,15 @@ export default function BrowsePortfoliosPage() {
       if (galleryStyle && work.artistPrimaryMedium !== galleryStyle) return false;
       // Availability
       if (galleryAvailableOnly && !work.available) return false;
-      // Price
-      if (!priceBandMatches(work.priceBand, galleryPriceFilter)) return false;
+      // Price range
+      if (galleryPriceMin > 0 || galleryPriceMax < 1000) {
+        const match = work.priceBand.replace(/[£,]/g, "").match(/\d+/);
+        if (match) {
+          const low = parseInt(match[0], 10);
+          if (low < galleryPriceMin) return false;
+          if (galleryPriceMax < 1000 && low > galleryPriceMax) return false;
+        }
+      }
       // Originals / Prints / Framing
       if (galleryOriginals && !work.offersOriginals) return false;
       if (galleryPrints && !work.offersPrints) return false;
@@ -378,14 +367,14 @@ export default function BrowsePortfoliosPage() {
       }
       return true;
     });
-  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceFilter, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.maxDistance, activeCategoryObj, activeSubcategories]);
+  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.maxDistance, activeCategoryObj, activeSubcategories]);
 
   const hasGalleryFilters =
-    !!galleryTheme || !!galleryMedium || !!galleryStyle || galleryAvailableOnly || !!galleryPriceFilter || galleryOriginals || galleryPrints || galleryFraming || galleryFreeLoan || galleryRevenueShare || galleryPurchase || galleryLocationMode === "local";
+    !!galleryTheme || !!galleryMedium || !!galleryStyle || galleryAvailableOnly || galleryPriceMin > 0 || galleryPriceMax < 1000 || galleryOriginals || galleryPrints || galleryFraming || galleryFreeLoan || galleryRevenueShare || galleryPurchase || galleryLocationMode === "local";
 
   function clearGalleryFilters() {
     setGalleryTheme(""); setGalleryMedium(""); setGalleryStyle(""); setGalleryAvailableOnly(false);
-    setGalleryPriceFilter(""); setGalleryOriginals(false); setGalleryPrints(false); setGalleryFraming(false);
+    setGalleryPriceMin(0); setGalleryPriceMax(1000); setGalleryOriginals(false); setGalleryPrints(false); setGalleryFraming(false);
     setGalleryFreeLoan(false); setGalleryRevenueShare(false); setGalleryRevenueShareMin(0); setGalleryPurchase(false);
     setGalleryLocationMode("global");
   }
@@ -1116,13 +1105,20 @@ export default function BrowsePortfoliosPage() {
                     </div>
                   </div>
 
-                  {/* Price */}
+                  {/* Price Range */}
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Price</p>
-                    <div className="space-y-1.5">
-                      {PRICE_BANDS.filter((b) => b.value).map((b) => (
-                        <CheckPill key={b.value} checked={galleryPriceFilter === b.value} onChange={() => setGalleryPriceFilter(galleryPriceFilter === b.value ? "" : b.value)} label={b.label} />
-                      ))}
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">
+                      Price: £{galleryPriceMin} – {galleryPriceMax >= 1000 ? "£1000+" : `£${galleryPriceMax}`}
+                    </p>
+                    <div className="space-y-3 px-1">
+                      <div>
+                        <label className="text-[10px] text-muted">Min</label>
+                        <input type="range" min={0} max={1000} step={50} value={galleryPriceMin} onChange={(e) => { const v = Number(e.target.value); setGalleryPriceMin(Math.min(v, galleryPriceMax)); }} className="w-full accent-accent h-1.5 cursor-pointer" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted">Max</label>
+                        <input type="range" min={0} max={1000} step={50} value={galleryPriceMax} onChange={(e) => { const v = Number(e.target.value); setGalleryPriceMax(Math.max(v, galleryPriceMin)); }} className="w-full accent-accent h-1.5 cursor-pointer" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1194,11 +1190,12 @@ export default function BrowsePortfoliosPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Price</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {PRICE_BANDS.filter((b) => b.value).map((b) => (
-                          <button key={b.value} type="button" onClick={() => setGalleryPriceFilter(galleryPriceFilter === b.value ? "" : b.value)} className={`px-2.5 py-1 text-xs rounded-sm border transition-colors cursor-pointer ${galleryPriceFilter === b.value ? "bg-accent text-white border-accent" : "border-border text-muted hover:border-foreground/30"}`}>{b.label}</button>
-                        ))}
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">
+                        Price: £{galleryPriceMin} – {galleryPriceMax >= 1000 ? "£1000+" : `£${galleryPriceMax}`}
+                      </p>
+                      <div className="space-y-2 px-1">
+                        <input type="range" min={0} max={1000} step={50} value={galleryPriceMin} onChange={(e) => { const v = Number(e.target.value); setGalleryPriceMin(Math.min(v, galleryPriceMax)); }} className="w-full accent-accent h-1.5" />
+                        <input type="range" min={0} max={1000} step={50} value={galleryPriceMax} onChange={(e) => { const v = Number(e.target.value); setGalleryPriceMax(Math.max(v, galleryPriceMin)); }} className="w-full accent-accent h-1.5" />
                       </div>
                     </div>
                     {hasGalleryFilters && (
@@ -1290,6 +1287,19 @@ export default function BrowsePortfoliosPage() {
                           <p className="text-xs text-foreground/80 mt-1.5 font-medium">
                             {work.priceBand}
                           </p>
+                          {/* Commercial terms */}
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {work.openToFreeLoan && (
+                              <span className="inline-block px-1.5 py-0.5 text-[9px] font-medium bg-accent/10 text-accent rounded-sm border border-accent/20">
+                                Display
+                              </span>
+                            )}
+                            {work.openToOutrightPurchase && (
+                              <span className="inline-block px-1.5 py-0.5 text-[9px] font-medium bg-accent/10 text-accent rounded-sm border border-accent/20">
+                                Purchase
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </Link>
