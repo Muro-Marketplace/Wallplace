@@ -1119,15 +1119,52 @@ export default function BrowsePortfoliosPage() {
                   {/* Arrangement */}
                   <div>
                     <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Arrangement</p>
-                    <div className="space-y-3">
-                      <div>
-                        <CheckPill checked={galleryFreeLoan} onChange={setGalleryFreeLoan} label="Display" />
-                        <p className="text-[10px] text-muted mt-1 ml-0.5">Free loan or revenue share</p>
-                      </div>
-                      <div>
-                        <CheckPill checked={galleryPurchase} onChange={setGalleryPurchase} label="Purchase" />
-                        <p className="text-[10px] text-muted mt-1 ml-0.5">Buy artwork outright</p>
-                      </div>
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => { setGalleryFreeLoan(!galleryFreeLoan); if (!galleryFreeLoan) setGalleryRevenueShare(true); }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm border text-left transition-colors ${
+                          galleryFreeLoan ? "border-accent bg-accent/5 text-foreground" : "border-border text-muted hover:border-foreground/30"
+                        }`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={galleryFreeLoan ? "text-accent" : "text-muted"}>
+                          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-medium">Display</p>
+                          <p className="text-[10px] text-muted">Free loan or revenue share</p>
+                        </div>
+                      </button>
+                      {galleryFreeLoan && (
+                        <div className="flex items-center gap-2 pl-3 py-0.5">
+                          <span className="text-[11px] text-muted">Min rev share</span>
+                          <input
+                            type="number"
+                            min={0}
+                            max={50}
+                            value={galleryRevenueShareMin === 0 ? "" : galleryRevenueShareMin}
+                            onChange={(e) => setGalleryRevenueShareMin(e.target.value === "" ? 0 : Number(e.target.value))}
+                            placeholder="Any"
+                            className="w-14 px-2 py-1 bg-surface border border-border rounded-sm text-xs text-foreground text-center focus:outline-none focus:border-accent/50"
+                          />
+                          <span className="text-[11px] text-muted">%</span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setGalleryPurchase(!galleryPurchase)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-sm border text-left transition-colors ${
+                          galleryPurchase ? "border-accent bg-accent/5 text-foreground" : "border-border text-muted hover:border-foreground/30"
+                        }`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={galleryPurchase ? "text-accent" : "text-muted"}>
+                          <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 10h20" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-medium">Purchase</p>
+                          <p className="text-[10px] text-muted">Buy artwork outright</p>
+                        </div>
+                      </button>
                     </div>
                   </div>
 
@@ -1213,14 +1250,51 @@ export default function BrowsePortfoliosPage() {
                     <div>
                       <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Arrangement</p>
                       <div className="space-y-2">
-                        <div>
-                          <CheckPill checked={galleryFreeLoan} onChange={setGalleryFreeLoan} label="Display" />
-                          <p className="text-[10px] text-muted mt-0.5 ml-0.5">Free loan or revenue share</p>
-                        </div>
-                        <div>
-                          <CheckPill checked={galleryPurchase} onChange={setGalleryPurchase} label="Purchase" />
-                          <p className="text-[10px] text-muted mt-0.5 ml-0.5">Buy artwork outright</p>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setGalleryFreeLoan(!galleryFreeLoan); if (!galleryFreeLoan) setGalleryRevenueShare(true); }}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-sm border text-left transition-colors ${
+                            galleryFreeLoan ? "border-accent bg-accent/5 text-foreground" : "border-border text-muted hover:border-foreground/30"
+                          }`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={galleryFreeLoan ? "text-accent" : "text-muted"}>
+                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+                          </svg>
+                          <div>
+                            <p className="text-xs font-medium">Display</p>
+                            <p className="text-[10px] text-muted">Free loan or revenue share</p>
+                          </div>
+                        </button>
+                        {galleryFreeLoan && (
+                          <div className="flex items-center gap-2 pl-3 py-0.5">
+                            <span className="text-[10px] text-muted">Min rev share</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={50}
+                              value={galleryRevenueShareMin === 0 ? "" : galleryRevenueShareMin}
+                              onChange={(e) => setGalleryRevenueShareMin(e.target.value === "" ? 0 : Number(e.target.value))}
+                              placeholder="Any"
+                              className="w-14 px-2 py-1 bg-surface border border-border rounded-sm text-xs text-foreground text-center focus:outline-none focus:border-accent/50"
+                            />
+                            <span className="text-[10px] text-muted">%</span>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setGalleryPurchase(!galleryPurchase)}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-sm border text-left transition-colors ${
+                            galleryPurchase ? "border-accent bg-accent/5 text-foreground" : "border-border text-muted hover:border-foreground/30"
+                          }`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={galleryPurchase ? "text-accent" : "text-muted"}>
+                            <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 10h20" />
+                          </svg>
+                          <div>
+                            <p className="text-xs font-medium">Purchase</p>
+                            <p className="text-[10px] text-muted">Buy artwork outright</p>
+                          </div>
+                        </button>
                       </div>
                     </div>
                     <div>
