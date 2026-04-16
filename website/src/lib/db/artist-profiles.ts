@@ -41,6 +41,9 @@ export interface DbArtistProfile {
   total_enquiries?: number;
   message_notifications_enabled?: boolean;
   subscription_plan?: string;
+  default_shipping_price?: number | null;
+  ships_internationally?: boolean;
+  international_shipping_price?: number | null;
 }
 
 export interface DbArtistWork {
@@ -99,6 +102,8 @@ export function dbProfileToArtist(profile: DbArtistProfile, works: DbArtistWork[
     totalSales: profile.total_sales || 0,
     totalEnquiries: profile.total_enquiries || 0,
     subscriptionPlan: profile.subscription_plan || undefined,
+    shipsInternationally: profile.ships_internationally || false,
+    internationalShippingPrice: profile.international_shipping_price ?? undefined,
     works: works.map((w) => ({
       id: w.id,
       title: w.title,

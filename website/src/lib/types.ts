@@ -13,6 +13,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   shippingPrice?: number;
+  internationalShippingPrice?: number;
 }
 
 export interface ShippingInfo {

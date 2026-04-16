@@ -163,6 +163,8 @@ export default async function ArtworkPage({
                 work={work}
                 artistName={artist.name}
                 artistSlug={artist.slug}
+                shipsInternationally={artist.shipsInternationally}
+                internationalShippingPrice={artist.internationalShippingPrice}
               />
             </div>
           </div>

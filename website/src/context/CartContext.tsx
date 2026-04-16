@@ -38,13 +38,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const existing = prev.find(
         (i) => i.artistSlug === item.artistSlug && i.title === item.title && i.size === item.size
       );
+      let next: CartItem[];
       if (existing) {
-        return prev.map((i) =>
+        next = prev.map((i) =>
           i.id === existing.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i
         );
+      } else {
+        const id = "cart-" + Math.random().toString(36).slice(2, 10);
+        next = [...prev, { ...item, id }];
       }
-      const id = "cart-" + Math.random().toString(36).slice(2, 10);
-      return [...prev, { ...item, id }];
+      // Write immediately so navigation to /checkout picks up the item
+      localStorage.setItem("wallplace-cart", JSON.stringify(next));
+      return next;
     });
   }, []);
 

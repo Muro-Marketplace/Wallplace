@@ -12,12 +12,16 @@ interface ArtworkPageClientProps {
   work: ArtistWork;
   artistName: string;
   artistSlug: string;
+  shipsInternationally?: boolean;
+  internationalShippingPrice?: number | null;
 }
 
 export default function ArtworkPageClient({
   work,
   artistName,
   artistSlug,
+  shipsInternationally,
+  internationalShippingPrice,
 }: ArtworkPageClientProps) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -87,13 +91,20 @@ export default function ArtworkPageClient({
         )}
 
         {/* Shipping info */}
-        <p className="text-xs text-muted mt-1">
-          {work.shippingPrice === 0
-            ? "Free shipping"
-            : work.shippingPrice
-              ? `Shipping: £${work.shippingPrice.toFixed(2)}`
-              : "Shipping: £9.95"}
-        </p>
+        <div className="text-xs text-muted mt-1 space-y-0.5">
+          <p>
+            {work.shippingPrice === 0
+              ? "UK: Free shipping"
+              : work.shippingPrice
+                ? `UK shipping: £${work.shippingPrice.toFixed(2)}`
+                : "UK shipping: £9.95"}
+          </p>
+          {shipsInternationally && internationalShippingPrice != null ? (
+            <p>International: £{internationalShippingPrice.toFixed(2)}</p>
+          ) : (
+            <p>UK shipping only</p>
+          )}
+        </div>
       </div>
 
       {/* CTAs */}
@@ -126,6 +137,7 @@ export default function ArtworkPageClient({
                 price: selected.price,
                 quantity: 1,
                 shippingPrice: work.shippingPrice ?? undefined,
+                internationalShippingPrice: shipsInternationally && internationalShippingPrice != null ? internationalShippingPrice : undefined,
               });
               router.push("/checkout");
             }}

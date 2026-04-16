@@ -56,6 +56,8 @@ export interface Artist {
   totalSales?: number;
   totalEnquiries?: number;
   subscriptionPlan?: string;
+  shipsInternationally?: boolean;
+  internationalShippingPrice?: number | null;
 }
 
 export const artists: Artist[] = [

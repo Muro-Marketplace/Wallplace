@@ -24,6 +24,7 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   const DEFAULT_SHIPPING = 9.95;
+  const isInternational = shipping.country !== "United Kingdom" && shipping.country !== "";
 
   // Group items by artist for shipping breakdown
   const artistGroups = items.reduce<Record<string, { artistName: string; items: typeof items; shipping: number }>>((acc, item) => {
@@ -35,9 +36,15 @@ export default function CheckoutPage() {
   }, {});
 
   // Calculate per-artist shipping: highest single item shipping + 50% of each additional
+  // Use international rates when shipping outside the UK
   for (const group of Object.values(artistGroups)) {
     const shippingRates = group.items
-      .flatMap((item) => Array(item.quantity).fill(item.shippingPrice ?? DEFAULT_SHIPPING))
+      .flatMap((item) => {
+        const rate = isInternational && item.internationalShippingPrice != null
+          ? item.internationalShippingPrice
+          : (item.shippingPrice ?? DEFAULT_SHIPPING);
+        return Array(item.quantity).fill(rate);
+      })
       .sort((a, b) => b - a);
     if (shippingRates.length === 0) continue;
     group.shipping = shippingRates[0] + shippingRates.slice(1).reduce((sum, r) => sum + r * 0.5, 0);

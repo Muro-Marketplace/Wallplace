@@ -99,6 +99,8 @@ export default function PortfolioPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formError, setFormError] = useState("");
   const [defaultShipping, setDefaultShipping] = useState<string>("");
+  const [shipsInternationally, setShipsInternationally] = useState(false);
+  const [internationalShipping, setInternationalShipping] = useState<string>("");
   const [savingDefault, setSavingDefault] = useState(false);
 
   useEffect(() => {
@@ -111,6 +113,12 @@ export default function PortfolioPage() {
       .then((data) => {
         if (data.profile?.default_shipping_price != null) {
           setDefaultShipping(String(data.profile.default_shipping_price));
+        }
+        if (data.profile?.ships_internationally) {
+          setShipsInternationally(true);
+        }
+        if (data.profile?.international_shipping_price != null) {
+          setInternationalShipping(String(data.profile.international_shipping_price));
         }
       })
       .catch(() => {});
@@ -335,11 +343,14 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      {/* Default Shipping Price */}
-      <div className="bg-surface border border-border rounded-sm p-5 mb-6">
+      {/* Shipping Settings */}
+      <div className="bg-surface border border-border rounded-sm p-5 mb-6 space-y-5">
+        <h2 className="text-sm font-medium">Shipping Settings</h2>
+
+        {/* Default UK Shipping */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h2 className="text-sm font-medium mb-0.5">Default Shipping Price</h2>
+            <p className="text-sm font-medium mb-0.5">Default UK Shipping</p>
             <p className="text-xs text-muted">Applied to all works unless overridden per work. System default is £9.95.</p>
           </div>
           <div className="flex items-center gap-2">
@@ -353,22 +364,67 @@ export default function PortfolioPage() {
               placeholder="9.95"
               className="w-24 bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground text-right focus:outline-none focus:border-accent/60"
             />
+          </div>
+        </div>
+
+        {/* International Shipping */}
+        <div className="border-t border-border pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm font-medium mb-0.5">International Shipping</p>
+              <p className="text-xs text-muted">Enable to accept orders from outside the UK.</p>
+            </div>
             <button
-              onClick={async () => {
-                setSavingDefault(true);
-                const val = defaultShipping.trim() ? parseFloat(defaultShipping) : null;
-                await authFetch("/api/artist-profile", {
-                  method: "PUT",
-                  body: JSON.stringify({ default_shipping_price: val }),
-                }).catch(() => {});
-                setSavingDefault(false);
-              }}
-              disabled={savingDefault}
-              className="px-3 py-2 text-xs font-medium bg-foreground text-white rounded-sm hover:bg-foreground/90 transition-colors disabled:opacity-50"
+              type="button"
+              role="switch"
+              aria-checked={shipsInternationally}
+              onClick={() => setShipsInternationally(!shipsInternationally)}
+              className={`relative inline-flex items-center h-5 w-9 rounded-full transition-colors duration-200 cursor-pointer ${
+                shipsInternationally ? "bg-accent" : "bg-border"
+              }`}
             >
-              {savingDefault ? "Saving..." : "Save"}
+              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transform transition-transform duration-200 ${shipsInternationally ? "translate-x-4" : "translate-x-1"}`} />
             </button>
           </div>
+          {shipsInternationally && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted">&pound;</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={internationalShipping}
+                onChange={(e) => setInternationalShipping(e.target.value)}
+                placeholder="19.95"
+                className="w-24 bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground text-right focus:outline-none focus:border-accent/60"
+              />
+              <span className="text-xs text-muted">per item</span>
+            </div>
+          )}
+        </div>
+
+        {/* Save all shipping settings */}
+        <div className="border-t border-border pt-4">
+          <button
+            onClick={async () => {
+              setSavingDefault(true);
+              const ukVal = defaultShipping.trim() ? parseFloat(defaultShipping) : null;
+              const intlVal = internationalShipping.trim() ? parseFloat(internationalShipping) : null;
+              await authFetch("/api/artist-profile", {
+                method: "PUT",
+                body: JSON.stringify({
+                  default_shipping_price: ukVal,
+                  ships_internationally: shipsInternationally,
+                  international_shipping_price: intlVal,
+                }),
+              }).catch(() => {});
+              setSavingDefault(false);
+            }}
+            disabled={savingDefault}
+            className="px-4 py-2 text-xs font-medium bg-foreground text-white rounded-sm hover:bg-foreground/90 transition-colors disabled:opacity-50"
+          >
+            {savingDefault ? "Saving..." : "Save Shipping Settings"}
+          </button>
         </div>
       </div>
 
