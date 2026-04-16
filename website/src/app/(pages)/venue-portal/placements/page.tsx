@@ -129,9 +129,10 @@ export default function VenuePlacementsPage() {
 
   // Load existing placements
   useEffect(() => {
-    authFetch("/api/placements")
-      .then((res) => res.json())
-      .then((data) => {
+    async function loadPlacements() {
+      try {
+        const res = await authFetch("/api/placements");
+        const data = await res.json();
         if (data.placements) {
           // Resolve artist names from browse-artists
           let artistNameMap: Record<string, string> = {};
@@ -158,9 +159,11 @@ export default function VenuePlacementsPage() {
           }));
           setPlacements(mapped);
         }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      } catch { /* ignore */ } finally {
+        setLoading(false);
+      }
+    }
+    loadPlacements();
   }, []);
 
   function toggleWork(title: string) {
