@@ -131,8 +131,30 @@ export default function ArtworkPageClient({
             }}
             className="w-full px-5 py-3 text-sm font-medium text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors"
           >
-            Buy Now – £
+            Buy Print – £
             {(work.pricing[selectedSizeIdx] || work.pricing[0]).price}
+          </button>
+        )}
+        {work.available && work.inStorePrice != null && work.inStorePrice > 0 && (
+          <button
+            onClick={() => {
+              addItem({
+                type: "work",
+                workId: work.id,
+                artistSlug,
+                artistName,
+                title: `${work.title} (Original)`,
+                image: work.image,
+                size: "Original",
+                price: work.inStorePrice!,
+                quantity: 1,
+                shippingPrice: 0,
+              });
+              router.push("/checkout");
+            }}
+            className="w-full px-5 py-2.5 text-sm font-medium text-foreground border border-accent text-accent hover:bg-accent/5 rounded-sm transition-colors"
+          >
+            Buy Original (In Store) – £{work.inStorePrice}
           </button>
         )}
         <div className="flex gap-2">

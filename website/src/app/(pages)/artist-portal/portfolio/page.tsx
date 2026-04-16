@@ -23,6 +23,7 @@ interface WorkFormState {
   orientation: "portrait" | "landscape" | "square";
   sizes: SizeEntry[];
   shippingPrice: string;
+  inStorePrice: string;
   detectedRatio: number | null;
 }
 
@@ -75,6 +76,7 @@ const emptyWork: WorkFormState = {
   orientation: "landscape",
   sizes: [...defaultSizes],
   shippingPrice: "",
+  inStorePrice: "",
   detectedRatio: null,
 };
 
@@ -141,7 +143,8 @@ export default function PortfolioPage() {
           image: work.image,
           orientation: work.orientation || "landscape",
           sortOrder: index,
-          shippingPrice: (work as ArtistWork & { shippingPrice?: number }).shippingPrice ?? null,
+          shippingPrice: (work as ArtistWork & { shippingPrice?: number; inStorePrice?: number }).shippingPrice ?? null,
+          inStorePrice: (work as ArtistWork & { shippingPrice?: number; inStorePrice?: number }).inStorePrice ?? null,
         }),
       }).catch((err) => console.error("Work sync error:", err));
     });
@@ -172,6 +175,7 @@ export default function PortfolioPage() {
       orientation: w.orientation || "landscape",
       sizes: w.pricing.map((p) => ({ label: p.label, price: p.price })),
       shippingPrice: w.shippingPrice != null ? String(w.shippingPrice) : "",
+      inStorePrice: w.inStorePrice != null ? String(w.inStorePrice) : "",
       detectedRatio: null,
     });
     setEditingIndex(index);
@@ -266,8 +270,9 @@ export default function PortfolioPage() {
     const lowestPrice = Math.min(...validSizes.map((s) => s.price));
 
     const shippingVal = form.shippingPrice.trim() ? parseFloat(form.shippingPrice) : undefined;
+    const inStoreVal = form.inStorePrice.trim() ? parseFloat(form.inStorePrice) : undefined;
 
-    const newWork: ArtistWork & { shippingPrice?: number } = {
+    const newWork: ArtistWork & { shippingPrice?: number; inStorePrice?: number } = {
       id: editingIndex !== null ? works[editingIndex].id : `${artist!.slug}-${Date.now()}`,
       title: form.title,
       medium: form.medium,
@@ -279,6 +284,7 @@ export default function PortfolioPage() {
       image: form.imagePreview || "https://picsum.photos/seed/new-work/900/600",
       orientation: form.orientation,
       ...(shippingVal != null && !isNaN(shippingVal) ? { shippingPrice: shippingVal } : {}),
+      ...(inStoreVal != null && !isNaN(inStoreVal) ? { inStorePrice: inStoreVal } : {}),
     };
 
     let updated: ArtistWork[];
@@ -561,6 +567,26 @@ export default function PortfolioPage() {
               </div>
               <p className="text-[10px] text-muted mt-1.5">
                 Leave blank to use your default ({defaultShipping ? `£${parseFloat(defaultShipping).toFixed(2)}` : "£9.95"}). Set to 0 for free shipping.
+              </p>
+            </div>
+
+            {/* In-store price */}
+            <div>
+              <label className="block text-sm font-medium mb-2">In-Store Price <span className="text-muted font-normal">(optional)</span></label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted">&pound;</span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={form.inStorePrice}
+                  onChange={(e) => setForm((p) => ({ ...p, inStorePrice: e.target.value }))}
+                  placeholder="e.g. 250"
+                  className="w-32 bg-background border border-border rounded-sm px-3 py-3 text-sm text-foreground text-right focus:outline-none focus:border-accent/60"
+                />
+              </div>
+              <p className="text-[10px] text-muted mt-1.5">
+                Set a price for the original piece when displayed in a venue. Customers can buy it in person with no shipping. Leave blank if not applicable.
               </p>
             </div>
 

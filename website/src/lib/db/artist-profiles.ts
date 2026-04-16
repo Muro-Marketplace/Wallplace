@@ -57,6 +57,7 @@ export interface DbArtistWork {
   orientation: string;
   sort_order: number;
   shipping_price?: number | null;
+  in_store_price?: number | null;
 }
 
 /** Convert a DB profile row + works to the Artist shape used everywhere in the app */
@@ -110,6 +111,7 @@ export function dbProfileToArtist(profile: DbArtistProfile, works: DbArtistWork[
       image: w.image,
       orientation: (w.orientation as "portrait" | "landscape" | "square") || undefined,
       shippingPrice: w.shipping_price ?? undefined,
+      inStorePrice: w.in_store_price ?? undefined,
     })),
   };
 }
