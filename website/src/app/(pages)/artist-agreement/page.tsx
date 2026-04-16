@@ -44,7 +44,7 @@ export default function ArtistAgreementPage() {
                     <li><strong className="text-foreground">Premium:</strong> &pound;24.99/month, 8% platform fee on sales</li>
                     <li><strong className="text-foreground">Pro:</strong> &pound;49.99/month, 3% platform fee on sales</li>
                   </ul>
-                  <p>Your first month is free on any plan. The first 20 accepted artists receive 6 months free on any plan, for as long as they maintain an active account.</p>
+                  <p>Your first month is free on any plan. No commitment required during the trial period.</p>
                   <p>Membership is billed monthly via Stripe. Upgrades are prorated. Downgrades take effect at the next billing period. Wallplace may change pricing with 30 days&rsquo; notice. Existing subscriptions are honoured until the next renewal after the notice period.</p>
                 </div>
               </div>

@@ -288,7 +288,7 @@ export default function BillingPage() {
             })}
           </div>
           <p className="text-xs text-muted mt-3 text-center">
-            {sub?.is_founding_artist ? "Founding artists get 6 months free." : "All plans include a 30-day free trial."}
+            All plans include a 30-day free trial.
           </p>
         </div>
       )}

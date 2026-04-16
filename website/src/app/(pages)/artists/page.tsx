@@ -330,10 +330,10 @@ export default function ArtistsPage() {
               Founding Artist Offer
             </p>
             <p className="text-lg md:text-xl font-serif">
-              First month free for all artists.
+              First month free on all plans.
             </p>
             <p className="mt-2 text-2xl md:text-3xl font-serif text-accent">
-              First 20 approved artists get 6 months free.
+              Start your 30-day free trial today.
             </p>
           </div>
 

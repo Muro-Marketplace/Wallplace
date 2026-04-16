@@ -9,7 +9,10 @@ type UserType = "artist" | "venue" | null;
 export default function WaitlistPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [userType, setUserType] = useState<UserType>(null);
+  const [venueName, setVenueName] = useState("");
+  const [venueLocation, setVenueLocation] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -25,7 +28,7 @@ export default function WaitlistPage() {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, userType }),
+        body: JSON.stringify({ name, email, phone: phone || undefined, userType, venueName: venueName || undefined, venueLocation: venueLocation || undefined }),
       });
       const data = await res.json();
 
@@ -91,37 +94,7 @@ export default function WaitlistPage() {
                   onSubmit={handleSubmit}
                   className="bg-black/30 backdrop-blur-md border border-white/10 rounded-sm p-4 sm:p-6 lg:p-8 space-y-3 sm:space-y-4 text-left"
                 >
-                  {/* Name */}
-                  <div>
-                    <label className="block text-xs font-medium text-white/50 tracking-wider uppercase mb-2">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Your name"
-                      className="w-full px-4 py-3 bg-white/10 border border-white/15 rounded-sm text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors duration-200"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className="block text-xs font-medium text-white/50 tracking-wider uppercase mb-2">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      className="w-full px-4 py-3 bg-white/10 border border-white/15 rounded-sm text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors duration-200"
-                    />
-                  </div>
-
-                  {/* Type toggle */}
+                  {/* Type toggle — first */}
                   <div>
                     <label className="block text-xs font-medium text-white/50 tracking-wider uppercase mb-2">
                       I am a
@@ -150,6 +123,82 @@ export default function WaitlistPage() {
                         Venue
                       </button>
                     </div>
+                  </div>
+
+                  {/* Name */}
+                  <div>
+                    <label className="block text-xs font-medium text-white/50 tracking-wider uppercase mb-2">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full px-4 py-3 bg-white/10 border border-white/15 rounded-sm text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors duration-200"
+                    />
+                  </div>
+
+                  {/* Venue Name — only for venues */}
+                  {userType === "venue" && (
+                    <div>
+                      <label className="block text-xs font-medium text-white/50 tracking-wider uppercase mb-2">
+                        Venue Name <span className="text-white/30 normal-case">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={venueName}
+                        onChange={(e) => setVenueName(e.target.value)}
+                        placeholder="e.g. The Corner Café"
+                        className="w-full px-4 py-3 bg-white/10 border border-white/15 rounded-sm text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors duration-200"
+                      />
+                    </div>
+                  )}
+
+                  {/* Venue Location — only for venues */}
+                  {userType === "venue" && (
+                    <div>
+                      <label className="block text-xs font-medium text-white/50 tracking-wider uppercase mb-2">
+                        Town or City <span className="text-white/30 normal-case">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={venueLocation}
+                        onChange={(e) => setVenueLocation(e.target.value)}
+                        placeholder="e.g. Shoreditch, London"
+                        className="w-full px-4 py-3 bg-white/10 border border-white/15 rounded-sm text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors duration-200"
+                      />
+                    </div>
+                  )}
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-xs font-medium text-white/50 tracking-wider uppercase mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full px-4 py-3 bg-white/10 border border-white/15 rounded-sm text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors duration-200"
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-xs font-medium text-white/50 tracking-wider uppercase mb-2">
+                      Phone <span className="text-white/30 normal-case">(optional)</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="07xxx xxxxxx"
+                      className="w-full px-4 py-3 bg-white/10 border border-white/15 rounded-sm text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 transition-colors duration-200"
+                    />
                   </div>
 
                   {/* Error */}
@@ -299,8 +348,8 @@ function HowItWorks() {
                     icon={
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                     }
-                    title="First 20 Artists: Free Access for Life"
-                    description="Core plans otherwise start from £9.99/month. No commitments. Cancel any time."
+                    title="First Month Free on All Plans"
+                    description="Plans start from £9.99/month. No commitments. Cancel any time."
                   />
                   <DealCard
                     icon={

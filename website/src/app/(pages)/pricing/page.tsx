@@ -107,10 +107,6 @@ const faqItems = [
       "Yes. Every approved artist gets their first month at no cost, on any tier. You can start with Core and upgrade later, or begin on Premium or Pro – the first month is always free. After that, billing begins on your chosen plan.",
   },
   {
-    question: "What do the first 20 artists get?",
-    answer:
-      "The first 20 approved artists on the Wallplace platform receive 6 months free on whichever tier they choose, as a founding artist benefit. This is our way of acknowledging that early adopters take a chance on us, and we want to reward that generously.",
-  },
   {
     question: "Can I change my tier?",
     answer:
@@ -152,27 +148,25 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Founding Artist Banner */}
+      {/* Free Trial Banner */}
       <section className="pb-8">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="bg-accent/5 border-2 border-accent rounded-sm p-6 md:p-8">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8">
               <div>
                 <p className="text-xs font-medium text-accent uppercase tracking-wider mb-1">
-                  Founding Artist Programme
+                  Get Started
                 </p>
                 <p className="text-foreground font-medium text-lg">
-                  First 20 approved artists get 6 months free
+                  First month free on all plans
                 </p>
                 <p className="text-muted text-sm mt-1">
-                  All artists receive their first month free. The first 20
-                  approved artists get 6 months free on any tier as a founding
-                  member benefit.
+                  Try any plan for 30 days at no cost. No commitment, cancel any time.
                 </p>
               </div>
               <div className="shrink-0">
                 <Button href="/apply" size="md">
-                  Apply to Join
+                  Start Your 30-Day Free Trial
                 </Button>
               </div>
             </div>
@@ -466,11 +460,10 @@ export default function PricingPage() {
             Ready to apply?
           </h2>
           <p className="text-muted leading-relaxed mb-8 max-w-lg mx-auto">
-            First month free for all approved artists. First 20 accepted artists
-            get 6 months free on any tier.
+            First month free on all plans. No commitment, cancel any time.
           </p>
           <Button href="/apply" size="lg">
-            Apply to Join Wallplace
+            Start Your 30-Day Free Trial
           </Button>
         </div>
       </section>

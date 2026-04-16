@@ -88,10 +88,10 @@ export default function PortalGuard({ allowedType, children }: PortalGuardProps)
         <div className="max-w-md text-center px-6">
           <h2 className="text-xl font-serif mb-3">Choose Your Plan</h2>
           <p className="text-sm text-muted mb-2">
-            Pick a plan to get started. All plans include a free trial &mdash; you won&rsquo;t be charged until it ends.
+            Pick a plan to get started. All plans include a free trial, and you won&rsquo;t be charged until it ends.
           </p>
           <p className="text-xs text-muted mb-6">
-            Founding artists receive 6 months free.
+            All plans include a 30-day free trial.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button

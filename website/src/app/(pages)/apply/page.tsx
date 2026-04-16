@@ -46,13 +46,10 @@ export default function ApplyPage() {
             </div>
             <div className="flex-1">
               <p className="text-foreground font-medium">
-                First month free for all approved artists.
+                First month free on all plans.
               </p>
               <p className="text-muted text-sm mt-1">
-                The first 20 approved artists receive{" "}
-                <strong className="text-foreground">6 months free</strong>{" "}
-                on any tier – a founding artist benefit to thank you for being
-                early.
+                Try any plan for 30 days at no cost. No commitment, cancel any time.
               </p>
             </div>
           </div>
