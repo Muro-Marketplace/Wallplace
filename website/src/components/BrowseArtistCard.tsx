@@ -26,10 +26,10 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
 
   return (
     <Link href={`/browse/${artist.slug}`} className="group block">
-      <div className="overflow-hidden">
+      <div className="bg-[#FAF8F5] border border-border/50 rounded-lg overflow-hidden">
         {/* Image */}
         <div
-          className="aspect-[4/5] relative overflow-hidden rounded-sm bg-border/20"
+          className="aspect-square relative overflow-hidden bg-border/20 rounded-t-lg"
           onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
           onTouchEnd={(e) => {
             const diff = touchStartX - e.changedTouches[0].clientX;
@@ -98,8 +98,8 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
           )}
         </div>
 
-        {/* Info — clean and minimal */}
-        <div className="pt-3 pb-1">
+        {/* Info */}
+        <div className="px-4 py-3.5">
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="text-sm font-medium text-foreground leading-tight">
               {artist.name}
