@@ -543,51 +543,56 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
         ) : (
           <>
             {/* Thread header */}
-            <div className="px-4 py-3 border-b border-border border-b-accent/20 flex items-center gap-3">
-              <button onClick={() => { setSelectedConv(null); setShowPlacementForm(false); }} className="sm:hidden text-muted hover:text-foreground">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
-              </button>
-              <Avatar src={selectedConvData?.otherPartyImage} name={selectedConvData?.otherPartyDisplayName || ""} size={40} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  {selectedConvData?.otherPartyType === "artist" ? (
-                    <Link href={`/browse/${selectedConvData.otherParty}`} className="text-sm font-medium truncate hover:text-accent transition-colors">{selectedConvData.otherPartyDisplayName}</Link>
-                  ) : selectedConvData?.otherPartyType === "venue" ? (
-                    <Link href="/spaces-looking-for-art" className="text-sm font-medium truncate hover:text-accent transition-colors">{selectedConvData.otherPartyDisplayName}</Link>
-                  ) : (
-                    <p className="text-sm font-medium truncate">{selectedConvData?.otherPartyDisplayName}</p>
-                  )}
-                  {selectedConvData?.hasActivePlacement && (
-                    <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
-                      <svg width="8" height="8" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
-                      Placed
-                    </span>
-                  )}
-                </div>
-                <p className="text-[10px] text-muted">{messages.length} messages</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {selectedConvData?.otherPartyType === "artist" && (
-                  <Link href={`/browse/${selectedConvData.otherParty}`} className="text-xs text-accent hover:text-accent-hover transition-colors">View Portfolio</Link>
-                )}
-                {selectedConvData?.otherPartyType === "venue" && (
-                  <Link href="/spaces-looking-for-art" className="text-xs text-accent hover:text-accent-hover transition-colors">View Spaces</Link>
-                )}
-                <button onClick={() => { setShowPlacementForm(!showPlacementForm); if (!showPlacementForm) loadOtherPartyWorks(); }} className={`text-xs px-2.5 py-1.5 rounded-sm border transition-colors ${showPlacementForm ? "bg-accent text-white border-accent" : "text-accent border-accent/30 hover:bg-accent/5"}`}>
-                  Request Placement
+            <div className="px-4 py-3 border-b border-border border-b-accent/20">
+              {/* Row 1: back + avatar + name + badge */}
+              <div className="flex items-center gap-3">
+                <button onClick={() => { setSelectedConv(null); setShowPlacementForm(false); }} className="sm:hidden text-muted hover:text-foreground shrink-0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
                 </button>
+                <Avatar src={selectedConvData?.otherPartyImage} name={selectedConvData?.otherPartyDisplayName || ""} size={40} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {selectedConvData?.otherPartyType === "artist" ? (
+                      <Link href={`/browse/${selectedConvData.otherParty}`} className="text-sm font-medium truncate hover:text-accent transition-colors">{selectedConvData.otherPartyDisplayName}</Link>
+                    ) : selectedConvData?.otherPartyType === "venue" ? (
+                      <Link href="/spaces-looking-for-art" className="text-sm font-medium truncate hover:text-accent transition-colors">{selectedConvData.otherPartyDisplayName}</Link>
+                    ) : (
+                      <p className="text-sm font-medium truncate">{selectedConvData?.otherPartyDisplayName}</p>
+                    )}
+                    {selectedConvData?.hasActivePlacement && (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] font-medium text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full shrink-0">
+                        <svg width="8" height="8" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                        Placed
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted">{messages.length} messages</p>
+                </div>
+                {/* Report button — inline on row 1 */}
                 <button
                   onClick={() => {
                     if (confirm(`Report ${selectedConvData?.otherPartyDisplayName || "this user"} for inappropriate behaviour?\n\nThis will notify the Wallplace team for review.`)) {
                       alert("Report submitted. Our team will review this conversation and take appropriate action.");
                     }
                   }}
-                  className="p-1.5 text-muted hover:text-red-500 transition-colors"
+                  className="p-1.5 text-muted hover:text-red-500 transition-colors shrink-0"
                   title="Report user"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" />
                   </svg>
+                </button>
+              </div>
+              {/* Row 2: action buttons */}
+              <div className="flex items-center gap-2 mt-2 pl-0 sm:pl-[52px]">
+                {selectedConvData?.otherPartyType === "artist" && (
+                  <Link href={`/browse/${selectedConvData.otherParty}`} className="text-xs text-accent hover:text-accent-hover transition-colors">View Portfolio</Link>
+                )}
+                {selectedConvData?.otherPartyType === "venue" && (
+                  <Link href="/spaces-looking-for-art" className="text-xs text-accent hover:text-accent-hover transition-colors">View Spaces</Link>
+                )}
+                <button onClick={() => { setShowPlacementForm(!showPlacementForm); if (!showPlacementForm) loadOtherPartyWorks(); }} className={`text-xs px-2.5 py-1 rounded-sm border transition-colors ${showPlacementForm ? "bg-accent text-white border-accent" : "text-accent border-accent/30 hover:bg-accent/5"}`}>
+                  Request Placement
                 </button>
               </div>
             </div>
