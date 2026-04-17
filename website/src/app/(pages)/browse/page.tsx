@@ -1371,69 +1371,44 @@ export default function BrowsePortfoliosPage() {
                       href={`/browse/${work.artistSlug}#work-${slugify(work.title)}`}
                       className="group break-inside-avoid block"
                     >
-                      <div className="bg-surface border border-border rounded-sm overflow-hidden hover:border-accent/30 hover:shadow-sm transition-all duration-300">
+                      <div className="bg-[#F7F4F0] border border-border/50 rounded-lg overflow-hidden">
                         {/* Image */}
-                        <div className="relative overflow-hidden bg-border/20">
+                        <div className="relative overflow-hidden bg-border/20 rounded-t-lg">
                           <Image
                             src={work.image}
                             alt={work.title}
                             width={600}
-                            height={750}
-                            className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                            height={600}
+                            className="w-full h-auto object-cover group-hover:scale-[1.03] transition-transform duration-700"
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                           />
-                          {/* Overlay */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-end">
-                            <div className="p-4 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-1 group-hover:translate-y-0">
-                              <p className="text-white text-xs font-medium">
-                                {work.artistName} →
-                              </p>
-                            </div>
-                          </div>
-                          {/* Availability badge */}
+                          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent" />
                           {!work.available && (
-                            <div className="absolute top-2.5 right-2.5">
-                              <span className="inline-block px-2 py-0.5 bg-black/70 text-white text-[10px] rounded-sm backdrop-blur-sm">
-                                Sold
-                              </span>
-                            </div>
-                          )}
-                          {work.available && (
-                            <div className="absolute top-2.5 right-2.5">
-                              <span className="inline-block px-2 py-0.5 bg-accent/90 text-white text-[10px] rounded-sm backdrop-blur-sm">
-                                Available
-                              </span>
-                            </div>
+                            <span className="absolute top-3 left-3 z-10 px-2 py-0.5 bg-black/70 text-white text-[10px] rounded-sm backdrop-blur-sm">
+                              Sold
+                            </span>
                           )}
                         </div>
 
                         {/* Info */}
-                        <div className="p-3.5">
-                          <h3 className="font-sans text-sm font-medium text-foreground leading-tight mb-0.5">
+                        <div className="px-4 py-3.5">
+                          <h3 className="text-sm font-medium text-foreground leading-tight">
                             {work.title}
                           </h3>
-                          <p className="text-xs text-accent font-medium mb-1">
-                            {work.artistName}
+                          <p className="text-xs text-muted mt-0.5">
+                            {work.artistName} · {work.medium}
                           </p>
-                          <p className="text-xs text-muted">
-                            {work.medium} &middot; {work.dimensions}
-                          </p>
-                          <p className="text-xs text-foreground/80 mt-1.5 font-medium">
+                          <p className="text-xs text-foreground/80 mt-1 font-medium">
                             {work.priceBand}
                           </p>
-                          {/* Commercial terms */}
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {work.openToFreeLoan && (
-                              <span className="inline-block px-1.5 py-0.5 text-[9px] font-medium bg-accent/10 text-accent rounded-sm border border-accent/20">
-                                Display
-                              </span>
-                            )}
-                            {work.openToOutrightPurchase && (
-                              <span className="inline-block px-1.5 py-0.5 text-[9px] font-medium bg-accent/10 text-accent rounded-sm border border-accent/20">
-                                Purchase
-                              </span>
-                            )}
-                          </div>
+                          <p className="text-[11px] text-muted/70 mt-1">
+                            {[work.openToFreeLoan ? "Display" : "", work.openToOutrightPurchase ? "Purchase" : ""].filter(Boolean).join(" · ")}
+                          </p>
+                          {work.openToRevenueShare && work.revenueSharePercent != null && work.revenueSharePercent > 0 && (
+                            <p className="text-[11px] text-accent font-medium mt-1">
+                              {work.revenueSharePercent}% Revenue Share
+                            </p>
+                          )}
                         </div>
                       </div>
                     </Link>
