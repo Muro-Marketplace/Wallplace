@@ -503,6 +503,12 @@ export default function VenuePlacementsPage() {
                       <p className="text-muted mb-0.5">Status</p>
                       <p className="text-foreground font-medium">{p.status}</p>
                     </div>
+                    {p.revenueSharePercent != null && p.revenueSharePercent > 0 && (
+                      <div>
+                        <p className="text-muted mb-0.5">Your Revenue Share</p>
+                        <p className="text-foreground font-medium">{p.revenueSharePercent}% of sales</p>
+                      </div>
+                    )}
                   </div>
                   {p.message && (
                     <div className="bg-background border border-border rounded-sm p-3">

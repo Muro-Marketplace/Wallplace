@@ -411,13 +411,13 @@ export default function PlacementsPage() {
                 <th className="text-left text-xs text-muted font-medium px-4 py-3">Type</th>
                 <th className="text-left text-xs text-muted font-medium px-4 py-3">Status</th>
                 <th className="text-left text-xs text-muted font-medium px-4 py-3">Date</th>
-                <th className="text-right text-xs text-muted font-medium px-4 py-3">Revenue</th>
+                <th className="text-right text-xs text-muted font-medium px-4 py-3">Payout</th>
                 <th className="text-right text-xs text-muted font-medium px-6 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-background/60 transition-colors">
+                <tr key={p.id} className="hover:bg-background/60 transition-colors cursor-pointer" onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}>
                   <td className="px-6 py-3.5">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 relative rounded-sm overflow-hidden bg-border/20 shrink-0">
@@ -485,6 +485,48 @@ export default function PlacementsPage() {
                     </div>
                   </td>
                 </tr>
+                {expandedId === p.id && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-4 bg-background border-t border-border">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                        <div>
+                          <p className="text-muted mb-0.5">Venue</p>
+                          <p className="text-foreground font-medium">{p.venue}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted mb-0.5">Arrangement</p>
+                          <p className="text-foreground font-medium">{p.type}{p.revenueSharePercent ? ` (${p.revenueSharePercent}%)` : ""}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted mb-0.5">Requested</p>
+                          <p className="text-foreground font-medium">{p.date}</p>
+                        </div>
+                        {p.respondedAt && (
+                          <div>
+                            <p className="text-muted mb-0.5">Responded</p>
+                            <p className="text-foreground font-medium">{p.respondedAt}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-muted mb-0.5">Payout</p>
+                          <p className="text-foreground font-medium">{p.revenue || "No sales yet"}</p>
+                        </div>
+                      </div>
+                      {p.message && (
+                        <div className="mt-3 bg-surface border border-border rounded-sm p-3">
+                          <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Message</p>
+                          <p className="text-xs text-foreground">{p.message}</p>
+                        </div>
+                      )}
+                      {p.notes && (
+                        <div className="mt-2 bg-surface border border-border rounded-sm p-3">
+                          <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Notes</p>
+                          <p className="text-xs text-foreground">{p.notes}</p>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
               ))}
             </tbody>
           </table>
@@ -557,12 +599,10 @@ export default function PlacementsPage() {
                       <p className="text-foreground font-medium">{p.respondedAt}</p>
                     </div>
                   )}
-                  {p.revenue && (
-                    <div>
-                      <p className="text-muted mb-0.5">Revenue</p>
-                      <p className="text-foreground font-medium">{p.revenue}</p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-muted mb-0.5">Payout</p>
+                    <p className="text-foreground font-medium">{p.revenue || "No sales yet"}</p>
+                  </div>
                 </div>
                 {p.message && (
                   <div className="bg-background border border-border rounded-sm p-3">

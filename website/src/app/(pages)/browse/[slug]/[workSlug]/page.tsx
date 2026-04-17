@@ -27,7 +27,12 @@ export async function generateMetadata({
   params: Promise<{ slug: string; workSlug: string }>;
 }): Promise<Metadata> {
   const { slug, workSlug } = await params;
-  const artist = await getArtistBySlug(slug);
+  let artist;
+  try {
+    artist = await getArtistBySlug(slug);
+  } catch {
+    return { title: "Artwork – Wallplace" };
+  }
 
   if (!artist) {
     return { title: "Artwork Not Found – Wallplace" };
