@@ -68,7 +68,13 @@ export default async function ArtworkPage({
 }) {
   const { slug, workSlug } = await params;
   const query = await searchParams;
-  const artist = await getArtistBySlug(slug);
+
+  let artist;
+  try {
+    artist = await getArtistBySlug(slug);
+  } catch {
+    notFound();
+  }
 
   if (!artist) {
     notFound();
@@ -81,17 +87,19 @@ export default async function ArtworkPage({
   }
 
   // Track artwork view (fire-and-forget)
-  const headersList = await headers();
-  const ctx = extractTrackingContext(headersList);
-  trackEvent({
-    event_type: "artwork_view",
-    artist_slug: slug,
-    work_id: work.id,
-    venue_name: query.venue || undefined,
-    visitor_id: generateVisitorId(ctx.ip, ctx.userAgent),
-    referrer: ctx.referrer || undefined,
-    source: query.ref === "qr" ? "qr" : "browse",
-  }).catch(() => {});
+  try {
+    const headersList = await headers();
+    const ctx = extractTrackingContext(headersList);
+    trackEvent({
+      event_type: "artwork_view",
+      artist_slug: slug,
+      work_id: work.id,
+      venue_name: query.venue || undefined,
+      visitor_id: generateVisitorId(ctx.ip, ctx.userAgent),
+      referrer: ctx.referrer || undefined,
+      source: query.ref === "qr" ? "qr" : "browse",
+    }).catch(() => {});
+  } catch { /* ignore analytics errors */ }
 
   // Other works by this artist (excluding current)
   const otherWorks = artist.works.filter((w) => w.id !== work.id);

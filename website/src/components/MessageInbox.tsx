@@ -160,12 +160,18 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
 
   // Scroll to bottom within the messages container only (not the whole page)
   useEffect(() => {
-    if (messagesEndRef.current) {
-      const container = messagesEndRef.current.parentElement;
-      if (container) {
-        container.scrollTop = container.scrollHeight;
+    const scrollToBottom = () => {
+      if (messagesEndRef.current) {
+        const container = messagesEndRef.current.parentElement;
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
       }
-    }
+    };
+    // Immediate + delayed to catch both fast and slow renders
+    scrollToBottom();
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
   }, [messages]);
 
   const selectedConvData = conversations.find((c) => c.conversationId === selectedConv);

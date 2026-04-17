@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import CustomerPortalLayout from "@/components/CustomerPortalLayout";
 import { authFetch } from "@/lib/api-client";
@@ -40,8 +41,8 @@ function formatName(raw: string): string {
   return raw.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
 
-interface ArtistWork { id: string; title: string; }
-interface ArtistData { slug: string; name: string; works: ArtistWork[]; }
+interface ArtistWork { id: string; title: string; image: string; }
+interface ArtistData { slug: string; name: string; image: string; works: ArtistWork[]; }
 
 export default function CustomerSavedPage() {
   const [items, setItems] = useState<SavedItemRow[]>([]);
@@ -51,10 +52,10 @@ export default function CustomerSavedPage() {
   const [removing, setRemoving] = useState<string | null>(null);
 
   const workMap = useMemo(() => {
-    const map = new Map<string, { title: string; artistSlug: string; artistName: string }>();
+    const map = new Map<string, { title: string; image: string; artistSlug: string; artistName: string; artistImage: string }>();
     for (const artist of allArtists) {
       for (const work of artist.works || []) {
-        map.set(work.id, { title: work.title, artistSlug: artist.slug, artistName: artist.name });
+        map.set(work.id, { title: work.title, image: work.image, artistSlug: artist.slug, artistName: artist.name, artistImage: artist.image });
       }
     }
     return map;
@@ -142,25 +143,42 @@ export default function CustomerSavedPage() {
                   <div className="w-10 h-10 rounded bg-accent/10 shrink-0 flex items-center justify-center">
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-accent"><rect x="2" y="7" width="20" height="14" rx="2" strokeWidth="1.5" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" strokeWidth="1.5" /></svg>
                   </div>
+                ) : item.item_type === "work" && workMap.get(item.item_id)?.image ? (
+                  <div className="w-10 h-10 rounded overflow-hidden bg-border/20 shrink-0 relative">
+                    <Image src={workMap.get(item.item_id)!.image} alt="" fill className="object-cover" sizes="40px" />
+                  </div>
+                ) : item.item_type === "artist" ? (
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-border/20 shrink-0 relative">
+                    {allArtists.find((a) => a.slug === item.item_id)?.image ? (
+                      <Image src={allArtists.find((a) => a.slug === item.item_id)!.image} alt="" fill className="object-cover" sizes="40px" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted">
+                        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" strokeWidth="1.5" /><circle cx="12" cy="7" r="4" strokeWidth="1.5" /></svg>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="w-10 h-10 rounded bg-border/20 shrink-0 flex items-center justify-center">
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-muted"><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="1.5" /><circle cx="8.5" cy="8.5" r="1.5" strokeWidth="1.5" /><path d="m21 15-5-5L5 21" strokeWidth="1.5" /></svg>
                   </div>
                 )}
                 <div className="min-w-0">
-                  <Link
-                    href={
-                      item.item_type === "work" && workMap.has(item.item_id)
-                        ? `/browse/${workMap.get(item.item_id)!.artistSlug}/${slugify(workMap.get(item.item_id)!.title)}`
-                        : linkForItem(item.item_type, item.item_id)
-                    }
-                    className="text-sm font-medium text-foreground hover:text-accent transition-colors truncate block"
-                  >
-                    {item.item_type === "work" && workMap.has(item.item_id)
-                      ? workMap.get(item.item_id)!.title
-                      : formatName(item.item_id)}
-                  </Link>
+                  {(() => {
+                    const match = item.item_type === "work" ? workMap.get(item.item_id) : null;
+                    const href = match
+                      ? `/browse/${match.artistSlug}/${slugify(match.title)}`
+                      : linkForItem(item.item_type, item.item_id);
+                    const label = match ? match.title : formatName(item.item_id);
+                    return (
+                      <Link href={href} className="text-sm font-medium text-foreground hover:text-accent transition-colors truncate block">
+                        {label}
+                      </Link>
+                    );
+                  })()}
                   <p className="text-xs text-muted mt-0.5">
+                    {item.item_type === "work" && workMap.has(item.item_id) && (
+                      <span className="text-foreground/60">{workMap.get(item.item_id)!.artistName} · </span>
+                    )}
                     Saved{" "}
                     {new Date(item.created_at).toLocaleDateString("en-GB", {
                       day: "numeric",
