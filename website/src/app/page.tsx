@@ -200,7 +200,7 @@ export default function Home() {
                     <Link href="/browse" className="inline-flex items-center justify-center px-5 sm:px-7 py-3 sm:py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
                       Discover Art
                     </Link>
-                    <Link href="/register-venue" className="inline-flex items-center justify-center px-5 sm:px-7 py-3 sm:py-3.5 border border-border text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-background transition-colors">
+                    <Link href="/register-venue" className="inline-flex items-center justify-center px-5 sm:px-7 py-3 sm:py-3.5 bg-[#F0EDE8] border border-[#E0DCD5] text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-[#E8E4DE] transition-colors">
                       REGISTER YOUR VENUE
                     </Link>
                   </div>
@@ -266,7 +266,7 @@ export default function Home() {
                     <Link href="/apply" className="inline-flex items-center justify-center px-5 sm:px-7 py-3 sm:py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
                       Apply to Join
                     </Link>
-                    <Link href="/artists" className="inline-flex items-center justify-center px-5 sm:px-7 py-3 sm:py-3.5 border border-border text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-background transition-colors">
+                    <Link href="/artists" className="inline-flex items-center justify-center px-5 sm:px-7 py-3 sm:py-3.5 bg-[#F0EDE8] border border-[#E0DCD5] text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-[#E8E4DE] transition-colors">
                       LEARN MORE
                     </Link>
                   </div>
