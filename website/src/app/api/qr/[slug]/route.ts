@@ -34,7 +34,7 @@ export async function GET(
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
   const sourceParams = `?ref=qr${venue ? `&venue=${encodeURIComponent(venue)}` : ""}`;
   const redirectPath = work
-    ? `/browse/${slug}/${slugify(work)}${sourceParams}`
+    ? `/browse/${slug}${sourceParams}&work=${slugify(work)}`
     : `/browse/${slug}${sourceParams}`;
 
   return NextResponse.redirect(new URL(redirectPath, baseUrl), 302);
