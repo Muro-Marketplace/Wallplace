@@ -116,16 +116,16 @@ export default function Home() {
                 Venues source original artwork risk-free. Artists access
                 high-intent commercial demand.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 max-w-sm sm:max-w-none mx-auto">
                 <Link
                   href="/browse"
-                  className="inline-flex items-center justify-center min-w-[180px] px-8 py-3 sm:py-4 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors"
+                  className="inline-flex items-center justify-center w-full sm:w-auto sm:min-w-[180px] px-8 py-3 sm:py-4 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors"
                 >
                   Discover Art
                 </Link>
                 <Link
                   href={user ? portalBase : "/signup"}
-                  className="inline-flex items-center justify-center min-w-[180px] px-8 py-3 sm:py-4 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors"
+                  className="inline-flex items-center justify-center w-full sm:w-auto sm:min-w-[180px] px-8 py-3 sm:py-4 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors"
                 >
                   {user ? portalLabel : "Sign Up"}
                 </Link>
@@ -386,11 +386,11 @@ export default function Home() {
               <p className="text-lg text-white/50 max-w-lg mx-auto mb-10">
                 Cafés, restaurants, hotels, and offices actively seeking artwork to display. See what&rsquo;s available near you.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link href="/spaces-looking-for-art" className="inline-flex items-center justify-center min-w-[180px] px-8 py-3 sm:py-4 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 max-w-md sm:max-w-none mx-auto">
+                <Link href="/spaces-looking-for-art" className="inline-flex items-center justify-center w-full sm:w-auto sm:min-w-[200px] px-8 py-3 sm:py-4 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
                   See Venue Demand
                 </Link>
-                <Link href="/apply" className="inline-flex items-center justify-center min-w-[180px] px-8 py-3 sm:py-4 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors">
+                <Link href="/apply" className="inline-flex items-center justify-center w-full sm:w-auto sm:min-w-[200px] px-8 py-3 sm:py-4 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors">
                   Apply to Join
                 </Link>
               </div>
@@ -429,7 +429,7 @@ export default function Home() {
                   <p className="text-xs font-medium tracking-[0.2em] uppercase text-accent mb-3">Customers</p>
                   <h3 className="font-serif text-xl mb-3">Buy original artwork</h3>
                   <p className="text-sm text-muted mb-6 flex-1">Browse and buy directly from independent artists.</p>
-                  <Link href="/signup/customer" className="inline-flex items-center justify-center w-full px-4 py-3.5 bg-background border border-border text-foreground text-xs font-semibold tracking-wide uppercase rounded-sm hover:bg-border/30 transition-colors whitespace-nowrap">
+                  <Link href="/signup/customer" className="inline-flex items-center justify-center w-full px-4 py-3.5 bg-[#F5F3F0] border border-border text-foreground text-xs font-semibold tracking-wide uppercase rounded-sm hover:bg-[#EBE8E4] transition-colors whitespace-nowrap">
                     Sign Up
                   </Link>
                 </div>

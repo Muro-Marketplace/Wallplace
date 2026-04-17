@@ -178,9 +178,9 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 h-14 lg:h-16 ${
+      className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 h-14 lg:h-16 overflow-hidden ${
         isPortal
-          ? ""
+          ? "border-b border-black/10"
           : showSolid
           ? "bg-white border-b border-border"
           : "bg-transparent border-b border-transparent"
@@ -524,32 +524,15 @@ export default function Header() {
                       )}
                     </Link>
                   </div>
-                  {/* Portal navigation */}
+                  {/* Portal link */}
                   <div className="pt-2 border-t border-border">
-                    <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-2">
+                    <Link
+                      href={userType === "venue" ? "/venue-portal" : userType === "customer" ? "/customer-portal" : "/artist-portal"}
+                      className="block text-sm font-medium text-foreground hover:text-accent transition-colors"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
                       {userType === "venue" ? "Venue Portal" : userType === "customer" ? "My Account" : "Artist Portal"}
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      {(userType === "artist" ? [
-                        { label: "Artist Portal", href: "/artist-portal" },
-                        { label: "Placements", href: "/artist-portal/placements" },
-                        { label: "Orders", href: "/artist-portal/orders" },
-                        { label: "QR Labels", href: "/artist-portal/labels" },
-                        { label: "Edit Profile", href: "/artist-portal/profile" },
-                      ] : userType === "venue" ? [
-                        { label: "Dashboard", href: "/venue-portal" },
-                        { label: "Placements", href: "/venue-portal/placements" },
-                        { label: "Orders", href: "/venue-portal/orders" },
-                        { label: "Saved", href: "/venue-portal/saved" },
-                        { label: "Settings", href: "/venue-portal/settings" },
-                      ] : [
-                        { label: "My Orders", href: "/customer-portal" },
-                      ]).map((item) => (
-                        <Link key={item.href} href={item.href} className="text-sm text-foreground/70 hover:text-foreground transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                          {item.label}
-                        </Link>
-                      ))}
-                    </div>
+                    </Link>
                   </div>
                   <button
                     onClick={() => { signOut(); setMobileMenuOpen(false); }}

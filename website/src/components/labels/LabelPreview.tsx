@@ -30,7 +30,7 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex flex-col">
+    <div className="fixed inset-0 z-[110] bg-white flex flex-col">
       {/* Toolbar */}
       <div className="label-preview-toolbar no-print border-b border-border bg-surface px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-4">
@@ -44,11 +44,14 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setShowControls((v) => !v)}
-            className={`hidden sm:inline-flex px-3 py-1.5 text-xs border rounded-sm transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 text-xs border rounded-sm transition-colors ${
               showControls ? "text-accent border-accent/30 bg-accent/5" : "text-muted border-border"
             }`}
           >
             {showControls ? "Hide Controls" : "Edit Labels"}
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={`transition-transform duration-200 ${showControls ? "rotate-180" : ""}`}>
+              <polyline points="2 4 6 8 10 4" />
+            </svg>
           </button>
           <button
             onClick={onClose}
