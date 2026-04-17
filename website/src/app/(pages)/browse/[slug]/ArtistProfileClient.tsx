@@ -7,6 +7,7 @@ import type { ArtistWork } from "@/data/artists";
 import { slugify } from "@/lib/slugify";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { authFetch } from "@/lib/api-client";
 import { useToast } from "@/context/ToastContext";
 import SaveButton from "@/components/SaveButton";
 
@@ -559,9 +560,8 @@ export default function ArtistProfileClient({
                     const data = new FormData(form);
                     const senderName = (data.get("senderName") as string) || authDisplayName || "Anonymous";
                     try {
-                      await fetch("/api/messages", {
+                      await authFetch("/api/messages", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                           senderId: user?.id || null,
                           senderName,

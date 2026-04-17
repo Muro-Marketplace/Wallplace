@@ -20,9 +20,9 @@ export default function VenueDashboardPage() {
   const savedArtistCount = savedItems.filter((s) => s.type === "artist").length;
   const [stats, setStats] = useState([
     { label: "Saved Artists", value: String(savedArtistCount) },
-    { label: "Active Enquiries", value: "0" },
-    { label: "Orders", value: "0" },
+    { label: "Total Spent", value: "\u00a30" },
     { label: "Revenue Share Earned", value: "\u00a30" },
+    { label: "QR Scans", value: "0" },
   ]);
   const [loading, setLoading] = useState(true);
   const [onboardingItems, setOnboardingItems] = useState<OnboardingItem[]>([]);
@@ -36,27 +36,20 @@ export default function VenueDashboardPage() {
   useEffect(() => {
     Promise.all([
       authFetch("/api/dashboard").then((r) => r.json()).catch(() => ({})),
-    ]).then(([dashboardData]) => {
+      authFetch("/api/placements").then((r) => r.json()).catch(() => ({ placements: [] })),
+    ]).then(([dashboardData, placementsData]) => {
       const orders = dashboardData.orders || [];
       const totalSpent = orders.reduce((sum: number, o: { total?: number }) => sum + (o.total || 0), 0);
-
-      // Calculate revenue share from placements (if any)
-      let revenueEarned = 0;
-      try {
-        const placementsRes = await authFetch("/api/placements");
-        const placementsData = await placementsRes.json();
-        if (placementsData.placements) {
-          revenueEarned = placementsData.placements.reduce(
-            (sum: number, p: { revenue?: number }) => sum + (p.revenue || 0), 0
-          );
-        }
-      } catch { /* ignore */ }
+      const placements = placementsData.placements || [];
+      const revenueEarned = placements.reduce(
+        (sum: number, p: { revenue?: number }) => sum + (p.revenue || 0), 0
+      );
 
       setStats([
         { label: "Saved Artists", value: String(savedArtistCount) },
-        { label: "Active Enquiries", value: "0" },
-        { label: "Orders", value: String(orders.length) },
+        { label: "Total Spent", value: `\u00a3${totalSpent.toLocaleString()}` },
         { label: "Revenue Share Earned", value: `\u00a3${revenueEarned.toLocaleString()}` },
+        { label: "QR Scans", value: "0" },
       ]);
 
       // Build onboarding checklist

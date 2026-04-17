@@ -46,6 +46,7 @@ export default function CollectionsPage() {
   const { artist, loading: artistLoading } = useCurrentArtist();
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [userCollections, setUserCollections] = useState<LocalCollection[]>([]);
   const [form, setForm] = useState<CollectionForm>({
     name: "",
@@ -66,20 +67,30 @@ export default function CollectionsPage() {
 
     setSaving(true);
 
-    const id = `${artist.slug}-collection-${Date.now()}`;
-    const newCollection: LocalCollection = {
-      id,
-      name: form.name,
-      description: form.description,
-      bundlePrice: form.bundlePrice,
-      workIds: form.workIds,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Save to localStorage immediately
-    const updated = [newCollection, ...userCollections];
-    setUserCollections(updated);
-    saveLocalCollections(artist.slug, updated);
+    if (editingId) {
+      // Update existing collection
+      const updated = userCollections.map((c) =>
+        c.id === editingId
+          ? { ...c, name: form.name, description: form.description, bundlePrice: form.bundlePrice, workIds: form.workIds }
+          : c
+      );
+      setUserCollections(updated);
+      saveLocalCollections(artist.slug, updated);
+    } else {
+      // Create new collection
+      const id = `${artist.slug}-collection-${Date.now()}`;
+      const newCollection: LocalCollection = {
+        id,
+        name: form.name,
+        description: form.description,
+        bundlePrice: form.bundlePrice,
+        workIds: form.workIds,
+        createdAt: new Date().toISOString(),
+      };
+      const updated = [newCollection, ...userCollections];
+      setUserCollections(updated);
+      saveLocalCollections(artist.slug, updated);
+    }
 
     // Fire-and-forget POST to API (may fail if table doesn't exist)
     authFetch("/api/collections", {
@@ -95,9 +106,10 @@ export default function CollectionsPage() {
 
     // Reset form
     setForm({ name: "", description: "", workIds: [], bundlePrice: "" });
+    setEditingId(null);
     setShowForm(false);
     setSaving(false);
-  }, [artist, form, userCollections]);
+  }, [artist, form, userCollections, editingId]);
 
   const handleDelete = useCallback(async (id: string) => {
     if (!artist) return;
@@ -247,15 +259,27 @@ export default function CollectionsPage() {
                         <p className="text-xs text-muted mb-3 line-clamp-2">{col.description}</p>
                       )}
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">
-                          Draft
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
+                          Published
                         </span>
-                        <button
-                          onClick={() => handleDelete(col.id)}
-                          className="text-xs text-muted hover:text-red-600 transition-colors"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              setForm({ name: col.name, description: col.description, workIds: col.workIds, bundlePrice: col.bundlePrice });
+                              setEditingId(col.id);
+                              setShowForm(true);
+                            }}
+                            className="text-xs text-accent hover:text-accent-hover transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(col.id)}
+                            className="text-xs text-muted hover:text-red-600 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
