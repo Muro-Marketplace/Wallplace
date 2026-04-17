@@ -525,15 +525,6 @@ export default function PlacementsPage() {
                         >
                           Message Venue
                         </Link>
-                        {p.status === "Active" && (
-                          <Link
-                            href={`/artist-portal/labels?venue=${encodeURIComponent(p.venue)}&works=${encodeURIComponent(p.workTitle)}`}
-                            className="text-xs text-accent hover:text-accent-hover transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Generate QR Label
-                          </Link>
-                        )}
                       </div>
                       {p.message && (
                         <div className="mt-3 bg-surface border border-border rounded-sm p-3">
@@ -651,14 +642,6 @@ export default function PlacementsPage() {
                   >
                     Message Venue
                   </Link>
-                  {p.status === "Active" && (
-                    <Link
-                      href={`/artist-portal/labels?venue=${encodeURIComponent(p.venue)}&works=${encodeURIComponent(p.workTitle)}`}
-                      className="text-xs text-accent hover:text-accent-hover transition-colors"
-                    >
-                      Generate QR Label
-                    </Link>
-                  )}
                 </div>
               </div>
             )}
