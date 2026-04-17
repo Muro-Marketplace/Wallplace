@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import type { Artist } from "@/data/artists";
-import SaveButton from "./SaveButton";
-import { useAuth } from "@/context/AuthContext";
 
 interface BrowseArtistCardProps {
   artist: Artist;
@@ -14,36 +11,25 @@ interface BrowseArtistCardProps {
 }
 
 export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardProps) {
-  const router = useRouter();
-  const { user, userType } = useAuth();
   const [imgIndex, setImgIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
   const images = artist.works.map((w) => w.image);
 
-  const goToPrev = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setImgIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  const goToNext = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setImgIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const goToDot = (e: React.MouseEvent, index: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setImgIndex(index);
-  };
+  // Build a clean one-line summary
+  const offers: string[] = [];
+  if (artist.openToFreeLoan || artist.openToRevenueShare) offers.push("Display");
+  if (artist.openToOutrightPurchase) offers.push("Purchase");
+  const formats: string[] = [];
+  if (artist.offersOriginals) formats.push("Originals");
+  if (artist.offersPrints) formats.push("Prints");
+  if (artist.offersFramed) formats.push("Framed");
 
   return (
     <Link href={`/browse/${artist.slug}`} className="group block">
-      <div className="bg-surface border border-border rounded-sm overflow-hidden hover:border-accent/30 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-        {/* Image area */}
+      <div className="overflow-hidden">
+        {/* Image */}
         <div
-          className="aspect-square relative overflow-hidden bg-border/30"
+          className="aspect-[4/5] relative overflow-hidden rounded-sm bg-border/20"
           onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
           onTouchEnd={(e) => {
             const diff = touchStartX - e.changedTouches[0].clientX;
@@ -57,183 +43,81 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
             <div
               key={src}
               className={`absolute inset-0 transition-opacity duration-500 ${
-                index === imgIndex
-                  ? "opacity-100 z-0"
-                  : "opacity-0 pointer-events-none z-0"
+                index === imgIndex ? "opacity-100" : "opacity-0 pointer-events-none"
               }`}
             >
               <Image
                 src={src}
                 alt={`${artist.works[index]?.title || "Artwork"} by ${artist.name}`}
                 fill
-                className="object-cover"
+                className="object-cover group-hover:scale-[1.03] transition-transform duration-700"
                 sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
               />
             </div>
           ))}
 
-          {/* Left arrow */}
-          {images.length > 1 && (
-            <button
-              onClick={goToPrev}
-              aria-label="Previous image"
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4"
-              >
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
+          {/* Subtle gradient at bottom for legibility */}
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 to-transparent" />
+
+          {/* Founding Artist badge — only important badge */}
+          {artist.isFoundingArtist && (
+            <span className="absolute top-3 left-3 z-10 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-[10px] font-medium text-foreground rounded-sm">
+              Founding Artist
+            </span>
           )}
 
-          {/* Right arrow */}
+          {/* Nav arrows — desktop hover only */}
           {images.length > 1 && (
-            <button
-              onClick={goToNext}
-              aria-label="Next image"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4"
+            <>
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImgIndex((prev) => (prev - 1 + images.length) % images.length); }}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/80 hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20"
               >
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
+              </button>
+              <button
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImgIndex((prev) => (prev + 1) % images.length); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/80 hover:bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>
+              </button>
+            </>
           )}
 
-          {/* Dot indicators */}
+          {/* Dot indicators — minimal */}
           {images.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
-              {images.map((_, index) => (
+            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+              {images.map((_, i) => (
                 <button
-                  key={index}
-                  onClick={(e) => goToDot(e, index)}
-                  aria-label={`Go to image ${index + 1}`}
-                  className={`w-1.5 h-1.5 rounded-full transition-colors duration-200 ${
-                    index === imgIndex ? "bg-white" : "bg-white/40"
-                  }`}
+                  key={i}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImgIndex(i); }}
+                  className={`w-1 h-1 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/40"}`}
                 />
               ))}
             </div>
           )}
-
-          {/* Badges top-left */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-            {artist.isFoundingArtist && (
-              <span
-                className="inline-block px-2.5 py-1 bg-white/95 text-xs font-medium text-foreground rounded-sm cursor-help"
-                title="One of the founding artists on Wallplace"
-              >
-                Founding Artist
-              </span>
-            )}
-            {(artist.subscriptionPlan === "premium" || artist.subscriptionPlan === "pro") && (
-              <span className={`inline-block px-2.5 py-1 text-xs font-medium rounded-sm backdrop-blur-sm ${
-                artist.subscriptionPlan === "pro" ? "bg-accent/90 text-white" : "bg-white/95 text-accent"
-              }`}>
-                {artist.subscriptionPlan === "pro" ? "Featured Artist" : "Featured"}
-              </span>
-            )}
-          </div>
-
-          {/* Save/heart button top-right */}
-          <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <SaveButton type="artist" itemId={artist.slug} />
-          </div>
-
-          {/* Availability mini-badges top-right below heart */}
-          <div className="absolute top-14 right-3 flex flex-col gap-1 z-10">
-            {artist.offersOriginals && (
-              <span className="inline-block px-2 py-0.5 bg-black/60 text-white text-[10px] rounded-sm backdrop-blur-sm">
-                Originals
-              </span>
-            )}
-            {artist.offersPrints && (
-              <span className="inline-block px-2 py-0.5 bg-black/60 text-white text-[10px] rounded-sm backdrop-blur-sm">
-                Prints
-              </span>
-            )}
-            {artist.offersFramed && (
-              <span className="inline-block px-2 py-0.5 bg-black/60 text-white text-[10px] rounded-sm backdrop-blur-sm">
-                Framed
-              </span>
-            )}
-          </div>
         </div>
 
-        {/* Info */}
-        <div className="p-4">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <h2 className="text-base font-sans font-medium text-foreground leading-tight">
+        {/* Info — clean and minimal */}
+        <div className="pt-3 pb-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-sm font-medium text-foreground leading-tight">
               {artist.name}
             </h2>
             {distance !== null && (
-              <span className="text-xs text-muted shrink-0 mt-0.5">
-                {distance < 0.2
-                  ? "< 0.2 mi"
-                  : `${distance.toFixed(1)} mi`}
+              <span className="text-[10px] text-muted shrink-0">
+                {distance < 0.2 ? "< 0.2 mi" : `${distance.toFixed(1)} mi`}
               </span>
             )}
           </div>
-          <p className="text-sm text-muted mb-3">
-            {artist.primaryMedium} &middot; {artist.location}
+          <p className="text-xs text-muted mt-0.5">
+            {artist.primaryMedium} · {artist.location}
           </p>
-          {/* Commercial terms */}
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {(artist.openToFreeLoan || artist.openToRevenueShare) && (
-              <span className="text-[10px] text-accent bg-accent/5 border border-accent/15 px-1.5 py-0.5 rounded-sm">
-                Display{artist.openToRevenueShare && artist.revenueSharePercent ? ` · ${artist.revenueSharePercent}% revenue share` : ""}
-              </span>
-            )}
-            {artist.openToOutrightPurchase && (
-              <span className="text-[10px] text-accent bg-accent/5 border border-accent/15 px-1.5 py-0.5 rounded-sm">Purchase</span>
-            )}
-          </div>
-          {/* Hover action CTAs */}
-          <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const nameParam = `&artistName=${encodeURIComponent(artist.name)}`;
-                if (user && userType === "venue") {
-                  router.push(`/venue-portal/messages?artist=${artist.slug}${nameParam}`);
-                } else if (user && userType === "artist") {
-                  router.push(`/artist-portal/messages?artist=${artist.slug}${nameParam}`);
-                } else {
-                  router.push(`/contact?artist=${artist.slug}`);
-                }
-              }}
-              className="px-3 py-1.5 text-xs font-medium border border-border rounded-sm text-foreground hover:border-accent hover:text-accent transition-colors cursor-pointer"
-            >
-              Message
-            </button>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                router.push(`/browse/${artist.slug}`);
-              }}
-              className="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-sm hover:bg-accent-hover transition-colors cursor-pointer"
-            >
-              View Portfolio
-            </button>
-          </div>
+          {(offers.length > 0 || formats.length > 0) && (
+            <p className="text-[11px] text-muted/70 mt-1">
+              {offers.join(" · ")}{offers.length > 0 && formats.length > 0 ? " · " : ""}{formats.join(", ")}
+            </p>
+          )}
         </div>
       </div>
     </Link>
