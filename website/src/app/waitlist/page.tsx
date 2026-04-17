@@ -64,10 +64,10 @@ export default function WaitlistPage() {
       </div>
 
       {/* ─── HERO / WAITLIST ─── */}
-      <section className="relative min-h-screen flex flex-col">
+      <section className="relative min-h-[110vh] sm:min-h-screen flex flex-col">
         {/* Main content */}
         <div className="flex-1 flex items-center justify-center px-6 pb-28 pt-20 lg:pt-8">
-          <div className="w-full max-w-md lg:max-w-lg text-center">
+          <div className="w-full max-w-md lg:max-w-lg text-center -mt-[8vh] sm:mt-0">
             {submitted ? (
               <SuccessState />
             ) : (
@@ -83,7 +83,7 @@ export default function WaitlistPage() {
                 </h1>
 
                 {/* Subhead */}
-                <p className="text-sm text-white/50 leading-relaxed mb-8 mx-auto max-w-sm">
+                <p className="hidden sm:block text-sm text-white/50 leading-relaxed mb-8 mx-auto max-w-sm">
                   Connecting artists with venues that want
                   original work on their walls. Join the waitlist to be first
                   in.
