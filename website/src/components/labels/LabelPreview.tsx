@@ -83,7 +83,7 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
                     <button
                       key={s.key}
                       onClick={() => setLabels((prev) => prev.map((l) => ({ ...l, labelSize: s.key as LabelSize })))}
-                      className={`px-2 py-0.5 text-[10px] rounded-sm border transition-colors ${
+                      className={`px-1.5 py-0.5 text-[9px] rounded-sm border transition-colors ${
                         currentSize === s.key ? "bg-accent text-white border-accent" : "text-muted border-border hover:border-foreground/30"
                       }`}
                     >
@@ -186,6 +186,19 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
                         })}
                       </div>
                     </>
+                  )}
+                  {/* Tagline — only for large/xlarge */}
+                  {(currentSize === "large" || currentSize === "xlarge") && (
+                    <div>
+                      <span className="text-[10px] text-muted uppercase tracking-wider block mb-1">Tagline</span>
+                      <input
+                        type="text"
+                        value={label.tagline || ""}
+                        onChange={(e) => updateLabel(index, { tagline: e.target.value })}
+                        placeholder="e.g. Scan to view & buy"
+                        className="w-full px-2 py-1 bg-surface border border-border rounded-sm text-[10px] text-foreground focus:outline-none focus:border-accent/50"
+                      />
+                    </div>
                   )}
                 </div>
               ))}
