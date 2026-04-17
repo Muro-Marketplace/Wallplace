@@ -36,7 +36,7 @@ const moreLinks = [
   { label: "Pricing", href: "/pricing" },
 ];
 
-const immersiveRoutes = ["/venues", "/artists", "/browse", "/about", "/how-it-works"];
+const immersiveRoutes = ["/venues", "/artists", "/about", "/how-it-works"];
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -183,8 +183,6 @@ export default function Header() {
       className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
         isPortal
           ? "bg-[#1A1A1A]"
-          : isBrowsePage
-          ? "bg-white border-b border-border"
           : showSolid
           ? "bg-white border-b border-border"
           : "bg-transparent border-b border-transparent"
