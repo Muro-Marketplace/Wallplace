@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
@@ -417,7 +417,8 @@ export default function PlacementsPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-background/60 transition-colors cursor-pointer" onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}>
+                <React.Fragment key={p.id}>
+                <tr className="hover:bg-background/60 transition-colors cursor-pointer" onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}>
                   <td className="px-6 py-3.5">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 relative rounded-sm overflow-hidden bg-border/20 shrink-0">
@@ -527,6 +528,7 @@ export default function PlacementsPage() {
                     </td>
                   </tr>
                 )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
