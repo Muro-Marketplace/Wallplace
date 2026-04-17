@@ -14,7 +14,7 @@ export default function HowItWorksPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center -mt-14 lg:-mt-16">
+    <div className="relative min-h-[110vh] sm:min-h-screen flex items-center justify-center -mt-14 lg:-mt-16">
       <div className="absolute inset-0 -z-10">
         <Image
           src="https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=1920&h=1080&fit=crop&crop=center"
