@@ -183,15 +183,15 @@ export default function Header() {
       className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
         isPortal
           ? "bg-[#1A1A1A]"
-          : (isBrowsePage || isSpacesPage)
+          : isBrowsePage
           ? "bg-[#1A1A1A]"
           : showSolid
           ? "bg-white border-b border-border"
           : "bg-transparent border-b border-transparent"
       }`}
     >
-      {/* Background image for marketplace/spaces pages */}
-      {(isBrowsePage || isSpacesPage) && (
+      {/* Background image for marketplace page only */}
+      {isBrowsePage && (
         <div className="absolute inset-0 -z-10 overflow-hidden">
           <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1920&h=200&fit=crop&crop=center" alt="" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/55" />
@@ -219,8 +219,8 @@ export default function Header() {
                   href={link.href}
                   className={`text-sm transition-colors duration-300 ${
                     isActive
-                      ? (isPortal || isBrowsePage || isSpacesPage || !showSolid ? "text-white font-semibold" : "text-foreground font-semibold")
-                      : (isPortal || isBrowsePage || isSpacesPage || !showSolid ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground")
+                      ? (isPortal || isBrowsePage || !showSolid ? "text-white font-semibold" : "text-foreground font-semibold")
+                      : (isPortal || isBrowsePage || !showSolid ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground")
                   }`}
                 >
                   {link.label}
