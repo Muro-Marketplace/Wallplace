@@ -33,12 +33,21 @@ export default function CollectionDetailPage() {
             const match = local.find((c: { id: string }) => c.id === collectionId);
             if (match) {
               const slug = key.replace("wallplace-collections-", "");
+              const thumbnail: string | undefined = match.thumbnail || undefined;
+              const bannerImage: string | undefined = match.bannerImage || undefined;
               setCollection({
-                id: match.id, artistSlug: slug, artistName: slug, name: match.name,
-                description: match.description, workIds: match.workIds || [],
+                id: match.id,
+                artistSlug: slug,
+                artistName: slug,
+                name: match.name,
+                description: match.description,
+                workIds: match.workIds || [],
                 bundlePrice: match.bundlePrice ? parseFloat(match.bundlePrice) : 0,
                 bundlePriceBand: match.bundlePrice ? `£${match.bundlePrice}` : "",
-                coverImage: `https://picsum.photos/seed/${match.id}/900/600`, available: true,
+                thumbnail,
+                bannerImage,
+                coverImage: bannerImage || thumbnail || `https://picsum.photos/seed/${match.id}/900/600`,
+                available: match.available ?? true,
               });
               setLoading(false);
               return;
@@ -95,11 +104,12 @@ export default function CollectionDetailPage() {
       {/* Banner */}
       <section className="relative h-64 lg:h-80 overflow-hidden">
         <Image
-          src={collection.coverImage}
+          src={collection.bannerImage || collection.thumbnail || collection.coverImage}
           alt={collection.name}
           fill
           className="object-cover"
           priority
+          unoptimized
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10" />
         <div className="relative h-full flex items-end">

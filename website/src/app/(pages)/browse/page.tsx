@@ -166,6 +166,9 @@ export default function BrowsePortfoliosPage() {
             const artist = staticArtists.find((a) => a.slug === slug);
             for (const col of local) {
               if (apiCollections.some((c) => c.id === col.id)) continue;
+              if (col.available === false) continue;
+              const thumbnail: string | undefined = col.thumbnail || undefined;
+              const bannerImage: string | undefined = col.bannerImage || undefined;
               apiCollections.push({
                 id: col.id,
                 artistSlug: slug,
@@ -175,7 +178,13 @@ export default function BrowsePortfoliosPage() {
                 workIds: col.workIds || [],
                 bundlePrice: col.bundlePrice ? parseFloat(col.bundlePrice) : 0,
                 bundlePriceBand: col.bundlePrice ? `£${col.bundlePrice}` : "",
-                coverImage: artist?.image || `https://picsum.photos/seed/${col.id}/900/600`,
+                thumbnail,
+                bannerImage,
+                coverImage:
+                  thumbnail ||
+                  bannerImage ||
+                  artist?.image ||
+                  `https://picsum.photos/seed/${col.id}/900/600`,
                 available: true,
               });
             }

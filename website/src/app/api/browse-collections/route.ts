@@ -19,9 +19,11 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (data) {
-      // Fetch artist names for the collections
-      const slugs = [...new Set(data.map((r: { artist_slug: string }) => r.artist_slug).filter(Boolean))];
-      let artistMap: Record<string, { name: string; image: string }> = {};
+      // Fetch artist names/images for the collections
+      const slugs = [
+        ...new Set(data.map((r: { artist_slug: string }) => r.artist_slug).filter(Boolean)),
+      ];
+      const artistMap: Record<string, { name: string; image: string }> = {};
       if (slugs.length > 0) {
         const { data: profiles } = await db
           .from("artist_profiles")
@@ -36,7 +38,15 @@ export async function GET() {
 
       for (const row of data) {
         if (allCollections.some((c) => c.id === row.id)) continue;
-        const artist = artistMap[row.artist_slug] || {};
+        const artist = artistMap[row.artist_slug] || { name: "", image: "" };
+        const thumbnail: string | undefined = row.thumbnail || undefined;
+        const bannerImage: string | undefined = row.banner_image || undefined;
+        // coverImage is a single-image fallback used by older code paths.
+        const coverImage =
+          thumbnail ||
+          bannerImage ||
+          artist.image ||
+          `https://picsum.photos/seed/${row.id}/900/600`;
         allCollections.push({
           id: row.id,
           artistSlug: row.artist_slug || "",
@@ -46,7 +56,9 @@ export async function GET() {
           workIds: row.work_ids || [],
           bundlePrice: row.bundle_price || 0,
           bundlePriceBand: row.bundle_price ? `£${row.bundle_price}` : "",
-          coverImage: artist.image || `https://picsum.photos/seed/${row.id}/900/600`,
+          thumbnail,
+          bannerImage,
+          coverImage,
           available: true,
         });
       }

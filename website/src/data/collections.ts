@@ -7,6 +7,11 @@ export interface ArtistCollection {
   workIds: string[];
   bundlePrice: number;
   bundlePriceBand: string;
+  /** Card image (square or 16:9). Falls back to bannerImage or work-preview grid. */
+  thumbnail?: string;
+  /** Wide hero image (16:9) for the collection detail page. */
+  bannerImage?: string;
+  /** Legacy single-image field used on cards before thumbnail/banner were split. */
   coverImage: string;
   available: boolean;
 }

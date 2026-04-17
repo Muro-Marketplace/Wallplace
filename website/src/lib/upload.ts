@@ -11,7 +11,7 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
  */
 export async function uploadImage(
   file: File,
-  bucket: "avatars" | "artworks"
+  bucket: "avatars" | "artworks" | "collections"
 ): Promise<string> {
   // Validate file type
   if (!ALLOWED_TYPES.includes(file.type)) {
@@ -32,7 +32,8 @@ export async function uploadImage(
   // Resize large images before upload (max 2000px, converts to WebP if supported)
   let uploadBlob: Blob = file;
   try {
-    uploadBlob = await resizeImage(file, bucket === "avatars" ? 800 : 2000);
+    const maxDim = bucket === "avatars" ? 800 : bucket === "collections" ? 1800 : 2000;
+    uploadBlob = await resizeImage(file, maxDim);
   } catch {
     // If resize fails, upload original
     uploadBlob = file;
