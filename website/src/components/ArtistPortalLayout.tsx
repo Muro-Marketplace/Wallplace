@@ -90,7 +90,7 @@ export default function ArtistPortalLayout({
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-14 lg:top-16 left-0 h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)]
+          fixed top-14 lg:top-16 left-0 bottom-0
           w-56 bg-[#F5F3F0] border-r border-border z-30
           flex flex-col
           transition-transform duration-200
@@ -145,25 +145,27 @@ export default function ArtistPortalLayout({
               </button>
             </li>
           </ul>
-        </nav>
 
-        <div className="px-4 py-3 border-t border-border">
-          <div className="flex items-center gap-3">
-            {profileImage ? (
-              <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
-                <Image src={profileImage} alt={displayName || "Artist"} width={32} height={32} className="object-cover w-full h-full" />
+          <div className="mx-4 my-3 border-t border-border" />
+
+          <div className="px-3 pb-2">
+            <div className="flex items-center gap-3">
+              {profileImage ? (
+                <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                  <Image src={profileImage} alt={displayName || "Artist"} width={32} height={32} className="object-cover w-full h-full" />
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-sm font-medium shrink-0">
+                  {displayName?.charAt(0)?.toUpperCase() || "A"}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground leading-tight truncate">{displayName || "Artist"}</p>
+                <p className="text-xs text-muted">Artist</p>
               </div>
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-sm font-medium shrink-0">
-                {displayName?.charAt(0)?.toUpperCase() || "A"}
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground leading-tight truncate">{displayName || "Artist"}</p>
-              <p className="text-xs text-muted">Artist</p>
             </div>
           </div>
-        </div>
+        </nav>
       </aside>
 
       {/* Main content */}
