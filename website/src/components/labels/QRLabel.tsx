@@ -1,6 +1,7 @@
-export type LabelSize = "small" | "medium" | "large" | "xlarge";
+export type LabelSize = "micro" | "small" | "medium" | "large" | "xlarge";
 
 export const LABEL_SIZES: { key: LabelSize; label: string; width: string; height: string; qr: string; perPage: number }[] = [
+  { key: "micro", label: "Micro", width: "25mm", height: "25mm", qr: "25mm", perPage: 48 },
   { key: "small", label: "Small", width: "55mm", height: "35mm", qr: "20mm", perPage: 15 },
   { key: "medium", label: "Medium", width: "70mm", height: "50mm", qr: "28mm", perPage: 8 },
   { key: "large", label: "Large", width: "90mm", height: "60mm", qr: "34mm", perPage: 6 },
@@ -30,9 +31,33 @@ export default function QRLabel({
   labelSize = "medium",
   tagline,
 }: QRLabelProps) {
-  const sizeConfig = LABEL_SIZES.find((s) => s.key === labelSize) || LABEL_SIZES[1];
+  const sizeConfig = LABEL_SIZES.find((s) => s.key === labelSize) || LABEL_SIZES[2];
+  const isMicro = labelSize === "micro";
   const isLarge = labelSize === "large" || labelSize === "xlarge";
   const isSmall = labelSize === "small";
+
+  if (isMicro) {
+    return (
+      <div
+        className="qr-label"
+        style={{
+          width: sizeConfig.width,
+          height: sizeConfig.height,
+          boxSizing: "border-box",
+          pageBreakInside: "avoid",
+          backgroundColor: "#fff",
+        }}
+      >
+        {qrDataUrl && (
+          <img
+            src={qrDataUrl}
+            alt="QR code"
+            style={{ width: "100%", height: "100%", display: "block" }}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div

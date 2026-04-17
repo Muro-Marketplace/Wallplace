@@ -71,7 +71,7 @@ export default function LabelSheet({ labels, pageIndex }: LabelSheetProps) {
   const currentSize = labels[0]?.labelSize || "medium";
   const sizeConfig = LABEL_SIZES.find((s) => s.key === currentSize) || LABEL_SIZES[1];
   const perPage = sizeConfig.perPage;
-  const cols = currentSize === "xlarge" ? 1 : currentSize === "large" ? 2 : 2;
+  const cols = currentSize === "micro" ? 8 : currentSize === "xlarge" ? 1 : currentSize === "large" ? 2 : 2;
   const rows = Math.ceil(perPage / cols);
 
   // Split into pages
