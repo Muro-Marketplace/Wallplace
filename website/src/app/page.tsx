@@ -390,7 +390,7 @@ export default function Home() {
                 <Link href="/spaces-looking-for-art" className="inline-flex items-center justify-center min-w-[180px] px-8 py-3 sm:py-4 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
                   See Venue Demand
                 </Link>
-                <Link href="/apply" className="inline-flex items-center justify-center min-w-[180px] px-8 py-3 sm:py-4 bg-white text-foreground text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-white/90 transition-colors">
+                <Link href="/apply" className="inline-flex items-center justify-center min-w-[180px] px-8 py-3 sm:py-4 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors">
                   Apply to Join
                 </Link>
               </div>

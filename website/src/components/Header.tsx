@@ -173,14 +173,14 @@ export default function Header() {
   // Close dropdowns on route change
   useEffect(() => { setMsgDropdownOpen(false); setNotifDropdownOpen(false); setMoreDropdownOpen(false); }, [pathname]);
 
-  const isPortal = pathname.startsWith("/artist-portal") || pathname.startsWith("/venue-portal");
+  const isPortal = pathname.startsWith("/artist-portal") || pathname.startsWith("/venue-portal") || pathname.startsWith("/customer-portal");
   const showSolid = !isImmersive || scrolled;
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 h-14 lg:h-16 ${
         isPortal
-          ? "border-b border-white/10"
+          ? ""
           : showSolid
           ? "bg-white border-b border-border"
           : "bg-transparent border-b border-transparent"
@@ -531,12 +531,11 @@ export default function Header() {
                     </p>
                     <div className="flex flex-col gap-2">
                       {(userType === "artist" ? [
-                        { label: "Dashboard", href: "/artist-portal" },
+                        { label: "Artist Portal", href: "/artist-portal" },
                         { label: "Placements", href: "/artist-portal/placements" },
                         { label: "Orders", href: "/artist-portal/orders" },
                         { label: "QR Labels", href: "/artist-portal/labels" },
                         { label: "Edit Profile", href: "/artist-portal/profile" },
-                        { label: "Settings", href: "/artist-portal/settings" },
                       ] : userType === "venue" ? [
                         { label: "Dashboard", href: "/venue-portal" },
                         { label: "Placements", href: "/venue-portal/placements" },

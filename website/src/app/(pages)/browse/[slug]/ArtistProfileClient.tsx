@@ -308,7 +308,7 @@ export default function ArtistProfileClient({
           >
             {/* Image side — swipeable on mobile */}
             <div
-              className="relative flex-1 min-h-[250px] sm:min-h-[350px] lg:min-h-[500px] bg-[#f5f5f3] select-none"
+              className="relative flex-1 min-h-[200px] sm:min-h-[350px] lg:min-h-[500px] bg-[#f5f5f3] select-none"
               onContextMenu={(e) => e.preventDefault()}
               draggable={false}
               onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
@@ -358,7 +358,7 @@ export default function ArtistProfileClient({
             </div>
 
             {/* Details side */}
-            <div className="lg:w-80 shrink-0 p-4 sm:p-6 lg:p-8 flex flex-col border-t lg:border-t-0 lg:border-l border-border">
+            <div className="lg:w-80 shrink-0 p-3 sm:p-6 lg:p-8 flex flex-col border-t lg:border-t-0 lg:border-l border-border">
               {/* Close button */}
               <button
                 onClick={() => setLightboxIndex(null)}
@@ -371,12 +371,12 @@ export default function ArtistProfileClient({
               <p className="text-xs text-muted uppercase tracking-wider mb-1">{artistName}</p>
 
               {/* Title */}
-              <h3 className="text-xl font-serif text-foreground leading-snug mb-3">
+              <h3 className="text-base sm:text-xl font-serif text-foreground leading-snug mb-2 sm:mb-3">
                 {currentWork.title}
               </h3>
 
               {/* Details */}
-              <div className="space-y-2 mb-5">
+              <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-5">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted">Medium</span>
                   <span className="text-foreground font-medium">{currentWork.medium}</span>
@@ -388,7 +388,7 @@ export default function ArtistProfileClient({
               </div>
 
               {/* Availability + Save */}
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-2 sm:mb-4">
                 {currentWork.available ? (
                   <span className="inline-flex items-center gap-1.5 text-sm text-accent">
                     <span className="w-2 h-2 rounded-full bg-accent" />
@@ -405,7 +405,7 @@ export default function ArtistProfileClient({
 
               {/* Size & Price dropdown */}
               {currentWork.available && currentWork.pricing.length > 0 && (
-                <div className="mb-4">
+                <div className="mb-2 sm:mb-4">
                   <p className="text-xs text-muted uppercase tracking-wider mb-2">Size & Price</p>
                   <select
                     value={selectedSizeIdx}

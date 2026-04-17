@@ -32,7 +32,7 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       {/* Toolbar */}
-      <div className="label-preview-toolbar no-print border-b border-border bg-surface px-6 py-3 flex items-center justify-between shrink-0">
+      <div className="label-preview-toolbar no-print border-b border-border bg-surface px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-4">
           <h2 className="text-sm font-medium text-foreground">
             Print Preview – {totalCount} label{totalCount !== 1 ? "s" : ""}
@@ -41,10 +41,10 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
             {pageCount} page{pageCount !== 1 ? "s" : ""}
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setShowControls((v) => !v)}
-            className={`px-3 py-1.5 text-xs border rounded-sm transition-colors ${
+            className={`hidden sm:inline-flex px-3 py-1.5 text-xs border rounded-sm transition-colors ${
               showControls ? "text-accent border-accent/30 bg-accent/5" : "text-muted border-border"
             }`}
           >
@@ -52,15 +52,15 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-sm text-muted hover:text-foreground border border-border rounded-sm transition-colors"
+            className="px-4 py-2 sm:py-1.5 text-sm text-muted hover:text-foreground border border-border rounded-sm transition-colors"
           >
             Close
           </button>
           <button
             onClick={() => window.print()}
-            className="px-5 py-1.5 text-sm font-medium text-white bg-foreground rounded-sm hover:bg-foreground/90 transition-colors"
+            className="px-5 py-2 sm:py-1.5 text-sm font-medium text-white bg-foreground rounded-sm hover:bg-foreground/90 transition-colors"
           >
-            Print
+            Print Labels
           </button>
         </div>
       </div>
