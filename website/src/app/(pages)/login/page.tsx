@@ -64,7 +64,7 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-black/55" />
       </div>
 
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md -mt-[8vh] sm:mt-0">
         {/* Heading */}
         <div className="text-center mb-8">
           <h1 className="text-3xl lg:text-4xl mb-2 text-white">Welcome back</h1>
