@@ -152,7 +152,7 @@ export default function Home() {
           <div className="hidden sm:block border-t border-white/10 bg-black/50 backdrop-blur-sm">
             <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-4 text-sm">
-                <span className="text-white/90 font-medium">Curated Artists</span>
+                <span className="text-white/60">Curated Artists</span>
                 <span className="w-1 h-1 rounded-full bg-white/30" />
                 <span className="text-white/60">Original Artworks</span>
                 <span className="w-1 h-1 rounded-full bg-white/30" />
