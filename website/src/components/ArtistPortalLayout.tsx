@@ -97,7 +97,7 @@ export default function ArtistPortalLayout({
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
       >
-        <nav className="py-4 overflow-y-auto">
+        <nav className="flex-1 py-4 overflow-y-auto min-h-0">
           <ul className="space-y-0.5 px-2">
             {navItems.map((item) => {
               const isActive = activePath === item.href;
