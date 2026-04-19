@@ -8,42 +8,28 @@ export const metadata: Metadata = {
 
 const cookies = [
   {
-    name: "session",
-    category: "Strictly Necessary",
-    purpose: "Maintains your session state when you are logged in to the platform.",
-    duration: "Session (deleted when you close your browser)",
-    provider: "Wallplace",
-  },
-  {
-    name: "csrf_token",
+    name: "sb-access-token",
     category: "Strictly Necessary",
     purpose:
-      "Protects against Cross-Site Request Forgery attacks by verifying form submissions originate from our site.",
-    duration: "Session",
-    provider: "Wallplace",
+      "Supabase authentication cookie. Keeps you signed in to your Wallplace account and authorises requests to our database. Without this, secure features (account, checkout, orders) will not work.",
+    duration: "1 hour (refreshed automatically while you are active)",
+    provider: "Wallplace / Supabase",
   },
   {
-    name: "cookie_consent",
+    name: "sb-refresh-token",
     category: "Strictly Necessary",
-    purpose: "Stores your cookie consent preferences so we do not ask you repeatedly.",
+    purpose:
+      "Supabase authentication cookie. Allows your session to be renewed without you having to sign in again on every visit.",
+    duration: "30 days",
+    provider: "Wallplace / Supabase",
+  },
+  {
+    name: "wallplace_cookie_consent",
+    category: "Strictly Necessary",
+    purpose:
+      "Stores your cookie/consent choice so we do not ask you repeatedly. Storing this preference is exempt from the consent requirement under PECR regulation 6(4).",
     duration: "12 months",
     provider: "Wallplace",
-  },
-  {
-    name: "_ga",
-    category: "Analytics",
-    purpose:
-      "Google Analytics – used to distinguish users and generate statistical reports about website usage.",
-    duration: "2 years",
-    provider: "Google Analytics",
-  },
-  {
-    name: "_ga_*",
-    category: "Analytics",
-    purpose:
-      "Google Analytics – stores and counts page views for the current session.",
-    duration: "2 years",
-    provider: "Google Analytics",
   },
 ];
 
@@ -55,7 +41,7 @@ export default function CookiesPage() {
           <div className="max-w-3xl">
             <h1 className="text-4xl lg:text-5xl mb-4">Cookie Policy</h1>
             <p className="text-muted leading-relaxed mb-16">
-              Last updated: March 2026
+              Last updated: April 2026
             </p>
 
             <div className="space-y-10">
@@ -86,18 +72,18 @@ export default function CookiesPage() {
                       required: true,
                     },
                     {
-                      title: "Analytics",
-                      desc: "These cookies help us understand how visitors interact with our website by collecting and reporting usage data. This helps us improve our site and services. You can opt out of analytics cookies.",
+                      title: "Analytics (server-side only)",
+                      desc: "We do not use any analytics cookies. We run privacy-first server-side analytics that record aggregated page-view events using a daily-rotating SHA-256 hash of your IP address and user-agent. No identifiers are stored on your device, and we cannot identify individual visitors after 24 hours.",
                       required: false,
                     },
                     {
                       title: "Functional",
-                      desc: "These cookies allow our website to remember choices you make (such as your language preference or saved filters) to provide enhanced features. Currently we use no functional cookies beyond those listed.",
+                      desc: "We do not currently use functional cookies beyond the strictly necessary cookies listed below.",
                       required: false,
                     },
                     {
                       title: "Marketing",
-                      desc: "We do not currently use marketing or advertising cookies. We do not track you across third-party websites or use your data for targeted advertising.",
+                      desc: "We do not use marketing, advertising, or cross-site tracking cookies. We do not run Google Analytics, the Facebook/Meta Pixel, or any third-party advertising tags.",
                       required: false,
                     },
                   ].map(({ title, desc, required }) => (
@@ -190,38 +176,28 @@ export default function CookiesPage() {
                   </div>
                   <div className="bg-surface border border-border rounded-sm p-5">
                     <h3 className="text-base font-medium mb-2">
-                      Google Analytics opt-out
+                      Server-side analytics
                     </h3>
                     <p className="text-sm text-muted leading-relaxed">
-                      You can prevent Google Analytics from collecting your data
-                      by installing the{" "}
+                      Because our analytics are aggregated and server-side (and
+                      do not place cookies or identifiers on your device), there
+                      is nothing to opt out of at the browser level. If you
+                      would like us to delete any logs that may indirectly
+                      relate to your device, email{" "}
                       <a
-                        href="https://tools.google.com/dlpage/gaoptout"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href="mailto:hello@wallplace.co.uk"
                         className="text-accent hover:underline"
                       >
-                        Google Analytics opt-out browser add-on
+                        hello@wallplace.co.uk
+                      </a>{" "}
+                      and we will investigate and respond in line with our{" "}
+                      <a
+                        href="/privacy"
+                        className="text-accent hover:underline"
+                      >
+                        Privacy Policy
                       </a>
                       .
-                    </p>
-                  </div>
-                  <div className="bg-surface border border-border rounded-sm p-5">
-                    <h3 className="text-base font-medium mb-2">
-                      Industry opt-out tools
-                    </h3>
-                    <p className="text-sm text-muted leading-relaxed">
-                      You can also use the{" "}
-                      <a
-                        href="https://www.youronlinechoices.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-accent hover:underline"
-                      >
-                        Your Online Choices
-                      </a>{" "}
-                      tool to opt out of interest-based advertising from
-                      participating companies.
                     </p>
                   </div>
                 </div>

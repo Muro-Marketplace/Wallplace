@@ -72,6 +72,16 @@ export default function ReturnsPage() {
               </div>
 
               <div>
+                <h2 className="text-2xl mb-4">If We Cannot Resolve Your Complaint</h2>
+                <p className="text-muted leading-relaxed">
+                  If we cannot resolve your complaint directly, you may refer it to the Centre for Effective Dispute Resolution (<a href="https://www.cedr.com" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">cedr.com</a>), a certified alternative dispute resolution (ADR) provider. Wallplace is not currently a member of CEDR; we are naming it here as an available ADR body in accordance with the Alternative Dispute Resolution for Consumer Disputes Regulations 2015. You retain all statutory consumer rights and may also take legal action through the courts of England and Wales.
+                </p>
+                <p className="text-muted leading-relaxed mt-3">
+                  Our full formal process is set out in our <a href="/complaints" className="text-accent hover:underline">Complaints Policy</a>.
+                </p>
+              </div>
+
+              <div>
                 <h2 className="text-2xl mb-4">Contact</h2>
                 <p className="text-muted leading-relaxed">
                   For any returns or refund queries: <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a>

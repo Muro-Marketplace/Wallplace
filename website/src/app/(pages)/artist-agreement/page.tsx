@@ -90,6 +90,15 @@ export default function ArtistAgreementPage() {
               </div>
 
               <div>
+                <h2 className="text-2xl mb-4">6A. Moral Rights</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>You retain all moral rights in your artwork under the Copyright, Designs and Patents Act 1988, including the right to be identified as the author (section 77) and the right to object to derogatory treatment of the work (section 80).</p>
+                  <p>Wallplace will credit you as the artist wherever your work is displayed on the Platform or used in marketing. We will not materially alter, distort, or mutilate images of your work. Reasonable technical adjustments (cropping for thumbnails or cards, colour calibration, resizing, compression, watermarking, and overlay of platform UI) are permitted, and you assert such adjustments are not derogatory treatment.</p>
+                  <p>Venues must display your work in its original form without alteration, framing changes (except those you approve), or presentation in a context that a reasonable artist would consider derogatory. If you believe your moral rights have been breached by a venue, contact us at <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a> and we will investigate under our <Link href="/complaints" className="text-accent hover:underline">Complaints Policy</Link>.</p>
+                </div>
+              </div>
+
+              <div>
                 <h2 className="text-2xl mb-4">7. Fulfilment Obligations</h2>
                 <div className="space-y-3 text-muted leading-relaxed">
                   <p>You are responsible for fulfilling all orders, including:</p>
@@ -98,17 +107,31 @@ export default function ArtistAgreementPage() {
                     <li>Shipping within 5 business days of the order (or an alternative timeframe agreed with the buyer)</li>
                     <li>Providing tracking information where available</li>
                     <li>Ensuring the artwork arrives in the condition described in the listing</li>
+                    <li>Responding to buyer queries and refund / cancellation requests within 7 days</li>
                   </ul>
                   <p>If a buyer exercises their 14-day cancellation right, you must process a refund within 14 days of receiving the returned artwork.</p>
                   <p>Damage resulting from inadequate packing is your responsibility.</p>
+                  <p><strong className="text-foreground">Seller identification:</strong> You are the seller of record for every transaction. Wallplace will disclose your trading name and a platform-mediated contact route to the buyer on the listing page, at checkout, and in the order confirmation, in line with the Consumer Contracts Regulations 2013.</p>
+                  <p><strong className="text-foreground">Refund-on-behalf / payout set-off:</strong> If you fail to respond to a legitimate refund, cancellation, or damaged-in-transit request within 7 days, or if you are otherwise unresponsive, Wallplace may, at its discretion and acting as your agent, issue a refund to the buyer on your behalf. You irrevocably authorise Wallplace to recover the refunded amount (plus any associated payment-processor fees) by deducting it from your next payout(s), or by raising an invoice payable within 14 days. This clause is reasonable and proportionate, protects buyers&rsquo; statutory rights, and does not affect your right to dispute the refund afterwards under our <Link href="/complaints" className="text-accent hover:underline">Complaints Policy</Link>.</p>
                 </div>
               </div>
 
               <div>
-                <h2 className="text-2xl mb-4">8. Free Loan Arrangements</h2>
+                <h2 className="text-2xl mb-4">8. Free Loan Arrangements and Consignment Record</h2>
                 <div className="space-y-3 text-muted leading-relaxed">
                   <p>You may lend artwork to a venue at no cost (a &ldquo;Free Loan&rdquo;). The specific terms of each Free Loan are agreed directly between you and the venue, facilitated by Wallplace.</p>
-                  <p>Artwork remains your property throughout the loan period. The venue is expected to exercise reasonable care. You are responsible for insuring your artwork during the loan period. Wallplace is not liable for damage, loss, or theft during a Free Loan.</p>
+                  <p>Artwork remains your property throughout the loan period (title does not pass to the venue). Each Free Loan must be recorded on the Platform as a &ldquo;Loan Consignment Record&rdquo; before the artwork leaves your possession. The Loan Consignment Record must include, at minimum:</p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li>Artist name and venue name</li>
+                    <li>Title(s), medium, dimensions, edition details, and agreed insurance valuation of each artwork</li>
+                    <li>Condition at handover (supported by photographs)</li>
+                    <li>Loan start date and expected loan end date</li>
+                    <li>Collection / return arrangements</li>
+                    <li>Confirmation that title remains with the artist and that the venue holds the work as bailee</li>
+                    <li>Confirmation of the venue&rsquo;s insurance position</li>
+                  </ul>
+                  <p>The venue is expected to exercise reasonable care as bailee and must not sell, lend on, alter, reframe (beyond what you have approved), or move the artwork off-site without your written consent.</p>
+                  <p>You are responsible for insuring your artwork during the loan period unless the venue has provided a written insurance warranty confirming the work is covered on its policy for the agreed valuation. Wallplace is not an insurer and is not liable for damage, loss, or theft during a Free Loan.</p>
                 </div>
               </div>
 

@@ -210,6 +210,48 @@ export default async function ArtworkPage({
         </div>
       </section>
 
+      {/* Seller Information (CCR 2013 pre-contract disclosure) */}
+      <section className="pb-10">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="bg-surface border border-border rounded-sm p-5 max-w-3xl">
+            <h3 className="text-sm font-medium text-foreground mb-2">
+              Seller information
+            </h3>
+            <p className="text-xs text-muted leading-relaxed mb-2">
+              This artwork is sold by <strong className="text-foreground">{artist.name}</strong>, an independent artist listing on Wallplace. Your contract of sale is with the artist, not with Wallplace. Wallplace operates the platform, processes payments via Stripe, and facilitates customer service.
+            </p>
+            <p className="text-xs text-muted leading-relaxed mb-2">
+              You can contact the artist through the platform via the messaging tools on their{" "}
+              <Link
+                href={`/browse/${slug}`}
+                className="text-accent hover:underline"
+              >
+                artist profile
+              </Link>
+              , or by emailing{" "}
+              <a
+                href="mailto:hello@wallplace.co.uk"
+                className="text-accent hover:underline"
+              >
+                hello@wallplace.co.uk
+              </a>{" "}
+              with your order number and we will route your message.
+            </p>
+            <p className="text-xs text-muted leading-relaxed">
+              For your rights as a consumer, including the 14-day right to cancel, please see our{" "}
+              <Link href="/returns" className="text-accent hover:underline">
+                Returns &amp; Refunds
+              </Link>{" "}
+              and{" "}
+              <Link href="/terms" className="text-accent hover:underline">
+                Platform Terms
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* More works by this artist */}
       {otherWorks.length > 0 && (
         <section className="py-10 lg:py-14 border-t border-border">

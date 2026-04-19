@@ -94,6 +94,8 @@ export default function TermsPage() {
                   <p>Prices are displayed in GBP. Payment is processed via Stripe. Wallplace does not hold buyer funds at any point.</p>
                   <p><strong className="text-foreground">Cooling-off period:</strong> Under the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013, you have a 14-day cooling-off period for online purchases, except for bespoke or personalised artwork. To cancel, notify the artist within 14 days of receiving the artwork. Return the artwork in its original condition at your own cost (unless faulty). The artist will issue a refund within 14 days of receiving the returned artwork.</p>
                   <p><strong className="text-foreground">Faulty or misdescribed goods:</strong> You have additional rights under the Consumer Rights Act 2015, including the right to repair, replacement, or refund for goods that are faulty or not as described.</p>
+                  <p><strong className="text-foreground">Seller information:</strong> The seller for each order is the individual artist, not Wallplace. The artist&rsquo;s trading name and contact route are disclosed on every listing page and in your order confirmation, as required under the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013.</p>
+                  <p><strong className="text-foreground">If an artist becomes unresponsive:</strong> Where an artist fails to respond to a legitimate refund or return request within 7 days, Wallplace may, at its discretion, issue a refund to you on the artist&rsquo;s behalf and recover that amount from future payouts owed to the artist. This is a goodwill measure and does not make Wallplace a party to the contract of sale.</p>
                 </div>
               </div>
 
@@ -129,11 +131,27 @@ export default function TermsPage() {
                     <li>Use the Platform for any unlawful purpose</li>
                     <li>List AI-generated art or work you do not own</li>
                     <li>Misrepresent yourself, your work, or your venue</li>
-                    <li>Circumvent the Platform to avoid fees after an introduction has been made</li>
+                    <li>Circumvent the Platform to avoid fees after an introduction has been made (see section 10A: Non-Circumvention)</li>
                     <li>Interfere with Platform operation or security</li>
                     <li>Scrape, harvest, or collect data from the Platform</li>
                     <li>Harass, threaten, or abuse other users</li>
                   </ul>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">10A. Non-Circumvention</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>The Platform&rsquo;s value depends on transactions occurring through it. To protect that value, the following non-circumvention obligation applies to artists and venues.</p>
+                  <p><strong className="text-foreground">Introduction Period:</strong> For 24 months from the date an artist and a venue first communicate through the Platform (the &ldquo;Introduction Period&rdquo;), any sale, commission, loan, display arrangement, or revenue-share arrangement between that artist and that venue (or any group company, connected person, successor, or affiliate of either) must be transacted and recorded through the Platform.</p>
+                  <p><strong className="text-foreground">Prohibited conduct during the Introduction Period includes:</strong></p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li>Arranging off-platform sales, commissions, or loans to avoid Platform fees</li>
+                    <li>Soliciting another user&rsquo;s contact details for the purpose of transacting off-platform</li>
+                    <li>Encouraging a buyer to cancel an on-platform order and re-purchase privately</li>
+                  </ul>
+                  <p><strong className="text-foreground">Liquidated damages:</strong> The parties agree that quantifying loss from circumvention is difficult. As a genuine pre-estimate of Wallplace&rsquo;s loss, breach of this clause entitles Wallplace to recover from the breaching party liquidated damages equal to the platform fee Wallplace would have earned on the circumvented transaction at the breaching party&rsquo;s applicable fee rate, subject to a minimum of &pound;150 per circumvented transaction. This amount represents a reasonable pre-estimate of loss and is not a penalty. Wallplace may set this amount off against future payouts or invoice for it directly.</p>
+                  <p><strong className="text-foreground">What is permitted:</strong> Post-Introduction-Period dealings are unrestricted. Artists and venues who discover each other independently of the Platform (e.g. through pre-existing relationships, unrelated introductions, or public directories) are not bound by this clause in respect of that independent relationship, provided they can demonstrate independence on request.</p>
                 </div>
               </div>
 
@@ -169,12 +187,13 @@ export default function TermsPage() {
                       <ul className="list-disc pl-6 space-y-1">
                         <li>Request a senior review within 14 days of the decision</li>
                         <li>Contact Citizens Advice (<a href="https://www.citizensadvice.org.uk" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">citizensadvice.org.uk</a>) for independent guidance</li>
-                        <li>Use the UK&rsquo;s Online Dispute Resolution platform (<a href="https://ec.europa.eu/odr" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">ec.europa.eu/odr</a>) for cross-border disputes</li>
+                        <li>Refer the complaint to the Centre for Effective Dispute Resolution (<a href="https://www.cedr.com" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">cedr.com</a>), a certified ADR provider. Wallplace is not currently a member of CEDR, but CEDR is named here as an available alternative dispute resolution body as required by the Alternative Dispute Resolution for Consumer Disputes Regulations 2015.</li>
                         <li>Take legal action through the courts of England and Wales</li>
                       </ul>
                     </div>
                   </div>
 
+                  <p>A full formal complaints process is set out in our <Link href="/complaints" className="text-accent hover:underline">Complaints Policy</Link>.</p>
                   <p>Wallplace acts as a facilitator, not an arbitrator. Nothing in this section affects your statutory consumer rights under the Consumer Rights Act 2015 or the Consumer Contracts Regulations 2013.</p>
                 </div>
               </div>
@@ -190,8 +209,9 @@ export default function TermsPage() {
                     <li>Acts or omissions of other users</li>
                     <li>Failures of third-party service providers (including Stripe)</li>
                   </ul>
-                  <p>Total aggregate liability is capped at the greater of (a) fees you have paid to Wallplace in the prior 12 months, or (b) &pound;100.</p>
-                  <p>Nothing in these terms excludes liability for death or personal injury caused by negligence, fraud, or any liability that cannot be excluded by law.</p>
+                  <p><strong className="text-foreground">For business users:</strong> Total aggregate liability is capped at the greater of (a) fees you have paid to Wallplace in the prior 12 months, or (b) &pound;100.</p>
+                  <p><strong className="text-foreground">For consumer buyers:</strong> Where you are a consumer under the Consumer Rights Act 2015, our liability to you in relation to any order is limited to the amount you paid for that order. Nothing in this section reduces or limits your non-excludable statutory consumer rights.</p>
+                  <p>Nothing in these terms excludes or limits liability for death or personal injury caused by negligence, fraud or fraudulent misrepresentation, breach of terms implied by section 12 of the Sale of Goods Act 1979 or sections 9&ndash;11 of the Consumer Rights Act 2015, or any other liability that cannot be excluded or limited by law.</p>
                 </div>
               </div>
 

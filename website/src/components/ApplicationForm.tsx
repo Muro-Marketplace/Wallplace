@@ -98,12 +98,17 @@ const planOptions = [
   },
 ];
 
+type TraderStatus = "" | "consumer" | "business";
+
 interface FormState {
   name: string;
   email: string;
   location: string;
   instagram: string;
   website: string;
+  traderStatus: TraderStatus;
+  businessName: string;
+  vatNumber: string;
   primaryMedium: string;
   portfolioLink: string;
   artistStatement: string;
@@ -127,6 +132,9 @@ const initialState: FormState = {
   location: "",
   instagram: "",
   website: "",
+  traderStatus: "",
+  businessName: "",
+  vatNumber: "",
   primaryMedium: "",
   portfolioLink: "",
   artistStatement: "",
@@ -152,6 +160,8 @@ export default function ApplicationForm() {
   const [agreedToTos, setAgreedToTos] = useState(false);
   const [agreedToArtistTerms, setAgreedToArtistTerms] = useState(false);
   const [acknowledgedInsurance, setAcknowledgedInsurance] = useState(false);
+  const [acknowledgedCoolingOff, setAcknowledgedCoolingOff] = useState(false);
+  const [waivedCoolingOff, setWaivedCoolingOff] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -188,7 +198,11 @@ export default function ApplicationForm() {
       const res = await fetch("/api/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          acknowledgedCoolingOff,
+          waivedCoolingOff,
+        }),
       });
       const data = await res.json();
 
@@ -351,6 +365,63 @@ export default function ApplicationForm() {
               className={inputClass}
             />
           </div>
+          <div className="md:col-span-2">
+            <label htmlFor="traderStatus" className={labelClass}>
+              Are you applying as an individual or a business?{" "}
+              <span className="text-accent">*</span>
+            </label>
+            <select
+              id="traderStatus"
+              name="traderStatus"
+              value={form.traderStatus}
+              onChange={handleChange}
+              required
+              className={inputClass}
+            >
+              <option value="">Select one</option>
+              <option value="consumer">
+                Individual / sole artist (not in the course of business)
+              </option>
+              <option value="business">
+                Business, limited company, or partnership / sole trader acting in the course of business
+              </option>
+            </select>
+            <p className="mt-2 text-xs text-muted">
+              This determines which UK consumer-protection rules apply to your Wallplace membership subscription. You can change this later if your status changes.
+            </p>
+          </div>
+          {form.traderStatus === "business" && (
+            <>
+              <div>
+                <label htmlFor="businessName" className={labelClass}>
+                  Business / Trading Name
+                </label>
+                <input
+                  type="text"
+                  id="businessName"
+                  name="businessName"
+                  value={form.businessName}
+                  onChange={handleChange}
+                  placeholder="e.g. Jane Doe Studio Ltd"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label htmlFor="vatNumber" className={labelClass}>
+                  VAT Number (if registered)
+                </label>
+                <input
+                  type="text"
+                  id="vatNumber"
+                  name="vatNumber"
+                  value={form.vatNumber}
+                  onChange={handleChange}
+                  placeholder="GB123456789"
+                  className={inputClass}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -648,13 +719,74 @@ export default function ApplicationForm() {
             I understand that I am responsible for insuring my own artwork, including during transit and while on display in venues. Wallplace does not provide artwork insurance.
           </span>
         </label>
+
+        {form.traderStatus === "consumer" && (
+          <div className="bg-surface border border-border rounded-sm p-5 space-y-4">
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-1">
+                Your 14-day right to cancel (consumer cooling-off)
+              </h4>
+              <p className="text-xs text-muted leading-relaxed">
+                Because you are applying as an individual (not in the course of business),
+                you have the right to cancel your Wallplace membership within 14 days of
+                sign-up under the Consumer Contracts (Information, Cancellation and Additional
+                Charges) Regulations 2013. During your free first month you will not be
+                charged in any event. Please read and tick the options below.
+              </p>
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={acknowledgedCoolingOff}
+                onChange={(e) => setAcknowledgedCoolingOff(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded-sm border border-border bg-background checked:bg-accent checked:border-accent focus:outline-none cursor-pointer shrink-0"
+              />
+              <span className="text-sm text-foreground">
+                I acknowledge that I have been informed of my 14-day right to cancel and of
+                the Model Cancellation Form available in the{" "}
+                <a
+                  href="/terms#cancellation"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent hover:underline"
+                >
+                  Platform Terms
+                </a>
+                .
+              </span>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={waivedCoolingOff}
+                onChange={(e) => setWaivedCoolingOff(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded-sm border border-border bg-background checked:bg-accent checked:border-accent focus:outline-none cursor-pointer shrink-0"
+              />
+              <span className="text-sm text-foreground">
+                I expressly request that Wallplace begins providing the membership services
+                (profile setup, portfolio upload, and venue matching) during my 14-day
+                cancellation period, and I acknowledge that if I later cancel within those
+                14 days I may be charged a proportionate amount for services actually
+                supplied up to the point of cancellation.{" "}
+                <span className="text-muted">(Optional — leave unticked if you prefer services to start only after day 14.)</span>
+              </span>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Submit */}
       <div className="pt-2">
         <button
           type="submit"
-          disabled={submitting || !agreedToTos || !agreedToArtistTerms || !acknowledgedInsurance}
+          disabled={
+            submitting ||
+            !agreedToTos ||
+            !agreedToArtistTerms ||
+            !acknowledgedInsurance ||
+            !form.traderStatus ||
+            (form.traderStatus === "consumer" && !acknowledgedCoolingOff)
+          }
           className="px-8 py-3.5 bg-foreground text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? "Submitting..." : "Submit Application"}

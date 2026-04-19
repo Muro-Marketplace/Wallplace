@@ -45,15 +45,34 @@ export default function VenueAgreementPage() {
               </div>
 
               <div>
-                <h2 className="text-2xl mb-4">3. Care of Artwork</h2>
+                <h2 className="text-2xl mb-4">3. Care of Artwork and Bailment</h2>
                 <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Artwork displayed at your venue remains the property of the artist at all times. You hold each work as bailee on the terms of this agreement and the Loan Consignment Record for that work (see section 4A). You acquire no title, lien, security interest, or right of sale over any artwork.</p>
                   <p>You agree to exercise reasonable care over artwork displayed in your venue, to the same standard as your own property of equivalent value. This includes:</p>
                   <ul className="list-disc pl-6 space-y-1">
                     <li>Displaying artwork in a secure, appropriate location away from hazards such as direct sunlight, moisture, excessive heat, and high-risk areas</li>
                     <li>Ensuring artwork is securely hung or mounted</li>
                     <li>Not moving artwork between locations without notifying the artist or Wallplace</li>
+                    <li>Not selling, sub-lending, pledging, or permitting any third party to take possession of the artwork</li>
                     <li>Reporting any damage, loss, or theft to the artist and Wallplace within 48 hours</li>
                   </ul>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl mb-4">4A. Loan Consignment Record</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Before any artwork is delivered to your venue, the artist will create a Loan Consignment Record on the Platform, which you must review and confirm. Each Loan Consignment Record includes, at minimum:</p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li>Artist and venue names</li>
+                    <li>Title(s), medium, dimensions, edition details, and agreed insurance valuation of each work</li>
+                    <li>Condition at handover (supported by photographs)</li>
+                    <li>Loan start and expected end dates</li>
+                    <li>Collection / return arrangements</li>
+                    <li>Confirmation that title remains with the artist and that you hold the work as bailee</li>
+                    <li>Your confirmation of whether the work is covered under your insurance (see section 5) and, if so, the valuation covered</li>
+                  </ul>
+                  <p>Your confirmation of the Loan Consignment Record is deemed acknowledgement of the condition, valuation, and terms recorded. If you dispute any detail, you must flag it before or immediately upon receipt of the artwork.</p>
                 </div>
               </div>
 
@@ -75,7 +94,12 @@ export default function VenueAgreementPage() {
                 <h2 className="text-2xl mb-4">5. Insurance</h2>
                 <div className="space-y-3 text-muted leading-relaxed">
                   <p>You must hold and maintain public liability insurance appropriate for a commercial venue of your type and size.</p>
-                  <p>Your insurance should cover damage to third-party property (including displayed artwork) to a reasonable level. You are encouraged, but not required, to extend your contents insurance to cover artwork on loan.</p>
+                  <p>For each work on loan, you must confirm one of the following on the Loan Consignment Record:</p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li><strong className="text-foreground">Covered:</strong> that the work is covered under your contents / specified-items policy for the agreed valuation for the duration of the loan; or</li>
+                    <li><strong className="text-foreground">Not covered:</strong> that the work is not covered by your insurance, in which case the artist remains responsible for insuring the work, and you remain liable for loss or damage attributable to your negligence under section 4.</li>
+                  </ul>
+                  <p>Your insurance warranty on the Loan Consignment Record is relied upon by the artist and by Wallplace. A false or misleading warranty is a material breach of this agreement.</p>
                   <p>Wallplace may request evidence of insurance at any time.</p>
                 </div>
               </div>
@@ -99,8 +123,16 @@ export default function VenueAgreementPage() {
               </div>
 
               <div>
-                <h2 className="text-2xl mb-4">8. No Modification of Artwork</h2>
-                <p className="text-muted leading-relaxed">You must not modify, alter, repair, clean, frame, unframe, or otherwise change any artwork without the express written consent of the artist. If artwork needs attention (cleaning, re-framing, repair), contact the artist or Wallplace.</p>
+                <h2 className="text-2xl mb-4">8. No Modification and Respect for Moral Rights</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>You must not modify, alter, repair, clean, frame, unframe, crop, overlay, deface, or otherwise change any artwork without the express written consent of the artist. If artwork needs attention (cleaning, re-framing, repair), contact the artist or Wallplace.</p>
+                  <p>Artists retain moral rights in their work under the Copyright, Designs and Patents Act 1988, including the right to be identified as the author and the right to object to derogatory treatment. You must:</p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li>Keep the Wallplace QR label (which includes the artist&rsquo;s name) visible next to each work;</li>
+                    <li>Not display artwork in a manner, location, or context that a reasonable artist would consider prejudicial to their honour or reputation (for example, adjacent to offensive material, used as a prop, or integrated into promotional content without consent);</li>
+                    <li>Not photograph or reproduce the work for your own marketing beyond fair incidental inclusion in general venue imagery unless the artist has consented.</li>
+                  </ul>
+                </div>
               </div>
 
               <div>
