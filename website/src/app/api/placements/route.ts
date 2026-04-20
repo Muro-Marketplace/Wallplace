@@ -61,7 +61,39 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Failed to fetch placements" }, { status: 500 });
     }
 
-    return NextResponse.json({ placements: data || [], userType: role.type });
+    const placements = data || [];
+
+    // Compute realised revenue per placement. For venues we sum
+    // `orders.venue_revenue`; for artists we sum `orders.artist_revenue`.
+    // Best-effort: if the orders table is missing the columns or nothing
+    // links back, we leave earnings as 0.
+    const placementIds = placements
+      .map((p) => (typeof p.id === "string" ? p.id : null))
+      .filter((x): x is string => !!x);
+
+    const earnedByPlacement: Record<string, number> = {};
+    if (placementIds.length > 0) {
+      const revenueCol = role.type === "venue" ? "venue_revenue" : "artist_revenue";
+      const { data: orders } = await db
+        .from("orders")
+        .select(`placement_id, ${revenueCol}`)
+        .in("placement_id", placementIds);
+      for (const row of (orders || []) as Array<Record<string, unknown>>) {
+        const pid = row.placement_id as string | null;
+        const amount = Number(row[revenueCol] ?? 0);
+        if (!pid || Number.isNaN(amount)) continue;
+        earnedByPlacement[pid] = (earnedByPlacement[pid] || 0) + amount;
+      }
+    }
+
+    const enriched = placements.map((p) => ({
+      ...p,
+      revenue_earned_gbp: p.id && earnedByPlacement[p.id as string]
+        ? Math.round(earnedByPlacement[p.id as string] * 100) / 100
+        : 0,
+    }));
+
+    return NextResponse.json({ placements: enriched, userType: role.type });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }

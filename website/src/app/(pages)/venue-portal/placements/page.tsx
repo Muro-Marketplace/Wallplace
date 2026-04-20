@@ -27,6 +27,7 @@ interface PlacementRequest {
   date: string;
   respondedAt?: string;
   message?: string;
+  revenueEarned?: number;
 }
 
 interface ArtistWork {
@@ -147,17 +148,18 @@ export default function VenuePlacementsPage() {
           } catch { /* fallback to slug */ }
 
           const mapped: PlacementRequest[] = data.placements.map((p: Record<string, unknown>) => ({
-            id: p.id,
+            id: p.id as string,
             artistName: artistNameMap[p.artist_slug as string] || formatSlug(p.artist_slug as string) || "Artist",
-            artistSlug: p.artist_slug || "",
-            workTitle: p.work_title || "Untitled",
+            artistSlug: (p.artist_slug as string) || "",
+            workTitle: (p.work_title as string) || "Untitled",
             workImage: (p.work_image as string) || "",
-            arrangementType: p.arrangement_type as string || "free_loan",
+            arrangementType: (p.arrangement_type as string) || "free_loan",
             revenueSharePercent: p.revenue_share_percent as number | undefined,
-            status: normaliseStatus(p.status as string || "pending"),
+            status: normaliseStatus((p.status as string) || "pending"),
             date: p.created_at ? new Date(p.created_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "",
             respondedAt: p.responded_at ? new Date(p.responded_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : undefined,
             message: p.message as string | undefined,
+            revenueEarned: typeof p.revenue_earned_gbp === "number" ? p.revenue_earned_gbp : 0,
           }));
           setPlacements(mapped);
         }
@@ -512,8 +514,10 @@ export default function VenuePlacementsPage() {
                     </div>
                     {p.revenueSharePercent != null && p.revenueSharePercent > 0 && (
                       <div>
-                        <p className="text-muted mb-0.5">Your Revenue Share</p>
-                        <p className="text-foreground font-medium">{p.revenueSharePercent}% of sales</p>
+                        <p className="text-muted mb-0.5">Earned so far</p>
+                        <p className="text-foreground font-medium">
+                          &pound;{(p.revenueEarned ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
                       </div>
                     )}
                     <div>
