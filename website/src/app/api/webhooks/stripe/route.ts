@@ -130,9 +130,28 @@ export async function POST(request: Request) {
           created_at: new Date().toISOString(),
         };
 
+        // F30 — idempotency: skip if we've already processed this payment intent.
+        if (paymentIntentId) {
+          const { data: existingOrder } = await db
+            .from("orders")
+            .select("id")
+            .eq("stripe_payment_intent_id", paymentIntentId)
+            .maybeSingle();
+          if (existingOrder) {
+            console.log("Webhook duplicate suppressed for payment_intent:", paymentIntentId);
+            return NextResponse.json({ received: true, duplicate: true });
+          }
+        }
+
         // Try full insert, fall back to base if new columns don't exist
         let { error } = await db.from("orders").insert(orderRow);
         if (error) {
+          // Unique-constraint violation = another concurrent delivery won the race.
+          // Treat as success so Stripe doesn't keep retrying.
+          if ((error as { code?: string }).code === "23505") {
+            console.log("Order already exists (unique violation), treating webhook as processed");
+            return NextResponse.json({ received: true, duplicate: true });
+          }
           console.warn("Full order insert failed, trying base:", error.message);
           const baseRow = {
             id: orderId,
@@ -146,10 +165,15 @@ export async function POST(request: Request) {
           };
           const retry = await db.from("orders").insert(baseRow);
           error = retry.error;
+          if (error && (error as { code?: string }).code === "23505") {
+            return NextResponse.json({ received: true, duplicate: true });
+          }
         }
 
         if (error) {
+          // F31 — return non-200 so Stripe retries instead of silently dropping.
           console.error("Supabase order save error:", error);
+          return NextResponse.json({ error: "DB save failed" }, { status: 500 });
         } else {
           // Decrement per-work quantity (F10). Best-effort: swallow any errors
           // so a DB hiccup here doesn't abort the rest of the order flow.

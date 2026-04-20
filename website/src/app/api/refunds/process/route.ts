@@ -112,6 +112,10 @@ export async function POST(request: Request) {
       .in("status", ["pending", "paid"]);
 
     // 1. Cancel or reverse transfers
+    // F32 — if a transfer reversal fails we must NOT proceed to refund the
+    // buyer, because then the platform eats the difference. Abort with 502
+    // so the admin can investigate manually.
+    const failedReversals: string[] = [];
     if (transfers && transfers.length > 0) {
       for (const transfer of transfers) {
         if (transfer.status === "pending") {
@@ -137,10 +141,20 @@ export async function POST(request: Request) {
               .eq("id", transfer.id);
           } catch (reverseErr) {
             console.error(`Transfer reversal error for ${transfer.stripe_transfer_id}:`, reverseErr);
-            // Continue — we still want to refund the buyer even if reversal partially fails
+            failedReversals.push(transfer.stripe_transfer_id);
           }
         }
       }
+    }
+
+    if (failedReversals.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Could not reverse one or more artist/venue transfers. Refund aborted to avoid negative platform balance. Investigate in Stripe dashboard.",
+          failedTransfers: failedReversals,
+        },
+        { status: 502 },
+      );
     }
 
     // 2. Create the Stripe refund to the buyer

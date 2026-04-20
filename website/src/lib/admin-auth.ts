@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "fcoles2598@gmail.com";
+// Admin emails are sourced only from env. Accepts either ADMIN_EMAILS
+// (comma-separated) or ADMIN_EMAIL (single). No hardcoded default, so a
+// misconfigured production deploy fails closed instead of granting the
+// author's personal account admin rights.
+function adminEmails(): string[] {
+  const list = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || "";
+  return list.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+}
 
 /**
  * Validate the request is from the admin user.
@@ -27,7 +34,16 @@ export async function getAdminUser(request: Request) {
     };
   }
 
-  if (user.email !== ADMIN_EMAIL) {
+  const allowed = adminEmails();
+  if (allowed.length === 0) {
+    console.error("ADMIN_EMAILS/ADMIN_EMAIL is not configured — admin access is disabled");
+    return {
+      user: null,
+      error: NextResponse.json({ error: "Admin access not configured" }, { status: 503 }),
+    };
+  }
+
+  if (!user.email || !allowed.includes(user.email.toLowerCase())) {
     return {
       user: null,
       error: NextResponse.json({ error: "Admin access required" }, { status: 403 }),

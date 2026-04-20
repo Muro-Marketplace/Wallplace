@@ -127,14 +127,12 @@ function CheckPill({
 }
 
 export default function BrowsePortfoliosPage() {
-  const initialHash = typeof window !== "undefined" ? window.location.hash : "";
-  const initialMode = initialHash === "#collections" ? "collections" : "";
-  const initialView: "artists" | "works" = initialHash === "#gallery" ? "works" : "artists";
-  const [activeCategory, setActiveCategory] = useState<string>(initialMode);
+  const [activeCategory, setActiveCategory] = useState<string>("");
   const [activeSubcategories, setActiveSubcategories] = useState<Set<string>>(new Set());
-  const [viewAs, setViewAs] = useState<"artists" | "works">(initialView);
+  const [viewAs, setViewAs] = useState<"artists" | "works">("artists");
 
-  // React to hash changes so nav dropdown links switch the view cleanly
+  // Read hash on mount and react to changes — done in useEffect so SSR and
+  // initial client render agree (no hydration mismatch).
   useEffect(() => {
     function syncFromHash() {
       const h = window.location.hash;
@@ -148,6 +146,7 @@ export default function BrowsePortfoliosPage() {
         setViewAs("artists");
       }
     }
+    syncFromHash();
     window.addEventListener("hashchange", syncFromHash);
     return () => window.removeEventListener("hashchange", syncFromHash);
   }, []);

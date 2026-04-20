@@ -559,54 +559,61 @@ export default function VenuePlacementsPage() {
                     } : x))}
                   />
 
-                  <div className="mt-3">
-                    <Link
-                      href={`/placements/${encodeURIComponent(p.id)}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-1.5 text-xs text-accent hover:text-accent-hover transition-colors"
-                    >
-                      Open full placement
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-                    </Link>
-                  </div>
-
-                  <div className="flex items-center gap-3 mt-2">
-                    <Link
-                      href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}`}
-                      className="text-xs text-accent hover:text-accent-hover transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Message Artist
-                    </Link>
-                  </div>
                   {p.message && (
                     <div className="bg-background border border-border rounded-sm p-3">
                       <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Message from artist</p>
                       <p className="text-xs text-foreground">{p.message}</p>
                     </div>
                   )}
-                  {p.status === "Pending" && (
-                    <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-border">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
-                          disabled={responding === p.id}
-                          className="px-5 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
-                        >
-                          {responding === p.id ? "..." : "Accept"}
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
-                          disabled={responding === p.id}
-                          className="px-5 py-2 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
-                        >
-                          Decline
-                        </button>
-                      </div>
-                      {respondError && responding === null && (
-                        <p className="text-xs text-red-600">{respondError}</p>
+
+                  <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
+                    <Link
+                      href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}`}
+                      className="text-xs text-muted hover:text-foreground transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Message Artist
+                    </Link>
+                    <div className="flex items-center gap-2 ml-auto">
+                      {p.status === "Pending" && (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
+                            disabled={responding === p.id}
+                            className="px-5 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
+                          >
+                            {responding === p.id ? "..." : "Accept"}
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
+                            disabled={responding === p.id}
+                            className="px-5 py-2 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
+                          >
+                            Decline
+                          </button>
+                        </>
                       )}
+                      <Link
+                        href={`/placements/${encodeURIComponent(p.id)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-sm border border-border hover:border-accent hover:bg-accent/5 transition-colors text-muted hover:text-accent"
+                        title="Add loan / consignment record"
+                        aria-label="Add loan / consignment record"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                      </Link>
+                      <Link
+                        href={`/placements/${encodeURIComponent(p.id)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-foreground bg-[#F5F3F0] border border-border hover:bg-[#EBE8E4] rounded-sm transition-colors"
+                      >
+                        Open full placement
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                      </Link>
                     </div>
+                  </div>
+                  {respondError && responding === null && (
+                    <p className="text-xs text-red-600 mt-2">{respondError}</p>
                   )}
                 </div>
               )}

@@ -191,6 +191,14 @@ export async function POST(request: Request) {
       : { data: null };
     const resolvedSenderSlug = senderArtist?.slug || senderVenue?.slug || parsed.data.senderName;
 
+    // Resolve the recipient user_id from their slug so RLS can scope reads to
+    // both parties (F29). Try artist first, then venue; null is acceptable for
+    // legacy recipients that don't exist.
+    const { data: recipArtist } = await db.from("artist_profiles").select("user_id").eq("slug", recipientSlug).maybeSingle();
+    const recipientUserId = recipArtist?.user_id
+      || (await db.from("venue_profiles").select("user_id").eq("slug", recipientSlug).maybeSingle()).data?.user_id
+      || null;
+
     // Try insert with new columns first, fall back to base columns if they don't exist yet
     const baseRow = {
       conversation_id: cid,
@@ -198,6 +206,7 @@ export async function POST(request: Request) {
       sender_name: resolvedSenderSlug,
       sender_type: senderType || "anonymous",
       recipient_slug: recipientSlug,
+      recipient_user_id: recipientUserId,
       content,
       is_read: false,
       created_at: new Date().toISOString(),

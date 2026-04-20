@@ -173,6 +173,19 @@ The structural change. Treat as one unit because the loan record has no good hom
 - **F15** Placement detail page ✅ shipped (`/placements/[id]` with full placement view, stepper, messages/notes, photo gallery, record form)
 - **F16** Loan/consignment table + CRUD ✅ shipped (migration 011 `placement_records` + `placement_photos`; `PUT /api/placements/[id]/record`; `POST/DELETE /api/placements/[id]/photos`)
 
+### Phase 6 — production readiness (blockers before taking real money)
+Straight out of the earlier audit. Not user-facing features, but everything below must land before launch.
+- **F28** Fix RLS on `refund_requests` (any user can currently approve/modify refunds)
+- **F29** Fix RLS on `messages` (SELECT must be scoped to participants)
+- **F30** Stripe webhook idempotency: unique index on `orders.stripe_payment_intent_id` + `ON CONFLICT DO NOTHING`
+- **F31** Stripe webhook returns 500 (not 200) when DB insert fails so Stripe retries
+- **F32** Refund reversal: abort and return 502 if transfer reversal throws instead of still processing buyer refund
+- **F33** FK constraints on `orders.artist_user_id` and `refund_requests.order_id`
+- **F34** Missing indexes on `orders(artist_user_id)` and `orders(venue_slug)`
+- **F35** Remove hardcoded admin email fallback in `src/lib/admin-auth.ts`
+- **F36** SEO basics: favicon, robots.ts, sitemap.ts, OG tags in root layout
+- **F37** GDPR: authenticated data export (`GET /api/account/export`) and soft-delete (`DELETE /api/account`)
+
 ---
 
 ## F. Open questions to resolve before build

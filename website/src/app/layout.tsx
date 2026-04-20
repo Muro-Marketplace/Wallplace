@@ -17,10 +17,40 @@ const dmSerifDisplay = DM_Serif_Display({
   display: "swap",
 });
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://wallplace.co.uk").replace(/\/$/, "");
+
+const SITE_TITLE = "Wallplace – Curated Art for Commercial Spaces";
+const SITE_DESCRIPTION =
+  "Wallplace is a curated art marketplace connecting independent venues with emerging artists. Source artwork risk-free. Get discovered by commercial spaces.";
+
 export const metadata: Metadata = {
-  title: "Wallplace – Curated Art for Commercial Spaces",
-  description:
-    "Wallplace is a curated art marketplace connecting independent venues with emerging artists. Source artwork risk-free. Get discovered by commercial spaces.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: SITE_TITLE,
+    template: "%s – Wallplace",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: "Wallplace",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Wallplace",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export const viewport = {

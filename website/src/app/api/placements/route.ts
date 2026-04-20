@@ -267,12 +267,14 @@ export async function POST(request: Request) {
       // Link the message back to the placement so the UI can render inline
       // Accept/Decline buttons in the messages thread (F25).
       const placementIds = parsed.data.map((p) => p.id);
+      const recipientUserId = fromVenue ? artistProfile!.user_id : venueProfile!.user_id;
       const baseMsg = {
         conversation_id: cid,
         sender_id: auth.user!.id,
         sender_name: requesterSlug,
         sender_type: senderType,
         recipient_slug: recipientSlug,
+        recipient_user_id: recipientUserId,
         content,
         is_read: false,
         created_at: new Date().toISOString(),

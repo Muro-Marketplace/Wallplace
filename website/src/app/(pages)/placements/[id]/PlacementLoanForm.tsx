@@ -187,15 +187,15 @@ export default function PlacementLoanForm({ placementId, record, onSaved }: Prop
       {/* Values */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div>
-          <label className={labelCls}>Agreed value (\u00a3)</label>
+          <label className={labelCls}>Agreed value (£)</label>
           <input type="number" min={0} value={form.agreedValueGbp} onChange={(e) => update("agreedValueGbp", e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Insured value (\u00a3)</label>
+          <label className={labelCls}>Insured value (£)</label>
           <input type="number" min={0} value={form.insuredValueGbp} onChange={(e) => update("insuredValueGbp", e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Sale price (\u00a3)</label>
+          <label className={labelCls}>Sale price (£)</label>
           <input type="number" min={0} value={form.salePriceGbp} onChange={(e) => update("salePriceGbp", e.target.value)} className={inputCls} />
         </div>
         <div>
@@ -207,7 +207,7 @@ export default function PlacementLoanForm({ placementId, record, onSaved }: Prop
           <input type="number" min={0} max={100} value={form.platformCommissionPercent} onChange={(e) => update("platformCommissionPercent", e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Monthly display fee (\u00a3)</label>
+          <label className={labelCls}>Monthly display fee (£)</label>
           <input type="number" min={0} value={form.monthlyDisplayFeeGbp} onChange={(e) => update("monthlyDisplayFeeGbp", e.target.value)} className={inputCls} />
         </div>
       </div>
