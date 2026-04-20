@@ -170,8 +170,8 @@ Makes the placement flow feel coherent end-to-end.
 
 ### Phase 5 — dedicated placement experience (1–2 weeks)
 The structural change. Treat as one unit because the loan record has no good home without the detail page.
-- **F15** Placement detail page (route, layout, photo uploads, links to venue/artwork)
-- **F16** Loan/consignment table + CRUD + contract attachment
+- **F15** Placement detail page ✅ shipped (`/placements/[id]` with full placement view, stepper, messages/notes, photo gallery, record form)
+- **F16** Loan/consignment table + CRUD ✅ shipped (migration 011 `placement_records` + `placement_photos`; `PUT /api/placements/[id]/record`; `POST/DELETE /api/placements/[id]/photos`)
 
 ---
 

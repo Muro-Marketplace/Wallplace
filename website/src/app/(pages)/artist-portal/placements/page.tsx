@@ -697,6 +697,14 @@ export default function PlacementsPage() {
 
                       <div className="flex items-center gap-2 mt-3 flex-wrap">
                         <Link
+                          href={`/placements/${encodeURIComponent(p.id)}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors"
+                        >
+                          Open full placement
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                        </Link>
+                        <Link
                           href={`/artist-portal/messages?artist=${p.venueSlug}&artistName=${encodeURIComponent(p.venue)}`}
                           className="text-xs text-accent hover:text-accent-hover transition-colors"
                           onClick={(e) => e.stopPropagation()}
@@ -863,6 +871,13 @@ export default function PlacementsPage() {
                 />
 
                 <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  <Link
+                    href={`/placements/${encodeURIComponent(p.id)}`}
+                    className="inline-flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors"
+                  >
+                    Open full placement
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                  </Link>
                   <Link
                     href={`/artist-portal/messages?artist=${p.venueSlug}&artistName=${encodeURIComponent(p.venue)}`}
                     className="text-xs text-accent hover:text-accent-hover transition-colors"
