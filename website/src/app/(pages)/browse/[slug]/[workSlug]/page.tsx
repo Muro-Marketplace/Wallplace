@@ -141,10 +141,7 @@ export default async function ArtworkPage({
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
             {/* Image */}
-            <div
-              className="flex-1 relative bg-[#f5f5f3] rounded-sm overflow-hidden select-none"
-              onContextMenu={(e: React.MouseEvent) => e.preventDefault()}
-            >
+            <div className="flex-1 relative bg-[#f5f5f3] rounded-sm overflow-hidden select-none">
               <div
                 className="relative w-full"
                 style={{
@@ -165,7 +162,6 @@ export default async function ArtworkPage({
                   quality={75}
                   priority
                   draggable={false}
-                  onContextMenu={(e: React.MouseEvent) => e.preventDefault()}
                 />
                 {/* Transparent overlay to block save-as */}
                 <div className="absolute inset-0" />

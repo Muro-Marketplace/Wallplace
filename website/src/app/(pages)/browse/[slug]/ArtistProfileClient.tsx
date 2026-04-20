@@ -553,8 +553,20 @@ export default function ArtistProfileClient({
                 </button>
               </div>
 
+              {/* Full page link */}
+              <Link
+                href={`/browse/${artistSlug}/${slugify(currentWork.title)}`}
+                onClick={() => { navigatingAway.current = true; setLightboxIndex(null); }}
+                className="mt-4 inline-flex items-center justify-center gap-1.5 text-xs text-accent hover:text-accent-hover transition-colors"
+              >
+                View full artwork page
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+                </svg>
+              </Link>
+
               {/* Counter */}
-              <p className="text-[10px] text-muted text-center mt-4">
+              <p className="text-[10px] text-muted text-center mt-2">
                 {lightboxIndex + 1} of {filteredWorks.length}
               </p>
             </div>
