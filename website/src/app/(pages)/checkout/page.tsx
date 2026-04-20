@@ -252,11 +252,23 @@ export default function CheckoutPage() {
                     <Image src={item.image} alt={item.title} fill className="object-cover" sizes="64px" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {item.title}
+                      {item.quantity > 1 && (
+                        <span className="ml-1 text-muted font-normal">× {item.quantity}</span>
+                      )}
+                    </p>
                     <p className="text-xs text-muted">{item.artistName}</p>
                     {item.size && <p className="text-xs text-muted">{item.size}</p>}
                     <div className="flex items-center justify-between mt-1">
-                      <p className="text-sm font-medium text-accent">£{item.price.toFixed(2)}</p>
+                      <p className="text-sm font-medium text-accent">
+                        £{(item.price * item.quantity).toFixed(2)}
+                        {item.quantity > 1 && (
+                          <span className="ml-1.5 text-[11px] text-muted font-normal">
+                            (£{item.price.toFixed(2)} each)
+                          </span>
+                        )}
+                      </p>
                       <button
                         onClick={() => removeItem(item.id)}
                         className="text-[10px] text-muted hover:text-red-500 transition-colors"

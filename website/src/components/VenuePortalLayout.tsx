@@ -12,11 +12,10 @@ const navItems = [
   { label: "Messages", href: "/venue-portal/messages" },
   { label: "Saved", href: "/venue-portal/saved" },
   { label: "My Orders", href: "/venue-portal/orders" },
-  { label: "Settings", href: "/venue-portal/settings" },
 ];
 
 const bottomItems = [
-  { label: "Browse Site", href: "/" },
+  { label: "Settings", href: "/venue-portal/settings" },
 ];
 
 interface VenuePortalLayoutProps {

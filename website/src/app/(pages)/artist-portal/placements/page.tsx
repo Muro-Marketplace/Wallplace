@@ -74,7 +74,9 @@ export default function PlacementsPage() {
   // Form state
   const [venueSlug, setVenueSlug] = useState("");
   // arrangementType derived from revenuePercent — no separate state needed
-  const [revenuePercent, setRevenuePercent] = useState(10);
+  const [revenuePercent, setRevenuePercent] = useState<number | "">(10);
+  const [qrEnabled, setQrEnabled] = useState(true);
+  const [monthlyFee, setMonthlyFee] = useState<number | "">("");
   const [selectedWorks, setSelectedWorks] = useState<Set<number>>(new Set());
   const [workSizes, setWorkSizes] = useState<Record<number, string>>({});
   const [notes, setNotes] = useState("");
@@ -139,6 +141,8 @@ export default function PlacementsPage() {
     if (!venueSlug || selectedWorks.size === 0) return;
     setSubmitting(true);
 
+    const rev = typeof revenuePercent === "number" ? revenuePercent : 0;
+    const fee = typeof monthlyFee === "number" ? monthlyFee : 0;
     const newPlacements = Array.from(selectedWorks).map((workIndex) => {
       const work = works[workIndex];
       return {
@@ -147,10 +151,12 @@ export default function PlacementsPage() {
         workImage: work.image,
         workSize: workSizes[workIndex] || undefined,
         venueSlug,
-        type: revenuePercent > 0 ? "revenue_share" as const : "free_loan" as const,
-        revenueSharePercent: revenuePercent > 0 ? revenuePercent : undefined,
+        type: rev > 0 ? "revenue_share" as const : "free_loan" as const,
+        revenueSharePercent: rev > 0 ? rev : undefined,
         notes: notes || undefined,
         message: message || undefined,
+        qrEnabled,
+        monthlyFeeGbp: !qrEnabled && fee > 0 ? fee : undefined,
       };
     });
 
@@ -168,7 +174,7 @@ export default function PlacementsPage() {
           workSize: p.workSize,
           venue: selectedVenue?.name || venueSlug,
           venueSlug: p.venueSlug,
-          type: revenuePercent > 0 ? "Revenue Share" as ArrangementType : "Free Loan" as ArrangementType,
+          type: rev > 0 ? "Revenue Share" as ArrangementType : "Free Loan" as ArrangementType,
           revenueSharePercent: p.revenueSharePercent,
           status: "Pending",
           date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
@@ -183,6 +189,8 @@ export default function PlacementsPage() {
         setNotes("");
         setMessage("");
         setRevenuePercent(0);
+        setQrEnabled(true);
+        setMonthlyFee("");
       }
     } catch (err) {
       console.error("Placement save error:", err);
@@ -285,6 +293,62 @@ export default function PlacementsPage() {
               )}
             </div>
 
+            {/* Display type */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Display Type</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label className={`flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${qrEnabled ? "border-accent bg-accent/5" : "border-border hover:border-foreground/30"}`}>
+                  <input
+                    type="checkbox"
+                    checked={qrEnabled}
+                    onChange={() => setQrEnabled(true)}
+                    className="mt-0.5 accent-accent"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">QR code display</p>
+                    <p className="text-xs text-muted">Venue displays the work with a QR that links to your profile/sales.</p>
+                  </div>
+                </label>
+                <label className={`flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${!qrEnabled ? "border-accent bg-accent/5" : "border-border hover:border-foreground/30"}`}>
+                  <input
+                    type="checkbox"
+                    checked={!qrEnabled}
+                    onChange={() => setQrEnabled(false)}
+                    className="mt-0.5 accent-accent"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Paid loan (no QR)</p>
+                    <p className="text-xs text-muted">Venue pays you a monthly fee to display the work. No QR sales link.</p>
+                  </div>
+                </label>
+              </div>
+              {!qrEnabled && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium mb-2">Monthly Fee to Artist (optional)</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted">£</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={monthlyFee}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "") { setMonthlyFee(""); return; }
+                        const n = Number(v);
+                        if (!Number.isNaN(n)) setMonthlyFee(n);
+                      }}
+                      onBlur={() => { if (monthlyFee === "") setMonthlyFee(""); }}
+                      placeholder="e.g. 50"
+                      className="w-28 bg-background border border-border rounded-sm px-3 py-3 text-sm focus:outline-none focus:border-accent/60"
+                    />
+                    <span className="text-sm text-muted">per month</span>
+                  </div>
+                  <p className="text-xs text-muted mt-2">Billing is handled manually for now — use this to record the agreed amount.</p>
+                </div>
+              )}
+            </div>
+
             {/* Revenue share */}
             <div>
               <label className="block text-sm font-medium mb-2">Revenue Share (optional)</label>
@@ -295,7 +359,13 @@ export default function PlacementsPage() {
                   min={0}
                   max={50}
                   value={revenuePercent}
-                  onChange={(e) => setRevenuePercent(Number(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") { setRevenuePercent(""); return; }
+                    const n = Number(v);
+                    if (!Number.isNaN(n)) setRevenuePercent(n);
+                  }}
+                  onBlur={() => { if (revenuePercent === "") setRevenuePercent(0); }}
                   className="w-20 bg-background border border-border rounded-sm px-3 py-3 text-sm text-center focus:outline-none focus:border-accent/60"
                 />
                 <span className="text-sm text-muted">% to the venue on sales</span>

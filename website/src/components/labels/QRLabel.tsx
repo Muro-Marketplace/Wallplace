@@ -1,7 +1,7 @@
 export type LabelSize = "micro" | "small" | "medium" | "large" | "xlarge";
 
 export const LABEL_SIZES: { key: LabelSize; label: string; width: string; height: string; qr: string; perPage: number }[] = [
-  { key: "micro", label: "Micro", width: "25mm", height: "25mm", qr: "25mm", perPage: 48 },
+  { key: "micro", label: "QR Only", width: "25mm", height: "25mm", qr: "25mm", perPage: 48 },
   { key: "small", label: "Small", width: "55mm", height: "35mm", qr: "20mm", perPage: 15 },
   { key: "medium", label: "Medium", width: "70mm", height: "50mm", qr: "28mm", perPage: 8 },
   { key: "large", label: "Large", width: "90mm", height: "60mm", qr: "34mm", perPage: 6 },

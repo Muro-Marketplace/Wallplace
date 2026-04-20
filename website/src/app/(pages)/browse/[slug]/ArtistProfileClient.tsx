@@ -34,6 +34,7 @@ export default function ArtistProfileClient({
   const [activeTheme, setActiveTheme] = useState("All");
   const [bioExpanded, setBioExpanded] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedSizeIdx, setSelectedSizeIdx] = useState(0);
   const [showEnquiry, setShowEnquiry] = useState(false);
   const [selectedForPlacement, setSelectedForPlacement] = useState<Set<number>>(new Set());
@@ -95,12 +96,20 @@ export default function ArtistProfileClient({
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (lightboxIndex === null) return;
-      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "Escape") {
+        if (isFullscreen) setIsFullscreen(false);
+        else setLightboxIndex(null);
+      }
       if (e.key === "ArrowRight") setLightboxIndex((prev) => (prev !== null && prev < filteredWorks.length - 1 ? prev + 1 : prev));
       if (e.key === "ArrowLeft") setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : prev));
     },
-    [lightboxIndex, filteredWorks.length]
+    [lightboxIndex, filteredWorks.length, isFullscreen]
   );
+
+  // Reset fullscreen when lightbox closes
+  useEffect(() => {
+    if (lightboxIndex === null) setIsFullscreen(false);
+  }, [lightboxIndex]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -364,12 +373,20 @@ export default function ArtistProfileClient({
 
           {/* Content */}
           <div
-            className="relative z-10 flex flex-col lg:flex-row max-w-5xl w-full mx-2 sm:mx-4 mt-12 sm:mt-0 max-h-[85vh] sm:max-h-[90vh] bg-white rounded-sm overflow-hidden shadow-2xl"
+            className={
+              isFullscreen
+                ? "relative z-10 flex flex-col w-full h-full bg-black"
+                : "relative z-10 flex flex-col lg:flex-row max-w-5xl w-full mx-2 sm:mx-4 mt-12 sm:mt-0 max-h-[85vh] sm:max-h-[90vh] bg-white rounded-sm overflow-hidden shadow-2xl"
+            }
             onClick={(e) => e.stopPropagation()}
           >
             {/* Image side — swipeable on mobile */}
             <div
-              className="relative flex-1 min-h-[200px] sm:min-h-[350px] lg:min-h-[500px] bg-[#f5f5f3] select-none"
+              className={
+                isFullscreen
+                  ? "relative flex-1 bg-black select-none"
+                  : "relative flex-1 min-h-[200px] sm:min-h-[350px] lg:min-h-[500px] bg-[#f5f5f3] select-none"
+              }
               onContextMenu={(e) => e.preventDefault()}
               draggable={false}
               onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
@@ -389,16 +406,30 @@ export default function ArtistProfileClient({
                 src={currentWork.image}
                 alt={`${currentWork.title} — ${currentWork.medium}`}
                 fill
-                className="object-contain p-4 select-none touch-pinch-zoom"
+                className={`object-contain select-none touch-pinch-zoom ${isFullscreen ? "p-0" : "p-4"}`}
                 style={{ touchAction: "pinch-zoom" }}
-                sizes="(max-width: 640px) 100vw, 800px"
-                quality={60}
+                sizes={isFullscreen ? "100vw" : "(max-width: 640px) 100vw, 800px"}
+                quality={isFullscreen ? 85 : 60}
                 draggable={false}
                 priority
                 onContextMenu={(e) => e.preventDefault()}
               />
               {/* Overlay to block right-click save — allows touch through on mobile */}
               <div className="absolute inset-0 sm:pointer-events-auto pointer-events-none" onContextMenu={(e) => e.preventDefault()} />
+
+              {/* Fullscreen toggle */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsFullscreen((v) => !v); }}
+                className={`absolute ${isFullscreen ? "top-4 right-4" : "top-3 left-3"} w-10 h-10 rounded-full ${isFullscreen ? "bg-white/15 hover:bg-white/25 text-white" : "bg-white/80 hover:bg-white text-foreground"} flex items-center justify-center shadow-lg transition-colors z-10`}
+                aria-label={isFullscreen ? "Exit fullscreen" : "Expand image"}
+                title={isFullscreen ? "Exit fullscreen" : "Expand image"}
+              >
+                {isFullscreen ? (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4" /><path d="M15 3h4a2 2 0 0 1 2 2v4" /><path d="M15 21h4a2 2 0 0 0 2-2v-4" /><path d="M9 21H5a2 2 0 0 1-2-2v-4" /></svg>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+                )}
+              </button>
 
               {/* Nav arrows */}
               {lightboxIndex > 0 && (
@@ -420,7 +451,7 @@ export default function ArtistProfileClient({
             </div>
 
             {/* Details side */}
-            <div className="lg:w-80 shrink-0 p-3 sm:p-6 lg:p-8 flex flex-col border-t lg:border-t-0 lg:border-l border-border">
+            <div className={`lg:w-80 shrink-0 p-3 sm:p-6 lg:p-8 flex flex-col border-t lg:border-t-0 lg:border-l border-border ${isFullscreen ? "hidden" : ""}`}>
               {/* Close button */}
               <button
                 onClick={() => setLightboxIndex(null)}
@@ -492,7 +523,7 @@ export default function ArtistProfileClient({
                       setLightboxIndex(null);
                       router.push(`/venue-portal/placements?artist=${artistSlug}&artistName=${encodeURIComponent(artistName)}&work=${encodeURIComponent(currentWork.title)}&workImage=${encodeURIComponent(currentWork.image)}`);
                     }}
-                    className="w-full px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
+                    className="w-full px-5 py-2.5 text-sm font-medium text-foreground bg-[#F5F3F0] border border-border hover:bg-[#EBE8E4] rounded-sm transition-colors"
                   >
                     Request Placement
                   </button>

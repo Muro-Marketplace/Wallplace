@@ -5,6 +5,7 @@ import { artists } from "@/data/artists";
 import { slugify } from "@/lib/slugify";
 import { getArtistBySlug } from "@/lib/db/merged-data";
 import ArtworkPageClient from "./ArtworkPageClient";
+import ArtworkImageViewer from "@/components/ArtworkImageViewer";
 import type { Metadata } from "next";
 
 // Static params for seed artists — database artists use dynamic fallback
@@ -141,32 +142,17 @@ export default async function ArtworkPage({
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
             {/* Image */}
-            <div className="flex-1 relative bg-[#f5f5f3] rounded-sm overflow-hidden select-none">
-              <div
-                className="relative w-full"
-                style={{
-                  aspectRatio:
-                    work.orientation === "landscape"
-                      ? "4/3"
-                      : work.orientation === "square"
-                        ? "1/1"
-                        : "3/4",
-                }}
-              >
-                <Image
-                  src={work.image}
-                  alt={`${work.title} — ${work.medium}`}
-                  fill
-                  className="object-contain p-4 pointer-events-none select-none"
-                  sizes="(max-width: 1024px) 100vw, 700px"
-                  quality={75}
-                  priority
-                  draggable={false}
-                />
-                {/* Transparent overlay to block save-as */}
-                <div className="absolute inset-0" />
-              </div>
-            </div>
+            <ArtworkImageViewer
+              src={work.image}
+              alt={`${work.title} — ${work.medium}`}
+              aspectRatio={
+                work.orientation === "landscape"
+                  ? "4/3"
+                  : work.orientation === "square"
+                    ? "1/1"
+                    : "3/4"
+              }
+            />
 
             {/* Details panel */}
             <div className="lg:w-[360px] shrink-0">

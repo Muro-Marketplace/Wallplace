@@ -57,8 +57,8 @@ export default function VenueDashboardPage() {
       const sentMessageCount = dashboardData.sentMessageCount ?? 0;
 
       const hasName = !!profile.name;
-      const hasType = !!profile.venue_type;
-      const hasLocation = !!(profile.city || profile.postcode || profile.address_line1);
+      const hasType = !!(profile.type || profile.venue_type);
+      const hasLocation = !!(profile.location || profile.city || profile.postcode || profile.address_line1);
       const profileComplete = hasName && hasType && hasLocation;
 
       const hasPreferences = (Array.isArray(profile.preferred_styles) && profile.preferred_styles.length > 0)

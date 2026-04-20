@@ -92,6 +92,8 @@ export const placementSchema = z.object({
   revenue: z.number().min(0).optional(),
   notes: optionalString(1000),
   message: optionalString(2000),
+  qrEnabled: z.boolean().optional(),
+  monthlyFeeGbp: z.number().min(0).max(100000).optional(),
 });
 
 export const placementUpdateSchema = z.object({

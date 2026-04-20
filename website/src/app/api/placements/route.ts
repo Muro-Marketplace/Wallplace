@@ -111,6 +111,13 @@ export async function POST(request: Request) {
       venueProfile = vp;
     }
 
+    if (artistProfile.user_id === venueProfile.user_id) {
+      return NextResponse.json(
+        { error: "You cannot create a placement between your own artist and venue profiles" },
+        { status: 400 }
+      );
+    }
+
     // Build rows with new columns, fall back to base columns if they don't exist
     const baseRows = parsed.data.map((p) => ({
       id: p.id,
@@ -132,6 +139,8 @@ export async function POST(request: Request) {
       venue_user_id: venueProfile!.user_id,
       venue_slug: venueProfile!.slug,
       message: parsed.data[i].message || null,
+      qr_enabled: parsed.data[i].qrEnabled ?? true,
+      monthly_fee_gbp: parsed.data[i].monthlyFeeGbp ?? null,
     }));
 
     let { error } = await db.from("placements").insert(fullRows);
@@ -203,6 +212,20 @@ export async function PATCH(request: Request) {
 
     if (!isArtist && !isVenue) {
       return NextResponse.json({ error: "Not authorised" }, { status: 403 });
+    }
+
+    // Self-accept guard: placements where both parties are the same user cannot be accepted/declined
+    if (
+      existing.artist_user_id &&
+      existing.venue_user_id &&
+      existing.artist_user_id === existing.venue_user_id &&
+      existing.status === "pending" &&
+      (status === "active" || status === "declined")
+    ) {
+      return NextResponse.json(
+        { error: "You cannot accept a placement you created yourself" },
+        { status: 400 }
+      );
     }
 
     // Venue can accept/decline pending requests
