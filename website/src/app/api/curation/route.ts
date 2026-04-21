@@ -15,8 +15,8 @@ const TIERS: Record<string, OneOffTier | ManagedTier> = {
   single_wall: { kind: "one_off", label: "Single wall", priceGbp: 49, payFirst: true },
   full_space: { kind: "one_off", label: "Full space", priceGbp: 149, payFirst: true },
   bespoke: { kind: "one_off", label: "Bespoke project", priceGbp: 299, payFirst: false },
-  managed_monthly: { kind: "managed", label: "Managed — monthly rotation", priceGbp: 79, interval: "month", priceEnvVar: "STRIPE_PRICE_CURATION_MONTHLY" },
-  managed_quarterly: { kind: "managed", label: "Managed — quarterly refresh", priceGbp: 199, interval: "quarter", priceEnvVar: "STRIPE_PRICE_CURATION_QUARTERLY" },
+  managed_monthly: { kind: "managed", label: "Managed — monthly rotation", priceGbp: 79.99, interval: "month", priceEnvVar: "STRIPE_PRICE_CURATION_MONTHLY" },
+  managed_quarterly: { kind: "managed", label: "Managed — quarterly refresh", priceGbp: 199.99, interval: "quarter", priceEnvVar: "STRIPE_PRICE_CURATION_QUARTERLY" },
 };
 
 type TierKey = keyof typeof TIERS;

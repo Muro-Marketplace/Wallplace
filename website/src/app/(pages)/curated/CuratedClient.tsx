@@ -65,7 +65,7 @@ const MANAGED_TIERS: Tier[] = [
   {
     key: "managed_monthly",
     label: "Monthly rotation",
-    priceLabel: "£79 / month",
+    priceLabel: "£79.99 / month",
     strapline: "New shortlist every month, walls kept fresh.",
     bullets: [
       "New curated shortlist each month",
@@ -73,13 +73,13 @@ const MANAGED_TIERS: Tier[] = [
       "Priority support and swap coordination",
       "Cancel anytime",
     ],
-    cta: "Start monthly — £79/mo",
+    cta: "Start monthly — £79.99/mo",
     group: "managed",
   },
   {
     key: "managed_quarterly",
     label: "Quarterly refresh",
-    priceLabel: "£199 / quarter",
+    priceLabel: "£199.99 / quarter",
     strapline: "Seasonal refresh, less admin.",
     bullets: [
       "One considered refresh every three months",
@@ -87,7 +87,7 @@ const MANAGED_TIERS: Tier[] = [
       "Seasonal mood guidance included",
       "Cancel anytime",
     ],
-    cta: "Start quarterly — £199/qtr",
+    cta: "Start quarterly — £199.99/qtr",
     group: "managed",
   },
 ];
@@ -374,9 +374,9 @@ export default function CuratedClient() {
                       : selectedTier === "bespoke"
                         ? "Request quote"
                         : selectedTier === "managed_monthly"
-                          ? "Subscribe — £79/mo"
+                          ? "Subscribe — £79.99/mo"
                           : selectedTier === "managed_quarterly"
-                            ? "Subscribe — £199/qtr"
+                            ? "Subscribe — £199.99/qtr"
                             : `Pay ${ALL_TIERS.find((t) => t.key === selectedTier)?.priceLabel}`}
                 </button>
               </div>

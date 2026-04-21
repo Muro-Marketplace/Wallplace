@@ -13,11 +13,11 @@ interface ProfileSubscription {
   is_founding_artist: boolean;
 }
 
-// Monthly prices; annual = 10 months' equivalent (2 months free, ~17% off).
+// Monthly prices; annual saves ~17% (10 months' equivalent).
 const PLAN_DETAILS: Record<string, { name: string; priceMonthly: number; priceAnnual: number; fee: string }> = {
-  core: { name: "Core", priceMonthly: 9.99, priceAnnual: 99.9, fee: "15%" },
-  premium: { name: "Premium", priceMonthly: 24.99, priceAnnual: 249.9, fee: "8%" },
-  pro: { name: "Pro", priceMonthly: 49.99, priceAnnual: 499.9, fee: "3%" },
+  core: { name: "Core", priceMonthly: 9.99, priceAnnual: 99.99, fee: "15%" },
+  premium: { name: "Premium", priceMonthly: 24.99, priceAnnual: 249.99, fee: "8%" },
+  pro: { name: "Pro", priceMonthly: 49.99, priceAnnual: 499.99, fee: "3%" },
   none: { name: "No plan", priceMonthly: 0, priceAnnual: 0, fee: "\u2014" },
 };
 
