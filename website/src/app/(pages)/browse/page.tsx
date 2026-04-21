@@ -1345,6 +1345,24 @@ function BrowsePortfoliosPageInner() {
                           </button>
                         ))}
                       </div>
+                      {galleryLocationMode === "local" && geoRequesting && (
+                        <p className="text-xs text-muted animate-pulse mt-3">Detecting your location…</p>
+                      )}
+                      {galleryLocationMode === "local" && !geoRequesting && userCoords && (
+                        <p className="text-xs text-accent flex items-center gap-1.5 mt-3">
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="1.5 5 4 7.5 8.5 2.5" />
+                          </svg>
+                          Location set
+                          <button
+                            type="button"
+                            onClick={() => { setUserCoords(null); setPostcodeInput(""); setPostcodeError(false); }}
+                            className="ml-1 text-[10px] text-muted underline cursor-pointer"
+                          >
+                            change
+                          </button>
+                        </p>
+                      )}
                       {galleryLocationMode === "local" && userCoords && (
                         <div className="mt-3">
                           <p className="text-[10px] text-muted mb-1.5">
@@ -1661,24 +1679,42 @@ function BrowsePortfoliosPageInner() {
                   ))}
                 </div>
               </div>
-              {collectionsLocationMode === "local" && userCoords && (
-                <div>
-                  <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">
-                    Within {filters.maxDistance >= 9999 ? "any distance" : `${filters.maxDistance} mi`}
+              {collectionsLocationMode === "local" && geoRequesting && (
+                <p className="text-xs text-muted animate-pulse">Detecting your location…</p>
+              )}
+              {collectionsLocationMode === "local" && !geoRequesting && userCoords && (
+                <>
+                  <p className="text-xs text-accent flex items-center gap-1.5">
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="1.5 5 4 7.5 8.5 2.5" />
+                    </svg>
+                    Location set
+                    <button
+                      type="button"
+                      onClick={() => { setUserCoords(null); setPostcodeInput(""); setPostcodeError(false); }}
+                      className="ml-1 text-[10px] text-muted underline cursor-pointer"
+                    >
+                      change
+                    </button>
                   </p>
-                  <input
-                    type="range"
-                    min={0}
-                    max={200}
-                    step={1}
-                    value={filters.maxDistance >= 9999 ? 200 : filters.maxDistance}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      setFilter("maxDistance", v >= 200 ? 9999 : v);
-                    }}
-                    className="w-full accent-accent h-1.5 cursor-pointer"
-                  />
-                </div>
+                  <div>
+                    <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">
+                      Within {filters.maxDistance >= 9999 ? "any distance" : `${filters.maxDistance} mi`}
+                    </p>
+                    <input
+                      type="range"
+                      min={0}
+                      max={200}
+                      step={1}
+                      value={filters.maxDistance >= 9999 ? 200 : filters.maxDistance}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setFilter("maxDistance", v >= 200 ? 9999 : v);
+                      }}
+                      className="w-full accent-accent h-1.5 cursor-pointer"
+                    />
+                  </div>
+                </>
               )}
               {collectionsLocationMode === "local" && !userCoords && !geoRequesting && (
                 <div>
@@ -1739,7 +1775,7 @@ function BrowsePortfoliosPageInner() {
                   </div>
                 </div>
                 {collectionsLocationMode === "local" && userCoords && (
-                  <div className="min-w-[180px]">
+                  <div className="hidden lg:block min-w-[180px]">
                     <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">
                       Within {filters.maxDistance >= 9999 ? "any" : `${filters.maxDistance} mi`}
                     </p>
@@ -1758,7 +1794,7 @@ function BrowsePortfoliosPageInner() {
                   </div>
                 )}
                 {collectionsLocationMode === "local" && !userCoords && !geoRequesting && (
-                  <div>
+                  <div className="hidden lg:block">
                     <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">Postcode</p>
                     <div className="flex gap-1.5">
                       <input
