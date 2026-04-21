@@ -5,9 +5,10 @@ import SaveButton from "./SaveButton";
 
 interface CollectionCardProps {
   collection: ArtistCollection;
+  distance?: number | null;
 }
 
-export default function CollectionCard({ collection }: CollectionCardProps) {
+export default function CollectionCard({ collection, distance }: CollectionCardProps) {
   return (
     <Link
       href={`/browse/collections/${collection.id}`}
@@ -33,7 +34,14 @@ export default function CollectionCard({ collection }: CollectionCardProps) {
         </div>
       </div>
       <div className="p-4">
-        <p className="text-xs text-muted mb-0.5">{collection.artistName}</p>
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-xs text-muted mb-0.5 min-w-0 truncate">{collection.artistName}</p>
+          {distance != null && (
+            <span className="text-[10px] text-muted shrink-0">
+              {distance < 0.2 ? "< 0.2 mi" : `${distance.toFixed(1)} mi`}
+            </span>
+          )}
+        </div>
         <h3 className="text-sm font-medium text-foreground mb-1">{collection.name}</h3>
         {collection.description && (
           <p className="text-xs text-muted line-clamp-2 mb-2">{collection.description}</p>

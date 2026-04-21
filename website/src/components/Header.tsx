@@ -10,10 +10,11 @@ import { authFetch } from "@/lib/api-client";
 
 // When the user is inside the marketplace area (/browse or /spaces-looking-for-art)
 // the top-level "Marketplace" link is replaced by these inline tabs.
+// Collections lives on the browse page's in-page toolbar alongside the
+// Portfolios / Gallery toggle, not in the top nav.
 const marketplaceTabs = [
   { label: "Portfolios", href: "/browse?view=portfolios", match: (p: string, v: string) => p === "/browse" && v !== "gallery" && v !== "collections" },
   { label: "Galleries",  href: "/browse?view=gallery",    match: (p: string, v: string) => p === "/browse" && v === "gallery" },
-  { label: "Collections", href: "/browse?view=collections", match: (p: string, v: string) => p === "/browse" && v === "collections" },
   { label: "Spaces", href: "/spaces-looking-for-art", match: (p: string) => p === "/spaces-looking-for-art" },
 ];
 
@@ -61,18 +62,6 @@ function MarketplaceTabsNav({ pathname, isPortal, showSolid }: { pathname: strin
     <>
       {marketplaceTabs.map((tab) => {
         const active = tab.match(pathname, view);
-        // Collections renders as a pill, positioned right after Galleries.
-        if (tab.label === "Collections") {
-          const pillBase = "text-xs rounded-full border px-3 py-1 transition-colors duration-300 whitespace-nowrap";
-          const pillCls = active
-            ? (onDark ? "bg-white text-foreground border-white" : "bg-foreground text-white border-foreground")
-            : (onDark ? "text-white/80 border-white/30 hover:border-white hover:text-white" : "text-muted border-border hover:border-foreground/40 hover:text-foreground");
-          return (
-            <Link key={tab.href} href={tab.href} className={`${pillBase} ${pillCls}`}>
-              {tab.label}
-            </Link>
-          );
-        }
         const cls = active
           ? (onDark ? "text-white font-semibold border-b-2 border-white" : "text-foreground font-semibold border-b-2 border-accent")
           : (onDark ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground");

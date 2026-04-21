@@ -850,11 +850,14 @@ function BrowsePortfoliosPageInner() {
                   <div className="flex items-center gap-2">
                     {/* Portfolio/Gallery toggle */}
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                      <button type="button" onClick={() => setViewAs("artists")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                      <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => setViewAs("works")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                      <button type="button" onClick={() => { setViewAs("works"); setActiveCategory(""); }} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
                         Gallery
+                      </button>
+                      <button type="button" onClick={() => setActiveCategory("collections")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                        Collections
                       </button>
                     </div>
                     {/* Grid toggle */}
@@ -917,11 +920,14 @@ function BrowsePortfoliosPageInner() {
                   <div className="flex items-center gap-2">
                     {/* Portfolio/Gallery toggle */}
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5 mr-1">
-                      <button type="button" onClick={() => setViewAs("artists")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => setViewAs("works")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { setViewAs("works"); setActiveCategory(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Gallery
+                      </button>
+                      <button type="button" onClick={() => setActiveCategory("collections")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                        Collections
                       </button>
                     </div>
                     {/* Compact / grid icon */}
@@ -1274,11 +1280,14 @@ function BrowsePortfoliosPageInner() {
                   <div className="flex items-center gap-2">
                     {/* Portfolio/Gallery toggle */}
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                      <button type="button" onClick={() => setViewAs("artists")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                      <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => setViewAs("works")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                      <button type="button" onClick={() => { setViewAs("works"); setActiveCategory(""); }} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
                         Gallery
+                      </button>
+                      <button type="button" onClick={() => setActiveCategory("collections")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
+                        Collections
                       </button>
                     </div>
                     <button
@@ -1399,11 +1408,14 @@ function BrowsePortfoliosPageInner() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5 mr-1">
-                      <button type="button" onClick={() => setViewAs("artists")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => setViewAs("works")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${(viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { setViewAs("works"); setActiveCategory(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Gallery
+                      </button>
+                      <button type="button" onClick={() => setActiveCategory("collections")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                        Collections
                       </button>
                     </div>
                     <select
@@ -1434,6 +1446,9 @@ function BrowsePortfoliosPageInner() {
                     const workSlug = slugify(work.title);
                     const quickLookHref = `/browse/${work.artistSlug}#work-${workSlug}`;
                     const fullPageHref = `/browse/${work.artistSlug}/${workSlug}`;
+                    const workDistance = userCoords && work.artistCoordinates
+                      ? calcDistance(userCoords.lat, userCoords.lng, work.artistCoordinates.lat, work.artistCoordinates.lng)
+                      : null;
                     return (
                       <div key={work.id} className="group break-inside-avoid block">
                         <div className="bg-surface border border-border/50 rounded-lg overflow-hidden">
@@ -1490,11 +1505,18 @@ function BrowsePortfoliosPageInner() {
 
                           {/* Info */}
                           <div className="px-4 py-3.5">
-                            <Link href={fullPageHref} className="block group/title">
-                              <h3 className="text-sm font-medium text-foreground leading-tight group-hover/title:text-accent transition-colors">
-                                {work.title}
-                              </h3>
-                            </Link>
+                            <div className="flex items-baseline justify-between gap-2">
+                              <Link href={fullPageHref} className="block group/title min-w-0 flex-1">
+                                <h3 className="text-sm font-medium text-foreground leading-tight group-hover/title:text-accent transition-colors truncate">
+                                  {work.title}
+                                </h3>
+                              </Link>
+                              {workDistance !== null && (
+                                <span className="text-[10px] text-muted shrink-0">
+                                  {workDistance < 0.2 ? "< 0.2 mi" : `${workDistance.toFixed(1)} mi`}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-muted mt-0.5">
                               {work.artistName} · {work.medium}
                             </p>
@@ -1535,6 +1557,20 @@ function BrowsePortfoliosPageInner() {
       {activeCategory === "collections" && (
         <section className="py-10 lg:py-14">
           <div className="max-w-[1400px] mx-auto px-6">
+            {/* View toggle — keep the same 3-way switch visible on Collections */}
+            <div className="mb-6 flex items-center justify-end">
+              <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
+                <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
+                  Portfolios
+                </button>
+                <button type="button" onClick={() => { setViewAs("works"); setActiveCategory(""); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
+                  Gallery
+                </button>
+                <button type="button" onClick={() => setActiveCategory("collections")} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer bg-white text-foreground shadow-sm">
+                  Collections
+                </button>
+              </div>
+            </div>
             <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h2 className="text-2xl font-serif mb-2">Curated Collections</h2>
@@ -1600,9 +1636,13 @@ function BrowsePortfoliosPageInner() {
             </div>
             {filteredCollections.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filteredCollections.map((col) => (
-                  <CollectionCard key={col.id} collection={col} />
-                ))}
+                {filteredCollections.map((col) => {
+                  const collectionArtist = artists.find((a) => a.slug === col.artistSlug);
+                  const colDistance = userCoords && collectionArtist?.coordinates
+                    ? calcDistance(userCoords.lat, userCoords.lng, collectionArtist.coordinates.lat, collectionArtist.coordinates.lng)
+                    : null;
+                  return <CollectionCard key={col.id} collection={col} distance={colDistance} />;
+                })}
               </div>
             ) : (
               <p className="text-muted text-center py-16">
