@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -14,7 +14,8 @@ function formatSlug(slug: string): string {
 }
 
 type FilterTab = "All" | "Pending" | "Active" | "Completed";
-type PlacementStatus = "Active" | "Pending" | "Declined" | "Completed";
+type ArrangementType = "Paid Loan" | "Revenue Share" | "Direct Purchase";
+type PlacementStatus = "Active" | "Pending" | "Declined" | "Completed" | "Sold";
 
 interface PlacementRequest {
   id: string;
@@ -22,12 +23,14 @@ interface PlacementRequest {
   artistSlug: string;
   workTitle: string;
   workImage: string;
-  arrangementType: string;
+  workSize?: string;
+  type: ArrangementType;
   revenueSharePercent?: number;
   status: PlacementStatus;
   date: string;
   respondedAt?: string;
   message?: string;
+  notes?: string;
   revenueEarned?: number;
   acceptedAt?: string | null;
   scheduledFor?: string | null;
@@ -44,11 +47,15 @@ interface ArtistWork {
   priceBand: string;
 }
 
-const statusStyles: Record<string, string> = {
-  Active: "bg-green-100 text-green-700",
-  Pending: "bg-amber-100 text-amber-700",
-  Declined: "bg-red-100 text-red-600",
-  Completed: "bg-gray-100 text-gray-600",
+const statusBadge = (status: string) => {
+  switch (status) {
+    case "Active": return "bg-green-100 text-green-700";
+    case "Pending": return "bg-amber-100 text-amber-700";
+    case "Declined": return "bg-red-100 text-red-600";
+    case "Sold": return "bg-blue-100 text-blue-700";
+    case "Completed": return "bg-gray-100 text-gray-600";
+    default: return "bg-gray-100 text-gray-600";
+  }
 };
 
 const tabs: FilterTab[] = ["All", "Pending", "Active", "Completed"];
@@ -56,15 +63,16 @@ const tabs: FilterTab[] = ["All", "Pending", "Active", "Completed"];
 function normaliseStatus(raw: string): PlacementStatus {
   const map: Record<string, PlacementStatus> = {
     active: "Active", pending: "Pending", declined: "Declined",
-    completed: "Completed", paused: "Completed",
+    completed: "Completed", sold: "Sold", paused: "Completed",
   };
   return map[raw.toLowerCase()] || "Pending";
 }
 
-function typeLabel(raw: string, pct?: number): string {
-  if (raw === "revenue_share") return `Revenue Share${pct ? ` (${pct}%)` : ""}`;
-  if (raw === "free_loan") return "Paid Loan";
-  return raw;
+function normaliseType(raw: string): ArrangementType {
+  const map: Record<string, ArrangementType> = {
+    free_loan: "Paid Loan", revenue_share: "Revenue Share", purchase: "Direct Purchase",
+  };
+  return map[raw] || "Paid Loan";
 }
 
 export default function VenuePlacementsPage() {
@@ -146,7 +154,7 @@ export default function VenuePlacementsPage() {
         const data = await res.json();
         if (data.placements) {
           // Resolve artist names from browse-artists
-          let artistNameMap: Record<string, string> = {};
+          const artistNameMap: Record<string, string> = {};
           try {
             const artistRes = await fetch("/api/browse-artists");
             const artistData = await artistRes.json();
@@ -161,12 +169,14 @@ export default function VenuePlacementsPage() {
             artistSlug: (p.artist_slug as string) || "",
             workTitle: (p.work_title as string) || "Untitled",
             workImage: (p.work_image as string) || "",
-            arrangementType: (p.arrangement_type as string) || "free_loan",
+            workSize: (p.work_size as string) || undefined,
+            type: normaliseType((p.arrangement_type as string) || "free_loan"),
             revenueSharePercent: p.revenue_share_percent as number | undefined,
             status: normaliseStatus((p.status as string) || "pending"),
             date: p.created_at ? new Date(p.created_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "",
             respondedAt: p.responded_at ? new Date(p.responded_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : undefined,
             message: p.message as string | undefined,
+            notes: p.notes as string | undefined,
             revenueEarned: typeof p.revenue_earned_gbp === "number" ? p.revenue_earned_gbp : 0,
             acceptedAt: (p.accepted_at as string | null) ?? null,
             scheduledFor: (p.scheduled_for as string | null) ?? null,
@@ -233,7 +243,7 @@ export default function VenuePlacementsPage() {
           artistSlug,
           workTitle: p.workTitle,
           workImage: p.workImage,
-          arrangementType: qrEnabled && rev > 0 ? "revenue_share" : "free_loan",
+          type: qrEnabled && rev > 0 ? "Revenue Share" as ArrangementType : "Paid Loan" as ArrangementType,
           revenueSharePercent: p.revenueSharePercent,
           status: "Pending",
           date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
@@ -281,30 +291,41 @@ export default function VenuePlacementsPage() {
     }
   }
 
+  function updateStatus(id: string, newStatus: PlacementStatus) {
+    const statusMap: Record<string, string> = {
+      Active: "active", Pending: "pending", Declined: "declined",
+      Completed: "completed", Sold: "completed",
+    };
+    setPlacements(placements.map((p) => (p.id === id ? { ...p, status: newStatus } : p)));
+    authFetch("/api/placements", {
+      method: "PATCH",
+      body: JSON.stringify({ id, status: statusMap[newStatus] || "active" }),
+    }).catch((err) => console.error("Status update error:", err));
+  }
+
+  function removePlacement(id: string) {
+    setPlacements(placements.filter((p) => p.id !== id));
+    authFetch(`/api/placements?id=${id}`, { method: "DELETE" })
+      .catch((err) => console.error("Placement delete error:", err));
+  }
+
   const filtered = placements.filter((p) => {
     if (activeTab === "All") return true;
-    if (activeTab === "Completed") return p.status === "Completed" || p.status === "Declined";
+    if (activeTab === "Completed") return p.status === "Completed" || p.status === "Sold";
     return p.status === activeTab;
   });
 
-  const pendingCount = placements.filter((p) => p.status === "Pending").length;
   const inputClass = "w-full bg-background border border-border rounded-sm px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent/60 transition-colors";
 
   return (
     <VenuePortalLayout>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl lg:text-3xl">Placements</h1>
-          <p className="text-sm text-muted mt-1">Request and manage artwork placements</p>
-        </div>
+        <h1 className="text-2xl lg:text-3xl">Placements</h1>
         <div className="flex items-center gap-3">
-          {pendingCount > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-700 text-sm font-medium rounded-full">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              {pendingCount} pending
-            </span>
-          )}
+          <span className="text-sm text-muted">
+            {placements.filter((p) => p.status === "Active").length} active
+          </span>
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
@@ -332,50 +353,7 @@ export default function VenuePlacementsPage() {
               </div>
             )}
 
-            {/* Select works from artist portfolio */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Select Works <span className="text-accent">*</span>
-                {selectedWorks.size > 0 && <span className="text-accent ml-2 font-normal">{selectedWorks.size} selected</span>}
-              </label>
-              {worksLoading ? (
-                <p className="text-sm text-muted">Loading portfolio...</p>
-              ) : artistWorks.length === 0 ? (
-                <p className="text-sm text-muted">No works found. Browse an artist&rsquo;s profile to select works for placement.</p>
-              ) : (
-                <div className="flex gap-2.5 overflow-x-auto pb-2">
-                  {artistWorks.map((work) => {
-                    const selected = selectedWorks.has(work.title);
-                    return (
-                      <button
-                        key={work.id}
-                        type="button"
-                        onClick={() => toggleWork(work.title)}
-                        className={`relative w-24 h-24 shrink-0 rounded-sm overflow-hidden border-2 transition-all ${
-                          selected ? "border-accent shadow-sm" : "border-transparent hover:border-border"
-                        }`}
-                      >
-                        {work.image && (
-                          <Image src={work.image} alt={work.title} fill className="object-cover" sizes="96px" />
-                        )}
-                        {selected && (
-                          <div className="absolute inset-0 bg-accent/20 flex items-center justify-center">
-                            <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center">
-                              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
-                            </div>
-                          </div>
-                        )}
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5">
-                          <p className="text-[8px] text-white truncate">{work.title}</p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Placement type (F40) */}
+            {/* Placement type */}
             <div>
               <label className="block text-sm font-medium mb-2">Placement Type</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -404,10 +382,34 @@ export default function VenuePlacementsPage() {
                   </div>
                 </label>
               </div>
+              {!qrEnabled && (
+                <div className="mt-3">
+                  <label className="block text-sm font-medium mb-2">Monthly fee to artist (optional)</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted">£</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={monthlyFee}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "") { setMonthlyFee(""); return; }
+                        const n = Number(v);
+                        if (!Number.isNaN(n)) setMonthlyFee(n);
+                      }}
+                      placeholder="e.g. 50"
+                      className="w-28 bg-background border border-border rounded-sm px-3 py-3 text-sm focus:outline-none focus:border-accent/60"
+                    />
+                    <span className="text-sm text-muted">per month</span>
+                  </div>
+                  <p className="text-xs text-muted mt-2">Billing is handled manually for now — use this to record the agreed amount.</p>
+                </div>
+              )}
             </div>
 
-            {/* Revenue share (QR Display) OR Monthly artist fee (Paid Loan) */}
-            {qrEnabled ? (
+            {/* Revenue share (QR Display only) */}
+            {qrEnabled && (
               <div>
                 <label className="block text-sm font-medium mb-2">Revenue Share (optional)</label>
                 <p className="text-xs text-muted mb-3">Propose a revenue share percentage on QR sales. Leave at 0 for a free display arrangement.</p>
@@ -429,33 +431,49 @@ export default function VenuePlacementsPage() {
                   <span className="text-sm text-muted">% to the venue on sales</span>
                 </div>
               </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium mb-2">Monthly fee to artist (optional)</label>
-                <p className="text-xs text-muted mb-3">What you'll pay the artist each month to display their work.</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted">£</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={monthlyFee}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "") { setMonthlyFee(""); return; }
-                      const n = Number(v);
-                      if (!Number.isNaN(n)) setMonthlyFee(n);
-                    }}
-                    placeholder="e.g. 50"
-                    className="w-28 bg-background border border-border rounded-sm px-3 py-3 text-sm focus:outline-none focus:border-accent/60"
-                  />
-                  <span className="text-sm text-muted">per month</span>
-                </div>
-                <p className="text-xs text-muted mt-2">Billing is handled manually for now — use this to record the agreed amount.</p>
-              </div>
             )}
 
-            {/* Message */}
+            {/* Select works from artist portfolio */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Select Works <span className="text-accent">*</span>
+                {selectedWorks.size > 0 && <span className="text-accent ml-2 font-normal">{selectedWorks.size} selected</span>}
+              </label>
+              {worksLoading ? (
+                <p className="text-sm text-muted">Loading portfolio...</p>
+              ) : artistWorks.length === 0 ? (
+                <p className="text-sm text-muted">No works found. Browse an artist&rsquo;s profile to select works for placement.</p>
+              ) : (
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
+                  {artistWorks.map((work) => {
+                    const selected = selectedWorks.has(work.title);
+                    return (
+                      <button
+                        key={work.id}
+                        type="button"
+                        onClick={() => toggleWork(work.title)}
+                        className={`relative aspect-square rounded-sm overflow-hidden border-2 transition-all ${
+                          selected ? "border-accent shadow-sm" : "border-transparent hover:border-border"
+                        }`}
+                      >
+                        {work.image && (
+                          <Image src={work.image} alt={work.title} fill className="object-cover" sizes="80px" />
+                        )}
+                        {selected && (
+                          <div className="absolute inset-0 bg-accent/20 flex items-center justify-center">
+                            <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center">
+                              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Message to artist */}
             <div>
               <label className="block text-sm font-medium mb-2">Message to artist (optional)</label>
               <textarea
@@ -491,7 +509,7 @@ export default function VenuePlacementsPage() {
             tab === "All"
               ? placements.length
               : tab === "Completed"
-              ? placements.filter((p) => p.status === "Completed" || p.status === "Declined").length
+              ? placements.filter((p) => p.status === "Completed" || p.status === "Sold").length
               : placements.filter((p) => p.status === tab).length;
           return (
             <button
@@ -514,182 +532,390 @@ export default function VenuePlacementsPage() {
 
       {loading ? (
         <p className="text-muted text-sm py-12 text-center">Loading placements...</p>
-      ) : filtered.length === 0 && !showForm ? (
-        <div className="bg-surface border border-border rounded-sm px-6 py-12 text-center">
-          <p className="text-muted text-sm">
-            {activeTab === "Pending" ? "No pending requests." : "No placements found."}
-          </p>
-          <p className="text-muted text-xs mt-2">Browse artist portfolios and click &ldquo;Request Placement&rdquo; to get started.</p>
-        </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((p) => (
-            <div key={p.id} className={`bg-surface border rounded-sm overflow-hidden transition-all ${
-              p.status === "Pending" ? "border-amber-200 shadow-sm" : "border-border"
-            }`}>
-              <div
-                className="p-4 sm:p-5 cursor-pointer"
-                onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
-              >
-                <div className="flex items-start gap-4">
-                  {p.workImage && (
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 relative rounded-sm overflow-hidden bg-border/20 shrink-0">
-                      <Image src={p.workImage} alt={p.workTitle} fill className="object-cover" sizes="80px" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-sm font-medium text-foreground">{p.workTitle}</h3>
-                        <p className="text-xs text-muted mt-0.5">by {p.artistName}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${statusStyles[p.status] || statusStyles.Pending}`}>
-                          {p.status}
+        <>
+          {/* Table - desktop */}
+          <div className="bg-surface border border-border rounded-sm hidden sm:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-background">
+                    <th className="text-left text-xs text-muted font-medium px-6 py-3">Piece</th>
+                    <th className="text-left text-xs text-muted font-medium px-4 py-3">Artist</th>
+                    <th className="text-left text-xs text-muted font-medium px-4 py-3">Type</th>
+                    <th className="text-left text-xs text-muted font-medium px-4 py-3">Status</th>
+                    <th className="text-left text-xs text-muted font-medium px-4 py-3">Date</th>
+                    <th className="text-right text-xs text-muted font-medium px-4 py-3">Earned</th>
+                    <th className="text-right text-xs text-muted font-medium px-6 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {filtered.map((p) => (
+                    <React.Fragment key={p.id}>
+                    <tr className="hover:bg-background/60 transition-colors cursor-pointer" onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}>
+                      <td className="px-6 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 relative rounded-sm overflow-hidden bg-border/20 shrink-0">
+                            {p.workImage && <Image src={p.workImage} alt={p.workTitle} fill className="object-cover" sizes="32px" />}
+                          </div>
+                          <span className="font-medium text-foreground">{p.workTitle}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 text-muted whitespace-nowrap">{p.artistName}</td>
+                      <td className="px-4 py-3.5">
+                        <span className="text-xs border border-border rounded-sm px-2 py-0.5 text-muted">
+                          {p.type}{p.revenueSharePercent ? ` (${p.revenueSharePercent}%)` : ""}
                         </span>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={`text-muted transition-transform duration-200 ${expandedId === p.id ? "rotate-180" : ""}`}>
-                          <polyline points="3 5 7 9 11 5" />
-                        </svg>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {p.status === "Pending" ? (
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                            Awaiting response
+                          </span>
+                        ) : p.status === "Declined" ? (
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                            Declined
+                          </span>
+                        ) : (
+                          <select
+                            value={p.status}
+                            onChange={(e) => updateStatus(p.id, e.target.value as PlacementStatus)}
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full border-none cursor-pointer ${statusBadge(p.status)}`}
+                          >
+                            <option value="Active">Active</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Sold">Sold</option>
+                          </select>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 text-muted whitespace-nowrap">{p.date}</td>
+                      <td className="px-4 py-3.5 text-right font-medium text-foreground">
+                        {p.revenueSharePercent != null && p.revenueSharePercent > 0
+                          ? `\u00a3${(p.revenueEarned ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : <span className="text-muted">-</span>}
+                      </td>
+                      <td className="px-6 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); if (confirm("Remove this placement?")) removePlacement(p.id); }}
+                            className="text-xs text-muted hover:text-red-500 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedId === p.id && (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-4 bg-background border-t border-border">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                            <div>
+                              <p className="text-muted mb-0.5">Artist</p>
+                              <p className="text-foreground font-medium">{p.artistName}</p>
+                            </div>
+                            {p.workSize && (
+                              <div>
+                                <p className="text-muted mb-0.5">Size</p>
+                                <p className="text-foreground font-medium">{p.workSize}</p>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-muted mb-0.5">Arrangement</p>
+                              <p className="text-foreground font-medium">{p.type}{p.revenueSharePercent ? ` (${p.revenueSharePercent}%)` : ""}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted mb-0.5">Requested</p>
+                              <p className="text-foreground font-medium">{p.date}</p>
+                            </div>
+                            {p.respondedAt && (
+                              <div>
+                                <p className="text-muted mb-0.5">Responded</p>
+                                <p className="text-foreground font-medium">{p.respondedAt}</p>
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-muted mb-0.5">Earned so far</p>
+                              <p className="text-foreground font-medium">
+                                {p.revenueSharePercent != null && p.revenueSharePercent > 0
+                                  ? `\u00a3${(p.revenueEarned ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : "No sales yet"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-muted mb-0.5">QR Scans</p>
+                              <p className="text-foreground font-medium">0</p>
+                            </div>
+                          </div>
+
+                          <PlacementStepper
+                            placement={{
+                              id: p.id,
+                              status: p.status.toLowerCase(),
+                              acceptedAt: p.acceptedAt,
+                              scheduledFor: p.scheduledFor,
+                              installedAt: p.installedAt,
+                              liveFrom: p.liveFrom,
+                              collectedAt: p.collectedAt,
+                            }}
+                            canAdvance={p.status === "Active"}
+                            onChange={(next) => setPlacements((prev) => prev.map((x) => x.id === p.id ? {
+                              ...x,
+                              status: next.status === "completed" ? "Completed" : x.status,
+                              acceptedAt: next.acceptedAt ?? x.acceptedAt,
+                              scheduledFor: next.scheduledFor ?? x.scheduledFor,
+                              installedAt: next.installedAt ?? x.installedAt,
+                              liveFrom: next.liveFrom ?? x.liveFrom,
+                              collectedAt: next.collectedAt ?? x.collectedAt,
+                            } : x))}
+                          />
+
+                          <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
+                            <Link
+                              href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}`}
+                              className="text-xs text-muted hover:text-foreground transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Message Artist
+                            </Link>
+                            <div className="flex items-center gap-2 ml-auto">
+                              {p.status === "Pending" && (
+                                <>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
+                                    disabled={responding === p.id}
+                                    className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
+                                  >
+                                    {responding === p.id ? "…" : "Accept"}
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
+                                    disabled={responding === p.id}
+                                    className="px-4 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
+                                  >
+                                    Decline
+                                  </button>
+                                </>
+                              )}
+                              <Link
+                                href={`/placements/${encodeURIComponent(p.id)}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                                Add Loan / Consignment Record
+                              </Link>
+                              <Link
+                                href={`/placements/${encodeURIComponent(p.id)}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-foreground bg-[#F5F3F0] border border-border hover:bg-[#EBE8E4] rounded-sm transition-colors"
+                              >
+                                Open full placement
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                              </Link>
+                            </div>
+                          </div>
+                          {respondError && responding === null && (
+                            <p className="mt-2 text-xs text-red-600">{respondError}</p>
+                          )}
+                          {p.message && (
+                            <div className="mt-3 bg-surface border border-border rounded-sm p-3">
+                              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Message from artist</p>
+                              <p className="text-xs text-foreground">{p.message}</p>
+                            </div>
+                          )}
+                          {p.notes && (
+                            <div className="mt-2 bg-surface border border-border rounded-sm p-3">
+                              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Notes</p>
+                              <p className="text-xs text-foreground">{p.notes}</p>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {filtered.length === 0 && (
+              <div className="px-6 py-12 text-center text-muted text-sm">No placements found.</div>
+            )}
+          </div>
+
+          {/* Cards - mobile */}
+          <div className="sm:hidden space-y-3">
+            {filtered.map((p) => (
+              <div key={p.id} className="bg-surface border border-border rounded-sm overflow-hidden">
+                <div
+                  className="p-4 cursor-pointer"
+                  onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 relative rounded-sm overflow-hidden bg-border/20 shrink-0">
+                        {p.workImage && <Image src={p.workImage} alt={p.workTitle} fill className="object-cover" sizes="40px" />}
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground text-sm leading-snug">{p.workTitle}</p>
+                        <p className="text-xs text-muted">{p.artistName}</p>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted">
-                      <span className="border border-border rounded-sm px-1.5 py-0.5">
-                        {typeLabel(p.arrangementType, p.revenueSharePercent)}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${statusBadge(p.status)}`}>
+                        {p.status === "Pending" ? "Awaiting response" : p.status}
                       </span>
-                      <span>Requested {p.date}</span>
-                      {p.respondedAt && <span>Responded {p.respondedAt}</span>}
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={`text-muted transition-transform duration-200 ${expandedId === p.id ? "rotate-180" : ""}`}>
+                        <polyline points="3 5 7 9 11 5" />
+                      </svg>
                     </div>
                   </div>
+                  <div className="flex items-center justify-between text-xs text-muted mt-2">
+                    <div className="flex items-center gap-2">
+                      <span className="border border-border rounded-sm px-1.5 py-0.5">
+                        {p.type}{p.revenueSharePercent ? ` ${p.revenueSharePercent}%` : ""}
+                      </span>
+                      <span>{p.date}</span>
+                    </div>
+                    {p.revenueSharePercent != null && p.revenueSharePercent > 0 && (
+                      <span className="font-medium text-foreground">
+                        &pound;{(p.revenueEarned ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              {/* Expanded details */}
-              {expandedId === p.id && (
-                <div className="px-4 sm:px-5 pb-4 sm:pb-5 border-t border-border pt-4 space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                    <div>
-                      <p className="text-muted mb-0.5">Artist</p>
-                      <p className="text-foreground font-medium">{p.artistName}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted mb-0.5">Arrangement</p>
-                      <p className="text-foreground font-medium">{typeLabel(p.arrangementType, p.revenueSharePercent)}</p>
-                    </div>
-                    {p.revenueSharePercent != null && p.revenueSharePercent > 0 && (
+                {/* Expanded details */}
+                {expandedId === p.id && (
+                  <div className="px-4 pb-4 border-t border-border pt-3 space-y-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                       <div>
-                        <p className="text-muted mb-0.5">Revenue Share</p>
-                        <p className="text-foreground font-medium">{p.revenueSharePercent}%</p>
+                        <p className="text-muted mb-0.5">Artist</p>
+                        <p className="text-foreground font-medium">{p.artistName || "Unknown"}</p>
                       </div>
-                    )}
-                    <div>
-                      <p className="text-muted mb-0.5">Requested</p>
-                      <p className="text-foreground font-medium">{p.date}</p>
-                    </div>
-                    {p.respondedAt && (
+                      {p.workSize && (
+                        <div>
+                          <p className="text-muted mb-0.5">Size</p>
+                          <p className="text-foreground font-medium">{p.workSize}</p>
+                        </div>
+                      )}
                       <div>
-                        <p className="text-muted mb-0.5">Responded</p>
-                        <p className="text-foreground font-medium">{p.respondedAt}</p>
+                        <p className="text-muted mb-0.5">Arrangement</p>
+                        <p className="text-foreground font-medium">{p.type}{p.revenueSharePercent ? ` (${p.revenueSharePercent}%)` : ""}</p>
                       </div>
-                    )}
-                    <div>
-                      <p className="text-muted mb-0.5">Status</p>
-                      <p className="text-foreground font-medium">{p.status}</p>
-                    </div>
-                    {p.revenueSharePercent != null && p.revenueSharePercent > 0 && (
+                      <div>
+                        <p className="text-muted mb-0.5">Status</p>
+                        <p className="text-foreground font-medium">{p.status}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted mb-0.5">Requested</p>
+                        <p className="text-foreground font-medium">{p.date}</p>
+                      </div>
+                      {p.respondedAt && (
+                        <div>
+                          <p className="text-muted mb-0.5">Responded</p>
+                          <p className="text-foreground font-medium">{p.respondedAt}</p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-muted mb-0.5">Earned so far</p>
                         <p className="text-foreground font-medium">
-                          &pound;{(p.revenueEarned ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {p.revenueSharePercent != null && p.revenueSharePercent > 0
+                            ? `\u00a3${(p.revenueEarned ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : "No sales yet"}
                         </p>
                       </div>
+                      <div>
+                        <p className="text-muted mb-0.5">QR Scans</p>
+                        <p className="text-foreground font-medium">0</p>
+                      </div>
+                    </div>
+                    {p.message && (
+                      <div className="bg-background border border-border rounded-sm p-3">
+                        <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Message from artist</p>
+                        <p className="text-xs text-foreground">{p.message}</p>
+                      </div>
                     )}
-                    <div>
-                      <p className="text-muted mb-0.5">QR Scans</p>
-                      <p className="text-foreground font-medium">0</p>
-                    </div>
-                  </div>
-                  {/* Lifecycle stepper (F14) */}
-                  <PlacementStepper
-                    placement={{
-                      id: p.id,
-                      status: p.status.toLowerCase(),
-                      acceptedAt: p.acceptedAt,
-                      scheduledFor: p.scheduledFor,
-                      installedAt: p.installedAt,
-                      liveFrom: p.liveFrom,
-                      collectedAt: p.collectedAt,
-                    }}
-                    canAdvance={p.status === "Active"}
-                    onChange={(next) => setPlacements((prev) => prev.map((x) => x.id === p.id ? {
-                      ...x,
-                      status: next.status === "completed" ? "Completed" : x.status,
-                      acceptedAt: next.acceptedAt ?? x.acceptedAt,
-                      scheduledFor: next.scheduledFor ?? x.scheduledFor,
-                      installedAt: next.installedAt ?? x.installedAt,
-                      liveFrom: next.liveFrom ?? x.liveFrom,
-                      collectedAt: next.collectedAt ?? x.collectedAt,
-                    } : x))}
-                  />
+                    {p.notes && (
+                      <div className="bg-background border border-border rounded-sm p-3">
+                        <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Notes</p>
+                        <p className="text-xs text-foreground">{p.notes}</p>
+                      </div>
+                    )}
+                    <PlacementStepper
+                      placement={{
+                        id: p.id,
+                        status: p.status.toLowerCase(),
+                        acceptedAt: p.acceptedAt,
+                        scheduledFor: p.scheduledFor,
+                        installedAt: p.installedAt,
+                        liveFrom: p.liveFrom,
+                        collectedAt: p.collectedAt,
+                      }}
+                      canAdvance={p.status === "Active"}
+                      onChange={(next) => setPlacements((prev) => prev.map((x) => x.id === p.id ? {
+                        ...x,
+                        status: next.status === "completed" ? "Completed" : x.status,
+                        acceptedAt: next.acceptedAt ?? x.acceptedAt,
+                        scheduledFor: next.scheduledFor ?? x.scheduledFor,
+                        installedAt: next.installedAt ?? x.installedAt,
+                        liveFrom: next.liveFrom ?? x.liveFrom,
+                        collectedAt: next.collectedAt ?? x.collectedAt,
+                      } : x))}
+                    />
 
-                  {p.message && (
-                    <div className="bg-background border border-border rounded-sm p-3">
-                      <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Message from artist</p>
-                      <p className="text-xs text-foreground">{p.message}</p>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
-                    <Link
-                      href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}`}
-                      className="text-xs text-muted hover:text-foreground transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Message Artist
-                    </Link>
-                    <div className="flex items-center gap-2 ml-auto">
-                      {p.status === "Pending" && (
-                        <>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
-                            disabled={responding === p.id}
-                            className="px-5 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
-                          >
-                            {responding === p.id ? "..." : "Accept"}
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
-                            disabled={responding === p.id}
-                            className="px-5 py-2 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
-                          >
-                            Decline
-                          </button>
-                        </>
-                      )}
+                    <div className="flex items-center justify-between gap-3 mt-3 flex-wrap">
                       <Link
-                        href={`/placements/${encodeURIComponent(p.id)}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
+                        href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}`}
+                        className="text-xs text-muted hover:text-foreground transition-colors"
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                        Add Loan / Consignment Record
+                        Message Artist
                       </Link>
-                      <Link
-                        href={`/placements/${encodeURIComponent(p.id)}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-foreground bg-[#F5F3F0] border border-border hover:bg-[#EBE8E4] rounded-sm transition-colors"
-                      >
-                        Open full placement
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-                      </Link>
+                      <div className="flex items-center gap-2 ml-auto">
+                        {p.status === "Pending" && (
+                          <>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
+                              disabled={responding === p.id}
+                              className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
+                            >
+                              {responding === p.id ? "…" : "Accept"}
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
+                              disabled={responding === p.id}
+                              className="px-4 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
+                            >
+                              Decline
+                            </button>
+                          </>
+                        )}
+                        <Link
+                          href={`/placements/${encodeURIComponent(p.id)}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                          Add Loan / Consignment Record
+                        </Link>
+                        <Link
+                          href={`/placements/${encodeURIComponent(p.id)}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-foreground bg-[#F5F3F0] border border-border hover:bg-[#EBE8E4] rounded-sm transition-colors"
+                        >
+                          Open full placement
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                        </Link>
+                      </div>
                     </div>
+                    {respondError && responding === null && (
+                      <p className="mt-1 text-xs text-red-600">{respondError}</p>
+                    )}
                   </div>
-                  {respondError && responding === null && (
-                    <p className="text-xs text-red-600 mt-2">{respondError}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+                )}
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-center text-muted text-sm py-8">No placements found.</p>
+            )}
+          </div>
+        </>
       )}
     </VenuePortalLayout>
   );
