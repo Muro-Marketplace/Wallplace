@@ -1325,6 +1325,63 @@ function BrowsePortfoliosPageInner() {
                       <span className="text-sm font-medium">Filters</span>
                       <button type="button" onClick={() => setSidebarOpen(false)} className="text-xs text-muted hover:text-foreground cursor-pointer">Close</button>
                     </div>
+                    {/* Location Mode — mirror the desktop sidebar so mobile users
+                        can scope to local + adjust distance from the drawer. */}
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Location</p>
+                      <div className="flex gap-2">
+                        {(["global", "local"] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => { setGalleryLocationMode(mode); if (mode === "local" && !userCoords) handleModeChange("local"); }}
+                            className={`flex-1 py-2 text-sm rounded-sm border transition-colors cursor-pointer capitalize ${
+                              galleryLocationMode === mode
+                                ? "bg-foreground text-background border-foreground"
+                                : "border-border bg-[#F8F6F2] text-muted hover:border-foreground/30"
+                            }`}
+                          >
+                            {mode}
+                          </button>
+                        ))}
+                      </div>
+                      {galleryLocationMode === "local" && userCoords && (
+                        <div className="mt-3">
+                          <p className="text-[10px] text-muted mb-1.5">
+                            Within {filters.maxDistance >= 9999 ? "any distance" : `${filters.maxDistance} mi`}
+                          </p>
+                          <input
+                            type="range"
+                            min={0}
+                            max={200}
+                            step={1}
+                            value={filters.maxDistance >= 9999 ? 200 : filters.maxDistance}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              setFilter("maxDistance", v >= 200 ? 9999 : v);
+                            }}
+                            className="w-full accent-accent h-1.5 cursor-pointer"
+                          />
+                        </div>
+                      )}
+                      {galleryLocationMode === "local" && !userCoords && !geoRequesting && (
+                        <div className="mt-3">
+                          <p className="text-[10px] text-muted mb-1.5">Enter your postcode</p>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="text"
+                              value={postcodeInput}
+                              onChange={(e) => { setPostcodeInput(e.target.value.toUpperCase()); setPostcodeError(false); }}
+                              onKeyDown={(e) => { if (e.key === "Enter") handlePostcodeSubmit(); }}
+                              placeholder="EC1A 1BB"
+                              className="flex-1 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs text-foreground focus:outline-none focus:border-accent/50 uppercase"
+                            />
+                            <button type="button" onClick={handlePostcodeSubmit} className="px-3 py-1.5 bg-accent text-white text-xs rounded-sm hover:bg-accent-hover transition-colors cursor-pointer">Go</button>
+                          </div>
+                          {postcodeError && <p className="text-[10px] text-red-400 mt-1">Postcode not found</p>}
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <p className="text-xs font-medium uppercase tracking-widest text-muted mb-2">Arrangement</p>
                       <div className="space-y-2">
@@ -1566,43 +1623,80 @@ function BrowsePortfoliosPageInner() {
       {activeCategory === "collections" && (
         <section className="py-10 lg:py-14">
           <div className="max-w-[1400px] mx-auto px-6">
-            {/* Mobile toolbar — view + location as pill dropdowns, pinned to the top */}
-            <div className="lg:hidden mb-6 flex items-center gap-2">
-              <div className="relative">
-                <select
-                  value="collections"
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === "gallery") { setViewAs("works"); setActiveCategory(""); }
-                    else if (v === "portfolios") { setViewAs("artists"); setActiveCategory(""); }
-                  }}
-                  className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
-                >
-                  <option value="portfolios">Portfolios</option>
-                  <option value="gallery">Gallery</option>
-                  <option value="collections">Collections</option>
-                </select>
-                <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <polyline points="2 4 6 8 10 4" />
-                </svg>
+            {/* Mobile toolbar — view pill-dropdown + Global/Local pills + slider */}
+            <div className="lg:hidden mb-6 space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <select
+                    value="collections"
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "gallery") { setViewAs("works"); setActiveCategory(""); }
+                      else if (v === "portfolios") { setViewAs("artists"); setActiveCategory(""); }
+                    }}
+                    className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
+                  >
+                    <option value="portfolios">Portfolios</option>
+                    <option value="gallery">Gallery</option>
+                    <option value="collections">Collections</option>
+                  </select>
+                  <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <polyline points="2 4 6 8 10 4" />
+                  </svg>
+                </div>
+                <div className="flex gap-1.5">
+                  {(["global", "local"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => { setCollectionsLocationMode(mode); if (mode === "local" && !userCoords) handleModeChange("local"); }}
+                      className={`px-3 py-1.5 text-[11px] rounded-full border transition-colors cursor-pointer capitalize ${
+                        collectionsLocationMode === mode
+                          ? "bg-foreground text-white border-foreground"
+                          : "border-border bg-white text-muted hover:border-foreground/30"
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="relative">
-                <select
-                  value={collectionsLocationMode}
-                  onChange={(e) => {
-                    const v = e.target.value as "global" | "local";
-                    setCollectionsLocationMode(v);
-                    if (v === "local" && !userCoords) handleModeChange("local");
-                  }}
-                  className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50 capitalize"
-                >
-                  <option value="global">Global</option>
-                  <option value="local">Local</option>
-                </select>
-                <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <polyline points="2 4 6 8 10 4" />
-                </svg>
-              </div>
+              {collectionsLocationMode === "local" && userCoords && (
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">
+                    Within {filters.maxDistance >= 9999 ? "any distance" : `${filters.maxDistance} mi`}
+                  </p>
+                  <input
+                    type="range"
+                    min={0}
+                    max={200}
+                    step={1}
+                    value={filters.maxDistance >= 9999 ? 200 : filters.maxDistance}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setFilter("maxDistance", v >= 200 ? 9999 : v);
+                    }}
+                    className="w-full accent-accent h-1.5 cursor-pointer"
+                  />
+                </div>
+              )}
+              {collectionsLocationMode === "local" && !userCoords && !geoRequesting && (
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">Postcode</p>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      value={postcodeInput}
+                      onChange={(e) => { setPostcodeInput(e.target.value.toUpperCase()); setPostcodeError(false); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") handlePostcodeSubmit(); }}
+                      placeholder="EC1A 1BB"
+                      className="flex-1 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs text-foreground focus:outline-none focus:border-accent/50 uppercase"
+                    />
+                    <button type="button" onClick={handlePostcodeSubmit} className="px-3 py-1.5 bg-accent text-white text-xs rounded-sm hover:bg-accent-hover transition-colors cursor-pointer">Go</button>
+                  </div>
+                  {postcodeError && <p className="text-[10px] text-red-400 mt-1">Postcode not found</p>}
+                </div>
+              )}
             </div>
             {/* Desktop view toggle — 3-way pill group, right-aligned */}
             <div className="hidden lg:flex mb-6 items-center justify-end">
