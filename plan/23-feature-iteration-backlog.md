@@ -200,6 +200,10 @@ Grouped tightly so the placement experience is coherent end-to-end after this ba
 
 - **F54** Rate-limit `/login` and `/forgot-password`. Likely via Cloudflare rules at the edge. Document fallback IP-based rate limiting in the app if CF not available.
 
+### Phase 10 — copy cleanup
+
+- **F55** Rename "Free Loan" → "Paid Loan" across the app. Venue profile Art Preferences done in this batch; still to do: `venue-portal/placements/page.tsx`, `placements/[id]/PlacementDetailClient.tsx`, `artist-portal/placements/page.tsx`, `lib/email.ts`, `terms/page.tsx`, `venue-portal/enquiries/page.tsx`, `artist-portal/analytics/page.tsx`, `admin/applications/page.tsx`. Consider keeping the DB column `interested_in_free_loan` for now and only renaming labels; if we want to rename the column too, add a migration that adds `interested_in_paid_loan` and dual-reads for a release.
+
 ### Revenue stream 1 — Curated matching for venues (F38)
 Paid concierge offer: venue submits a brief, pays up front, Wallplace hand-curates a shortlist manually and returns it by email. Lets us validate pricing and demand before automating.
 

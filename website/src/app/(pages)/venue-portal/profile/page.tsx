@@ -265,14 +265,14 @@ export default function VenueProfilePage() {
               </p>
               <div className="space-y-3">
                 <Toggle
-                  checked={freeLoan}
-                  onChange={(v) => { setFreeLoan(v); markDirty(); }}
-                  label="Free Loan"
-                />
-                <Toggle
                   checked={revenueShare}
                   onChange={(v) => { setRevenueShare(v); markDirty(); }}
                   label="Revenue Share"
+                />
+                <Toggle
+                  checked={freeLoan}
+                  onChange={(v) => { setFreeLoan(v); markDirty(); }}
+                  label="Paid Loan"
                 />
                 <Toggle
                   checked={directPurchase}
