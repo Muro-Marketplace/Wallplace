@@ -33,63 +33,72 @@ export default function ArtworkPageClient({
   const selectedFrame = frameOptions[selectedFrameIdx];
   const frameUplift = selectedFrame?.priceUplift || 0;
 
+  const selectedPricing = work.pricing[selectedSizeIdx] || work.pricing[0];
+  const displayPrice = selectedPricing
+    ? Math.round((selectedPricing.price + frameUplift) * 100) / 100
+    : null;
+
+  const availabilityLabel = (() => {
+    if (!work.available) return "Sold";
+    if (typeof work.quantityAvailable === "number") {
+      return work.quantityAvailable > 0 ? `${work.quantityAvailable} available` : "Sold out";
+    }
+    return "Available";
+  })();
+
   return (
-    <div className="flex flex-col justify-between h-full">
+    <div className="flex flex-col">
       {/* Artist */}
-      <div>
-        <p className="text-xs text-muted uppercase tracking-wider mb-1">
-          {artistName}
-        </p>
+      <p className="text-[10px] text-muted uppercase tracking-[0.18em] mb-3">
+        {artistName}
+      </p>
 
-        {/* Title */}
-        <h1 className="text-2xl lg:text-3xl font-serif text-foreground leading-snug mb-4">
-          {work.title}
-        </h1>
+      {/* Title */}
+      <h1 className="text-3xl lg:text-[2.5rem] leading-[1.15] font-serif text-foreground mb-5">
+        {work.title}
+      </h1>
 
-        {/* Details */}
-        <div className="space-y-2 mb-5">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Medium</span>
-            <span className="text-foreground font-medium">{work.medium}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted">Dimensions</span>
-            <span className="text-foreground font-medium">
-              {work.dimensions}
-            </span>
-          </div>
+      {/* Availability + Save */}
+      <div className="flex items-center justify-between pb-5 mb-5 border-b border-border">
+        <span className={`inline-flex items-center gap-2 text-sm ${work.available ? "text-foreground" : "text-muted"}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${work.available ? "bg-accent" : "bg-muted"}`} />
+          {availabilityLabel}
+        </span>
+        <SaveButton type="work" itemId={work.id} size="sm" />
+      </div>
+
+      {/* Details */}
+      <dl className="space-y-2.5 mb-6 text-[13px]">
+        <div className="flex justify-between items-baseline">
+          <dt className="text-muted uppercase tracking-wider text-[10px]">Medium</dt>
+          <dd className="text-foreground text-right">{work.medium}</dd>
         </div>
+        {work.dimensions && (
+          <div className="flex justify-between items-baseline">
+            <dt className="text-muted uppercase tracking-wider text-[10px]">Dimensions</dt>
+            <dd className="text-foreground text-right">{work.dimensions}</dd>
+          </div>
+        )}
+      </dl>
 
-        {/* Availability + Save */}
-        <div className="flex items-center justify-between mb-5">
-          {work.available ? (
-            <span className="inline-flex items-center gap-1.5 text-sm text-accent">
-              <span className="w-2 h-2 rounded-full bg-accent" />
-              {typeof work.quantityAvailable === "number"
-                ? work.quantityAvailable > 0
-                  ? `${work.quantityAvailable} left`
-                  : "Sold out"
-                : "Available"}
-            </span>
+      {/* Size & Price */}
+      {work.available && work.pricing.length > 0 && (
+        <div className="mb-5">
+          <p className="text-[10px] text-muted uppercase tracking-[0.18em] mb-2.5">
+            Size &amp; Price
+          </p>
+          {work.pricing.length === 1 ? (
+            <div className="flex items-baseline justify-between py-3 border-y border-border">
+              <span className="text-sm text-foreground">{work.pricing[0].label}</span>
+              <span className="font-serif text-xl text-foreground">
+                £{work.pricing[0].price}
+              </span>
+            </div>
           ) : (
-            <span className="inline-flex items-center gap-1.5 text-sm text-muted">
-              <span className="w-2 h-2 rounded-full bg-muted" />
-              Sold
-            </span>
-          )}
-          <SaveButton type="work" itemId={work.id} size="sm" />
-        </div>
-
-        {/* Size & Price dropdown */}
-        {work.available && work.pricing.length > 0 && (
-          <div className="mb-5">
-            <p className="text-xs text-muted uppercase tracking-wider mb-2">
-              Size & Price
-            </p>
             <select
               value={selectedSizeIdx}
               onChange={(e) => setSelectedSizeIdx(Number(e.target.value))}
-              className="w-full px-3 py-2.5 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer"
+              className="w-full px-3.5 py-3 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-foreground/50 cursor-pointer transition-colors"
             >
               {work.pricing.map((sp, i) => (
                 <option key={sp.label} value={i}>
@@ -97,46 +106,46 @@ export default function ArtworkPageClient({
                 </option>
               ))}
             </select>
-          </div>
-        )}
-
-        {/* Frame selector */}
-        {work.available && frameOptions.length > 0 && (
-          <div className="mb-5">
-            <p className="text-xs text-muted uppercase tracking-wider mb-2">Frame</p>
-            <select
-              value={selectedFrameIdx}
-              onChange={(e) => setSelectedFrameIdx(Number(e.target.value))}
-              className="w-full px-3 py-2.5 bg-surface border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 cursor-pointer"
-            >
-              {frameOptions.map((f, i) => (
-                <option key={f.label} value={i}>
-                  {f.label}{f.priceUplift > 0 ? ` — +\u00a3${f.priceUplift}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Shipping info */}
-        <div className="text-xs text-muted mt-1 space-y-0.5">
-          <p>
-            {work.shippingPrice === 0
-              ? "UK: Free shipping"
-              : work.shippingPrice
-                ? `UK shipping: £${work.shippingPrice.toFixed(2)}`
-                : "UK shipping: £9.95"}
-          </p>
-          {shipsInternationally && internationalShippingPrice != null ? (
-            <p>International: £{internationalShippingPrice.toFixed(2)}</p>
-          ) : (
-            <p>UK shipping only</p>
           )}
         </div>
+      )}
+
+      {/* Frame selector */}
+      {work.available && frameOptions.length > 0 && (
+        <div className="mb-5">
+          <p className="text-[10px] text-muted uppercase tracking-[0.18em] mb-2.5">Frame</p>
+          <select
+            value={selectedFrameIdx}
+            onChange={(e) => setSelectedFrameIdx(Number(e.target.value))}
+            className="w-full px-3.5 py-3 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-foreground/50 cursor-pointer transition-colors"
+          >
+            {frameOptions.map((f, i) => (
+              <option key={f.label} value={i}>
+                {f.label}{f.priceUplift > 0 ? ` — +£${f.priceUplift}` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Shipping info */}
+      <div className="text-[11px] text-muted space-y-0.5 mb-6">
+        <p>
+          {work.shippingPrice === 0
+            ? "Free UK shipping"
+            : work.shippingPrice
+              ? `UK shipping £${work.shippingPrice.toFixed(2)}`
+              : "UK shipping £9.95"}
+        </p>
+        {shipsInternationally && internationalShippingPrice != null ? (
+          <p>International £{internationalShippingPrice.toFixed(2)}</p>
+        ) : (
+          <p>Ships to UK only</p>
+        )}
       </div>
 
       {/* CTAs */}
-      <div className="space-y-2 mt-6">
+      <div className="space-y-2">
         {user && userType === "venue" && (
           <button
             onClick={() => {
@@ -144,16 +153,15 @@ export default function ArtworkPageClient({
                 `/venue-portal/placements?artist=${artistSlug}&artistName=${encodeURIComponent(artistName)}&work=${encodeURIComponent(work.title)}&workImage=${encodeURIComponent(work.image)}`
               );
             }}
-            className="w-full px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
+            className="w-full px-5 py-3 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
           >
             Request Placement
           </button>
         )}
-        {work.available && work.pricing.length > 0 && (() => {
-          const selected = work.pricing[selectedSizeIdx] || work.pricing[0];
+        {work.available && selectedPricing && (() => {
           const frameLabel = selectedFrame ? ` + ${selectedFrame.label}` : "";
-          const sizeLabel = `${selected.label}${frameLabel}`;
-          const totalPrice = Math.round((selected.price + frameUplift) * 100) / 100;
+          const sizeLabel = `${selectedPricing.label}${frameLabel}`;
+          const totalPrice = displayPrice ?? selectedPricing.price;
           return (
             <>
               <button
@@ -173,9 +181,9 @@ export default function ArtworkPageClient({
                   });
                   router.push("/checkout");
                 }}
-                className="w-full px-5 py-3 text-sm font-medium text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors"
+                className="w-full px-5 py-3.5 text-[13px] font-medium tracking-wider uppercase text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors"
               >
-                Buy Now – £{totalPrice}
+                Buy Now — £{totalPrice}
               </button>
               <button
                 onClick={() => {
@@ -194,7 +202,7 @@ export default function ArtworkPageClient({
                   });
                   showToast("Added to basket");
                 }}
-                className="w-full px-5 py-2.5 text-sm font-medium text-foreground border border-border hover:border-foreground/30 rounded-sm transition-colors"
+                className="w-full px-5 py-3 text-sm font-medium text-foreground border border-border hover:border-foreground/50 rounded-sm transition-colors"
               >
                 Add to Basket
               </button>
@@ -218,9 +226,9 @@ export default function ArtworkPageClient({
               });
               router.push("/checkout");
             }}
-            className="w-full px-5 py-2.5 text-sm font-medium text-foreground border border-accent text-accent hover:bg-accent/5 rounded-sm transition-colors"
+            className="w-full px-5 py-3 text-sm font-medium text-accent border border-accent/60 hover:bg-accent/5 rounded-sm transition-colors"
           >
-            Buy Original (In Store) – £{work.inStorePrice}
+            Buy Original — £{work.inStorePrice}
           </button>
         )}
         <button
@@ -236,9 +244,10 @@ export default function ArtworkPageClient({
               router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
             }
           }}
-          className="w-full px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
+          className="w-full px-5 py-3 text-sm font-medium text-foreground hover:text-accent transition-colors"
         >
-          Message Artist
+          Message the artist
+          <span className="ml-1">→</span>
         </button>
       </div>
     </div>

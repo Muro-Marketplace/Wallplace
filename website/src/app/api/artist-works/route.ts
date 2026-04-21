@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { id, title, medium, dimensions, priceBand, pricing, available, color, image, orientation, sortOrder, shippingPrice, inStorePrice, quantityAvailable, frameOptions } = body;
+    const { id, title, medium, dimensions, priceBand, pricing, available, color, image, orientation, sortOrder, shippingPrice, inStorePrice, quantityAvailable, frameOptions, description, images } = body;
 
     if (!id || !title || !image) {
       return NextResponse.json({ error: "ID, title, and image are required" }, { status: 400 });
@@ -49,6 +49,20 @@ export async function POST(request: Request) {
           }))
       : [];
 
+    // Tier-gated image count. Limits are TOTAL images (primary + extras).
+    const IMAGE_LIMITS: Record<string, number> = { core: 3, premium: 5, pro: 10 };
+    const plan = result.profile.subscription_plan || "core";
+    const totalLimit = IMAGE_LIMITS[plan] ?? 3;
+    const extraImagesAllowed = Math.max(0, totalLimit - 1);
+    const rawExtras = Array.isArray(images)
+      ? images.filter((u): u is string => typeof u === "string" && u.length > 0 && u !== image)
+      : [];
+    const sanitizedImages = rawExtras.slice(0, extraImagesAllowed);
+
+    const sanitizedDescription = typeof description === "string"
+      ? description.slice(0, 2000)
+      : "";
+
     const { error } = await upsertWork(result.profile.id, {
       id,
       title,
@@ -65,6 +79,8 @@ export async function POST(request: Request) {
       in_store_price: inStorePrice ?? null,
       quantity_available: typeof quantityAvailable === "number" ? quantityAvailable : null,
       frame_options: sanitizedFrames,
+      description: sanitizedDescription,
+      images: sanitizedImages,
     });
 
     if (error) {

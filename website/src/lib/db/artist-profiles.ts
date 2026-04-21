@@ -63,6 +63,8 @@ export interface DbArtistWork {
   in_store_price?: number | null;
   quantity_available?: number | null;
   frame_options?: { label: string; priceUplift: number }[];
+  description?: string;
+  images?: string[];
 }
 
 /** Convert a DB profile row + works to the Artist shape used everywhere in the app */
@@ -116,6 +118,8 @@ export function dbProfileToArtist(profile: DbArtistProfile, works: DbArtistWork[
       available: w.available,
       color: w.color,
       image: w.image,
+      images: Array.isArray(w.images) ? w.images : [],
+      description: w.description || "",
       orientation: (w.orientation as "portrait" | "landscape" | "square") || undefined,
       shippingPrice: w.shipping_price ?? undefined,
       inStorePrice: w.in_store_price ?? undefined,

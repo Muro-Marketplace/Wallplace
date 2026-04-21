@@ -15,6 +15,8 @@ export interface ArtistWork {
   available: boolean;
   color: string;
   image: string;
+  images?: string[];
+  description?: string;
   orientation?: WorkOrientation;
   shippingPrice?: number | null;
   inStorePrice?: number | null;

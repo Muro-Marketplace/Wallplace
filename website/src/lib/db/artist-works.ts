@@ -25,29 +25,26 @@ export async function upsertWork(
     .eq("id", work.id)
     .single();
 
-  if (existing) {
-    let { error } = await db
-      .from("artist_works")
-      .update(row)
-      .eq("id", work.id);
-    // Retry without optional/new columns if the DB hasn't been migrated yet
-    if (error) {
-      const { shipping_price: _sp, quantity_available: _qa, frame_options: _fo, ...rowWithout } = row as Record<string, unknown>;
-      const retry = await db.from("artist_works").update(rowWithout).eq("id", work.id);
-      error = retry.error;
+  async function attempt(r: Record<string, unknown>) {
+    if (existing) {
+      return db.from("artist_works").update(r).eq("id", work.id);
     }
-    return { error };
-  } else {
-    let { error } = await db
-      .from("artist_works")
-      .insert(row);
-    if (error) {
-      const { shipping_price: _sp, quantity_available: _qa, frame_options: _fo, ...rowWithout } = row as Record<string, unknown>;
-      const retry = await db.from("artist_works").insert(rowWithout);
-      error = retry.error;
-    }
-    return { error };
+    return db.from("artist_works").insert(r);
   }
+
+  // Try full write; on failure, progressively strip newer optional columns.
+  let { error } = await attempt(row);
+  if (error) {
+    const { description: _d, images: _i, ...r2 } = row as Record<string, unknown>;
+    void _d; void _i;
+    ({ error } = await attempt(r2));
+  }
+  if (error) {
+    const { description: _d, images: _i, shipping_price: _sp, quantity_available: _qa, frame_options: _fo, ...r3 } = row as Record<string, unknown>;
+    void _d; void _i; void _sp; void _qa; void _fo;
+    ({ error } = await attempt(r3));
+  }
+  return { error };
 }
 
 export async function deleteWork(workId: string, artistProfileId: string) {

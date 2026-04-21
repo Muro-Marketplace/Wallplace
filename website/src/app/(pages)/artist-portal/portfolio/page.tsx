@@ -19,6 +19,8 @@ interface WorkFormState {
   medium: string;
   dimensions: string;
   imagePreview: string;
+  additionalImages: string[];
+  description: string;
   available: boolean;
   orientation: "portrait" | "landscape" | "square";
   sizes: SizeEntry[];
@@ -77,6 +79,8 @@ const emptyWork: WorkFormState = {
   medium: "",
   dimensions: "",
   imagePreview: "",
+  additionalImages: [],
+  description: "",
   available: true,
   orientation: "landscape",
   sizes: [...defaultSizes],
@@ -97,6 +101,9 @@ const statusColors: Record<string, string> = {
 
 const PORTFOLIO_LIMITS: Record<string, number> = { core: 8, premium: 20, pro: 9999 };
 
+// Total images allowed per artwork (primary + extras) by subscription tier.
+const IMAGE_LIMITS: Record<string, number> = { core: 3, premium: 5, pro: 10 };
+
 export default function PortfolioPage() {
   const { artist, loading: artistLoading } = useCurrentArtist();
   const [works, setWorks] = useState<ArtistWork[]>([]);
@@ -105,8 +112,10 @@ export default function PortfolioPage() {
   const [form, setForm] = useState<WorkFormState>(emptyWork);
   const [hoveredWork, setHoveredWork] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingExtra, setUploadingExtra] = useState(false);
   const [initialised, setInitialised] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const extraFileInputRef = useRef<HTMLInputElement>(null);
   const [formError, setFormError] = useState("");
   const [defaultShipping, setDefaultShipping] = useState<string>("");
   const [shipsInternationally, setShipsInternationally] = useState(false);
@@ -165,6 +174,8 @@ export default function PortfolioPage() {
           inStorePrice: (work as ArtistWork & { shippingPrice?: number; inStorePrice?: number }).inStorePrice ?? null,
           quantityAvailable: (work as ArtistWork & { quantityAvailable?: number | null }).quantityAvailable ?? null,
           frameOptions: (work as ArtistWork & { frameOptions?: { label: string; priceUplift: number }[] }).frameOptions ?? [],
+          description: work.description || "",
+          images: work.images || [],
         }),
       }).catch((err) => console.error("Work sync error:", err));
     });
@@ -191,6 +202,8 @@ export default function PortfolioPage() {
       medium: w.medium,
       dimensions: w.dimensions,
       imagePreview: w.image,
+      additionalImages: Array.isArray(w.images) ? [...w.images] : [],
+      description: w.description || "",
       available: w.available,
       orientation: w.orientation || "landscape",
       sizes: w.pricing.map((p) => ({ label: p.label, price: p.price })),
@@ -255,6 +268,52 @@ export default function PortfolioPage() {
     setUploading(false);
   }
 
+  async function handleAdditionalImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+
+    const plan = artist?.subscriptionPlan || "core";
+    const totalLimit = IMAGE_LIMITS[plan] ?? 3;
+    const extrasAllowed = Math.max(0, totalLimit - 1);
+    const currentExtras = form.additionalImages.length;
+    const canAdd = Math.max(0, extrasAllowed - currentExtras);
+
+    if (canAdd === 0) {
+      setFormError(`Your ${plan} plan allows ${totalLimit} image${totalLimit === 1 ? "" : "s"} per artwork.`);
+      if (extraFileInputRef.current) extraFileInputRef.current.value = "";
+      return;
+    }
+
+    setUploadingExtra(true);
+    setFormError("");
+    const toUpload = files.slice(0, canAdd);
+    try {
+      const urls = await Promise.all(toUpload.map((f) => uploadImage(f, "artworks")));
+      const clean = urls.filter((u) => typeof u === "string" && u.length > 0);
+      setForm((p) => ({ ...p, additionalImages: [...p.additionalImages, ...clean] }));
+    } catch (err) {
+      console.error("Additional image upload failed:", err);
+      setFormError("One or more images failed to upload.");
+    } finally {
+      setUploadingExtra(false);
+      if (extraFileInputRef.current) extraFileInputRef.current.value = "";
+    }
+  }
+
+  function removeAdditionalImage(index: number) {
+    setForm((p) => ({ ...p, additionalImages: p.additionalImages.filter((_, i) => i !== index) }));
+  }
+
+  function moveAdditionalImage(index: number, dir: -1 | 1) {
+    setForm((p) => {
+      const next = [...p.additionalImages];
+      const target = index + dir;
+      if (target < 0 || target >= next.length) return p;
+      [next[index], next[target]] = [next[target], next[index]];
+      return { ...p, additionalImages: next };
+    });
+  }
+
   function addSize() {
     setForm((p) => ({ ...p, sizes: [...p.sizes, { label: "", price: 0 }] }));
   }
@@ -317,6 +376,8 @@ export default function PortfolioPage() {
       pricing: validSizes.map((s) => ({ label: s.label, price: s.price })),
       available: form.available && (!qtyFinite || qtyVal! > 0),
       color: "#C17C5A",
+      description: form.description.trim(),
+      images: form.additionalImages.filter((u) => typeof u === "string" && u.length > 0),
       image: form.imagePreview || "https://picsum.photos/seed/new-work/900/600",
       orientation: form.orientation,
       ...(shippingVal != null && !isNaN(shippingVal) ? { shippingPrice: shippingVal } : {}),
@@ -507,6 +568,100 @@ export default function PortfolioPage() {
               </div>
             </div>
 
+            {/* Additional images */}
+            {(() => {
+              const plan = artist?.subscriptionPlan || "core";
+              const totalLimit = IMAGE_LIMITS[plan] ?? 3;
+              const extrasAllowed = Math.max(0, totalLimit - 1);
+              const used = form.additionalImages.length;
+              const atLimit = used >= extrasAllowed;
+              return (
+                <div>
+                  <div className="flex items-end justify-between mb-2">
+                    <div>
+                      <label className="block text-sm font-medium">Additional images <span className="text-muted font-normal">(optional)</span></label>
+                      <p className="text-[10px] text-muted mt-0.5">
+                        Show details, textures, in-situ shots, or frame options. Primary image counts towards your total.
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-muted">
+                        {used + 1}/{totalLimit} <span className="uppercase tracking-wider">({plan})</span>
+                      </p>
+                      {atLimit && plan !== "pro" && (
+                        <a href="/pricing" className="text-[10px] text-accent hover:text-accent-hover">Upgrade for more</a>
+                      )}
+                    </div>
+                  </div>
+                  <input
+                    ref={extraFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleAdditionalImageUpload}
+                    className="hidden"
+                  />
+                  {extrasAllowed === 0 ? (
+                    <p className="text-[11px] text-muted">
+                      Your {plan} plan includes 1 image per artwork. <a href="/pricing" className="text-accent hover:text-accent-hover">Upgrade</a> to add more.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                      {form.additionalImages.map((img, i) => (
+                        <div
+                          key={img + i}
+                          className="relative group aspect-square rounded-sm overflow-hidden bg-border/20"
+                        >
+                          <Image src={img} alt={`Additional ${i + 1}`} fill className="object-cover" sizes="120px" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+                          <div className="absolute inset-0 flex items-start justify-between p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex gap-0.5">
+                              <button
+                                type="button"
+                                onClick={() => moveAdditionalImage(i, -1)}
+                                disabled={i === 0}
+                                className="w-5 h-5 flex items-center justify-center bg-white/90 text-foreground rounded-sm disabled:opacity-40"
+                                aria-label="Move left"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveAdditionalImage(i, 1)}
+                                disabled={i === form.additionalImages.length - 1}
+                                className="w-5 h-5 flex items-center justify-center bg-white/90 text-foreground rounded-sm disabled:opacity-40"
+                                aria-label="Move right"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeAdditionalImage(i)}
+                              className="w-5 h-5 flex items-center justify-center bg-white/90 text-red-500 rounded-sm"
+                              aria-label="Remove image"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {!atLimit && (
+                        <button
+                          type="button"
+                          onClick={() => extraFileInputRef.current?.click()}
+                          disabled={uploadingExtra}
+                          className="aspect-square flex items-center justify-center border-2 border-dashed border-border rounded-sm text-muted hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+                        >
+                          <span className="text-xs">{uploadingExtra ? "Uploading..." : "+ Add"}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Title + Medium */}
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -529,6 +684,24 @@ export default function PortfolioPage() {
                   className={inputClass}
                 />
               </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Description <span className="text-muted font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value.slice(0, 2000) }))}
+                placeholder="Tell the story behind this piece — inspiration, process, what you were thinking when you made it. This appears on the artwork page under 'About this work'."
+                rows={5}
+                maxLength={2000}
+                className={`${inputClass} resize-y font-serif leading-relaxed`}
+              />
+              <p className="text-[10px] text-muted mt-1 text-right">
+                {form.description.length}/2000
+              </p>
             </div>
 
             {/* Dimensions + Orientation */}

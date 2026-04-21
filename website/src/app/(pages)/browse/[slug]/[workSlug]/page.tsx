@@ -43,7 +43,9 @@ export async function generateMetadata({
     return { title: "Artwork Not Found – Wallplace" };
   }
 
-  const description = `${work.title} — ${work.medium}, ${work.dimensions}. ${work.available ? "Available" : "Sold"}. By ${artist.name} on Wallplace.`;
+  const description = work.description && work.description.trim()
+    ? work.description.slice(0, 160)
+    : `${work.title} — ${work.medium}, ${work.dimensions}. ${work.available ? "Available" : "Sold"}. By ${artist.name} on Wallplace.`;
 
   return {
     title: `${work.title} by ${artist.name} – Wallplace`,
@@ -109,53 +111,42 @@ export default async function ArtworkPage({
     }).catch(() => {});
   } catch { /* ignore analytics errors */ }
 
-  // Other works by this artist (excluding current)
   const otherWorks = artist.works.filter((w) => w.id !== work.id);
+  const hasDescription = !!(work.description && work.description.trim());
+  const aspectRatio =
+    work.orientation === "landscape" ? "4/3" : work.orientation === "square" ? "1/1" : "3/4";
 
   return (
     <div className="bg-background">
       {/* Breadcrumb */}
-      <section className="pt-6 pb-2">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <nav className="flex items-center gap-1.5 text-xs text-muted">
-            <Link
-              href="/browse"
-              className="hover:text-foreground transition-colors"
-            >
+      <section className="pt-5 pb-1">
+        <div className="max-w-[1240px] mx-auto px-6">
+          <nav className="flex items-center gap-1.5 text-[11px] text-muted uppercase tracking-wider">
+            <Link href="/browse" className="hover:text-foreground transition-colors">
               Browse
             </Link>
-            <span>/</span>
-            <Link
-              href={`/browse/${slug}`}
-              className="hover:text-foreground transition-colors"
-            >
+            <span className="opacity-50">/</span>
+            <Link href={`/browse/${slug}`} className="hover:text-foreground transition-colors">
               {artist.name}
             </Link>
-            <span>/</span>
-            <span className="text-foreground">{work.title}</span>
+            <span className="opacity-50">/</span>
+            <span className="text-foreground normal-case tracking-normal font-serif">{work.title}</span>
           </nav>
         </div>
       </section>
 
-      {/* Main content */}
-      <section className="py-8 lg:py-12">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
-            {/* Image */}
+      {/* Main: image gallery + details panel */}
+      <section className="py-8 lg:py-14">
+        <div className="max-w-[1240px] mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10 lg:gap-14 items-start">
             <ArtworkImageViewer
               src={work.image}
               alt={`${work.title} — ${work.medium}`}
-              aspectRatio={
-                work.orientation === "landscape"
-                  ? "4/3"
-                  : work.orientation === "square"
-                    ? "1/1"
-                    : "3/4"
-              }
+              aspectRatio={aspectRatio}
+              images={work.images}
             />
 
-            {/* Details panel */}
-            <div className="lg:w-[360px] shrink-0">
+            <div className="lg:sticky lg:top-24">
               <ArtworkPageClient
                 work={work}
                 artistName={artist.name}
@@ -168,59 +159,116 @@ export default async function ArtworkPage({
         </div>
       </section>
 
-      {/* View full portfolio link */}
-      <section className="pb-8">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <Link
-            href={`/browse/${slug}`}
-            className="inline-flex items-center gap-1.5 text-sm text-accent hover:text-accent-hover transition-colors"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 14 14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M9 11L5 7l4-4" />
-            </svg>
-            View full portfolio by {artist.name}
-          </Link>
-        </div>
-      </section>
+      {/* About this work — artist description */}
+      {hasDescription && (
+        <section className="py-12 lg:py-16 border-t border-border/70 bg-surface/40">
+          <div className="max-w-[1240px] mx-auto px-6">
+            <div className="max-w-2xl">
+              <p className="text-[10px] text-muted uppercase tracking-[0.18em] mb-4">
+                About this work
+              </p>
+              <div className="font-serif text-lg lg:text-xl leading-[1.65] text-foreground whitespace-pre-line">
+                {work.description}
+              </div>
+              <p className="mt-6 text-xs text-muted">— {artist.name}</p>
+            </div>
+          </div>
+        </section>
+      )}
 
-      {/* Seller Information (CCR 2013 pre-contract disclosure) */}
-      <section className="pb-10">
-        <div className="max-w-[1200px] mx-auto px-6">
-          <div className="bg-surface border border-border rounded-sm p-5 max-w-3xl">
-            <h3 className="text-sm font-medium text-foreground mb-2">
-              Seller information
-            </h3>
-            <p className="text-xs text-muted leading-relaxed mb-2">
-              This artwork is sold by <strong className="text-foreground">{artist.name}</strong>, an independent artist listing on Wallplace. Your contract of sale is with the artist, not with Wallplace. Wallplace operates the platform, processes payments via Stripe, and facilitates customer service.
-            </p>
-            <p className="text-xs text-muted leading-relaxed mb-2">
-              You can contact the artist through the platform via the messaging tools on their{" "}
+      {/* More by this artist */}
+      {otherWorks.length > 0 && (
+        <section className="py-14 lg:py-20 border-t border-border/70">
+          <div className="max-w-[1240px] mx-auto px-6">
+            <div className="flex items-end justify-between mb-8">
+              <div>
+                <p className="text-[10px] text-muted uppercase tracking-[0.18em] mb-2">
+                  Continue exploring
+                </p>
+                <h2 className="text-2xl lg:text-3xl font-serif">
+                  More by {artist.name}
+                </h2>
+              </div>
               <Link
                 href={`/browse/${slug}`}
-                className="text-accent hover:underline"
+                className="hidden sm:inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground transition-colors"
               >
-                artist profile
+                View full portfolio
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+                </svg>
               </Link>
-              , or by emailing{" "}
-              <a
-                href="mailto:hello@wallplace.co.uk"
-                className="text-accent hover:underline"
-              >
-                hello@wallplace.co.uk
-              </a>{" "}
-              with your order number and we will route your message.
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-7">
+              {otherWorks.slice(0, 4).map((otherWork) => (
+                <Link
+                  key={otherWork.id}
+                  href={`/browse/${slug}/${slugify(otherWork.title)}`}
+                  className="group block"
+                >
+                  <div className="relative aspect-[4/5] rounded-sm overflow-hidden bg-[#f5f5f3] mb-3">
+                    <Image
+                      src={otherWork.image}
+                      alt={otherWork.title}
+                      fill
+                      className="object-cover group-hover:scale-[1.03] transition-transform duration-700"
+                      sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      quality={55}
+                    />
+                    {!otherWork.available && (
+                      <span className="absolute top-3 left-3 px-2 py-0.5 bg-black/70 text-white text-[10px] tracking-wider uppercase rounded-sm backdrop-blur-sm">
+                        Sold
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-serif text-base text-foreground group-hover:text-accent transition-colors">
+                    {otherWork.title}
+                  </p>
+                  <p className="text-xs text-muted mt-0.5">
+                    {otherWork.medium} · {otherWork.priceBand}
+                  </p>
+                </Link>
+              ))}
+            </div>
+
+            <Link
+              href={`/browse/${slug}`}
+              className="mt-8 sm:hidden inline-flex items-center gap-1.5 text-sm text-accent hover:text-accent-hover transition-colors"
+            >
+              View full portfolio
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Seller information (CCR 2013 pre-contract disclosure) — below "More by" as a quiet footer */}
+      <section className="py-10 border-t border-border/70 bg-surface/40">
+        <div className="max-w-[1240px] mx-auto px-6">
+          <div className="max-w-3xl">
+            <p className="text-[10px] text-muted uppercase tracking-[0.18em] mb-3">
+              Seller information
+            </p>
+            <p className="text-xs text-muted leading-relaxed mb-2">
+              This artwork is sold by{" "}
+              <Link href={`/browse/${slug}`} className="text-foreground hover:text-accent transition-colors">
+                {artist.name}
+              </Link>
+              , an independent artist listing on Wallplace. Your contract of sale is with the artist, not with Wallplace. Wallplace operates the platform, processes payments via Stripe, and facilitates customer service.
             </p>
             <p className="text-xs text-muted leading-relaxed">
-              For your rights as a consumer, including the 14-day right to cancel, please see our{" "}
+              Contact the artist via their{" "}
+              <Link href={`/browse/${slug}`} className="text-accent hover:underline">
+                profile
+              </Link>{" "}
+              or email{" "}
+              <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">
+                hello@wallplace.co.uk
+              </a>
+              . For your 14-day right to cancel and other consumer rights, see our{" "}
               <Link href="/returns" className="text-accent hover:underline">
                 Returns &amp; Refunds
               </Link>{" "}
@@ -233,54 +281,6 @@ export default async function ArtworkPage({
           </div>
         </div>
       </section>
-
-      {/* More works by this artist */}
-      {otherWorks.length > 0 && (
-        <section className="py-10 lg:py-14 border-t border-border">
-          <div className="max-w-[1200px] mx-auto px-6">
-            <h2 className="text-xl mb-6">
-              More by {artist.name}
-            </h2>
-            <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 scrollbar-hide">
-              {otherWorks.slice(0, 8).map((otherWork) => (
-                <Link
-                  key={otherWork.id}
-                  href={`/browse/${slug}/${slugify(otherWork.title)}`}
-                  className="group shrink-0 w-48 lg:w-56"
-                >
-                  <div className="relative aspect-square rounded-sm overflow-hidden bg-border/20 mb-2">
-                    <Image
-                      src={otherWork.image}
-                      alt={otherWork.title}
-                      fill
-                      className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                      sizes="224px"
-                      quality={50}
-                    />
-                    <div className="absolute top-2 right-2">
-                      {otherWork.available ? (
-                        <span className="inline-block px-2 py-0.5 bg-accent/90 text-white text-[9px] rounded-sm backdrop-blur-sm">
-                          Available
-                        </span>
-                      ) : (
-                        <span className="inline-block px-2 py-0.5 bg-black/60 text-white text-[9px] rounded-sm backdrop-blur-sm">
-                          Sold
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-sm font-medium text-foreground truncate group-hover:text-accent transition-colors">
-                    {otherWork.title}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {otherWork.priceBand}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   );
 }
