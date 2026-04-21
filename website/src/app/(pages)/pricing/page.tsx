@@ -1,42 +1,13 @@
 import type { Metadata } from "next";
 import Button from "@/components/Button";
 import Accordion from "@/components/Accordion";
+import ArtistPricingCards from "@/components/ArtistPricingCards";
 
 export const metadata: Metadata = {
   title: "Pricing – Wallplace",
   description:
     "Transparent pricing for artists on Wallplace. First month free. Choose Core, Premium, or Pro – all with access to our curated venue network.",
 };
-
-const coreFeatures = [
-  "Up to 8 works in your portfolio",
-  "Standard artist profile",
-  "Message venues directly",
-  "Visibility to venues browsing the platform",
-  "Curated matching – we surface you to relevant venues",
-  "Basic analytics dashboard",
-  "Access to Wallplace venue network",
-];
-
-const premiumFeatures = [
-  "Up to 20 works in your portfolio",
-  "Featured artist profile + badge",
-  "Priority visibility in venue recommendations",
-  "Message venues directly",
-  "Full analytics – views, enquiries, conversion",
-  "Featured in curated venue suggestion lists",
-  "Priority response from Wallplace team",
-];
-
-const proFeatures = [
-  "Unlimited works in your portfolio",
-  "Premium profile with enhanced presentation",
-  "Maximum visibility across the platform",
-  "Message venues directly",
-  "Full analytics + venue breakdown + export",
-  "Dedicated account support",
-  "Early access to new features and venue partnerships",
-];
 
 const comparisonRows = [
   {
@@ -73,7 +44,7 @@ const comparisonRows = [
     feature: "Platform fee on sales",
     core: "15%",
     premium: "8%",
-    pro: "3%",
+    pro: "5%",
   },
   {
     feature: "Analytics",
@@ -99,7 +70,7 @@ const faqItems = [
   {
     question: "What is a platform fee?",
     answer:
-      "The platform fee is the percentage Wallplace takes when a sale is made through the platform – whether that's a venue purchasing work outright, or a customer buying directly from a venue display. It is separate from your membership cost. Core artists pay 15%, Premium 8%, and Pro artists pay 3%. You keep the rest.",
+      "The platform fee is the percentage Wallplace takes when a sale is made through the platform – whether that's a venue purchasing work outright, or a customer buying directly from a venue display. It is separate from your membership cost. Core artists pay 15%, Premium 8%, and Pro artists pay 5%. You keep the rest.",
   },
   {
     question: "Is the first month really free?",
@@ -176,127 +147,7 @@ export default function PricingPage() {
       {/* Pricing Cards */}
       <section className="py-16 lg:py-20">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Core */}
-            <div className="bg-surface border border-border rounded-sm p-8 flex flex-col">
-              <h3 className="text-2xl mb-1">Core</h3>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-4xl font-serif">&pound;9.99</span>
-                <span className="text-muted text-sm">/month</span>
-              </div>
-              <p className="text-sm text-muted mb-1">First month free</p>
-              <p className="text-sm font-medium text-foreground mb-6">
-                15% platform fee on sales
-              </p>
-              <ul className="space-y-3 mb-8 flex-1">
-                {coreFeatures.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2.5 text-sm text-foreground/80"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-accent mt-0.5 shrink-0"
-                    >
-                      <path d="M3 8.5l3.5 3.5L13 4" />
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Button href="/apply" variant="secondary" size="md">
-                Apply to Join
-              </Button>
-            </div>
-
-            {/* Premium */}
-            <div className="bg-surface border-2 border-accent rounded-sm p-8 flex flex-col relative">
-              <div className="absolute -top-3 left-6 bg-accent text-white text-xs font-medium px-3 py-1 rounded-sm">
-                Most Popular
-              </div>
-              <h3 className="text-2xl mb-1">Premium</h3>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-4xl font-serif">&pound;24.99</span>
-                <span className="text-muted text-sm">/month</span>
-              </div>
-              <p className="text-sm text-muted mb-1">First month free</p>
-              <p className="text-sm font-medium text-foreground mb-6">
-                8% platform fee on sales
-              </p>
-              <ul className="space-y-3 mb-8 flex-1">
-                {premiumFeatures.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2.5 text-sm text-foreground/80"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-accent mt-0.5 shrink-0"
-                    >
-                      <path d="M3 8.5l3.5 3.5L13 4" />
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Button href="/apply" size="md">
-                Apply to Join
-              </Button>
-            </div>
-
-            {/* Pro */}
-            <div className="bg-surface border border-border rounded-sm p-8 flex flex-col">
-              <h3 className="text-2xl mb-1">Pro</h3>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-4xl font-serif">&pound;49.99</span>
-                <span className="text-muted text-sm">/month</span>
-              </div>
-              <p className="text-sm text-muted mb-1">First month free</p>
-              <p className="text-sm font-medium text-foreground mb-6">
-                3% platform fee on sales
-              </p>
-              <ul className="space-y-3 mb-8 flex-1">
-                {proFeatures.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2.5 text-sm text-foreground/80"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-accent mt-0.5 shrink-0"
-                    >
-                      <path d="M3 8.5l3.5 3.5L13 4" />
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Button href="/apply" variant="secondary" size="md">
-                Apply to Join
-              </Button>
-            </div>
-          </div>
+          <ArtistPricingCards />
         </div>
       </section>
 

@@ -93,7 +93,7 @@ const planOptions = [
     id: "pro",
     name: "Pro",
     price: "£49.99",
-    fee: "3% platform fee",
+    fee: "5% platform fee",
     description: "Unlimited works, premium profile, message venues, dedicated support.",
   },
 ];

@@ -3,6 +3,7 @@ import VenueArtistToggle from "@/components/VenueArtistToggle";
 import Image from "next/image";
 import Button from "@/components/Button";
 import Accordion from "@/components/Accordion";
+import ArtistPricingCards from "@/components/ArtistPricingCards";
 import AnimateIn from "@/components/AnimateIn";
 import ScrollButton from "@/components/ScrollButton";
 
@@ -62,7 +63,7 @@ const valueBlocks = [
       </svg>
     ),
     title: "Fair platform fees",
-    description: "3–15% platform fee. No gallery taking half. You keep the majority of every sale.",
+    description: "5–15% platform fee. No gallery taking half. You keep the majority of every sale.",
   },
   {
     icon: (
@@ -83,38 +84,13 @@ const pipelineSteps = [
   "Get Placed & Sold",
 ];
 
-const coreFeatures = [
-  "Marketplace profile",
-  "Up to 5 works listed",
-  "Venue enquiry inbox",
-  "QR codes & payment processing",
-  "Basic analytics",
-];
-
-const premiumFeatures = [
-  "Everything in Core",
-  "Up to 15 works listed",
-  "Featured profile placement",
-  "Priority venue matching",
-  "Full analytics dashboard",
-  "Dedicated social feature monthly",
-];
-
-const proFeatures = [
-  "Everything in Premium",
-  "Unlimited works listed",
-  "Top-tier profile placement",
-  "AI-powered venue matching",
-  "White-glove onboarding",
-];
-
 const comparisonData = [
   {
     category: "Platform fee",
     gallery: "40–60%",
     marketplace: "15–30%",
     instagram: "N/A",
-    wallplace: "3–15%",
+    wallplace: "5–15%",
   },
   {
     category: "Physical display",
@@ -337,131 +313,8 @@ export default function ArtistsPage() {
             </p>
           </div>
 
-          {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Core */}
-            <div className="bg-surface border border-border rounded-sm p-5 sm:p-6 md:p-8 flex flex-col">
-              <h3 className="text-2xl mb-1">Core</h3>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-3xl font-serif text-foreground">
-                  &pound;9.99
-                </span>
-                <span className="text-muted text-sm">/month</span>
-              </div>
-              <p className="text-sm text-muted mb-6">
-                15% platform fee on sales
-              </p>
-              <ul className="space-y-3 mb-8 flex-1">
-                {coreFeatures.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2 text-sm text-foreground/80"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-accent mt-0.5 shrink-0"
-                    >
-                      <path d="M3 8.5l3.5 3.5L13 4" />
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Button href="/apply" size="md" variant="secondary">
-                APPLY TO JOIN
-              </Button>
-            </div>
-
-            {/* Premium */}
-            <div className="bg-surface border-2 border-accent rounded-sm p-5 sm:p-6 md:p-8 flex flex-col relative">
-              <div className="absolute -top-3 left-6 bg-accent text-white text-xs font-medium px-3 py-1 rounded-sm">
-                Most Popular
-              </div>
-              <h3 className="text-2xl mb-1">Premium</h3>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-3xl font-serif text-foreground">
-                  &pound;24.99
-                </span>
-                <span className="text-muted text-sm">/month</span>
-              </div>
-              <p className="text-sm text-muted mb-6">
-                8% platform fee on sales
-              </p>
-              <ul className="space-y-3 mb-8 flex-1">
-                {premiumFeatures.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2 text-sm text-foreground/80"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-accent mt-0.5 shrink-0"
-                    >
-                      <path d="M3 8.5l3.5 3.5L13 4" />
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Button href="/apply" size="md">
-                APPLY TO JOIN
-              </Button>
-            </div>
-
-            {/* Pro */}
-            <div className="bg-surface border border-border rounded-sm p-5 sm:p-6 md:p-8 flex flex-col">
-              <h3 className="text-2xl mb-1">Pro</h3>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-3xl font-serif text-foreground">
-                  &pound;49.99
-                </span>
-                <span className="text-muted text-sm">/month</span>
-              </div>
-              <p className="text-sm text-muted mb-6">
-                3% platform fee on sales
-              </p>
-              <ul className="space-y-3 mb-8 flex-1">
-                {proFeatures.map((feature) => (
-                  <li
-                    key={feature}
-                    className="flex items-start gap-2 text-sm text-foreground/80"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-accent mt-0.5 shrink-0"
-                    >
-                      <path d="M3 8.5l3.5 3.5L13 4" />
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <Button href="/apply" size="md" variant="secondary">
-                APPLY TO JOIN
-              </Button>
-            </div>
-          </div>
+          {/* Pricing Cards — shared component with annual toggle */}
+          <ArtistPricingCards ctaLabel="APPLY TO JOIN" />
         </div>
         </AnimateIn>
         </section>

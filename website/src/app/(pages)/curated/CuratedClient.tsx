@@ -199,20 +199,21 @@ export default function CuratedClient() {
   const labelCls = "block text-xs font-medium text-muted uppercase tracking-wider mb-1";
 
   return (
-    <div className="bg-background">
+    <div>
       {/* Hero — same banner image as the homepage */}
-      <section className="relative -mt-14 lg:-mt-16 min-h-[70vh] lg:min-h-[80vh] flex items-center overflow-hidden">
-        <div className="absolute inset-0 -z-10">
+      <section className="relative -mt-14 lg:-mt-16 min-h-[70vh] lg:min-h-[80vh] flex items-center overflow-hidden bg-[#1A1A1A]">
+        <div className="absolute inset-0 z-0">
           <Image
             src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1920&h=1080&fit=crop&crop=center"
             alt="Gallery interior"
             fill
             className="object-cover"
+            sizes="100vw"
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/55 to-black/45" />
         </div>
-        <div className="max-w-[1000px] mx-auto px-6 text-center pt-28 pb-16 lg:pt-36 lg:pb-24">
+        <div className="relative z-10 max-w-[1000px] mx-auto px-6 text-center pt-28 pb-16 lg:pt-36 lg:pb-24 w-full">
           <p className="text-xs font-medium tracking-[0.25em] uppercase text-accent mb-5">
             Wallplace Curated
           </p>

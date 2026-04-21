@@ -125,7 +125,7 @@ export async function POST(request: Request) {
             if (isFree) {
               platformFeePct = 0; // No platform fee during free period
             } else {
-              const planFees: Record<string, number> = { core: 15, premium: 8, pro: 3 };
+              const planFees: Record<string, number> = { core: 15, premium: 8, pro: 5 };
               platformFeePct = planFees[ap.subscription_plan || "core"] || 15;
             }
           }
