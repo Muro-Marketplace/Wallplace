@@ -605,18 +605,33 @@ export default function Header() {
         <div className="lg:hidden fixed inset-0 bg-black/20 z-40" onClick={() => setMobileMenuOpen(false)} />
         <div className="lg:hidden border-t border-border bg-white relative z-50">
           <div className="mx-auto max-w-[1400px] px-6 py-6 space-y-6">
-            {/* Primary nav links */}
+            {/* Primary nav links — when inside the marketplace area, swap in
+                the marketplace tabs (Portfolios/Galleries/Collections/Spaces)
+                so the mobile nav matches the desktop top-nav. */}
             <nav className="flex flex-col gap-4">
-              {(user ? (userType === "venue" ? venueNavLinks : loggedInNavLinks) : publicNavLinks).map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-base text-foreground font-medium hover:text-accent transition-colors duration-200"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {isMarketplaceArea ? (
+                marketplaceTabs.map((tab) => (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className="text-base text-foreground font-medium hover:text-accent transition-colors duration-200"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {tab.label}
+                  </Link>
+                ))
+              ) : (
+                (user ? (userType === "venue" ? venueNavLinks : loggedInNavLinks) : publicNavLinks).map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="text-base text-foreground font-medium hover:text-accent transition-colors duration-200"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                ))
+              )}
             </nav>
             {/* Portal link — right after nav, before everything else */}
             {user && (

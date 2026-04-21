@@ -848,17 +848,25 @@ function BrowsePortfoliosPageInner() {
                     {filteredArtists.length !== 1 ? "s" : ""}
                   </p>
                   <div className="flex items-center gap-2">
-                    {/* Portfolio/Gallery toggle */}
-                    <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                      <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
-                        Portfolios
-                      </button>
-                      <button type="button" onClick={() => { setViewAs("works"); setActiveCategory(""); }} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
-                        Gallery
-                      </button>
-                      <button type="button" onClick={() => setActiveCategory("collections")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
-                        Collections
-                      </button>
+                    {/* View dropdown (mobile — pill-shaped native select) */}
+                    <div className="relative">
+                      <select
+                        value={activeCategory === "collections" ? "collections" : ((viewAs as string) === "works" ? "gallery" : "portfolios")}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === "collections") setActiveCategory("collections");
+                          else if (v === "gallery") { setViewAs("works"); setActiveCategory(""); }
+                          else { setViewAs("artists"); setActiveCategory(""); }
+                        }}
+                        className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
+                      >
+                        <option value="portfolios">Portfolios</option>
+                        <option value="gallery">Gallery</option>
+                        <option value="collections">Collections</option>
+                      </select>
+                      <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                        <polyline points="2 4 6 8 10 4" />
+                      </svg>
                     </div>
                     {/* Grid toggle */}
                     <button
@@ -1278,17 +1286,25 @@ function BrowsePortfoliosPageInner() {
                     {filteredGalleryWorks.length} work{filteredGalleryWorks.length !== 1 ? "s" : ""}
                   </p>
                   <div className="flex items-center gap-2">
-                    {/* Portfolio/Gallery toggle */}
-                    <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                      <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
-                        Portfolios
-                      </button>
-                      <button type="button" onClick={() => { setViewAs("works"); setActiveCategory(""); }} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
-                        Gallery
-                      </button>
-                      <button type="button" onClick={() => setActiveCategory("collections")} className={`px-2.5 py-1 text-[11px] rounded-sm transition-colors ${activeCategory === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted"}`}>
-                        Collections
-                      </button>
+                    {/* View dropdown (mobile — pill-shaped native select) */}
+                    <div className="relative">
+                      <select
+                        value={activeCategory === "collections" ? "collections" : ((viewAs as string) === "works" ? "gallery" : "portfolios")}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === "collections") setActiveCategory("collections");
+                          else if (v === "gallery") { setViewAs("works"); setActiveCategory(""); }
+                          else { setViewAs("artists"); setActiveCategory(""); }
+                        }}
+                        className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
+                      >
+                        <option value="portfolios">Portfolios</option>
+                        <option value="gallery">Gallery</option>
+                        <option value="collections">Collections</option>
+                      </select>
+                      <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                        <polyline points="2 4 6 8 10 4" />
+                      </svg>
                     </div>
                     <button
                       type="button"
