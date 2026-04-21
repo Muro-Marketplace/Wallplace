@@ -546,7 +546,7 @@ export default function ArtistProfileClient({
                       setLightboxIndex(null);
                       router.push(`/venue-portal/placements?artist=${artistSlug}&artistName=${encodeURIComponent(artistName)}&work=${encodeURIComponent(currentWork.title)}&workImage=${encodeURIComponent(currentWork.image)}`);
                     }}
-                    className="w-full px-5 py-2.5 text-sm font-medium text-foreground bg-[#F5F3F0] border border-border hover:bg-[#EBE8E4] rounded-sm transition-colors"
+                    className="w-full px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
                   >
                     Request Placement
                   </button>
@@ -605,28 +605,32 @@ export default function ArtistProfileClient({
                     </>
                   );
                 })()}
-                <button
-                  onClick={() => { setShowEnquiry(true); setEnquirySent(false); }}
-                  className="w-full px-5 py-2.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
-                >
-                  Message Artist
-                </button>
               </div>
 
-              {/* Full page link */}
-              <Link
-                href={`/browse/${artistSlug}/${slugify(currentWork.title)}`}
-                onClick={() => { navigatingAway.current = true; setLightboxIndex(null); }}
-                className="mt-4 inline-flex items-center justify-center gap-1.5 text-xs text-accent hover:text-accent-hover transition-colors"
-              >
-                View full artwork page
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
-                </svg>
-              </Link>
+              {/* Secondary links */}
+              <div className="mt-4 flex items-center justify-between gap-3 text-xs">
+                <button
+                  type="button"
+                  onClick={() => { setShowEnquiry(true); setEnquirySent(false); }}
+                  className="inline-flex items-center gap-1 text-muted hover:text-foreground transition-colors"
+                >
+                  Message {artistName.split(" ")[0]}
+                  <span aria-hidden>→</span>
+                </button>
+                <Link
+                  href={`/browse/${artistSlug}/${slugify(currentWork.title)}`}
+                  onClick={() => { navigatingAway.current = true; setLightboxIndex(null); }}
+                  className="inline-flex items-center gap-1 text-accent hover:text-accent-hover transition-colors"
+                >
+                  View full artwork page
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
 
               {/* Counter */}
-              <p className="text-[10px] text-muted text-center mt-2">
+              <p className="text-[10px] text-muted text-center mt-3">
                 {lightboxIndex + 1} of {filteredWorks.length}
               </p>
             </div>
