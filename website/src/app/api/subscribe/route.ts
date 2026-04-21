@@ -7,6 +7,9 @@ const PRICE_MAP: Record<string, string | undefined> = {
   core: process.env.STRIPE_PRICE_CORE,
   premium: process.env.STRIPE_PRICE_PREMIUM,
   pro: process.env.STRIPE_PRICE_PRO,
+  core_annual: process.env.STRIPE_PRICE_CORE_ANNUAL,
+  premium_annual: process.env.STRIPE_PRICE_PREMIUM_ANNUAL,
+  pro_annual: process.env.STRIPE_PRICE_PRO_ANNUAL,
 };
 
 export async function POST(request: Request) {
@@ -14,9 +17,12 @@ export async function POST(request: Request) {
   if (auth.error) return auth.error;
 
   try {
-    const { plan } = await request.json();
+    const body = await request.json();
+    const plan: string = body.plan;
+    const billing: "monthly" | "annual" = body.billing === "annual" ? "annual" : "monthly";
+    const priceKey = billing === "annual" ? `${plan}_annual` : plan;
 
-    const priceId = PRICE_MAP[plan];
+    const priceId = PRICE_MAP[priceKey];
     if (!priceId) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
     }
@@ -80,11 +86,11 @@ export async function POST(request: Request) {
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
         ...(trialDays > 0 ? { trial_period_days: trialDays } : {}),
-        metadata: { plan, artist_profile_id: profile.id, cancel_previous: existingSubscriptionId || "" },
+        metadata: { plan, billing, artist_profile_id: profile.id, cancel_previous: existingSubscriptionId || "" },
       },
       success_url: `${siteUrl}/artist-portal/billing?subscribed=true`,
       cancel_url: `${siteUrl}/artist-portal/billing`,
-      metadata: { plan, artist_profile_id: profile.id, cancel_previous: existingSubscriptionId || "" },
+      metadata: { plan, billing, artist_profile_id: profile.id, cancel_previous: existingSubscriptionId || "" },
     };
     const session = await stripe.checkout.sessions.create(sessionParams as Parameters<typeof stripe.checkout.sessions.create>[0]);
 

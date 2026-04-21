@@ -29,15 +29,19 @@ export async function POST(request: Request) {
 
   const db = getSupabaseAdmin();
 
-  // ─── Curation checkout ───
+  // ─── Curation checkout (one-off OR managed subscription) ───
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    if (session.mode === "payment" && session.metadata?.kind === "curation_request") {
+    if (session.metadata?.kind === "curation_request") {
       const requestId = session.metadata.curation_request_id;
       if (requestId) {
+        const isSubscription = session.mode === "subscription";
         const paymentIntentId = typeof session.payment_intent === "string"
           ? session.payment_intent
           : session.payment_intent?.id || "";
+        const subscriptionId = typeof session.subscription === "string"
+          ? session.subscription
+          : session.subscription?.id || "";
         const amountPaid = (session.amount_total || 0) / 100;
         const { data: existing } = await db
           .from("curation_requests")
@@ -46,11 +50,13 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (existing && existing.status !== "paid" && existing.status !== "in_progress") {
+          // Managed subscription → "in_progress" (ongoing service). One-off → "paid".
+          const newStatus = isSubscription ? "in_progress" : "paid";
           const { error: updErr } = await db
             .from("curation_requests")
             .update({
-              status: "paid",
-              stripe_payment_intent_id: paymentIntentId,
+              status: newStatus,
+              stripe_payment_intent_id: paymentIntentId || subscriptionId,
               amount_paid_gbp: amountPaid,
               paid_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
@@ -65,6 +71,8 @@ export async function POST(request: Request) {
               single_wall: "Single wall",
               full_space: "Full space",
               bespoke: "Bespoke project",
+              managed_monthly: "Managed — monthly rotation",
+              managed_quarterly: "Managed — quarterly refresh",
             };
             notifyCurationCustomerPaid({
               email: existing.contact_email,
@@ -331,10 +339,12 @@ export async function POST(request: Request) {
     const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
     const priceId = subscription.items.data[0]?.price?.id || "";
 
-    // Map price ID to plan name
+    // Map price ID to plan name (monthly + annual variants both normalise to
+    // the same plan name; billing cycle is reflected in Stripe itself).
     let plan = "core";
-    if (priceId === process.env.STRIPE_PRICE_PREMIUM) plan = "premium";
-    else if (priceId === process.env.STRIPE_PRICE_PRO) plan = "pro";
+    if (priceId === process.env.STRIPE_PRICE_PREMIUM || priceId === process.env.STRIPE_PRICE_PREMIUM_ANNUAL) plan = "premium";
+    else if (priceId === process.env.STRIPE_PRICE_PRO || priceId === process.env.STRIPE_PRICE_PRO_ANNUAL) plan = "pro";
+    else if (priceId === process.env.STRIPE_PRICE_CORE || priceId === process.env.STRIPE_PRICE_CORE_ANNUAL) plan = "core";
 
     const { error } = await db
       .from("artist_profiles")

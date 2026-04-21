@@ -3,10 +3,21 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
-type TierKey = "single_wall" | "full_space" | "bespoke";
+type TierKey = "single_wall" | "full_space" | "bespoke" | "managed_monthly" | "managed_quarterly";
 
-const TIERS: { key: TierKey; label: string; priceLabel: string; strapline: string; bullets: string[]; cta: string }[] = [
+interface Tier {
+  key: TierKey;
+  label: string;
+  priceLabel: string;
+  strapline: string;
+  bullets: string[];
+  cta: string;
+  group: "one_off" | "managed";
+}
+
+const ONE_OFF_TIERS: Tier[] = [
   {
     key: "single_wall",
     label: "Single wall",
@@ -18,6 +29,7 @@ const TIERS: { key: TierKey; label: string; priceLabel: string; strapline: strin
       "Delivered by email within 5 business days",
     ],
     cta: "Book for £49",
+    group: "one_off",
   },
   {
     key: "full_space",
@@ -31,6 +43,7 @@ const TIERS: { key: TierKey; label: string; priceLabel: string; strapline: strin
       "Delivered within 5 business days",
     ],
     cta: "Book for £149",
+    group: "one_off",
   },
   {
     key: "bespoke",
@@ -44,8 +57,42 @@ const TIERS: { key: TierKey; label: string; priceLabel: string; strapline: strin
       "Quote based on scope — just tell us what you need",
     ],
     cta: "Request a quote",
+    group: "one_off",
   },
 ];
+
+const MANAGED_TIERS: Tier[] = [
+  {
+    key: "managed_monthly",
+    label: "Monthly rotation",
+    priceLabel: "£79 / month",
+    strapline: "New shortlist every month, walls kept fresh.",
+    bullets: [
+      "New curated shortlist each month",
+      "Rotation suggestions tuned to season and traffic",
+      "Priority support and swap coordination",
+      "Cancel anytime",
+    ],
+    cta: "Start monthly — £79/mo",
+    group: "managed",
+  },
+  {
+    key: "managed_quarterly",
+    label: "Quarterly refresh",
+    priceLabel: "£199 / quarter",
+    strapline: "Seasonal refresh, less admin.",
+    bullets: [
+      "One considered refresh every three months",
+      "Works best paired with a rotating loan arrangement",
+      "Seasonal mood guidance included",
+      "Cancel anytime",
+    ],
+    cta: "Start quarterly — £199/qtr",
+    group: "managed",
+  },
+];
+
+const ALL_TIERS = [...ONE_OFF_TIERS, ...MANAGED_TIERS];
 
 const VENUE_TYPES = [
   "Café",
@@ -153,16 +200,26 @@ export default function CuratedClient() {
 
   return (
     <div className="bg-background">
-      {/* Hero */}
-      <section className="pt-16 pb-12 lg:pt-24 lg:pb-16">
-        <div className="max-w-[1000px] mx-auto px-6 text-center">
+      {/* Hero — same banner image as the homepage */}
+      <section className="relative -mt-14 lg:-mt-16 min-h-[70vh] lg:min-h-[80vh] flex items-center overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <Image
+            src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1920&h=1080&fit=crop&crop=center"
+            alt="Gallery interior"
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/55 to-black/45" />
+        </div>
+        <div className="max-w-[1000px] mx-auto px-6 text-center pt-28 pb-16 lg:pt-36 lg:pb-24">
           <p className="text-xs font-medium tracking-[0.25em] uppercase text-accent mb-5">
             Wallplace Curated
           </p>
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl leading-tight text-foreground mb-6">
+          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl leading-tight text-white mb-6">
             Art on your walls, chosen by experts.
           </h1>
-          <p className="text-lg text-muted max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-white/75 max-w-2xl mx-auto leading-relaxed">
             Tell us about your space — the style, the audience, the mood you want. Our curators hand-pick a shortlist of works from Wallplace artists that fit. You decide what goes on the wall.
           </p>
         </div>
@@ -176,37 +233,32 @@ export default function CuratedClient() {
         </div>
       )}
 
-      {/* Tiers */}
+      {/* One-off tiers */}
+      <section className="pb-10">
+        <div className="max-w-[1100px] mx-auto px-6">
+          <div className="flex items-baseline justify-between mb-4">
+            <h2 className="font-serif text-2xl text-foreground">One-off curation</h2>
+            <p className="text-xs text-muted">Pay once, we deliver your shortlist.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {ONE_OFF_TIERS.map((t) => (
+              <TierCard key={t.key} tier={t} selected={selectedTier === t.key} onSelect={() => setSelectedTier(t.key)} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Managed subscription tiers */}
       <section className="pb-16">
         <div className="max-w-[1100px] mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {TIERS.map((t) => {
-              const selected = selectedTier === t.key;
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setSelectedTier(t.key)}
-                  className={`text-left bg-white border rounded-sm p-6 transition-colors ${selected ? "border-accent ring-2 ring-accent/20" : "border-border hover:border-foreground/30"}`}
-                >
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted mb-2">{t.label}</p>
-                  <p className="font-serif text-3xl text-foreground mb-2">{t.priceLabel}</p>
-                  <p className="text-sm text-foreground mb-4">{t.strapline}</p>
-                  <ul className="space-y-2 mb-5">
-                    {t.bullets.map((b) => (
-                      <li key={b} className="flex gap-2 text-sm text-muted">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#C17C5A" strokeWidth="2" strokeLinecap="round" className="mt-1 shrink-0"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <span className={`inline-flex items-center gap-1 text-sm font-medium ${selected ? "text-accent" : "text-foreground"}`}>
-                    {selected ? "Selected" : t.cta}
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-                  </span>
-                </button>
-              );
-            })}
+          <div className="flex items-baseline justify-between mb-4">
+            <h2 className="font-serif text-2xl text-foreground">Managed curation</h2>
+            <p className="text-xs text-muted">Ongoing rotation as a subscription. Cancel anytime.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {MANAGED_TIERS.map((t) => (
+              <TierCard key={t.key} tier={t} selected={selectedTier === t.key} onSelect={() => setSelectedTier(t.key)} />
+            ))}
           </div>
         </div>
       </section>
@@ -217,11 +269,13 @@ export default function CuratedClient() {
           <div className="bg-surface border border-border rounded-sm p-6 sm:p-8">
             <h2 className="font-serif text-2xl text-foreground mb-1">Tell us about your space</h2>
             <p className="text-sm text-muted mb-6">
-              {selectedTier
-                ? TIERS.find((t) => t.key === selectedTier)?.label === "Bespoke project"
+              {!selectedTier
+                ? "Pick a tier above first — then fill in the brief here."
+                : selectedTier === "bespoke"
                   ? "We'll review your brief and email a tailored quote within 2 business days."
-                  : "We'll confirm payment and email your shortlist within 5 business days."
-                : "Pick a tier above first — then fill in the brief here."}
+                  : selectedTier === "managed_monthly" || selectedTier === "managed_quarterly"
+                    ? "We'll set up your subscription and send your first shortlist within 5 business days."
+                    : "We'll confirm payment and email your shortlist within 5 business days."}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -300,11 +354,13 @@ export default function CuratedClient() {
 
               <div className="flex items-center justify-between gap-4 pt-3 border-t border-border">
                 <p className="text-xs text-muted">
-                  {selectedTier === "bespoke"
-                    ? "No charge yet — we'll email a tailored quote."
-                    : selectedTier
-                      ? `You'll be sent to secure Stripe checkout to pay ${TIERS.find((t) => t.key === selectedTier)?.priceLabel}.`
-                      : "Select a tier above to continue."}
+                  {!selectedTier
+                    ? "Select a tier above to continue."
+                    : selectedTier === "bespoke"
+                      ? "No charge yet — we'll email a tailored quote."
+                      : selectedTier === "managed_monthly" || selectedTier === "managed_quarterly"
+                        ? `You'll be sent to secure Stripe checkout. Subscription: ${ALL_TIERS.find((t) => t.key === selectedTier)?.priceLabel}. Cancel anytime.`
+                        : `You'll be sent to secure Stripe checkout to pay ${ALL_TIERS.find((t) => t.key === selectedTier)?.priceLabel}.`}
                 </p>
                 <button
                   type="submit"
@@ -313,11 +369,15 @@ export default function CuratedClient() {
                 >
                   {submitting
                     ? "Submitting…"
-                    : selectedTier === "bespoke"
-                      ? "Request quote"
-                      : selectedTier
-                        ? `Pay ${TIERS.find((t) => t.key === selectedTier)?.priceLabel}`
-                        : "Select a tier"}
+                    : !selectedTier
+                      ? "Select a tier"
+                      : selectedTier === "bespoke"
+                        ? "Request quote"
+                        : selectedTier === "managed_monthly"
+                          ? "Subscribe — £79/mo"
+                          : selectedTier === "managed_quarterly"
+                            ? "Subscribe — £199/qtr"
+                            : `Pay ${ALL_TIERS.find((t) => t.key === selectedTier)?.priceLabel}`}
                 </button>
               </div>
             </form>
@@ -330,5 +390,31 @@ export default function CuratedClient() {
         </div>
       </section>
     </div>
+  );
+}
+
+function TierCard({ tier, selected, onSelect }: { tier: Tier; selected: boolean; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`text-left bg-white border rounded-sm p-6 transition-colors ${selected ? "border-accent ring-2 ring-accent/20" : "border-border hover:border-foreground/30"}`}
+    >
+      <p className="text-xs font-medium uppercase tracking-wider text-muted mb-2">{tier.label}</p>
+      <p className="font-serif text-3xl text-foreground mb-2">{tier.priceLabel}</p>
+      <p className="text-sm text-foreground mb-4">{tier.strapline}</p>
+      <ul className="space-y-2 mb-5">
+        {tier.bullets.map((b) => (
+          <li key={b} className="flex gap-2 text-sm text-muted">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#C17C5A" strokeWidth="2" strokeLinecap="round" className="mt-1 shrink-0"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+            <span>{b}</span>
+          </li>
+        ))}
+      </ul>
+      <span className={`inline-flex items-center gap-1 text-sm font-medium ${selected ? "text-accent" : "text-foreground"}`}>
+        {selected ? "Selected" : tier.cta}
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+      </span>
+    </button>
   );
 }

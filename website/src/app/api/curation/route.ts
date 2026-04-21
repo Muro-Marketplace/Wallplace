@@ -7,11 +7,17 @@ import { notifyAdminCurationRequest, notifyCurationCustomerEnquiry } from "@/lib
 // Keep pricing server-side so a client can't submit a lower tier amount.
 // Bespoke is a quote-first enquiry — no upfront charge, the admin follows up
 // with a tailored quote and manual Stripe link.
-const TIERS = {
-  single_wall: { label: "Single wall", priceGbp: 49, payFirst: true },
-  full_space: { label: "Full space", priceGbp: 149, payFirst: true },
-  bespoke: { label: "Bespoke project", priceGbp: 299, payFirst: false },
-} as const;
+// Managed tiers are recurring subscriptions charged through Stripe.
+type OneOffTier = { kind: "one_off"; label: string; priceGbp: number; payFirst: boolean };
+type ManagedTier = { kind: "managed"; label: string; priceGbp: number; interval: "month" | "quarter"; priceEnvVar: string };
+
+const TIERS: Record<string, OneOffTier | ManagedTier> = {
+  single_wall: { kind: "one_off", label: "Single wall", priceGbp: 49, payFirst: true },
+  full_space: { kind: "one_off", label: "Full space", priceGbp: 149, payFirst: true },
+  bespoke: { kind: "one_off", label: "Bespoke project", priceGbp: 299, payFirst: false },
+  managed_monthly: { kind: "managed", label: "Managed — monthly rotation", priceGbp: 79, interval: "month", priceEnvVar: "STRIPE_PRICE_CURATION_MONTHLY" },
+  managed_quarterly: { kind: "managed", label: "Managed — quarterly refresh", priceGbp: 199, interval: "quarter", priceEnvVar: "STRIPE_PRICE_CURATION_QUARTERLY" },
+};
 
 type TierKey = keyof typeof TIERS;
 
@@ -19,7 +25,7 @@ const safe = (n: number) => z.string().trim().max(n);
 const optional = (n: number) => z.string().trim().max(n).optional().default("");
 
 const curationSchema = z.object({
-  tier: z.enum(["single_wall", "full_space", "bespoke"]),
+  tier: z.enum(["single_wall", "full_space", "bespoke", "managed_monthly", "managed_quarterly"]),
   venueName: safe(200).min(1),
   contactName: safe(120).min(1),
   contactEmail: z.string().trim().email().max(320),
@@ -65,8 +71,11 @@ export async function POST(request: Request) {
 
   const db = getSupabaseAdmin();
 
-  // Insert a pending row first; the webhook will update it to "paid" for
-  // pay-first tiers, or the admin updates it manually for bespoke.
+  const isManaged = tier.kind === "managed";
+  const isPayFirst = tier.kind === "one_off" && tier.payFirst;
+
+  // Insert a pending row first; the webhook will update it to "paid" /
+  // "in_progress" once Stripe confirms.
   const { data: row, error: insertError } = await db
     .from("curation_requests")
     .insert({
@@ -85,8 +94,8 @@ export async function POST(request: Request) {
       wall_count: d.wallCount ?? null,
       timeframe: d.timeframe,
       references_notes: d.referencesNotes,
-      status: tier.payFirst ? "pending_payment" : "awaiting_quote",
-      amount_paid_gbp: tier.payFirst ? tier.priceGbp : null,
+      status: (isPayFirst || isManaged) ? "pending_payment" : "awaiting_quote",
+      amount_paid_gbp: (isPayFirst || isManaged) ? tier.priceGbp : null,
     })
     .select("id")
     .single();
@@ -96,11 +105,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Could not create request" }, { status: 500 });
   }
 
-  // Fire-and-forget notification to admin — useful for both flows
+  // Fire-and-forget notification to admin — useful for all flows
   notifyAdminCurationRequest({
     requestId: row.id,
     tier: tier.label,
-    payFirst: tier.payFirst,
+    payFirst: isPayFirst || isManaged,
     priceGbp: tier.priceGbp,
     venueName: d.venueName,
     contactName: d.contactName,
@@ -108,9 +117,8 @@ export async function POST(request: Request) {
     location: d.location,
   }).catch((err) => { if (err) console.error("curation admin email error:", err); });
 
-  // Bespoke tier: no upfront payment. Just create the record and show the
-  // "we'll quote you" page.
-  if (!tier.payFirst) {
+  // Bespoke tier: no upfront payment.
+  if (tier.kind === "one_off" && !tier.payFirst) {
     notifyCurationCustomerEnquiry({
       email: d.contactEmail,
       contactName: d.contactName,
@@ -120,7 +128,53 @@ export async function POST(request: Request) {
     return NextResponse.json({ mode: "enquiry", id: row.id });
   }
 
-  // Pay-first tiers: Stripe Checkout
+  // Managed tiers: recurring Stripe subscription. Requires a configured price
+  // ID in the env (price has to pre-exist in Stripe since subscription
+  // checkout can't accept ad-hoc price_data).
+  if (tier.kind === "managed") {
+    const priceId = process.env[tier.priceEnvVar];
+    if (!priceId) {
+      console.error(`Curation managed tier ${d.tier} missing env ${tier.priceEnvVar}`);
+      await db.from("curation_requests").delete().eq("id", row.id);
+      return NextResponse.json({ error: "Managed curation is not yet available — please try a one-off tier." }, { status: 503 });
+    }
+
+    try {
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        payment_method_types: ["card"],
+        customer_email: d.contactEmail,
+        line_items: [{ price: priceId, quantity: 1 }],
+        subscription_data: {
+          metadata: {
+            kind: "curation_request",
+            curation_request_id: row.id,
+            tier: d.tier,
+          },
+        },
+        metadata: {
+          kind: "curation_request",
+          curation_request_id: row.id,
+          tier: d.tier,
+        },
+        success_url: `${siteUrl}/curated/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${siteUrl}/curated?cancelled=1`,
+      });
+
+      await db
+        .from("curation_requests")
+        .update({ stripe_checkout_session_id: session.id })
+        .eq("id", row.id);
+
+      return NextResponse.json({ mode: "checkout", url: session.url, id: row.id });
+    } catch (err) {
+      console.error("curation managed stripe session error:", err);
+      await db.from("curation_requests").delete().eq("id", row.id);
+      return NextResponse.json({ error: "Could not start checkout" }, { status: 500 });
+    }
+  }
+
+  // Pay-first one-off tiers: Stripe Checkout (one-time)
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",

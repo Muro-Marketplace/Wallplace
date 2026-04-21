@@ -9,6 +9,7 @@ const navItems = [
   { label: "Dashboard", href: "/venue-portal" },
   { label: "Venue Profile", href: "/venue-portal/profile" },
   { label: "Placements", href: "/venue-portal/placements" },
+  { label: "QR Labels", href: "/venue-portal/labels" },
   { label: "Messages", href: "/venue-portal/messages" },
   { label: "Saved", href: "/venue-portal/saved" },
   { label: "My Orders", href: "/venue-portal/orders" },

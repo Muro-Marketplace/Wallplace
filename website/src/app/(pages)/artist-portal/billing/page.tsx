@@ -13,12 +13,22 @@ interface ProfileSubscription {
   is_founding_artist: boolean;
 }
 
-const PLAN_DETAILS: Record<string, { name: string; price: string; fee: string }> = {
-  core: { name: "Core", price: "\u00a39.99/month", fee: "15%" },
-  premium: { name: "Premium", price: "\u00a324.99/month", fee: "8%" },
-  pro: { name: "Pro", price: "\u00a349.99/month", fee: "3%" },
-  none: { name: "No plan", price: "\u2014", fee: "\u2014" },
+// Monthly prices; annual = 10 months' equivalent (2 months free, ~17% off).
+const PLAN_DETAILS: Record<string, { name: string; priceMonthly: number; priceAnnual: number; fee: string }> = {
+  core: { name: "Core", priceMonthly: 9.99, priceAnnual: 99.9, fee: "15%" },
+  premium: { name: "Premium", priceMonthly: 24.99, priceAnnual: 249.9, fee: "8%" },
+  pro: { name: "Pro", priceMonthly: 49.99, priceAnnual: 499.9, fee: "3%" },
+  none: { name: "No plan", priceMonthly: 0, priceAnnual: 0, fee: "\u2014" },
 };
+
+function annualMonthlyEquivalent(priceAnnual: number): string {
+  return `\u00a3${(priceAnnual / 12).toFixed(2)}/mo`;
+}
+
+function annualSavingsPercent(priceMonthly: number, priceAnnual: number): number {
+  if (priceMonthly <= 0) return 0;
+  return Math.round((1 - priceAnnual / (priceMonthly * 12)) * 100);
+}
 
 function daysUntil(dateStr: string | null): number {
   if (!dateStr) return 0;
@@ -59,6 +69,7 @@ export default function BillingPage() {
   const [sub, setSub] = useState<ProfileSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   const [planChanged, setPlanChanged] = useState(false);
   const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
   const [connectLoading, setConnectLoading] = useState(true);
@@ -99,12 +110,12 @@ export default function BillingPage() {
       .finally(() => setConnectLoading(false));
   }, []);
 
-  async function handleSubscribe(plan: string) {
+  async function handleSubscribe(plan: string, billing: "monthly" | "annual" = billingCycle) {
     setRedirecting(true);
     try {
       const res = await authFetch("/api/subscribe", {
         method: "POST",
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, billing }),
       });
       const data = await res.json();
       if (data.url) {
@@ -211,7 +222,9 @@ export default function BillingPage() {
                 <h2 className="text-base font-medium">{details.name}</h2>
                 {statusBadge(status)}
               </div>
-              <p className="text-sm text-muted">{details.price} &middot; {details.fee} platform fee on sales</p>
+              <p className="text-sm text-muted">
+                {details.priceMonthly > 0 ? `\u00a3${details.priceMonthly}/mo or \u00a3${details.priceAnnual}/yr` : "\u2014"} &middot; {details.fee} platform fee on sales
+              </p>
             </div>
             <button
               type="button"
@@ -266,14 +279,26 @@ export default function BillingPage() {
             </div>
           )}
 
-          <h2 className="text-lg font-medium mb-4">Choose a plan</h2>
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <h2 className="text-lg font-medium">Choose a plan</h2>
+            <BillingCycleToggle value={billingCycle} onChange={setBillingCycle} />
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {(["core", "premium", "pro"] as const).map((p) => {
               const d = PLAN_DETAILS[p];
+              const isAnnual = billingCycle === "annual";
+              const saves = annualSavingsPercent(d.priceMonthly, d.priceAnnual);
               return (
                 <div key={p} className="bg-surface border border-border rounded-sm p-5 flex flex-col">
                   <h3 className="text-base font-medium mb-1">{d.name}</h3>
-                  <p className="text-lg font-semibold mb-1">{d.price}</p>
+                  <p className="text-lg font-semibold mb-0.5">
+                    {isAnnual ? `\u00a3${d.priceAnnual}/yr` : `\u00a3${d.priceMonthly}/mo`}
+                  </p>
+                  {isAnnual ? (
+                    <p className="text-[11px] text-accent mb-3">{annualMonthlyEquivalent(d.priceAnnual)} &middot; save {saves}%</p>
+                  ) : (
+                    <p className="text-[11px] text-muted mb-3">billed monthly</p>
+                  )}
                   <p className="text-xs text-muted mb-4">{d.fee} platform fee</p>
                   <button
                     type="button"
@@ -288,7 +313,7 @@ export default function BillingPage() {
             })}
           </div>
           <p className="text-xs text-muted mt-3 text-center">
-            All plans include a 30-day free trial.
+            All plans include a 30-day free trial. Annual plans save ~17%.
           </p>
         </div>
       )}
@@ -296,20 +321,32 @@ export default function BillingPage() {
       {/* Change Plan — for active subscribers */}
       {hasSubscription && (
         <div className="bg-surface border border-border rounded-sm p-6 mb-5">
-          <h2 className="text-base font-medium mb-1">Change Plan</h2>
+          <div className="flex items-center justify-between mb-1 gap-3 flex-wrap">
+            <h2 className="text-base font-medium">Change Plan</h2>
+            <BillingCycleToggle value={billingCycle} onChange={setBillingCycle} />
+          </div>
           <p className="text-sm text-muted mb-5">Upgrade or downgrade anytime. Changes are prorated automatically.</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {(["core", "premium", "pro"] as const).map((p) => {
               const d = PLAN_DETAILS[p];
               const isCurrent = p === plan;
               const isUpgrade = (["core", "premium", "pro"] as const).indexOf(p) > (["core", "premium", "pro"] as const).indexOf(plan as "core" | "premium" | "pro");
+              const isAnnual = billingCycle === "annual";
+              const saves = annualSavingsPercent(d.priceMonthly, d.priceAnnual);
               return (
                 <div key={p} className={`border rounded-sm p-5 flex flex-col ${isCurrent ? "border-accent bg-accent/5" : "border-border"}`}>
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="text-base font-medium">{d.name}</h3>
                     {isCurrent && <span className="text-[10px] font-medium text-accent uppercase tracking-wider">Current</span>}
                   </div>
-                  <p className="text-lg font-semibold mb-0.5">{d.price}</p>
+                  <p className="text-lg font-semibold mb-0.5">
+                    {isAnnual ? `\u00a3${d.priceAnnual}/yr` : `\u00a3${d.priceMonthly}/mo`}
+                  </p>
+                  {isAnnual ? (
+                    <p className="text-[11px] text-accent mb-2">{annualMonthlyEquivalent(d.priceAnnual)} &middot; save {saves}%</p>
+                  ) : (
+                    <p className="text-[11px] text-muted mb-2">billed monthly</p>
+                  )}
                   <p className="text-xs text-muted mb-2">{d.fee} platform fee</p>
                   <ul className="text-xs text-muted space-y-1 mb-4 flex-1">
                     {p === "core" && <><li>Up to 8 works</li><li>Standard profile</li><li>Basic analytics</li></>}
@@ -414,5 +451,41 @@ export default function BillingPage() {
         )}
       </div>
     </ArtistPortalLayout>
+  );
+}
+
+function BillingCycleToggle({
+  value,
+  onChange,
+}: {
+  value: "monthly" | "annual";
+  onChange: (v: "monthly" | "annual") => void;
+}) {
+  return (
+    <div className="inline-flex items-center gap-0.5 p-0.5 bg-background border border-border rounded-sm text-xs">
+      <button
+        type="button"
+        onClick={() => onChange("monthly")}
+        className={`px-3 py-1.5 rounded-sm transition-colors ${
+          value === "monthly" ? "bg-foreground text-white" : "text-muted hover:text-foreground"
+        }`}
+      >
+        Monthly
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange("annual")}
+        className={`px-3 py-1.5 rounded-sm transition-colors inline-flex items-center gap-1.5 ${
+          value === "annual" ? "bg-foreground text-white" : "text-muted hover:text-foreground"
+        }`}
+      >
+        Annual
+        <span className={`px-1.5 py-0.5 rounded-full text-[9px] uppercase tracking-wider ${
+          value === "annual" ? "bg-white/15 text-white" : "bg-accent/10 text-accent"
+        }`}>
+          Save 17%
+        </span>
+      </button>
+    </div>
   );
 }
