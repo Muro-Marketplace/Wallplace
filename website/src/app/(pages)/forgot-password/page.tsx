@@ -15,6 +15,22 @@ export default function ForgotPasswordPage() {
     setError("");
     setLoading(true);
 
+    // F54 — rate-limit precheck. Password-reset emails are expensive to abuse
+    // (they hit Supabase's email provider), so the precheck uses a tighter
+    // window than login (3 per 5 minutes per IP).
+    try {
+      const precheck = await fetch("/api/auth/precheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "forgot-password" }),
+      });
+      if (precheck.status === 429) {
+        setError("Too many requests. Please wait a few minutes and try again.");
+        setLoading(false);
+        return;
+      }
+    } catch { /* network error — fall through */ }
+
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });

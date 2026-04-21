@@ -32,6 +32,21 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
+    // F54 — rate-limit precheck (IP-scoped). Cloudflare edge rules are the
+    // primary line of defence; this catches attempts that slip past.
+    try {
+      const precheck = await fetch("/api/auth/precheck", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "login" }),
+      });
+      if (precheck.status === 429) {
+        setError("Too many attempts. Please wait a minute and try again.");
+        setLoading(false);
+        return;
+      }
+    } catch { /* network error — fall through and let Supabase handle */ }
+
     const { error: authError } = await signIn(email, password);
 
     if (authError) {
