@@ -1566,8 +1566,46 @@ function BrowsePortfoliosPageInner() {
       {activeCategory === "collections" && (
         <section className="py-10 lg:py-14">
           <div className="max-w-[1400px] mx-auto px-6">
-            {/* View toggle — keep the same 3-way switch visible on Collections */}
-            <div className="mb-6 flex items-center justify-end">
+            {/* Mobile toolbar — view + location as pill dropdowns, pinned to the top */}
+            <div className="lg:hidden mb-6 flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value="collections"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "gallery") { setViewAs("works"); setActiveCategory(""); }
+                    else if (v === "portfolios") { setViewAs("artists"); setActiveCategory(""); }
+                  }}
+                  className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
+                >
+                  <option value="portfolios">Portfolios</option>
+                  <option value="gallery">Gallery</option>
+                  <option value="collections">Collections</option>
+                </select>
+                <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <polyline points="2 4 6 8 10 4" />
+                </svg>
+              </div>
+              <div className="relative">
+                <select
+                  value={collectionsLocationMode}
+                  onChange={(e) => {
+                    const v = e.target.value as "global" | "local";
+                    setCollectionsLocationMode(v);
+                    if (v === "local" && !userCoords) handleModeChange("local");
+                  }}
+                  className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50 capitalize"
+                >
+                  <option value="global">Global</option>
+                  <option value="local">Local</option>
+                </select>
+                <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <polyline points="2 4 6 8 10 4" />
+                </svg>
+              </div>
+            </div>
+            {/* Desktop view toggle — 3-way pill group, right-aligned */}
+            <div className="hidden lg:flex mb-6 items-center justify-end">
               <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
                 <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
                   Portfolios
@@ -1586,7 +1624,8 @@ function BrowsePortfoliosPageInner() {
                 <p className="text-sm text-muted">Themed bundles of artwork at a set price. Ready to transform your space.</p>
               </div>
               <div className="flex flex-wrap items-end gap-4">
-                <div>
+                {/* Desktop location toggle — keep the side-by-side button pair */}
+                <div className="hidden lg:block">
                   <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">Location</p>
                   <div className="flex gap-2">
                     {(["global", "local"] as const).map((mode) => (
