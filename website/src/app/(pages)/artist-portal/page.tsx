@@ -13,6 +13,7 @@ interface ActivityItem {
   time: string;
   sortTime: number;
   type: "enquiry" | "sale" | "placement" | "message" | "view";
+  link?: string;
 }
 
 const activityTypes: Record<string, { label: string; bg: string; text: string; icon: React.ReactNode }> = {
@@ -150,19 +151,20 @@ export default function ArtistPortalPage() {
       for (const p of placements.slice(0, 10)) {
         const time = p.responded_at || p.created_at;
         const venueName = formatName(p.venue);
+        const placementLink = `/placements/${encodeURIComponent(p.id)}`;
         if (p.status === "pending") {
-          activityItems.push({ id: "p-" + p.id, text: `Placement request: ${p.work_title || "Artwork"} at ${venueName}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+          activityItems.push({ id: "p-" + p.id, text: `Placement request: ${p.work_title || "Artwork"} at ${venueName}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement", link: placementLink });
         } else if (p.status === "active") {
-          activityItems.push({ id: "pa-" + p.id, text: `Placement accepted: ${p.work_title || "Artwork"} at ${venueName}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+          activityItems.push({ id: "pa-" + p.id, text: `Placement accepted: ${p.work_title || "Artwork"} at ${venueName}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement", link: placementLink });
         } else if (p.status === "declined") {
-          activityItems.push({ id: "pd-" + p.id, text: `Placement declined: ${p.work_title || "Artwork"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement" });
+          activityItems.push({ id: "pd-" + p.id, text: `Placement declined: ${p.work_title || "Artwork"}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement", link: placementLink });
         }
       }
 
       for (const c of conversations) {
         const name = formatName(c.otherParty);
         const preview = c.latestMessage?.slice(0, 50) || "";
-        activityItems.push({ id: "m-" + c.conversationId, text: `${name}: "${preview}${c.latestMessage?.length > 50 ? "..." : ""}"`, time: formatRelativeTime(c.lastActivity), sortTime: new Date(c.lastActivity).getTime(), type: c.unreadCount > 0 ? "enquiry" : "message" });
+        activityItems.push({ id: "m-" + c.conversationId, text: `${name}: "${preview}${c.latestMessage?.length > 50 ? "..." : ""}"`, time: formatRelativeTime(c.lastActivity), sortTime: new Date(c.lastActivity).getTime(), type: c.unreadCount > 0 ? "enquiry" : "message", link: "/artist-portal/messages" });
       }
 
       activityItems.sort((a, b) => b.sortTime - a.sortTime);
@@ -338,21 +340,29 @@ export default function ArtistPortalPage() {
             <ul className="divide-y divide-border">
               {activity.map((item) => {
                 const t = activityTypes[item.type] || activityTypes.view;
-                return (
-                  <li key={item.id} className="px-4 sm:px-6 py-3.5 flex items-center gap-3">
-                    {/* Icon */}
+                const Row = (
+                  <>
                     <div className={`w-8 h-8 rounded-full ${t.bg} ${t.text} flex items-center justify-center shrink-0`}>
                       {t.icon}
                     </div>
-                    {/* Type label — fixed width column */}
                     <span className={`w-20 shrink-0 text-[11px] font-medium ${t.text} uppercase tracking-wider hidden sm:block`}>
                       {t.label}
                     </span>
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-foreground leading-snug truncate">{item.text}</p>
                       <p className="text-[11px] text-muted mt-0.5">{item.time}</p>
                     </div>
+                  </>
+                );
+                return (
+                  <li key={item.id}>
+                    {item.link ? (
+                      <Link href={item.link} className="px-4 sm:px-6 py-3.5 flex items-center gap-3 hover:bg-background/60 transition-colors">
+                        {Row}
+                      </Link>
+                    ) : (
+                      <div className="px-4 sm:px-6 py-3.5 flex items-center gap-3">{Row}</div>
+                    )}
                   </li>
                 );
               })}

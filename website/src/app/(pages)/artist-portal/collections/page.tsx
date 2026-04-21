@@ -299,6 +299,10 @@ export default function CollectionsPage() {
   const isFormValid =
     !!form.name.trim() && form.workIds.length >= 2 && !!form.bundlePrice.trim();
 
+  // F52 — Collections are Premium/Pro only
+  const plan = artist?.subscriptionPlan || "core";
+  const isPremiumPlan = plan === "premium" || plan === "pro";
+
   return (
     <ArtistPortalLayout activePath="/artist-portal/collections">
       <div className="max-w-4xl">
@@ -309,21 +313,46 @@ export default function CollectionsPage() {
               Bundle works into themed collections at a set price.
             </p>
           </div>
-          <button
-            onClick={() => {
-              if (showForm) {
-                resetForm();
-              } else {
-                setForm(EMPTY_FORM);
-                setEditingId(null);
-                setShowForm(true);
-              }
-            }}
-            className="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
-          >
-            {showForm ? "Cancel" : "Create Collection"}
-          </button>
+          {isPremiumPlan && (
+            <button
+              onClick={() => {
+                if (showForm) {
+                  resetForm();
+                } else {
+                  setForm(EMPTY_FORM);
+                  setEditingId(null);
+                  setShowForm(true);
+                }
+              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
+            >
+              {showForm ? "Cancel" : "Create Collection"}
+            </button>
+          )}
         </div>
+
+        {!isPremiumPlan && (
+          <div className="bg-accent/5 border-2 border-accent/30 rounded-sm p-6 mb-8">
+            <p className="text-xs font-medium text-accent uppercase tracking-wider mb-2">
+              Premium feature
+            </p>
+            <h2 className="font-serif text-xl text-foreground mb-2">
+              Collections are available on Premium and Pro
+            </h2>
+            <p className="text-sm text-muted mb-4 max-w-xl">
+              Bundle works into themed collections at a set price and sell them together.
+              Upgrade to unlock collections alongside higher visibility, priority placement,
+              and a lower platform fee.
+            </p>
+            <a
+              href="/artist-portal/billing"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
+            >
+              View plans
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+            </a>
+          </div>
+        )}
 
         {/* Create/edit form */}
         {showForm && (

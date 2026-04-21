@@ -261,7 +261,7 @@ export default function SpacesLookingForArtPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map((venue) => (
-                <div key={venue.slug} className={`bg-surface border border-border rounded-sm overflow-hidden transition-all ${canSeeDetails ? "hover:border-accent/30 hover:shadow-sm" : ""}`}>
+                <div id={`venue-${venue.slug}`} key={venue.slug} className={`bg-surface border border-border rounded-sm overflow-hidden transition-all scroll-mt-24 target:ring-2 target:ring-accent ${canSeeDetails ? "hover:border-accent/30 hover:shadow-sm" : ""}`}>
                   {venue.image && (
                     <div className={`h-40 relative bg-border/20 ${!canSeeDetails ? "blur-sm" : ""}`}>
                       <Image src={venue.image} alt={canSeeDetails ? venue.name : "Venue"} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />

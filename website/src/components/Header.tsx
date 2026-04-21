@@ -14,6 +14,15 @@ const marketplaceSubLinks = [
   { label: "Collections", href: "/browse#collections", description: "Curated artist bundles" },
 ];
 
+// When the user is inside the marketplace area (/browse or /spaces-looking-for-art)
+// the top-level "Marketplace" link is replaced by these inline tabs.
+const marketplaceTabs = [
+  { label: "Portfolios", href: "/browse#portfolios", match: (p: string, h: string) => p === "/browse" && h !== "#gallery" && h !== "#collections" },
+  { label: "Galleries",  href: "/browse#gallery",    match: (p: string, h: string) => p === "/browse" && h === "#gallery" },
+  { label: "Collections", href: "/browse#collections", match: (p: string, h: string) => p === "/browse" && h === "#collections" },
+  { label: "Spaces", href: "/spaces-looking-for-art", match: (p: string) => p === "/spaces-looking-for-art" },
+];
+
 type NavLink = { label: string; href: string; subLinks?: { label: string; href: string; description?: string }[] };
 
 const publicNavLinks: NavLink[] = [
@@ -65,6 +74,16 @@ export default function Header() {
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
   const [marketplaceDropdownOpen, setMarketplaceDropdownOpen] = useState(false);
   const marketplaceDropdownRef = useRef<HTMLDivElement>(null);
+  // Hash tracking for active marketplace tab highlight
+  const [hash, setHash] = useState("");
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash);
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, [pathname]);
+
+  const isMarketplaceArea = pathname.startsWith("/browse") || pathname === "/spaces-looking-for-art";
 
   const portalBase = userType === "venue" ? "/venue-portal" : userType === "customer" ? "/customer-portal" : "/artist-portal";
   const [resolvedSlug, setResolvedSlug] = useState("");
@@ -238,7 +257,25 @@ export default function Header() {
 
           {/* Desktop Navigation — centered on page */}
           <nav className="hidden lg:flex items-center gap-7 absolute left-1/2 -translate-x-1/2" role="navigation" aria-label="Main navigation">
-            {(user ? (userType === "venue" ? venueNavLinks : loggedInNavLinks) : publicNavLinks).map((link) => {
+            {isMarketplaceArea ? (
+              // F47 — marketplace tabs replace the normal nav while inside /browse or /spaces-looking-for-art
+              marketplaceTabs.map((tab) => {
+                const active = tab.match(pathname, hash);
+                const cls = active
+                  ? (isPortal || !showSolid ? "text-white font-semibold border-b-2 border-white" : "text-foreground font-semibold border-b-2 border-accent")
+                  : (isPortal || !showSolid ? "text-white/70 hover:text-white" : "text-muted hover:text-foreground");
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className={`text-sm transition-colors duration-300 py-1 ${cls}`}
+                  >
+                    {tab.label}
+                  </Link>
+                );
+              })
+            ) : (
+            (user ? (userType === "venue" ? venueNavLinks : loggedInNavLinks) : publicNavLinks).map((link) => {
               const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
               const activeClass = isActive
                 ? (isPortal || !showSolid ? "text-white font-semibold" : "text-foreground font-semibold")
@@ -296,9 +333,10 @@ export default function Header() {
                   {link.label}
                 </Link>
               );
-            })}
+            })
+            )}
             {/* More dropdown — logged in only */}
-            {user && (
+            {user && !isMarketplaceArea && (
               <div className="relative" ref={moreDropdownRef}>
                 <button
                   onClick={() => { setMoreDropdownOpen(!moreDropdownOpen); setMsgDropdownOpen(false); setNotifDropdownOpen(false); }}

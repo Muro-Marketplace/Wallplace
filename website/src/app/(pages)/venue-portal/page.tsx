@@ -154,11 +154,11 @@ export default function VenueDashboardPage() {
         const artistName = formatName(p.artist_slug || "");
         const workTitle = p.work_title || "Artwork";
         if (p.status === "pending") {
-          activityItems.push({ id: "p-" + p.id, text: `Placement request: ${workTitle}${artistName ? ` — ${artistName}` : ""}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement", link: "/venue-portal/placements" });
+          activityItems.push({ id: "p-" + p.id, text: `Placement request: ${workTitle}${artistName ? ` — ${artistName}` : ""}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement", link: `/placements/${encodeURIComponent(p.id as string)}` });
         } else if (p.status === "active") {
-          activityItems.push({ id: "pa-" + p.id, text: `Placement accepted: ${workTitle}${artistName ? ` — ${artistName}` : ""}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement_accepted", link: "/venue-portal/placements" });
+          activityItems.push({ id: "pa-" + p.id, text: `Placement accepted: ${workTitle}${artistName ? ` — ${artistName}` : ""}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement_accepted", link: `/placements/${encodeURIComponent(p.id as string)}` });
         } else if (p.status === "declined") {
-          activityItems.push({ id: "pd-" + p.id, text: `Placement declined: ${workTitle}${artistName ? ` — ${artistName}` : ""}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement_declined", link: "/venue-portal/placements" });
+          activityItems.push({ id: "pd-" + p.id, text: `Placement declined: ${workTitle}${artistName ? ` — ${artistName}` : ""}`, time: formatRelativeTime(time), sortTime: new Date(time).getTime(), type: "placement_declined", link: `/placements/${encodeURIComponent(p.id as string)}` });
         }
       }
 

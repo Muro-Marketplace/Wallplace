@@ -54,6 +54,7 @@ const DISTANCE_OPTIONS = [
 
 interface Filters {
   mode: "local" | "global";
+  minDistance: number;
   maxDistance: number;
   themes: string[];
   originals: boolean;
@@ -69,6 +70,7 @@ interface Filters {
 
 const DEFAULT_FILTERS: Filters = {
   mode: "global",
+  minDistance: 0,
   maxDistance: 25,
   themes: [],
   originals: false,
@@ -308,7 +310,7 @@ export default function BrowsePortfoliosPage() {
           artist.coordinates.lat,
           artist.coordinates.lng
         );
-        if (dist > filters.maxDistance) return false;
+        if (dist < filters.minDistance || dist > filters.maxDistance) return false;
       }
       if (
         filters.themes.length > 0 &&
@@ -406,7 +408,7 @@ export default function BrowsePortfoliosPage() {
       // Location
       if (galleryLocationMode === "local" && userCoords && work.artistCoordinates) {
         const dist = calcDistance(userCoords.lat, userCoords.lng, work.artistCoordinates.lat, work.artistCoordinates.lng);
-        if (dist > filters.maxDistance) return false;
+        if (dist < filters.minDistance || dist > filters.maxDistance) return false;
       }
       return true;
     }).sort((a, b) => {
@@ -429,7 +431,7 @@ export default function BrowsePortfoliosPage() {
       }
       return 0; // "featured": original order
     });
-  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.maxDistance, activeCategoryObj, activeSubcategories, gallerySort]);
+  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.minDistance, filters.maxDistance, activeCategoryObj, activeSubcategories, gallerySort]);
 
   const hasGalleryFilters =
     !!galleryTheme || !!galleryMedium || !!galleryStyle || galleryAvailableOnly || galleryPriceMin > 0 || galleryPriceMax < 1000 || galleryOriginals || galleryPrints || galleryFraming || galleryFreeLoan || galleryRevenueShare || galleryPurchase || galleryLocationMode === "local";
@@ -510,25 +512,70 @@ export default function BrowsePortfoliosPage() {
                 )}
               </div>
             )}
-            {/* Distance options — only once we have a location */}
+            {/* Distance range — only once we have a location (F48) */}
             {userCoords && (
               <div>
-                <p className="text-xs text-muted mb-2">Distance</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {DISTANCE_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setFilter("maxDistance", opt.value)}
-                      className={`px-2.5 py-1 text-xs rounded-sm border transition-all duration-150 cursor-pointer ${
-                        filters.maxDistance === opt.value
-                          ? "bg-accent text-white border-accent"
-                          : "border-border text-muted hover:border-accent/50"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                <p className="text-xs text-muted mb-2">
+                  Distance: {filters.minDistance}–{filters.maxDistance >= 9999 ? "Any" : `${filters.maxDistance} mi`}
+                </p>
+                <div className="space-y-2.5">
+                  <div>
+                    <label className="text-[10px] text-muted">Min ({filters.minDistance} mi)</label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={200}
+                      step={1}
+                      value={filters.minDistance}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setFilter("minDistance", Math.min(v, filters.maxDistance));
+                      }}
+                      className="w-full accent-accent h-1.5 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted">Max ({filters.maxDistance >= 9999 ? "Any" : `${filters.maxDistance} mi`})</label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={200}
+                      step={1}
+                      value={filters.maxDistance >= 9999 ? 200 : filters.maxDistance}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        const capped = v >= 200 ? 9999 : v;
+                        setFilter("maxDistance", Math.max(capped, filters.minDistance));
+                      }}
+                      className="w-full accent-accent h-1.5 cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={200}
+                      value={filters.minDistance}
+                      onChange={(e) => setFilter("minDistance", Math.max(0, Math.min(Number(e.target.value) || 0, filters.maxDistance)))}
+                      className="w-16 px-2 py-1 text-xs bg-surface border border-border rounded-sm text-foreground focus:outline-none focus:border-accent/50"
+                    />
+                    <span className="text-xs text-muted">to</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={9999}
+                      value={filters.maxDistance >= 9999 ? "" : filters.maxDistance}
+                      placeholder="Any"
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === "") { setFilter("maxDistance", 9999); return; }
+                        const n = Math.max(filters.minDistance, Number(raw) || 0);
+                        setFilter("maxDistance", n);
+                      }}
+                      className="w-20 px-2 py-1 text-xs bg-surface border border-border rounded-sm text-foreground focus:outline-none focus:border-accent/50"
+                    />
+                    <span className="text-xs text-muted">mi</span>
+                  </div>
                 </div>
               </div>
             )}

@@ -157,12 +157,21 @@ export async function POST(request: Request) {
 
     const { data: profile } = await db
       .from("artist_profiles")
-      .select("id, slug")
+      .select("id, slug, subscription_plan")
       .eq("user_id", auth.user!.id)
       .single();
 
     if (!profile) {
       return NextResponse.json({ error: "Artist profile not found" }, { status: 404 });
+    }
+
+    // F52 — premium gate. Only Premium and Pro plans can create collections.
+    const plan = profile.subscription_plan || "core";
+    if (plan !== "premium" && plan !== "pro") {
+      return NextResponse.json(
+        { error: "Collections are a Premium feature. Upgrade to Premium or Pro to create collections." },
+        { status: 403 }
+      );
     }
 
     const id = `${profile.slug}-collection-${Date.now()}`;
@@ -236,12 +245,20 @@ export async function PATCH(request: Request) {
 
     const { data: profile } = await db
       .from("artist_profiles")
-      .select("id")
+      .select("id, subscription_plan")
       .eq("user_id", auth.user!.id)
       .single();
 
     if (!profile) {
       return NextResponse.json({ error: "Artist profile not found" }, { status: 404 });
+    }
+
+    const plan = profile.subscription_plan || "core";
+    if (plan !== "premium" && plan !== "pro") {
+      return NextResponse.json(
+        { error: "Collections are a Premium feature. Upgrade to Premium or Pro to edit collections." },
+        { status: 403 }
+      );
     }
 
     const { data, error } = await db

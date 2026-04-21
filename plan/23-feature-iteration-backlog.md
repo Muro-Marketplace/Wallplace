@@ -190,7 +190,7 @@ Grouped tightly so the placement experience is coherent end-to-end after this ba
 
 - **F47** Marketplace nav rework: once on `/browse`, replace the "Marketplace" dropdown with inline tabs — Portfolios / Galleries / Collections / Spaces — each routing to its actual view. Portfolios is the default.
 - **F48** Filters: location filter becomes a slider with min/max number inputs.
-- **F49** Global mode filters out artists whose delivery radius doesn't reach the active venue.
+- **F49** Global mode filters out artists whose delivery radius doesn't reach the active venue. **Blocked:** `artist_profiles.delivery_radius` is currently a free-text string ("Nationwide", "Greater London", "Within 10 miles") so can't be reliably compared to a distance. Needs a schema change: add `delivery_radius_miles INTEGER` (NULL = no limit / nationwide) and migrate profile form to capture a number. Filter then becomes `!radius || distance <= radius`.
 - **F50** Recent Activity click-through on both portals: each notification row links to its subject (message, placement, order, etc.) not just the parent page.
 - **F51** Venue "view my public profile" link — show a link on the venue dashboard/profile that opens the venue's page on `/spaces-looking-for-art`. Other venues remain gated as today.
 - **F52** Artist Collections become a premium-only feature. UI gate + API gate behind `subscription_plan in ('premium','pro')`.
