@@ -7,16 +7,18 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 
+// Nav order: Dashboard → Profile / Portfolio → Messages → Placements → rest.
+// (See plan item #8 — Profile first, then Messages, then Placements.)
 const navItems = [
   { label: "Dashboard", href: "/artist-portal" },
-  { label: "Messages", href: "/artist-portal/messages" },
   { label: "Edit Profile", href: "/artist-portal/profile" },
   { label: "My Portfolio", href: "/artist-portal/portfolio" },
+  { label: "Messages", href: "/artist-portal/messages" },
+  { label: "Placements", href: "/artist-portal/placements" },
   { label: "Collections", href: "/artist-portal/collections" },
   { label: "Saved", href: "/artist-portal/saved" },
-  { label: "QR Labels", href: "/artist-portal/labels" },
-  { label: "Placements", href: "/artist-portal/placements" },
   { label: "Orders", href: "/artist-portal/orders" },
+  { label: "QR Labels", href: "/artist-portal/labels" },
   { label: "Analytics", href: "/artist-portal/analytics" },
   { label: "Billing", href: "/artist-portal/billing" },
   { label: "Settings", href: "/artist-portal/settings" },

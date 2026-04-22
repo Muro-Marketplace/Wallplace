@@ -187,7 +187,7 @@ export default function AdminCurationPage() {
                       <Field label="Wall count" value={r.wall_count != null ? String(r.wall_count) : ""} />
                       <Field label="Budget" value={r.budget_gbp} />
                       <Field label="Timeframe" value={r.timeframe} />
-                      <Field label="Phone" value={r.contact_phone} />
+                      <Field label="Phone" value={r.contact_phone} href={r.contact_phone ? `tel:${r.contact_phone.replace(/\s+/g, "")}` : undefined} />
                       <Field label="Paid" value={r.paid_at ? new Date(r.paid_at).toLocaleString("en-GB") : ""} />
                     </div>
                     {r.style_notes && <Block label="Style" body={r.style_notes} />}
@@ -227,12 +227,16 @@ export default function AdminCurationPage() {
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value, href }: { label: string; value: string; href?: string }) {
   if (!value) return null;
   return (
     <div>
       <p className="text-[11px] text-muted uppercase tracking-wider mb-0.5">{label}</p>
-      <p className="text-xs text-foreground">{value}</p>
+      {href ? (
+        <a href={href} className="text-xs text-accent hover:underline">{value}</a>
+      ) : (
+        <p className="text-xs text-foreground">{value}</p>
+      )}
     </div>
   );
 }

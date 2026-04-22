@@ -7,6 +7,17 @@ import { notifyNewMessage, notifyPlacementRequest, notifyPlacementResponse } fro
 import { artists as staticArtists } from "@/data/artists";
 import { venues as staticVenues } from "@/data/venues";
 
+// Slug → Human Readable (last-resort fallback used when we have no
+// artist/venue profile match — turns "fin-coles" into "Fin Coles").
+function formatSlugToName(slug: string): string {
+  if (!slug) return "";
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 // GET: fetch conversations for the authenticated user, enriched with profile data
 export async function GET(request: Request) {
   const auth = await getAuthenticatedUser(request);
@@ -141,9 +152,14 @@ export async function GET(request: Request) {
     // Enrich conversations
     const enriched = sorted.map((conv) => {
       const profile = profileMap.get(conv.otherParty);
+      // Special-case the Wallplace Support system thread so it never
+      // renders as the raw slug "wallplace-support".
+      const isSupport = conv.otherParty === "wallplace-support";
       return {
         ...conv,
-        otherPartyDisplayName: profile?.displayName || conv.otherParty,
+        otherPartyDisplayName: isSupport
+          ? "Wallplace Support"
+          : (profile?.displayName || formatSlugToName(conv.otherParty)),
         otherPartyImage: profile?.image || null,
         otherPartyType: profile?.type || "artist",
         hasActivePlacement: placedSlugs.has(conv.otherParty),

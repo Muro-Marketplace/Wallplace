@@ -86,11 +86,43 @@ export async function GET(request: Request) {
       }
     }
 
+    // QR scan counts (item "QR code scan should be live view count").
+    // analytics_events stores qr_scan rows with artist_slug, venue_name,
+    // work_id. We bucket by (artist_slug + venue_slug + work_title) and
+    // attach the count to each placement.
+    const qrByPlacement: Record<string, number> = {};
+    try {
+      const artistSlugs = Array.from(new Set(placements.map((p) => p.artist_slug).filter(Boolean))) as string[];
+      const venueSlugs = Array.from(new Set(placements.map((p) => p.venue_slug).filter(Boolean))) as string[];
+      if (artistSlugs.length > 0) {
+        const { data: events } = await db
+          .from("analytics_events")
+          .select("artist_slug, venue_name, work_id")
+          .eq("event_type", "qr_scan")
+          .in("artist_slug", artistSlugs);
+        for (const p of placements) {
+          if (!p.id || !p.artist_slug) continue;
+          const count = (events || []).filter((e: { artist_slug?: string; venue_name?: string; work_id?: string }) => {
+            if (e.artist_slug !== p.artist_slug) return false;
+            // Venue attribution is best-effort — some older events may
+            // not carry venue_name. We count anything matching the artist
+            // if venue_slug isn't set, otherwise require venue match.
+            if (p.venue_slug && venueSlugs.length > 0 && e.venue_name && e.venue_name !== p.venue_slug) return false;
+            // Work-level match when available
+            if (p.work_title && e.work_id && e.work_id.toLowerCase() !== String(p.work_title).toLowerCase()) return false;
+            return true;
+          }).length;
+          qrByPlacement[p.id as string] = count;
+        }
+      }
+    } catch { /* leave counts empty if analytics table missing */ }
+
     const enriched = placements.map((p) => ({
       ...p,
       revenue_earned_gbp: p.id && earnedByPlacement[p.id as string]
         ? Math.round(earnedByPlacement[p.id as string] * 100) / 100
         : 0,
+      qr_scans: p.id ? (qrByPlacement[p.id as string] || 0) : 0,
     }));
 
     return NextResponse.json({ placements: enriched, userType: role.type });

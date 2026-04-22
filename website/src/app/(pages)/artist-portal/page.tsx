@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
+import PlacementActionItems from "@/components/PlacementActionItems";
 import Button from "@/components/Button";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -88,7 +89,7 @@ interface OnboardingItem {
 }
 
 export default function ArtistPortalPage() {
-  const { displayName } = useAuth();
+  const { displayName, user } = useAuth();
   const [stats, setStats] = useState({ placements: 0, sales: "£0", enquiries: 0, views: 0 });
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("none");
@@ -199,6 +200,9 @@ export default function ArtistPortalPage() {
           Edit Portfolio
         </Button>
       </div>
+
+      {/* Placement Action Items */}
+      <PlacementActionItems userId={user?.id} role="artist" />
 
       {/* Subscription prompt */}
       {subscriptionStatus === "none" && (

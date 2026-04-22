@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
+import PlacementActionItems from "@/components/PlacementActionItems";
 import { useAuth } from "@/context/AuthContext";
 import { useSaved } from "@/context/SavedContext";
 import { authFetch } from "@/lib/api-client";
@@ -75,7 +76,7 @@ function formatName(raw: string): string {
 }
 
 export default function VenueDashboardPage() {
-  const { displayName } = useAuth();
+  const { displayName, user } = useAuth();
   const { savedItems } = useSaved();
   const savedArtistCount = savedItems.filter((s) => s.type === "artist").length;
   const [stats, setStats] = useState([
@@ -204,6 +205,11 @@ export default function VenueDashboardPage() {
           <p className="text-sm text-muted">Here&apos;s what&apos;s happening with your account.</p>
         </div>
       </div>
+
+      {/* Placement Action Items — surfaces any outstanding placement
+          to-dos at the top of the dashboard. Renders nothing when the
+          queue is empty. */}
+      <PlacementActionItems userId={user?.id} role="venue" />
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

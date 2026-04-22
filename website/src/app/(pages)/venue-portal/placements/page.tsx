@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
 import PlacementStepper, { type PlacementStepperData } from "@/components/PlacementStepper";
+import PlacementActionItems from "@/components/PlacementActionItems";
 import { authFetch } from "@/lib/api-client";
 import { useAuth } from "@/context/AuthContext";
 import { canRespond, isRequester } from "@/lib/placement-permissions";
@@ -44,6 +45,7 @@ interface PlacementRequest {
   venueUserId?: string | null;
   /** Raw ISO / timestamp used for sorting. Display `date` stays formatted. */
   createdAtTs?: number;
+  qrScans?: number;
 }
 
 interface ArtistWork {
@@ -399,6 +401,7 @@ export default function VenuePlacementsPage() {
             artistUserId: (p.artist_user_id as string | null) ?? null,
             venueUserId: (p.venue_user_id as string | null) ?? null,
             createdAtTs: p.created_at ? new Date(p.created_at as string).getTime() : 0,
+            qrScans: typeof p.qr_scans === "number" ? p.qr_scans : 0,
           }));
           // Sort: Pending first (needs attention), then by most-recent created_at
           mapped.sort((a, b) => {
@@ -574,6 +577,9 @@ export default function VenuePlacementsPage() {
           )}
         </div>
       </div>
+
+      {/* Outstanding placement actions — pinned to the top of the page */}
+      <PlacementActionItems userId={user?.id} role="venue" heading="Needs your attention" />
 
       {/* Request Placement Form */}
       {showForm && (
@@ -825,25 +831,31 @@ export default function VenuePlacementsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5">
+                        <div className="flex flex-col gap-1.5">
                         {p.status === "Pending" ? (
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
                             Awaiting response
                           </span>
                         ) : p.status === "Declined" ? (
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
                             Declined
                           </span>
                         ) : (
                           <select
                             value={p.status}
                             onChange={(e) => updateStatus(p.id, e.target.value as PlacementStatus)}
-                            className={`text-xs font-medium px-2 py-0.5 rounded-full border-none cursor-pointer ${statusBadge(p.status)}`}
+                            className={`text-xs font-medium px-2 py-0.5 rounded-full border-none cursor-pointer self-start ${statusBadge(p.status)}`}
                           >
                             <option value="Active">Active</option>
                             <option value="Completed">Completed</option>
                             <option value="Sold">Sold</option>
                           </select>
                         )}
+                        {/* Inline mini status bar on desktop too (web parity) */}
+                        {(p.status === "Active" || p.status === "Completed" || p.status === "Sold") && (
+                          <MiniStatusBar p={p} />
+                        )}
+                        </div>
                       </td>
                       <td className="px-4 py-3.5 text-muted whitespace-nowrap">{p.date}</td>
                       <td className="px-4 py-3.5 text-right font-medium text-foreground">
@@ -900,7 +912,7 @@ export default function VenuePlacementsPage() {
                             </div>
                             <div>
                               <p className="text-muted mb-0.5">QR Scans</p>
-                              <p className="text-foreground font-medium">0</p>
+                              <p className="text-foreground font-medium">{p.qrScans ?? 0}</p>
                             </div>
                           </div>
 

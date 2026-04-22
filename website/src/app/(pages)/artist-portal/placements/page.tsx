@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
+import PlacementActionItems from "@/components/PlacementActionItems";
 import PlacementStepper, { type PlacementStepperData } from "@/components/PlacementStepper";
 import { useCurrentArtist } from "@/hooks/useCurrentArtist";
 import { useAuth } from "@/context/AuthContext";
@@ -309,6 +310,9 @@ export default function PlacementsPage() {
           </button>
         </div>
       </div>
+
+      {/* Outstanding placement actions */}
+      <PlacementActionItems userId={user?.id} role="artist" heading="Needs your attention" />
 
       {/* Request Placement Form */}
       {showForm && (
