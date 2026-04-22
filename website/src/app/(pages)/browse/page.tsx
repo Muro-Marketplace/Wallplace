@@ -1532,7 +1532,7 @@ function BrowsePortfoliosPageInner() {
                     <button type="button" onClick={clearGalleryFilters} className="text-sm text-accent hover:text-accent-hover transition-colors cursor-pointer">Clear all filters</button>
                   </div>
                 ) : (
-                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5 space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                   {filteredGalleryWorks.map((work) => {
                     const workSlug = slugify(work.title);
                     // ArtistProfileClient opens the lightbox when ?work= is present,
@@ -1544,14 +1544,16 @@ function BrowsePortfoliosPageInner() {
                       ? calcDistance(userCoords.lat, userCoords.lng, work.artistCoordinates.lat, work.artistCoordinates.lng)
                       : null;
                     return (
-                      <div key={work.id} className="group break-inside-avoid block">
-                        <div className="bg-surface border border-border/50 rounded-lg overflow-hidden">
+                      <div key={work.id} className="group block">
+                        <div className="bg-surface border border-border/50 rounded-lg overflow-hidden h-full flex flex-col">
                           {/* Image */}
                           <div
                             className="relative overflow-hidden bg-border/20 rounded-t-lg select-none"
                             onContextMenu={(e) => e.preventDefault()}
                           >
-                            <Link href={quickLookHref} aria-label={`Quick look at ${work.title}`}>
+                            {/* Clicking the image opens the full artwork page in a new tab.
+                                The hover "eye" icon still triggers quick-look on the same tab. */}
+                            <a href={fullPageHref} target="_blank" rel="noopener noreferrer" aria-label={`Open ${work.title} in new tab`}>
                               <Image
                                 src={work.image}
                                 alt={work.title}
@@ -1563,7 +1565,7 @@ function BrowsePortfoliosPageInner() {
                                 onContextMenu={(e) => e.preventDefault()}
                               />
                               <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/20 to-transparent" />
-                            </Link>
+                            </a>
                             {!work.available && (
                               <span className="absolute top-3 left-3 z-10 px-2 py-0.5 bg-black/70 text-white text-[10px] rounded-sm backdrop-blur-sm">
                                 Sold
@@ -1598,13 +1600,13 @@ function BrowsePortfoliosPageInner() {
                           </div>
 
                           {/* Info */}
-                          <div className="px-4 py-3.5">
+                          <div className="px-4 py-3.5 flex-1 flex flex-col">
                             <div className="flex items-baseline justify-between gap-2">
-                              <Link href={quickLookHref} className="block group/title min-w-0 flex-1">
+                              <a href={fullPageHref} target="_blank" rel="noopener noreferrer" className="block group/title min-w-0 flex-1">
                                 <h3 className="text-sm font-medium text-foreground leading-tight group-hover/title:text-accent transition-colors truncate">
                                   {work.title}
                                 </h3>
-                              </Link>
+                              </a>
                               {workDistance !== null && (
                                 <span className="text-[10px] text-muted shrink-0">
                                   {workDistance < 0.2 ? "< 0.2 mi" : `${workDistance.toFixed(1)} mi`}

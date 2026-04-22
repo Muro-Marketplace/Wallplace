@@ -7,6 +7,8 @@ import { useSearchParams } from "next/navigation";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
 import PlacementStepper, { type PlacementStepperData } from "@/components/PlacementStepper";
 import { authFetch } from "@/lib/api-client";
+import { useAuth } from "@/context/AuthContext";
+import { canRespond, isRequester } from "@/lib/placement-permissions";
 
 function formatSlug(slug: string): string {
   if (!slug) return "";
@@ -37,6 +39,11 @@ interface PlacementRequest {
   installedAt?: string | null;
   liveFrom?: string | null;
   collectedAt?: string | null;
+  requesterUserId?: string | null;
+  artistUserId?: string | null;
+  venueUserId?: string | null;
+  /** Raw ISO / timestamp used for sorting. Display `date` stays formatted. */
+  createdAtTs?: number;
 }
 
 interface ArtistWork {
@@ -76,6 +83,7 @@ function normaliseType(raw: string): ArrangementType {
 }
 
 export default function VenuePlacementsPage() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
   const [placements, setPlacements] = useState<PlacementRequest[]>([]);
@@ -95,6 +103,7 @@ export default function VenuePlacementsPage() {
   const [monthlyFee, setMonthlyFee] = useState<number | "">("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [worksLoading, setWorksLoading] = useState(false);
 
   // Pre-populate from URL params (from browse lightbox)
@@ -183,7 +192,18 @@ export default function VenuePlacementsPage() {
             installedAt: (p.installed_at as string | null) ?? null,
             liveFrom: (p.live_from as string | null) ?? null,
             collectedAt: (p.collected_at as string | null) ?? null,
+            requesterUserId: (p.requester_user_id as string | null) ?? null,
+            artistUserId: (p.artist_user_id as string | null) ?? null,
+            venueUserId: (p.venue_user_id as string | null) ?? null,
+            createdAtTs: p.created_at ? new Date(p.created_at as string).getTime() : 0,
           }));
+          // Sort: Pending first (needs attention), then by most-recent created_at
+          mapped.sort((a, b) => {
+            const aPending = a.status === "Pending" ? 1 : 0;
+            const bPending = b.status === "Pending" ? 1 : 0;
+            if (aPending !== bPending) return bPending - aPending;
+            return (b.createdAtTs || 0) - (a.createdAtTs || 0);
+          });
           setPlacements(mapped);
         }
       } catch { /* ignore */ } finally {
@@ -203,7 +223,15 @@ export default function VenuePlacementsPage() {
   }
 
   async function handleSubmitRequest() {
-    if (!artistSlug || selectedWorks.size === 0) return;
+    if (!artistSlug) {
+      setSubmitError("Select an artist before sending a request.");
+      return;
+    }
+    if (selectedWorks.size === 0) {
+      setSubmitError("Select at least one work to request.");
+      return;
+    }
+    setSubmitError(null);
     setSubmitting(true);
 
     const rev = typeof revenuePercent === "number" ? revenuePercent : 0;
@@ -236,29 +264,36 @@ export default function VenuePlacementsPage() {
         }),
       });
 
-      if (res.ok) {
-        const mapped: PlacementRequest[] = newPlacements.map((p) => ({
-          id: p.id,
-          artistName: artistName || artistSlug,
-          artistSlug,
-          workTitle: p.workTitle,
-          workImage: p.workImage,
-          type: qrEnabled && rev > 0 ? "Revenue Share" as ArrangementType : "Paid Loan" as ArrangementType,
-          revenueSharePercent: p.revenueSharePercent,
-          status: "Pending",
-          date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-          message: p.message,
-        }));
-        setPlacements([...mapped, ...placements]);
-        setShowForm(false);
-        setQrEnabled(true);
-        setMonthlyFee("");
-        setSelectedWorks(new Set());
-        setMessage("");
-        setRevenuePercent(0);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg: string = body?.error || `Could not send request (HTTP ${res.status})`;
+        setSubmitError(msg);
+        setSubmitting(false);
+        return;
       }
+
+      const mapped: PlacementRequest[] = newPlacements.map((p) => ({
+        id: p.id,
+        artistName: artistName || artistSlug,
+        artistSlug,
+        workTitle: p.workTitle,
+        workImage: p.workImage,
+        type: qrEnabled && rev > 0 ? "Revenue Share" as ArrangementType : "Paid Loan" as ArrangementType,
+        revenueSharePercent: p.revenueSharePercent,
+        status: "Pending",
+        date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+        message: p.message,
+      }));
+      setPlacements([...mapped, ...placements]);
+      setShowForm(false);
+      setQrEnabled(true);
+      setMonthlyFee("");
+      setSelectedWorks(new Set());
+      setMessage("");
+      setRevenuePercent(0);
     } catch (err) {
       console.error("Placement request error:", err);
+      setSubmitError("Network error — please try again.");
     }
     setSubmitting(false);
   }
@@ -486,17 +521,22 @@ export default function VenuePlacementsPage() {
             </div>
 
             {/* Submit */}
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={handleSubmitRequest}
-                disabled={selectedWorks.size === 0 || !artistSlug || submitting}
-                className="px-6 py-2.5 text-sm font-medium text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {submitting ? "Sending..." : `Request ${selectedWorks.size} Placement${selectedWorks.size !== 1 ? "s" : ""}`}
-              </button>
-              <button onClick={() => { setShowForm(false); setArtistSlug(""); setArtistWorks([]); setSelectedWorks(new Set()); }} className="px-6 py-2.5 text-sm text-muted border border-border rounded-sm hover:text-foreground transition-colors">
-                Cancel
-              </button>
+            <div className="pt-2">
+              {submitError && (
+                <p className="text-sm text-red-600 mb-3">{submitError}</p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSubmitRequest}
+                  disabled={selectedWorks.size === 0 || !artistSlug || submitting}
+                  className="px-6 py-2.5 text-sm font-medium text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {submitting ? "Sending..." : `Request ${selectedWorks.size} Placement${selectedWorks.size !== 1 ? "s" : ""}`}
+                </button>
+                <button onClick={() => { setShowForm(false); setArtistSlug(""); setArtistWorks([]); setSelectedWorks(new Set()); setSubmitError(null); }} className="px-6 py-2.5 text-sm text-muted border border-border rounded-sm hover:text-foreground transition-colors">
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -678,7 +718,7 @@ export default function VenuePlacementsPage() {
                               Message Artist
                             </Link>
                             <div className="flex items-center gap-2 ml-auto">
-                              {p.status === "Pending" && (
+                              {canRespond({ status: p.status, requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id, "venue") && (
                                 <>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
@@ -695,6 +735,11 @@ export default function VenuePlacementsPage() {
                                     Decline
                                   </button>
                                 </>
+                              )}
+                              {p.status === "Pending" && isRequester({ requester_user_id: p.requesterUserId }, user?.id) && (
+                                <span className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-sm">
+                                  Awaiting artist response
+                                </span>
                               )}
                               <Link
                                 href={`/placements/${encodeURIComponent(p.id)}`}
@@ -870,7 +915,7 @@ export default function VenuePlacementsPage() {
                         Message Artist
                       </Link>
                       <div className="flex items-center gap-2 ml-auto">
-                        {p.status === "Pending" && (
+                        {canRespond({ status: p.status, requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id, "venue") && (
                           <>
                             <button
                               onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
@@ -887,6 +932,11 @@ export default function VenuePlacementsPage() {
                               Decline
                             </button>
                           </>
+                        )}
+                        {p.status === "Pending" && isRequester({ requester_user_id: p.requesterUserId }, user?.id) && (
+                          <span className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-sm">
+                            Awaiting artist response
+                          </span>
                         )}
                         <Link
                           href={`/placements/${encodeURIComponent(p.id)}`}

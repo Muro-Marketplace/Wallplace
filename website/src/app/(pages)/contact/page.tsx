@@ -78,7 +78,7 @@ export default function ContactPage() {
                       Instagram
                     </p>
                     <a
-                      href="https://instagram.com/wallplace"
+                      href="https://instagram.com/thewallplace"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 text-sm text-accent hover:text-accent-hover transition-colors duration-200"
@@ -103,7 +103,7 @@ export default function ContactPage() {
                           stroke="none"
                         />
                       </svg>
-                      @wallplace
+                      @thewallplace
                     </a>
                   </div>
                 </div>

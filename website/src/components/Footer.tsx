@@ -53,7 +53,7 @@ export default function Footer() {
             </p>
             {/* Instagram */}
             <a
-              href="https://instagram.com/wallplace"
+              href="https://instagram.com/thewallplace"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 mt-6 text-sm text-muted hover:text-foreground transition-colors duration-200"
