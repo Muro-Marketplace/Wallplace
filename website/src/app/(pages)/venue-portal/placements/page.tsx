@@ -82,6 +82,142 @@ function normaliseType(raw: string): ArrangementType {
   return map[raw] || "Paid Loan";
 }
 
+interface PickerArtist {
+  slug: string;
+  name: string;
+  group: "saved" | "messaged" | "placed" | "search";
+  image?: string;
+}
+
+/**
+ * Search-and-pick dropdown for venues requesting placements.
+ * Data sources: saved_items, conversations, placement history, and free-text
+ * search against /api/browse-artists. All bucketed by source and de-duped.
+ */
+function ArtistPickerDropdown({ onPick }: { onPick: (slug: string, name: string) => void }) {
+  const [query, setQuery] = useState("");
+  const [savedArtists, setSavedArtists] = useState<PickerArtist[]>([]);
+  const [messagedArtists, setMessagedArtists] = useState<PickerArtist[]>([]);
+  const [placedArtists, setPlacedArtists] = useState<PickerArtist[]>([]);
+  const [allArtists, setAllArtists] = useState<PickerArtist[]>([]);
+
+  useEffect(() => {
+    // Saved artists (works are saved; derive the artist from each work's slug)
+    authFetch("/api/saved")
+      .then((r) => r.json())
+      .then(async (data) => {
+        const items: { type: string; itemId: string }[] = data.savedItems || [];
+        const workIds = items.filter((i) => i.type === "work").map((i) => i.itemId);
+        const artistSet = new Map<string, string>();
+        // Lookup artist slug per saved work via browse-artists (we already load it)
+        try {
+          const res = await fetch("/api/browse-artists");
+          const browseData = await res.json();
+          const artistsList: Array<{ slug: string; name: string; works?: Array<{ id: string }> }> = browseData.artists || [];
+          for (const a of artistsList) {
+            if (a.works?.some((w) => workIds.includes(w.id))) {
+              artistSet.set(a.slug, a.name);
+            }
+          }
+          // Saved artists directly (type: artist) — check if any in saved_items
+          for (const i of items.filter((x) => x.type === "artist")) {
+            const found = artistsList.find((a) => a.slug === i.itemId);
+            if (found) artistSet.set(found.slug, found.name);
+          }
+          setSavedArtists(Array.from(artistSet.entries()).map(([slug, name]) => ({ slug, name, group: "saved" as const })));
+          setAllArtists(artistsList.map((a) => ({ slug: a.slug, name: a.name, group: "search" as const })));
+        } catch { /* ignore */ }
+      })
+      .catch(() => {});
+
+    // Messaged artists — hit the venue conversations endpoint
+    authFetch("/api/messages")
+      .then((r) => r.json())
+      .then((data) => {
+        const convs: Array<{ otherParty: string; otherPartyDisplayName: string; otherPartyType?: string }> = data.conversations || [];
+        const seen = new Set<string>();
+        const picks: PickerArtist[] = [];
+        for (const c of convs) {
+          // Include only artist-party conversations; skip if type missing, include anyway
+          if (!c.otherParty || seen.has(c.otherParty)) continue;
+          seen.add(c.otherParty);
+          picks.push({ slug: c.otherParty, name: c.otherPartyDisplayName || c.otherParty, group: "messaged" });
+        }
+        setMessagedArtists(picks);
+      })
+      .catch(() => {});
+
+    // Existing placements (so venue can re-request easily)
+    authFetch("/api/placements")
+      .then((r) => r.json())
+      .then((data) => {
+        const rows: Array<{ artist_slug?: string }> = data.placements || [];
+        const seen = new Set<string>();
+        const picks: PickerArtist[] = [];
+        for (const p of rows) {
+          if (!p.artist_slug || seen.has(p.artist_slug)) continue;
+          seen.add(p.artist_slug);
+          picks.push({ slug: p.artist_slug, name: p.artist_slug, group: "placed" });
+        }
+        setPlacedArtists(picks);
+      })
+      .catch(() => {});
+  }, []);
+
+  const q = query.trim().toLowerCase();
+  const searchResults = q
+    ? allArtists.filter((a) =>
+        a.slug.toLowerCase().includes(q) || a.name.toLowerCase().includes(q),
+      ).slice(0, 8)
+    : [];
+
+  const groups: Array<{ label: string; items: PickerArtist[] }> = [];
+  if (!q) {
+    if (savedArtists.length) groups.push({ label: "Saved", items: savedArtists.slice(0, 6) });
+    if (messagedArtists.length) groups.push({ label: "Messaged", items: messagedArtists.slice(0, 6) });
+    if (placedArtists.length) groups.push({ label: "Previously placed", items: placedArtists.slice(0, 6) });
+  } else {
+    groups.push({ label: `Search results (${searchResults.length})`, items: searchResults });
+  }
+
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-2">Artist</label>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search artists by name, or pick below"
+        className="w-full px-3 py-2 text-sm bg-background border border-border rounded-sm focus:outline-none focus:border-accent/60 mb-3"
+      />
+      {groups.length === 0 ? (
+        <p className="text-xs text-muted">Browse the marketplace, save an artist, or message one — they&rsquo;ll appear here.</p>
+      ) : (
+        <div className="space-y-3 max-h-64 overflow-y-auto">
+          {groups.map((g) => (
+            <div key={g.label}>
+              <p className="text-[10px] uppercase tracking-widest text-muted mb-1.5">{g.label}</p>
+              <div className="space-y-1">
+                {g.items.map((a) => (
+                  <button
+                    key={`${g.label}-${a.slug}`}
+                    type="button"
+                    onClick={() => onPick(a.slug, a.name)}
+                    className="w-full text-left px-3 py-2 text-sm bg-background hover:bg-accent/5 border border-border hover:border-accent/30 rounded-sm transition-colors"
+                  >
+                    <p className="font-medium text-foreground">{a.name}</p>
+                    {a.slug !== a.name && <p className="text-xs text-muted">@{a.slug}</p>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function VenuePlacementsPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
@@ -381,11 +517,20 @@ export default function VenuePlacementsPage() {
           </div>
 
           <div className="space-y-5">
-            {/* Artist info */}
-            {artistName && (
-              <div className="bg-accent/5 border border-accent/20 rounded-sm px-4 py-3">
-                <p className="text-sm"><span className="text-accent font-medium">Artist:</span> {artistName}</p>
+            {/* Artist picker / info */}
+            {artistSlug ? (
+              <div className="bg-accent/5 border border-accent/20 rounded-sm px-4 py-3 flex items-center justify-between gap-3">
+                <p className="text-sm"><span className="text-accent font-medium">Artist:</span> {artistName || artistSlug}</p>
+                <button
+                  type="button"
+                  onClick={() => { setArtistSlug(""); setArtistName(""); setArtistWorks([]); setSelectedWorks(new Set()); }}
+                  className="text-xs text-muted hover:text-foreground underline"
+                >
+                  Change
+                </button>
               </div>
+            ) : (
+              <ArtistPickerDropdown onPick={(slug, name) => { setArtistSlug(slug); setArtistName(name); loadArtistWorks(slug); }} />
             )}
 
             {/* Placement type */}
