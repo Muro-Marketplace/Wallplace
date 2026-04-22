@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { authFetch } from "@/lib/api-client";
 import type { PlacementRecord } from "./PlacementDetailClient";
+import DatePicker from "@/components/DatePicker";
 
 interface Props {
   placementId: string;
@@ -207,18 +208,23 @@ export default function PlacementLoanForm({ placementId, record, viewerRole, onS
 
       {/* Dates */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <label className={labelCls}>Start date</label>
-          <input type="date" value={form.startDate} onChange={(e) => update("startDate", e.target.value)} className={inputCls} />
-        </div>
-        <div>
-          <label className={labelCls}>Review date</label>
-          <input type="date" value={form.reviewDate} onChange={(e) => update("reviewDate", e.target.value)} className={inputCls} />
-        </div>
-        <div>
-          <label className={labelCls}>Collection / return</label>
-          <input type="date" value={form.collectionDate} onChange={(e) => update("collectionDate", e.target.value)} className={inputCls} />
-        </div>
+        <DatePicker
+          label="Start date"
+          value={form.startDate}
+          onChange={(v) => update("startDate", v)}
+        />
+        <DatePicker
+          label="Review date"
+          value={form.reviewDate}
+          onChange={(v) => update("reviewDate", v)}
+          min={form.startDate || undefined}
+        />
+        <DatePicker
+          label="Collection / return"
+          value={form.collectionDate}
+          onChange={(v) => update("collectionDate", v)}
+          min={form.startDate || undefined}
+        />
       </div>
 
       {/* Values */}
