@@ -275,7 +275,7 @@ export default function PlacementContextPanel({
       <aside className="w-full h-full bg-[#FAF8F5] border-l border-border flex flex-col">
         <div className="px-5 py-6">
           <Header title="Placement" />
-          <p className="text-xs text-muted mt-3">Loading\u2026</p>
+          <p className="text-xs text-muted mt-3">Loading…</p>
         </div>
       </aside>
     );
@@ -295,7 +295,7 @@ export default function PlacementContextPanel({
               Select works {reqSelected.size > 0 && <span className="text-accent normal-case">({reqSelected.size})</span>}
             </p>
             {otherPartyWorksLoading ? (
-              <p className="text-xs text-muted">Loading portfolio\u2026</p>
+              <p className="text-xs text-muted">Loading portfolio…</p>
             ) : otherPartyWorks.length > 0 ? (
               <div className="grid grid-cols-3 gap-2">
                 {otherPartyWorks.slice(0, 12).map((w) => {
@@ -358,7 +358,7 @@ export default function PlacementContextPanel({
           {error && <p className="text-xs text-red-600">{error}</p>}
 
           <button onClick={handleRequest} disabled={busyAction === "request" || reqSelected.size === 0} className="w-full px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-40">
-            {busyAction === "request" ? "Sending\u2026" : `Send placement request${reqSelected.size > 1 ? ` (${reqSelected.size})` : ""}`}
+            {busyAction === "request" ? "Sending…" : `Send placement request${reqSelected.size > 1 ? ` (${reqSelected.size})` : ""}`}
           </button>
         </div>
       </aside>
@@ -400,7 +400,7 @@ export default function PlacementContextPanel({
           {displayStatus === "Pending" && role === "responder" && !counterOpen && (
             <div className="mt-3 flex gap-2">
               <button onClick={handleAccept} disabled={busyAction === "accept"} className="px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors disabled:opacity-60">
-                {busyAction === "accept" ? "Accepting\u2026" : "Accept"}
+                {busyAction === "accept" ? "Accepting…" : "Accept"}
               </button>
               <button onClick={() => {
                 setCounterOpen(true);
@@ -411,7 +411,7 @@ export default function PlacementContextPanel({
                 Counter
               </button>
               <button onClick={handleDecline} disabled={busyAction === "decline"} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-60">
-                {busyAction === "decline" ? "Declining\u2026" : "Decline"}
+                {busyAction === "decline" ? "Declining…" : "Decline"}
               </button>
             </div>
           )}
@@ -463,7 +463,7 @@ export default function PlacementContextPanel({
             <textarea value={counterNote} onChange={(e) => setCounterNote(e.target.value)} placeholder="Add a note (optional)" rows={2} className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50 resize-none" />
             <div className="flex gap-2">
               <button onClick={handleCounterSubmit} disabled={busyAction === "counter"} className="flex-1 px-3 py-2 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors disabled:opacity-60">
-                {busyAction === "counter" ? "Sending\u2026" : "Send counter"}
+                {busyAction === "counter" ? "Sending…" : "Send counter"}
               </button>
               <button onClick={() => setCounterOpen(false)} className="px-3 py-2 text-xs text-muted hover:text-foreground">Cancel</button>
             </div>

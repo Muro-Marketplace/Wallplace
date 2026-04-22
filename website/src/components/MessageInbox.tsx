@@ -462,7 +462,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search conversations\u2026"
+              placeholder="Search conversations…"
               className="w-full pl-8 pr-3 py-2 bg-[#FAF8F5] border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50 placeholder:text-muted"
             />
           </div>
