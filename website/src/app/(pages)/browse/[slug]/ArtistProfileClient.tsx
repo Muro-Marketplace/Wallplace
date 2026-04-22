@@ -213,7 +213,14 @@ export default function ArtistProfileClient({
                 key={work.id}
                 id={`work-${slugify(work.title)}`}
                 className="break-inside-avoid group relative overflow-hidden rounded-sm bg-border/20 scroll-mt-24 cursor-pointer"
-                onClick={() => setLightboxIndex(index)}
+                onClick={() => {
+                  // Click on the card opens the full artwork page in a
+                  // new tab. The hover "Quick look" icon still opens the
+                  // lightbox on the same tab — that's the only trigger
+                  // that should open it.
+                  const href = `/browse/${artistSlug}/${slugify(work.title)}`;
+                  if (typeof window !== "undefined") window.open(href, "_blank", "noopener,noreferrer");
+                }}
               >
                 {/* Image with protection overlay */}
                 <div
@@ -461,8 +468,24 @@ export default function ArtistProfileClient({
                 <svg width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="#1A1A1A" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
               </button>
 
-              {/* Artist */}
-              <p className="text-xs text-muted uppercase tracking-wider mb-1">{artistName}</p>
+              {/* Artist + inline Message CTA
+                  (moved from the bottom secondary-links stack so it's
+                  immediately obvious how to contact the artist without
+                  scrolling past the details, pricing, and CTAs.) */}
+              <div className="flex items-center justify-between gap-3 mb-1">
+                <p className="text-xs text-muted uppercase tracking-wider">{artistName}</p>
+                <button
+                  type="button"
+                  onClick={() => { setShowEnquiry(true); setEnquirySent(false); }}
+                  className="inline-flex items-center gap-1.5 shrink-0 px-2.5 py-1 text-[11px] font-medium text-accent border border-accent/30 hover:border-accent hover:bg-accent/5 rounded-full transition-colors"
+                  aria-label={`Message ${artistName}`}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  Message
+                </button>
+              </div>
 
               {/* Title */}
               <h3 className="text-base sm:text-xl font-serif text-foreground leading-snug mb-2 sm:mb-3">
@@ -619,8 +642,9 @@ export default function ArtistProfileClient({
                 })()}
               </div>
 
-              {/* Secondary links — stacked, full-width text links */}
-              <div className="mt-4 flex flex-col items-start gap-2 text-xs">
+              {/* Secondary link — just the "full page" link now; the
+                  Message CTA moved up next to the artist name. */}
+              <div className="mt-4 text-xs">
                 <Link
                   href={`/browse/${artistSlug}/${slugify(currentWork.title)}`}
                   onClick={() => { navigatingAway.current = true; setLightboxIndex(null); }}
@@ -631,14 +655,6 @@ export default function ArtistProfileClient({
                     <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
                   </svg>
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => { setShowEnquiry(true); setEnquirySent(false); }}
-                  className="inline-flex items-center gap-1 text-muted hover:text-foreground transition-colors"
-                >
-                  Message {artistName.split(" ")[0]}
-                  <span aria-hidden>→</span>
-                </button>
               </div>
 
               {/* Counter */}

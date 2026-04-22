@@ -400,11 +400,11 @@ export async function PATCH(request: Request) {
     // Fetch the placement (include requester_user_id where available)
     let { data: existing } = await db
       .from("placements")
-      .select("artist_user_id, venue_user_id, artist_slug, venue, status, requester_user_id")
+      .select("artist_user_id, venue_user_id, artist_slug, venue_slug, venue, status, requester_user_id")
       .eq("id", id)
       .single();
 
-    // Retry without requester_user_id if the column doesn't exist yet
+    // Retry without requester_user_id / venue_slug if the columns don't exist yet
     if (!existing) {
       const fallback = await db
         .from("placements")
@@ -543,6 +543,61 @@ export async function PATCH(request: Request) {
         }).catch(() => {});
       } catch (err) {
         console.warn("Response notification skipped:", err);
+      }
+
+      // Post a placement_response message in the existing conversation so
+      // the messages view reflects the decision without the user having to
+      // click Accept/Decline there too. Any prior placement_request
+      // messages will now render as "✓ Accepted" or "✗ Declined".
+      try {
+        const [{ data: artistP }, { data: venueP }] = await Promise.all([
+          existing.artist_user_id
+            ? db.from("artist_profiles").select("slug, name").eq("user_id", existing.artist_user_id).single()
+            : Promise.resolve({ data: null } as { data: { slug: string; name: string } | null }),
+          existing.venue_user_id
+            ? db.from("venue_profiles").select("slug, name").eq("user_id", existing.venue_user_id).single()
+            : Promise.resolve({ data: null } as { data: { slug: string; name: string } | null }),
+        ]);
+        const artistSlug = (artistP?.slug || existing.artist_slug) as string | null;
+        const venueSlug = (venueP?.slug || existing.venue_slug) as string | null;
+        if (artistSlug && venueSlug) {
+          // Responder is whoever's NOT the requester.
+          const responderIsArtist = auth.user!.id === existing.artist_user_id;
+          const senderSlug = responderIsArtist ? artistSlug : venueSlug;
+          const recipientSlug = responderIsArtist ? venueSlug : artistSlug;
+          const senderType = responderIsArtist ? "artist" : "venue";
+          const recipientUserId = responderIsArtist ? existing.venue_user_id : existing.artist_user_id;
+          const content = status === "active"
+            ? "Placement request accepted."
+            : "Placement request declined.";
+          const baseMsg = {
+            conversation_id: deterministicConversationId(senderSlug, recipientSlug),
+            sender_id: auth.user!.id,
+            sender_name: senderSlug,
+            sender_type: senderType,
+            recipient_slug: recipientSlug,
+            recipient_user_id: recipientUserId || null,
+            content,
+            is_read: false,
+            created_at: new Date().toISOString(),
+          };
+          const extendedMsg = {
+            ...baseMsg,
+            message_type: "placement_response",
+            metadata: { placementId: id, status },
+          };
+          let { error: msgErr } = await db.from("messages").insert(extendedMsg);
+          if (msgErr) {
+            // Fall back without message_type/metadata if columns missing
+            const retry = await db.from("messages").insert(baseMsg);
+            msgErr = retry.error;
+          }
+          if (msgErr) {
+            console.warn("Auto placement_response message failed:", msgErr.message);
+          }
+        }
+      } catch (err) {
+        console.warn("Placement response message skipped:", err);
       }
     }
 
