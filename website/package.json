@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@react-email/components": "^1.0.12",
     "@supabase/supabase-js": "^2.103.0",
     "@types/qrcode": "^1.5.6",
     "date-fns": "^4.1.0",
