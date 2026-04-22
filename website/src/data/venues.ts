@@ -18,6 +18,8 @@ export interface Venue {
   preferredThemes: string[];
   description: string;
   image: string;
+  /** Optional gallery of venue photos uploaded by the venue owner. */
+  images?: string[];
 }
 
 export const venues: Venue[] = [

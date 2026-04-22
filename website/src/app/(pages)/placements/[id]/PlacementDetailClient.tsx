@@ -276,21 +276,66 @@ export default function PlacementDetailClient({ placementId }: Props) {
         />
       </div>
 
-      {/* Summary grid */}
+      {/* Summary grid — the first box is the headline commercial term so it
+          reads clearly at a glance: revenue share %, monthly paid-loan fee,
+          or purchase price. The other two boxes add supporting context. */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <div className="bg-surface border border-border rounded-sm p-4">
-          <p className="text-xs text-muted uppercase tracking-wider mb-1">Earned so far</p>
-          <p className="text-xl font-medium text-foreground">
-            &pound;{(placement.revenue_earned_gbp ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-        </div>
-        <div className="bg-surface border border-border rounded-sm p-4">
-          <p className="text-xs text-muted uppercase tracking-wider mb-1">QR display</p>
-          <p className="text-sm font-medium text-foreground">
-            {placement.qr_enabled ? "Enabled" : "Disabled"}
-            {placement.monthly_fee_gbp ? ` \u00b7 \u00a3${placement.monthly_fee_gbp}/month` : ""}
-          </p>
-        </div>
+        {placement.arrangement_type === "revenue_share" ? (
+          <>
+            <div className="bg-surface border border-border rounded-sm p-4">
+              <p className="text-xs text-muted uppercase tracking-wider mb-1">Revenue share</p>
+              <p className="text-xl font-medium text-foreground">
+                {placement.revenue_share_percent != null ? `${placement.revenue_share_percent}%` : "Not set"}
+              </p>
+              <p className="text-[11px] text-muted mt-1">Artist&rsquo;s share of QR-code sales</p>
+            </div>
+            <div className="bg-surface border border-border rounded-sm p-4">
+              <p className="text-xs text-muted uppercase tracking-wider mb-1">Earned so far</p>
+              <p className="text-xl font-medium text-foreground">
+                &pound;{(placement.revenue_earned_gbp ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+          </>
+        ) : placement.arrangement_type === "free_loan" ? (
+          <>
+            <div className="bg-surface border border-border rounded-sm p-4">
+              <p className="text-xs text-muted uppercase tracking-wider mb-1">Monthly fee</p>
+              <p className="text-xl font-medium text-foreground">
+                {placement.monthly_fee_gbp != null && placement.monthly_fee_gbp > 0
+                  ? `\u00a3${placement.monthly_fee_gbp.toLocaleString()}/month`
+                  : "Free display"}
+              </p>
+              <p className="text-[11px] text-muted mt-1">
+                {placement.monthly_fee_gbp && placement.monthly_fee_gbp > 0
+                  ? "Venue pays artist to display the work"
+                  : "No rental fee agreed"}
+              </p>
+            </div>
+            <div className="bg-surface border border-border rounded-sm p-4">
+              <p className="text-xs text-muted uppercase tracking-wider mb-1">QR display</p>
+              <p className="text-sm font-medium text-foreground">
+                {placement.qr_enabled ? "Enabled" : "Disabled"}
+              </p>
+              {placement.qr_enabled && placement.revenue_share_percent != null && (
+                <p className="text-[11px] text-muted mt-1">{placement.revenue_share_percent}% share on QR sales</p>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="bg-surface border border-border rounded-sm p-4">
+              <p className="text-xs text-muted uppercase tracking-wider mb-1">Direct purchase</p>
+              <p className="text-xl font-medium text-foreground">Venue owns the work</p>
+              <p className="text-[11px] text-muted mt-1">Outright sale &mdash; no ongoing split</p>
+            </div>
+            <div className="bg-surface border border-border rounded-sm p-4">
+              <p className="text-xs text-muted uppercase tracking-wider mb-1">QR display</p>
+              <p className="text-sm font-medium text-foreground">
+                {placement.qr_enabled ? "Enabled" : "Disabled"}
+              </p>
+            </div>
+          </>
+        )}
         <div className="bg-surface border border-border rounded-sm p-4">
           <p className="text-xs text-muted uppercase tracking-wider mb-1">Created</p>
           <p className="text-sm font-medium text-foreground">

@@ -39,7 +39,20 @@ const curationSchema = z.object({
   wallCount: z.number().int().min(0).max(200).optional(),
   timeframe: optional(120),
   referencesNotes: optional(2000),
+  // Venue's placement-method preferences. Stored in notes rather than as a
+  // dedicated column so no migration is needed; the curator sees them in
+  // the admin email and inside references_notes as context.
+  placementMethods: z
+    .array(z.enum(["qr_loan", "paid_loan", "direct_purchase"]))
+    .optional()
+    .default([]),
 });
+
+const METHOD_LABEL: Record<string, string> = {
+  qr_loan: "QR-enabled loan",
+  paid_loan: "Paid loan",
+  direct_purchase: "Direct purchase",
+};
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -93,7 +106,12 @@ export async function POST(request: Request) {
       budget_gbp: d.budgetGbp,
       wall_count: d.wallCount ?? null,
       timeframe: d.timeframe,
-      references_notes: d.referencesNotes,
+      references_notes: [
+        d.placementMethods.length
+          ? `Preferred placement methods: ${d.placementMethods.map((m) => METHOD_LABEL[m]).join(", ")}`
+          : null,
+        d.referencesNotes,
+      ].filter(Boolean).join("\n\n"),
       status: (isPayFirst || isManaged) ? "pending_payment" : "awaiting_quote",
       amount_paid_gbp: (isPayFirst || isManaged) ? tier.priceGbp : null,
     })

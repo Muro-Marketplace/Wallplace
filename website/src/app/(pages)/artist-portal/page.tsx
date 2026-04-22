@@ -201,8 +201,9 @@ export default function ArtistPortalPage() {
         </Button>
       </div>
 
-      {/* Placement Action Items */}
-      <PlacementActionItems userId={user?.id} role="artist" />
+      {/* Dashboard order: Getting Started → Stats → Action Items → Activity.
+          Matches the venue dashboard so the setup checklist leads, numbers
+          follow, and outstanding to-dos sit just above the activity feed. */}
 
       {/* Subscription prompt */}
       {subscriptionStatus === "none" && (
@@ -328,6 +329,9 @@ export default function ArtistPortalPage() {
           </div>
         ))}
       </div>
+
+      {/* Placement Action Items */}
+      <PlacementActionItems userId={user?.id} role="artist" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Activity */}

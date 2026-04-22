@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
 import { useCurrentVenue } from "@/hooks/useCurrentVenue";
 import { authFetch } from "@/lib/api-client";
+import { uploadImage } from "@/lib/upload";
 
 const STYLE_TAGS = [
   "Contemporary",
@@ -113,6 +115,11 @@ export default function VenueProfilePage() {
   const [detailWallSpace, setDetailWallSpace] = useState("");
   const [detailFootfall, setDetailFootfall] = useState("");
 
+  // Venue photos — gallery of the actual space.
+  const [venueImages, setVenueImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   // Load preferences from venue data
   useEffect(() => {
     if (venue && !loaded) {
@@ -128,9 +135,36 @@ export default function VenueProfilePage() {
       setDetailLocation(venue.location || "");
       setDetailWallSpace(venue.wallSpace || "");
       setDetailFootfall(venue.approximateFootfall || "");
+      setVenueImages(Array.isArray(venue.images) ? venue.images : []);
       setLoaded(true);
     }
   }, [venue, loaded]);
+
+  async function handleAddImages(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploadError(null);
+    setUploadingImage(true);
+    try {
+      const urls: string[] = [];
+      for (const file of Array.from(files).slice(0, 10 - venueImages.length)) {
+        const url = await uploadImage(file, "collections");
+        urls.push(url);
+      }
+      if (urls.length > 0) {
+        setVenueImages((prev) => [...prev, ...urls]);
+        markDirty();
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  function removeImage(url: string) {
+    setVenueImages((prev) => prev.filter((u) => u !== url));
+    markDirty();
+  }
 
   // Track unsaved changes
   const markDirty = useCallback(() => setHasUnsavedChanges(true), []);
@@ -169,6 +203,7 @@ export default function VenueProfilePage() {
           approximate_footfall: detailFootfall || undefined,
           preferred_styles: styles,
           preferred_themes: themes,
+          images: venueImages,
           interested_in_free_loan: freeLoan,
           interested_in_revenue_share: revenueShare,
           interested_in_direct_purchase: directPurchase,
@@ -267,6 +302,53 @@ export default function VenueProfilePage() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Venue Photos — gallery of the actual space so artists and the
+            Wallplace Curated team can see what they'll be hanging in. */}
+        <div className="bg-white border border-border rounded-sm">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div>
+              <h2 className="font-serif text-base text-foreground">Venue Photos</h2>
+              <p className="text-xs text-muted mt-0.5">Up to 10 images of your space. Shown on your public venue page.</p>
+            </div>
+            <label className="text-xs text-accent hover:underline cursor-pointer">
+              {uploadingImage ? "Uploading…" : "Add photos"}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={uploadingImage || venueImages.length >= 10}
+                onChange={(e) => { handleAddImages(e.target.files); e.target.value = ""; }}
+              />
+            </label>
+          </div>
+          <div className="p-5">
+            {venueImages.length === 0 ? (
+              <p className="text-sm text-muted">No photos yet. Add a few to bring your space to life.</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {venueImages.map((url) => (
+                  <div key={url} className="relative aspect-[4/3] rounded-sm overflow-hidden border border-border bg-background group">
+                    <Image src={url} alt="Venue photo" fill className="object-cover" sizes="200px" />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(url)}
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                      aria-label="Remove photo"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {uploadError && <p className="text-xs text-red-600 mt-3">{uploadError}</p>}
+            {venueImages.length >= 10 && (
+              <p className="text-[11px] text-muted mt-3">Maximum 10 photos. Remove one to add another.</p>
+            )}
           </div>
         </div>
 

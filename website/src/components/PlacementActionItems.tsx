@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { authFetch } from "@/lib/api-client";
+import { canRespond } from "@/lib/placement-permissions";
 
 interface PlacementRow {
   id: string;
@@ -71,12 +72,13 @@ export default function PlacementActionItems({
           const href = `/placements/${encodeURIComponent(p.id)}`;
           const status = (p.status || "").toLowerCase();
 
-          // Pending — only surface if the recipient (not the requester)
-          // needs to respond. If you sent the request and they haven't
-          // replied, that's THEIR action item, not yours.
+          // Pending — only surface if the current viewer can actually
+          // respond. canRespond() checks requester_user_id and falls back
+          // to the legacy venue-creates-artist-accepts model for rows
+          // created before migration 008, so users don't see "Respond"
+          // prompts for requests they themselves sent.
           if (status === "pending") {
-            const isRequester = p.requester_user_id && p.requester_user_id === userId;
-            if (isRequester) continue;
+            if (!canRespond(p, userId, role)) continue;
             out.push({
               id: `${p.id}-pending-act`,
               title: `Respond to ${otherName}'s placement request`,

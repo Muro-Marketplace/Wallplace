@@ -32,13 +32,12 @@ const loggedInNavLinks: NavLink[] = [
   { label: "Spaces", href: "/spaces-looking-for-art" },
 ];
 
-const venueNavLinks: NavLink[] = [
-  { label: "Marketplace", href: "/browse" },
-  { label: "How It Works", href: "/how-it-works" },
-  { label: "Blog", href: "/blog" },
-];
+// Venues and artists share the same logged-in nav shape so the site feels
+// consistent regardless of role — extras live under the More dropdown.
+const venueNavLinks: NavLink[] = loggedInNavLinks;
 
 const moreLinks = [
+  { label: "Wallplace Curated", href: "/curated" },
   { label: "How It Works", href: "/how-it-works" },
   { label: "Blog", href: "/blog" },
   { label: "About", href: "/about" },
@@ -47,7 +46,7 @@ const moreLinks = [
   { label: "Pricing", href: "/pricing" },
 ];
 
-const immersiveRoutes = ["/venues", "/artists", "/about", "/how-it-works"];
+const immersiveRoutes = ["/", "/venues", "/artists", "/about", "/how-it-works"];
 
 // Marketplace tabs pulled into their own component so the useSearchParams call
 // is isolated behind a <Suspense> boundary. Without that, every page that
@@ -338,8 +337,10 @@ export default function Header() {
               );
             })
             )}
-            {/* More dropdown — logged in only */}
-            {user && !isMarketplaceArea && (
+            {/* More dropdown — always visible when logged in, including
+                when inside the marketplace area, so nav structure stays
+                consistent as the user moves between pages. */}
+            {user && (
               <div className="relative" ref={moreDropdownRef}>
                 <button
                   onClick={() => { setMoreDropdownOpen(!moreDropdownOpen); setMsgDropdownOpen(false); setNotifDropdownOpen(false); }}

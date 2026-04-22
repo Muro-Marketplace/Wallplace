@@ -128,7 +128,18 @@ export default function CuratedClient() {
     audienceNotes: "",
     moodNotes: "",
     referencesNotes: "",
+    // Placement method interest — maps to the three core Wallplace commercial
+    // models. Multi-select because venues commonly consider two.
+    wantsQrLoan: false,
+    wantsPaidLoan: false,
+    wantsDirectPurchase: false,
   });
+
+  // Budget is only meaningful for arrangements where the venue actually
+  // spends money — paid loan (monthly fee) or direct purchase (outright
+  // buy). For a QR-enabled loan the artwork is free on the wall and the
+  // venue only pays if a QR scan results in a sale.
+  const budgetRelevant = form.wantsPaidLoan || form.wantsDirectPurchase;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -165,12 +176,17 @@ export default function CuratedClient() {
           venueType: form.venueType,
           location: form.location,
           wallCount: form.wallCount ? Number(form.wallCount) : undefined,
-          budgetGbp: form.budgetGbp,
+          budgetGbp: budgetRelevant ? form.budgetGbp : "",
           timeframe: form.timeframe,
           styleNotes: form.styleNotes,
           audienceNotes: form.audienceNotes,
           moodNotes: form.moodNotes,
           referencesNotes: form.referencesNotes,
+          placementMethods: [
+            form.wantsQrLoan ? "qr_loan" : null,
+            form.wantsPaidLoan ? "paid_loan" : null,
+            form.wantsDirectPurchase ? "direct_purchase" : null,
+          ].filter(Boolean),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -234,14 +250,16 @@ export default function CuratedClient() {
         </div>
       )}
 
-      {/* One-off tiers */}
+      {/* One-off tiers — items-start keeps each card at its natural height
+          with content aligned to the top, rather than stretching shorter
+          cards and vertically centring the copy. */}
       <section className="pt-20 lg:pt-28 pb-10">
         <div className="max-w-[1100px] mx-auto px-6">
           <div className="flex items-baseline justify-between mb-4">
             <h2 className="font-serif text-2xl text-foreground">One-off curation</h2>
             <p className="text-xs text-muted">Pay once, we deliver your shortlist.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
             {ONE_OFF_TIERS.map((t) => (
               <TierCard key={t.key} tier={t} selected={selectedTier === t.key} onSelect={() => setSelectedTier(t.key)} />
             ))}
@@ -256,7 +274,7 @@ export default function CuratedClient() {
             <h2 className="font-serif text-2xl text-foreground">Managed curation</h2>
             <p className="text-xs text-muted">Ongoing rotation as a subscription. Cancel anytime.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             {MANAGED_TIERS.map((t) => (
               <TierCard key={t.key} tier={t} selected={selectedTier === t.key} onSelect={() => setSelectedTier(t.key)} />
             ))}
@@ -316,15 +334,46 @@ export default function CuratedClient() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Placement method preferences. Three methods mirror the core
+                  Wallplace commercial models: QR-enabled loan (free on
+                  wall, venue earns a share of QR sales), paid loan (venue
+                  pays a monthly fee to display), direct purchase (venue
+                  buys outright). Venues can pick more than one. */}
+              <div>
+                <label className={labelCls}>How would you like to get the art?</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <MethodCheckbox
+                    checked={form.wantsQrLoan}
+                    onChange={(v) => update("wantsQrLoan", v)}
+                    title="QR-enabled loan"
+                    desc="Free on your wall. Share QR sales with the artist."
+                  />
+                  <MethodCheckbox
+                    checked={form.wantsPaidLoan}
+                    onChange={(v) => update("wantsPaidLoan", v)}
+                    title="Paid loan"
+                    desc="Pay the artist a monthly fee to display their work."
+                  />
+                  <MethodCheckbox
+                    checked={form.wantsDirectPurchase}
+                    onChange={(v) => update("wantsDirectPurchase", v)}
+                    title="Direct purchase"
+                    desc="Buy a piece outright for your permanent collection."
+                  />
+                </div>
+              </div>
+
+              <div className={`grid grid-cols-1 gap-4 ${budgetRelevant ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
                 <div>
                   <label className={labelCls}>Wall count</label>
                   <input type="number" min={0} value={form.wallCount} onChange={(e) => update("wallCount", e.target.value)} className={inputCls} placeholder="e.g. 3" />
                 </div>
-                <div>
-                  <label className={labelCls}>Budget (£)</label>
-                  <input value={form.budgetGbp} onChange={(e) => update("budgetGbp", e.target.value)} className={inputCls} placeholder="e.g. 500 or 1000–2500" />
-                </div>
+                {budgetRelevant && (
+                  <div>
+                    <label className={labelCls}>Budget (£)</label>
+                    <input value={form.budgetGbp} onChange={(e) => update("budgetGbp", e.target.value)} className={inputCls} placeholder="e.g. 500 or 1000–2500" />
+                  </div>
+                )}
                 <div>
                   <label className={labelCls}>Timeframe</label>
                   <input value={form.timeframe} onChange={(e) => update("timeframe", e.target.value)} className={inputCls} placeholder="e.g. ASAP, within 2 weeks" />
@@ -399,7 +448,7 @@ function TierCard({ tier, selected, onSelect }: { tier: Tier; selected: boolean;
     <button
       type="button"
       onClick={onSelect}
-      className={`text-left bg-white border rounded-sm p-6 transition-colors ${selected ? "border-accent ring-2 ring-accent/20" : "border-border hover:border-foreground/30"}`}
+      className={`text-left bg-white border rounded-sm p-6 transition-colors flex flex-col items-start h-full ${selected ? "border-accent ring-2 ring-accent/20" : "border-border hover:border-foreground/30"}`}
     >
       <p className="text-xs font-medium uppercase tracking-wider text-muted mb-2">{tier.label}</p>
       <p className="font-serif text-3xl text-foreground mb-2">{tier.priceLabel}</p>
@@ -416,6 +465,48 @@ function TierCard({ tier, selected, onSelect }: { tier: Tier; selected: boolean;
         {selected ? "Selected" : tier.cta}
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
       </span>
+    </button>
+  );
+}
+
+function MethodCheckbox({
+  checked,
+  onChange,
+  title,
+  desc,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`text-left p-3 rounded-sm border transition-colors ${
+        checked
+          ? "bg-accent/5 border-accent ring-1 ring-accent/20"
+          : "bg-background border-border hover:border-foreground/30"
+      }`}
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className={`mt-0.5 w-4 h-4 shrink-0 rounded-[3px] border flex items-center justify-center ${
+            checked ? "bg-accent border-accent" : "border-border"
+          }`}
+        >
+          {checked && (
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="2 7 5.5 10.5 12 3.5" />
+            </svg>
+          )}
+        </span>
+        <div>
+          <p className={`text-sm font-medium ${checked ? "text-accent" : "text-foreground"}`}>{title}</p>
+          <p className="text-[11px] text-muted leading-snug mt-0.5">{desc}</p>
+        </div>
+      </div>
     </button>
   );
 }

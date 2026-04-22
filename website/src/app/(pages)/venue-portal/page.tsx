@@ -206,27 +206,14 @@ export default function VenueDashboardPage() {
         </div>
       </div>
 
-      {/* Placement Action Items — surfaces any outstanding placement
-          to-dos at the top of the dashboard. Renders nothing when the
-          queue is empty. */}
-      <PlacementActionItems userId={user?.id} role="venue" />
+      {/* Dashboard order:
+          1. Getting Started (onboarding) — surfaces setup tasks first so
+             a new venue lands on the steps to complete.
+          2. Stats row — at-a-glance numbers for returning users.
+          3. Placement Action Items — outstanding to-dos against live
+             placements. Renders nothing when the queue is empty. */}
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white border border-border rounded-sm p-5"
-          >
-            <p className={`text-2xl font-serif text-foreground mb-1 ${loading ? "animate-pulse" : ""}`}>
-              {loading ? "\u2014" : stat.value}
-            </p>
-            <p className="text-xs text-muted">{stat.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Onboarding checklist */}
+      {/* Onboarding checklist (Getting Started) */}
       {!onboardingDismissed && onboardingItems.length > 0 && (
         <div className="mb-6 bg-white border border-border rounded-sm overflow-hidden">
           {/* Progress bar */}
@@ -330,6 +317,42 @@ export default function VenueDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Stats row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-white border border-border rounded-sm p-5"
+          >
+            <p className={`text-2xl font-serif text-foreground mb-1 ${loading ? "animate-pulse" : ""}`}>
+              {loading ? "\u2014" : stat.value}
+            </p>
+            <p className="text-xs text-muted">{stat.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Placement Action Items */}
+      <PlacementActionItems userId={user?.id} role="venue" />
+
+      {/* Wallplace Curated promo — a tasteful, single-row card giving
+          the curated service a consistent presence in the venue dashboard
+          without becoming noise. */}
+      <div className="mb-8 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent border border-accent/30 rounded-sm p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-accent mb-1.5">Wallplace Curated</p>
+          <p className="text-sm font-medium text-foreground">Want a shortlist picked for you?</p>
+          <p className="text-xs text-muted mt-0.5">Our curators hand-pick works that fit your space — from &pound;49.</p>
+        </div>
+        <Link
+          href="/curated"
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
+        >
+          Explore Curated
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Quick Actions */}

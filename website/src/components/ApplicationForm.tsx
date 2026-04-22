@@ -623,14 +623,17 @@ export default function ApplicationForm() {
               <span className="text-accent">*</span>
             </p>
             <p className="text-xs text-muted mb-3">
-              Display means your art is shown in venues for free — if a customer
-              buys via QR, you can offer the venue a revenue share (you set the %).
-              Purchase means venues can buy your work outright.
+              Three ways your work can reach venues. Revenue share means your
+              art is displayed free in a venue and you split QR-code sales
+              with them. Paid loan means the venue pays you a monthly fee to
+              display the work. Direct purchase means the venue buys the
+              piece outright.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
-                { name: "openToFreeLoan", label: "Display (with optional revenue share)" },
-                { name: "openToPurchase", label: "Purchase" },
+                { name: "openToRevenueShare", label: "Revenue share (QR-enabled loan)" },
+                { name: "openToFreeLoan", label: "Paid loan (monthly fee)" },
+                { name: "openToPurchase", label: "Direct purchase" },
               ].map(({ name, label }) => (
                 <label key={name} className={checkboxLabelClass}>
                   <input

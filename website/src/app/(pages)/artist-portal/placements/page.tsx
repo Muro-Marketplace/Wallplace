@@ -294,10 +294,24 @@ export default function PlacementsPage() {
     }).catch((err) => console.error("Status update error:", err));
   }
 
-  function removePlacement(id: string) {
+  async function removePlacement(id: string) {
+    const snapshot = placements;
+    // Optimistic remove so the UI feels instant.
     setPlacements(placements.filter((p) => p.id !== id));
-    authFetch(`/api/placements?id=${id}`, { method: "DELETE" })
-      .catch((err) => console.error("Placement delete error:", err));
+    try {
+      const res = await authFetch(`/api/placements?id=${id}`, { method: "DELETE" });
+      if (res.ok) return;
+      // 404 = already gone from the DB, treat as success so the row
+      // doesn't bounce back on the next poll / reload.
+      if (res.status === 404) return;
+      setPlacements(snapshot);
+      const body = await res.json().catch(() => ({}));
+      alert(body?.error || `Could not delete placement (HTTP ${res.status})`);
+    } catch (err) {
+      setPlacements(snapshot);
+      console.error("Placement delete error:", err);
+      alert("Network error — placement not deleted. Please try again.");
+    }
   }
 
   const filtered = placements.filter((p) => {

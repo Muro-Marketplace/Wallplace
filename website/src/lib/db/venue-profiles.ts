@@ -19,6 +19,8 @@ export interface DbVenueProfile {
   wall_space: string;
   description: string;
   image: string;
+  /** Gallery of space photos uploaded by the venue. Added in migration 022. */
+  images?: string[] | null;
   approximate_footfall: string;
   audience_type: string;
   interested_in_free_loan: boolean;
@@ -51,6 +53,7 @@ export function dbVenueToVenue(v: DbVenueProfile): Venue {
     preferredThemes: v.preferred_themes || [],
     description: v.description,
     image: v.image || `https://picsum.photos/seed/${v.slug}/600/400`,
+    images: Array.isArray(v.images) ? v.images : [],
   };
 }
 
@@ -91,9 +94,10 @@ export async function upsertVenueProfile(
       .from("venue_profiles")
       .update({ ...data, updated_at: new Date().toISOString() })
       .eq("user_id", userId);
-    // Retry without potentially missing columns if update fails
+    // Retry without potentially missing columns if update fails. `images`
+    // is added in migration 022 and may not exist in older environments.
     if (error) {
-      const { preferred_sizes, interested_in_local_artists, ...safeData } = data as Record<string, unknown>;
+      const { preferred_sizes, interested_in_local_artists, images, ...safeData } = data as Record<string, unknown>;
       const retry = await db
         .from("venue_profiles")
         .update({ ...safeData, updated_at: new Date().toISOString() })
@@ -102,7 +106,7 @@ export async function upsertVenueProfile(
     }
     return { error };
   } else {
-    const { preferred_sizes, interested_in_local_artists, ...safeData } = data as Record<string, unknown>;
+    const { preferred_sizes, interested_in_local_artists, images, ...safeData } = data as Record<string, unknown>;
     const { error } = await db
       .from("venue_profiles")
       .insert({ ...safeData, user_id: userId });

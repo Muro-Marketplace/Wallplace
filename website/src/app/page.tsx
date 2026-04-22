@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ArtistCarousel from "@/components/ArtistCarousel";
 import AnimateIn from "@/components/AnimateIn";
@@ -12,18 +13,9 @@ import { useAuth } from "@/context/AuthContext";
 
 const featuredArtists = artists.slice(0, 6);
 
-const navLinks = [
-  { label: "Marketplace", href: "/browse" },
-  { label: "How It Works", href: "/how-it-works" },
-  { label: "Blog", href: "/blog" },
-  { label: "Spaces", href: "/spaces-looking-for-art" },
-  { label: "Waitlist", href: "/waitlist" },
-];
-
 export default function Home() {
   const contentRef = useRef<HTMLDivElement>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, userType, signOut } = useAuth();
+  const { user, userType } = useAuth();
 
   const portalBase = userType === "venue" ? "/venue-portal" : userType === "customer" ? "/customer-portal" : "/artist-portal";
   const portalLabel = userType === "venue" ? "Venue Portal" : userType === "customer" ? "Customer Portal" : "Artist Portal";
@@ -34,6 +26,12 @@ export default function Home() {
 
   return (
     <div className="relative">
+      {/* Shared site Header — immersive mode on "/" keeps it transparent
+          over the hero and fades to solid on scroll, matching the rest
+          of the site so the logged-in nav (Marketplace / Spaces / More)
+          and message / notification indicators are always available. */}
+      <Header />
+
       {/* ─── HERO ─── full screen with transparent nav */}
       <section className="relative min-h-[110vh] sm:min-h-screen flex flex-col">
         {/* Hero background image – scoped to hero only */}
@@ -47,60 +45,6 @@ export default function Home() {
           />
           <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-black/40" />
         </div>
-
-        {/* Transparent navbar */}
-        <header className="relative z-50">
-          <div className="flex items-center justify-between px-6 lg:px-10 pt-6 lg:pt-8">
-            <Link href="/" className="font-serif text-2xl lg:text-3xl tracking-tight text-white">Wallplace</Link>
-            <nav className="hidden lg:flex items-center gap-7">
-              {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} className="text-sm text-white/90 hover:text-white transition-colors duration-200">{link.label}</Link>
-              ))}
-            </nav>
-            <div className="hidden lg:flex items-center gap-4">
-              {user ? (
-                <>
-                  <Link href={portalBase} className="text-sm text-white/90 hover:text-white transition-colors">{portalLabel}</Link>
-                  <button onClick={() => signOut()} className="text-sm text-white/90 hover:text-white transition-colors">Logout</button>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" className="text-sm text-white/90 hover:text-white transition-colors">Login</Link>
-                  <Link href="/signup" className="text-sm px-5 py-2.5 bg-white text-foreground font-medium rounded-sm hover:bg-white/90 transition-colors">Sign Up</Link>
-                </>
-              )}
-            </div>
-            <button type="button" className="lg:hidden p-2 -mr-2 text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                {mobileMenuOpen ? (<><line x1="6" y1="6" x2="18" y2="18" /><line x1="6" y1="18" x2="18" y2="6" /></>) : (<><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" /></>)}
-              </svg>
-            </button>
-          </div>
-          {mobileMenuOpen && (
-            <div className="lg:hidden bg-black/80 backdrop-blur-md border-t border-white/10 mt-4">
-              <div className="px-6 py-6 space-y-6">
-                <nav className="flex flex-col gap-4">
-                  {navLinks.map((link) => (
-                    <Link key={link.href} href={link.href} className="text-base text-white/70 hover:text-white transition-colors" onClick={() => setMobileMenuOpen(false)}>{link.label}</Link>
-                  ))}
-                </nav>
-                <div className="flex flex-col gap-3 pt-4 border-t border-white/10">
-                  {user ? (
-                    <>
-                      <Link href={portalBase} className="text-center text-sm px-5 py-3 rounded-sm bg-white text-foreground font-medium hover:bg-white/90" onClick={() => setMobileMenuOpen(false)}>{portalLabel}</Link>
-                      <button onClick={() => { signOut(); setMobileMenuOpen(false); }} className="text-center text-sm px-5 py-3 rounded-sm border border-white/20 text-white hover:bg-white/10">Logout</button>
-                    </>
-                  ) : (
-                    <>
-                      <Link href="/login" className="text-center text-sm px-5 py-3 rounded-sm border border-white/20 text-white hover:bg-white/10" onClick={() => setMobileMenuOpen(false)}>Login</Link>
-                      <Link href="/signup" className="text-center text-sm px-5 py-3 rounded-sm bg-white text-foreground font-medium hover:bg-white/90" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </header>
 
         {/* Hero content */}
         <div className="flex-1 flex items-center justify-center px-6 lg:px-10 pb-28 sm:pb-32">
@@ -189,14 +133,26 @@ export default function Home() {
                     Completely free to browse and enquire.
                   </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-8 sm:mb-10">
+                  {/* Three core ways venues can get art through Wallplace.
+                      Kept consistent with site-wide language: Revenue Share,
+                      Paid Loan, Direct Purchase — venues can mix and match. */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-8 sm:mb-10">
                     <div className="flex items-start gap-3 p-4 bg-background border border-border rounded-sm">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-accent shrink-0 mt-0.5">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+                        <rect x="5" y="5" width="14" height="14" rx="1" /><path d="M9 9h1M14 9h1M9 14h1M14 14h1" />
                       </svg>
                       <div>
-                        <p className="text-sm font-semibold text-foreground mb-0.5">Display</p>
-                        <p className="text-xs text-muted">Art on your walls for free. Earn a share if it sells.</p>
+                        <p className="text-sm font-semibold text-foreground mb-0.5">Revenue Share</p>
+                        <p className="text-xs text-muted">Free to display. Earn a share when a QR scan sells the work.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-4 bg-background border border-border rounded-sm">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-accent shrink-0 mt-0.5">
+                        <path d="M12 2v20M17 5H9a3 3 0 000 6h6a3 3 0 010 6H7" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground mb-0.5">Paid Loan</p>
+                        <p className="text-xs text-muted">Pay the artist a monthly fee to display the work on your wall.</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3 p-4 bg-background border border-border rounded-sm">
@@ -204,7 +160,7 @@ export default function Home() {
                         <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 10h20" />
                       </svg>
                       <div>
-                        <p className="text-sm font-semibold text-foreground mb-0.5">Purchase</p>
+                        <p className="text-sm font-semibold text-foreground mb-0.5">Direct Purchase</p>
                         <p className="text-xs text-muted">Buy pieces outright for your permanent collection.</p>
                       </div>
                     </div>
