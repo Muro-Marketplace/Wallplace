@@ -138,7 +138,7 @@ const faqItems = [
   {
     question: "Why should I pay for this?",
     answer:
-      "Because a gallery would take 40–60% of every sale on top of significant upfront costs. Wallplace gives you a platform fee of 3–15%, ongoing commercial visibility, sales infrastructure, and access to a growing network of venues – for less than the cost of a round of drinks per month.",
+      "Because a gallery would take 40–60% of every sale on top of significant upfront costs. Wallplace gives you a platform fee of 5–15%, ongoing commercial visibility, sales infrastructure, and access to a growing network of venues – for less than the cost of a round of drinks per month.",
   },
   {
     question: "Do you handle delivery and installation?",

@@ -119,6 +119,18 @@ export default function ArtistPricingCards({
             ? "bg-surface border-2 border-accent rounded-sm p-8 flex flex-col relative"
             : "bg-surface border border-border rounded-sm p-8 flex flex-col";
 
+          // On annual we show the monthly-equivalent as the prominent number
+          // (Claude.ai style) with "billed annually as £X" underneath, plus a
+          // "save 17%" chip. On monthly the big number is just the monthly
+          // price. Prevents the "£119.88" sticker shock while making the
+          // annual discount obvious.
+          const primaryAmount = isAnnual
+            ? `\u00a3${(plan.priceAnnual / 12).toFixed(2)}`
+            : `\u00a3${plan.priceMonthly}`;
+          const secondaryLine = isAnnual
+            ? `\u00a3${plan.priceAnnual.toFixed(2)} billed annually`
+            : "billed monthly";
+
           return (
             <div key={plan.key} className={containerCls}>
               {plan.badge && (
@@ -127,15 +139,14 @@ export default function ArtistPricingCards({
                 </div>
               )}
               <h3 className="text-2xl mb-1">{plan.name}</h3>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-4xl font-serif">&pound;{price}</span>
-                <span className="text-muted text-sm">{suffix}</span>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-4xl font-serif">{primaryAmount}</span>
+                <span className="text-muted text-sm">/mo</span>
+                {isAnnual && (
+                  <span className="text-[10px] uppercase tracking-widest font-medium px-1.5 py-0.5 bg-accent/10 text-accent rounded-sm">Save 17%</span>
+                )}
               </div>
-              {monthlyEq ? (
-                <p className="text-xs text-accent mb-1">{monthlyEq} &middot; save 17%</p>
-              ) : (
-                <p className="text-xs text-muted mb-1">billed monthly</p>
-              )}
+              <p className="text-xs text-muted mb-1">{secondaryLine}</p>
               <p className="text-sm text-muted mb-1">First month free</p>
               <p className="text-sm font-medium text-foreground mb-6">{plan.fee}</p>
               <ul className="space-y-3 mb-8 flex-1">

@@ -17,7 +17,7 @@ const generalFaqs = [
   {
     question: "How does Wallplace make money?",
     answer:
-      "Wallplace earns through artist membership plans (from £9.99/month) and a platform fee on artwork sales (3–15% depending on the artist's plan). When a piece sells, the artist keeps the majority. We do not charge venues for displaying artwork.",
+      "Wallplace earns through artist membership plans (from £9.99/month) and a platform fee on artwork sales (5–15% depending on the artist's plan). When a piece sells, the artist keeps the majority. We do not charge venues for displaying artwork.",
   },
   {
     question: "Is Wallplace a gallery?",
@@ -40,7 +40,7 @@ const artistFaqs = [
   {
     question: "What happens when my work sells?",
     answer:
-      "When a piece sells, we process the transaction and notify you immediately. You receive payment within 14 days via Stripe Connect. The platform fee (3\u201315% depending on your plan) is deducted automatically \u2014 you keep the majority. You are responsible for packing and shipping the artwork to the buyer.",
+      "When a piece sells, we process the transaction and notify you immediately. You receive payment within 14 days via Stripe Connect. The platform fee (5\u201315% depending on your plan) is deducted automatically \u2014 you keep the majority. You are responsible for packing and shipping the artwork to the buyer.",
   },
   {
     question: "Can I set my own prices?",
@@ -132,11 +132,28 @@ export default function FaqsPage() {
               venues, and art lovers.
             </p>
           </div>
+
+          {/* Role quick-nav — jump to the right FAQ section. Anchor links
+              are plain <a>s so deep-links work (#artists, #venues, #buyers). */}
+          <div className="mt-8 flex flex-wrap gap-2">
+            <a href="#artists" className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full border border-border bg-surface text-foreground hover:border-foreground/40 transition-colors">
+              I&rsquo;m an artist
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 6h6M6 3l3 3-3 3" /></svg>
+            </a>
+            <a href="#venues" className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full border border-border bg-surface text-foreground hover:border-foreground/40 transition-colors">
+              I&rsquo;m a venue
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 6h6M6 3l3 3-3 3" /></svg>
+            </a>
+            <a href="#buyers" className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-full border border-border bg-surface text-foreground hover:border-foreground/40 transition-colors">
+              I&rsquo;m a buyer
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 6h6M6 3l3 3-3 3" /></svg>
+            </a>
+          </div>
         </div>
       </section>
 
       {/* General */}
-      <section className="pb-16 lg:pb-20">
+      <section className="pb-16 lg:pb-20 scroll-mt-24" id="general">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="max-w-3xl">
             <h2 className="text-2xl mb-6">General</h2>
@@ -146,7 +163,7 @@ export default function FaqsPage() {
       </section>
 
       {/* For Artists */}
-      <section className="pb-16 lg:pb-20">
+      <section className="pb-16 lg:pb-20 scroll-mt-24" id="artists">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="max-w-3xl">
             <h2 className="text-2xl mb-6">For Artists</h2>
@@ -156,11 +173,35 @@ export default function FaqsPage() {
       </section>
 
       {/* For Venues */}
-      <section className="pb-16 lg:pb-20">
+      <section className="pb-16 lg:pb-20 scroll-mt-24" id="venues">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="max-w-3xl">
             <h2 className="text-2xl mb-6">For Venues</h2>
             <Accordion items={venueFaqs} />
+          </div>
+        </div>
+      </section>
+
+      {/* For Buyers — point at external pages for full policy answers */}
+      <section className="pb-16 lg:pb-20 scroll-mt-24" id="buyers">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="max-w-3xl">
+            <h2 className="text-2xl mb-6">For Buyers</h2>
+            <div className="space-y-4 text-muted leading-relaxed">
+              <p>
+                Buying through Wallplace is the same as buying from any reputable online shop.
+                See our <a href="/terms" className="text-accent hover:underline">Terms of Sale</a>,{" "}
+                <a href="/returns" className="text-accent hover:underline">Returns Policy</a>, and{" "}
+                <a href="/complaints" className="text-accent hover:underline">Complaints Policy</a>{" "}
+                for the full answers to delivery, refunds, damage, and dispute questions.
+              </p>
+              <p>
+                Every piece on Wallplace is sold by the artist directly — we process the payment
+                and coordinate the transaction. If anything goes wrong, email{" "}
+                <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a>{" "}
+                and we&rsquo;ll sort it.
+              </p>
+            </div>
           </div>
         </div>
       </section>

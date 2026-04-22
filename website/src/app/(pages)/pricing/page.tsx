@@ -70,7 +70,7 @@ const faqItems = [
   {
     question: "What is a platform fee?",
     answer:
-      "The platform fee is the percentage Wallplace takes when a sale is made through the platform – whether that's a venue purchasing work outright, or a customer buying directly from a venue display. It is separate from your membership cost. Core artists pay 15%, Premium 8%, and Pro artists pay 5%. You keep the rest.",
+      "The platform fee is the percentage Wallplace takes when a sale is made through the platform – whether that's a venue purchasing work outright, or a customer buying directly from a venue display. It is separate from your membership cost. Core artists pay 15%, Premium 8%, and Pro artists pay 5% — so our fees run 5–15% depending on plan. You keep the rest.",
   },
   {
     question: "Is the first month really free?",
@@ -276,8 +276,8 @@ export default function PricingPage() {
               <p className="text-muted leading-relaxed mb-4">
                 At &pound;49.99/month, Pro pays for itself quickly for any artist with
                 regular sales. On a &pound;500 sale, Core would cost you &pound;75 in
-                platform fees, Premium &pound;40. Pro costs just &pound;15 &ndash; keeping
-                &pound;485.
+                platform fees, Premium &pound;40. Pro costs just &pound;25 &ndash; keeping
+                &pound;475.
               </p>
               <p className="text-muted leading-relaxed mb-6">
                 For artists actively using the platform and generating consistent
