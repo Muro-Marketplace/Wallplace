@@ -133,38 +133,44 @@ export default function Home() {
                     Completely free to browse and enquire.
                   </p>
 
-                  {/* Three core ways venues can get art through Wallplace.
-                      Kept consistent with site-wide language: Revenue Share,
-                      Paid Loan, Direct Purchase — venues can mix and match. */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-8 sm:mb-10">
-                    <div className="flex items-start gap-3 p-4 bg-background border border-border rounded-sm">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-accent shrink-0 mt-0.5">
-                        <rect x="5" y="5" width="14" height="14" rx="1" /><path d="M9 9h1M14 9h1M9 14h1M14 14h1" />
-                      </svg>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground mb-0.5">Revenue Share</p>
-                        <p className="text-xs text-muted">Free to display. Earn a share when a QR scan sells the work.</p>
+                  {/* Three core ways venues can get art. Stacked vertically
+                      so each row has room to breathe — the copy was wrapping
+                      awkwardly in a 3-column grid at this width. */}
+                  <ul className="space-y-2.5 mb-8 sm:mb-10">
+                    <li className="flex items-center gap-4 px-5 py-4 bg-background border border-border rounded-sm hover:border-accent/40 transition-colors">
+                      <span className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                          <rect x="5" y="5" width="14" height="14" rx="1.5" /><path d="M9 9h.01M14 9h.01M9 14h.01M14 14h.01" />
+                        </svg>
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-base font-semibold text-foreground">Revenue Share</p>
+                        <p className="text-sm text-muted">Free to display. Earn a share when a QR scan sells the work.</p>
                       </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-4 bg-background border border-border rounded-sm">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-accent shrink-0 mt-0.5">
-                        <path d="M12 2v20M17 5H9a3 3 0 000 6h6a3 3 0 010 6H7" />
-                      </svg>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground mb-0.5">Paid Loan</p>
-                        <p className="text-xs text-muted">Pay the artist a monthly fee to display the work on your wall.</p>
+                    </li>
+                    <li className="flex items-center gap-4 px-5 py-4 bg-background border border-border rounded-sm hover:border-accent/40 transition-colors">
+                      <span className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                          <path d="M12 2v20M17 5H9a3 3 0 000 6h6a3 3 0 010 6H7" />
+                        </svg>
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-base font-semibold text-foreground">Paid Loan</p>
+                        <p className="text-sm text-muted">Pay the artist a monthly fee to display the work on your wall.</p>
                       </div>
-                    </div>
-                    <div className="flex items-start gap-3 p-4 bg-background border border-border rounded-sm">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-accent shrink-0 mt-0.5">
-                        <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 10h20" />
-                      </svg>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground mb-0.5">Direct Purchase</p>
-                        <p className="text-xs text-muted">Buy pieces outright for your permanent collection.</p>
+                    </li>
+                    <li className="flex items-center gap-4 px-5 py-4 bg-background border border-border rounded-sm hover:border-accent/40 transition-colors">
+                      <span className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+                          <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 10h20" />
+                        </svg>
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-base font-semibold text-foreground">Direct Purchase</p>
+                        <p className="text-sm text-muted">Buy pieces outright for your permanent collection.</p>
                       </div>
-                    </div>
-                  </div>
+                    </li>
+                  </ul>
 
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <Link href="/browse" className="inline-flex items-center justify-center px-5 sm:px-7 py-3 sm:py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
@@ -182,22 +188,17 @@ export default function Home() {
                   </p>
                 </div>
 
-                <div className="hidden sm:grid grid-cols-5 grid-rows-4 gap-2 aspect-square">
-                  <div className="col-span-3 row-span-2 relative rounded-sm overflow-hidden">
-                    <Image src="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&h=400&fit=crop" alt="Moody urban street photography" fill className="object-cover" sizes="25vw" />
-                  </div>
-                  <div className="col-span-2 row-span-1 relative rounded-sm overflow-hidden">
-                    <Image src="https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?w=400&h=400&fit=crop" alt="Misty forest landscape" fill className="object-cover" sizes="15vw" />
-                  </div>
-                  <div className="col-span-2 row-span-1 relative rounded-sm overflow-hidden">
-                    <Image src="https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400&h=200&fit=crop" alt="Vintage film camera" fill className="object-cover" sizes="15vw" />
-                  </div>
-                  <div className="col-span-2 row-span-2 relative rounded-sm overflow-hidden">
-                    <Image src="https://images.unsplash.com/photo-1484406566174-9da000fda645?w=400&h=400&fit=crop" alt="Deer in misty woodland" fill className="object-cover" sizes="15vw" />
-                  </div>
-                  <div className="col-span-3 row-span-2 relative rounded-sm overflow-hidden">
-                    <Image src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&h=400&fit=crop" alt="Mountain landscape at night" fill className="object-cover" sizes="25vw" />
-                  </div>
+                {/* Venue-oriented hero image — a real interior with art on
+                    the wall, not a nature collage. Frames the message
+                    "this is where your art lives". */}
+                <div className="hidden sm:block relative aspect-[4/5] rounded-sm overflow-hidden">
+                  <Image
+                    src="https://images.unsplash.com/photo-1559329007-40df8a9345d8?w=1200&h=1500&fit=crop"
+                    alt="Gallery wall inside a modern cafe with framed artwork"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 50vw, 550px"
+                  />
                 </div>
               </div>
               </AnimateIn>

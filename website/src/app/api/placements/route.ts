@@ -761,15 +761,44 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Not authorised" }, { status: 403 });
     }
 
-    const { error } = await db.from("placements").delete().eq("id", id);
+    // Use .select() after .delete() to get back the deleted row(s). Lets us
+    // confirm the delete actually removed something — if the row is still
+    // there on the next GET, we know whether Supabase silently dropped the
+    // delete (e.g. RLS, FK constraint) or whether the client is reading
+    // from a different source.
+    const { data: deleted, error } = await db
+      .from("placements")
+      .delete()
+      .eq("id", id)
+      .select("id");
 
     if (error) {
-      console.error("Supabase error:", error);
-      return NextResponse.json({ error: "Failed to delete placement" }, { status: 500 });
+      console.error("Placement DELETE error:", error);
+      return NextResponse.json({ error: error.message || "Failed to delete placement" }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
-  } catch {
+    if (!deleted || deleted.length === 0) {
+      // No row came back — RLS or a constraint blocked it silently. Surface
+      // a real error rather than reporting success, so the client can
+      // rollback instead of lying to the user.
+      console.warn("Placement DELETE returned no rows for id=", id);
+      return NextResponse.json(
+        { error: "Delete did not remove any row (possible RLS policy or FK constraint). Check Supabase logs." },
+        { status: 500 },
+      );
+    }
+
+    // Best-effort: also clear placement-scoped side tables so a future
+    // recreate with the same id doesn't drag old records back in view.
+    await Promise.all([
+      db.from("placement_records").delete().eq("placement_id", id),
+      db.from("placement_photos").delete().eq("placement_id", id),
+      db.from("messages").delete().eq("conversation_id", `placement-${id}`),
+    ]).catch(() => { /* side tables may not exist in all envs */ });
+
+    return NextResponse.json({ success: true, deletedId: deleted[0]?.id });
+  } catch (err) {
+    console.error("DELETE /api/placements exception:", err);
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }

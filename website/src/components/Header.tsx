@@ -32,9 +32,14 @@ const loggedInNavLinks: NavLink[] = [
   { label: "Spaces", href: "/spaces-looking-for-art" },
 ];
 
-// Venues and artists share the same logged-in nav shape so the site feels
-// consistent regardless of role — extras live under the More dropdown.
-const venueNavLinks: NavLink[] = loggedInNavLinks;
+// Venues don't need the "Spaces" (venues browsing venues) link — they
+// already know what they've got. Surface Wallplace Curated and Blog
+// instead so the top nav matches how venues actually use the site.
+const venueNavLinks: NavLink[] = [
+  { label: "Marketplace", href: "/browse" },
+  { label: "Wallplace Curated", href: "/curated" },
+  { label: "Blog", href: "/blog" },
+];
 
 const moreLinks = [
   { label: "Wallplace Curated", href: "/curated" },

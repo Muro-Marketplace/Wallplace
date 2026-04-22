@@ -13,6 +13,7 @@ import {
   type DisplayStatus,
   type PlacementLifecycle,
 } from "@/lib/placements/status";
+import { canRespond } from "@/lib/placement-permissions";
 
 interface PanelProps {
   otherPartySlug: string | null;
@@ -156,6 +157,25 @@ export default function PlacementContextPanel({
   } : null;
   const role = lifecycleCurrent ? viewerRole(lifecycleCurrent, userId || null) : "observer";
   const nextAct = lifecycleCurrent ? nextAction(lifecycleCurrent, role) : null;
+
+  // Authoritative "can I respond?" check that matches the logic used on
+  // /venue-portal/placements and /artist-portal/placements. Handles both
+  // modern rows (with requester_user_id) and legacy rows (with the
+  // historical venue-requested-artist-accepts assumption), so the
+  // Messages panel never shows Accept / Decline for a placement the
+  // current user sent themselves.
+  const canViewerRespond = current
+    ? canRespond(
+        {
+          status: current.status,
+          requester_user_id: (current as RemotePlacement).requester_user_id,
+          artist_user_id: (current as RemotePlacement).artist_user_id,
+          venue_user_id: (current as RemotePlacement).venue_user_id,
+        },
+        userId || null,
+        portalType,
+      )
+    : false;
 
   async function handleAccept() {
     if (!current) return;
@@ -478,7 +498,7 @@ export default function PlacementContextPanel({
 
         {/* Inline action row — Accept / Counter / Decline when Pending,
             Mark next stage when Active. */}
-        {displayStatus === "Pending" && role === "responder" && !counterOpen && (
+        {displayStatus === "Pending" && canViewerRespond && !counterOpen && (
           <div className="mt-4 flex gap-2">
             <button onClick={handleAccept} disabled={busyAction === "accept"} className="px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60">
               {busyAction === "accept" ? "Accepting…" : "Accept"}
@@ -494,6 +514,16 @@ export default function PlacementContextPanel({
             <button onClick={handleDecline} disabled={busyAction === "decline"} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-full transition-colors disabled:opacity-60">
               {busyAction === "decline" ? "Declining…" : "Decline"}
             </button>
+          </div>
+        )}
+
+        {/* Pending but we sent it — surface the waiting state rather than
+            leaving the panel silent (or worse, letting the requester accept
+            their own request). */}
+        {displayStatus === "Pending" && !canViewerRespond && (
+          <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+            Awaiting the other side&rsquo;s response
           </div>
         )}
 

@@ -192,11 +192,11 @@ export default function VenuesPage() {
                 For Venues
               </p>
               <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight text-white leading-[1.05] mb-6">
-                Original art on your walls — three ways to work with us.
+                Display curated art for free. Earn when it sells.
               </h1>
               <p className="text-lg lg:text-xl text-white/60 leading-relaxed max-w-xl mb-10">
                 Browse portfolios from independent artists. Pick what fits your space.
-                Get work on your wall through a revenue share, a paid loan, or an outright purchase — whichever suits your venue.
+                Art goes on your wall at zero cost, and if a visitor buys via the QR label, you earn a share.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <a href="/browse" className="inline-flex items-center justify-center min-w-[220px] px-8 py-3.5 text-sm font-semibold tracking-wider uppercase bg-accent text-white rounded-sm hover:bg-accent-hover transition-colors">

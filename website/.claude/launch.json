@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "wallspace-dev",
+      "name": "wallplace-dev",
       "runtimeExecutable": "/opt/homebrew/Cellar/node/25.8.2/bin/node",
-      "runtimeArgs": ["/Users/finlaycoles/Wallspace/website/node_modules/.bin/next", "dev", "--cwd", "/Users/finlaycoles/Wallspace/website"],
+      "runtimeArgs": ["/Users/finlaycoles/Wallplace/Wallplace/website/node_modules/.bin/next", "dev", "--cwd", "/Users/finlaycoles/Wallplace/Wallplace/website"],
       "port": 3000
     }
   ]

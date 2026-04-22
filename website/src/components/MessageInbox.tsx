@@ -631,13 +631,24 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                 const isMe = (msg.sender_id != null && msg.sender_id === user?.id) || (msg.sender_id == null && msg.sender_name === userSlug);
                 const meta = (msg.metadata || {}) as Record<string, unknown>;
 
-                // Placement request card
+                // Placement request / counter card. Counter offers come
+                // through the same message_type but with metadata.counter === true
+                // so the thread can visually distinguish the new terms from the
+                // original request.
                 if (msg.message_type === "placement_request") {
+                  const isCounter = meta.counter === true;
                   return (
                     <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                      <div className="max-w-[80%] border border-accent/30 rounded-lg overflow-hidden bg-white">
-                        <div className="px-3.5 py-2 bg-accent/5 border-b border-accent/20">
-                          <p className="text-[10px] font-medium uppercase tracking-wider text-accent">Placement Request</p>
+                      <div className={`max-w-[80%] border rounded-lg overflow-hidden bg-white ${isCounter ? "border-amber-400" : "border-accent/30"}`}>
+                        <div className={`px-3.5 py-2 border-b flex items-center gap-1.5 ${isCounter ? "bg-amber-50 border-amber-200" : "bg-accent/5 border-accent/20"}`}>
+                          {isCounter && (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-700">
+                              <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" />
+                            </svg>
+                          )}
+                          <p className={`text-[10px] font-medium uppercase tracking-wider ${isCounter ? "text-amber-800" : "text-accent"}`}>
+                            {isCounter ? "Counter offer" : "Placement request"}
+                          </p>
                         </div>
                         <div className="px-3.5 py-3 space-y-1.5">
                           {typeof meta.workImage === "string" && meta.workImage && (
@@ -645,11 +656,19 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                               <Image src={meta.workImage} alt="" fill className="object-cover" sizes="300px" />
                             </div>
                           )}
-                          <p className="text-sm font-medium text-foreground">{meta.workTitle as string || "Artwork"}</p>
+                          {!isCounter && <p className="text-sm font-medium text-foreground">{meta.workTitle as string || "Artwork"}</p>}
                           <p className="text-xs text-muted">
-                            {meta.arrangementType === "revenue_share" ? `Revenue Share ${meta.revenueSharePercent}%` : "Free Display"}
+                            {meta.arrangementType === "revenue_share"
+                              ? `Revenue Share ${meta.revenueSharePercent}%`
+                              : meta.arrangementType === "free_loan" && meta.monthlyFeeGbp
+                                ? `Paid Loan · £${meta.monthlyFeeGbp}/mo`
+                                : meta.arrangementType === "free_loan"
+                                  ? "Free display"
+                                  : meta.arrangementType === "purchase"
+                                    ? "Direct purchase"
+                                    : "Free display"}
                           </p>
-                          {msg.content && <p className="text-xs text-muted italic">{msg.content}</p>}
+                          {msg.content && <p className="text-xs text-muted whitespace-pre-wrap">{msg.content}</p>}
                         </div>
                         {(() => {
                           // Check if this placement request has already been responded to
