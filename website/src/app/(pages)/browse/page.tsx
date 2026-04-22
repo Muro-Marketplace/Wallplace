@@ -656,7 +656,7 @@ function BrowsePortfoliosPageInner() {
                 type="range"
                 min={0}
                 max={50}
-                step={5}
+                step={1}
                 value={filters.revenueShareMin}
                 onChange={(e) => setFilter("revenueShareMin", Number(e.target.value) || 0)}
                 className="w-full accent-accent h-1 cursor-pointer"

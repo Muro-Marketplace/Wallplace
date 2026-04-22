@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import TermsCheckbox from "@/components/TermsCheckbox";
 import { DISCIPLINES, formatSubStyleLabel, getDisciplineById, type DisciplineId } from "@/data/categories";
 
@@ -243,39 +244,59 @@ export default function ApplicationForm() {
   };
 
   if (submitted) {
+    const claimHref = `/apply/claim?email=${encodeURIComponent(form.email)}&name=${encodeURIComponent(form.name)}&medium=${encodeURIComponent(form.primaryMedium)}`;
     return (
-      <div className="bg-surface border border-border rounded-sm p-10 text-center max-w-2xl mx-auto">
-        <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-5">
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-accent"
-          >
-            <path d="M4 12.5l5.5 5.5L20 6" />
-          </svg>
+      <div className="max-w-2xl mx-auto space-y-5">
+        {/* Confirmation */}
+        <div className="bg-surface border border-border rounded-sm p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+              <path d="M4 12.5l5.5 5.5L20 6" />
+            </svg>
+          </div>
+          <h2 className="font-serif text-2xl mb-2">Application received</h2>
+          <p className="text-muted leading-relaxed">
+            Thanks, {form.name}. We&rsquo;ll review it personally and respond within 5 business days.
+          </p>
         </div>
-        <h2 className="text-2xl mb-3">Application Received</h2>
-        <p className="text-muted leading-relaxed mb-2">
-          Thank you, {form.name}. We have received your application and will
-          review it personally.
-        </p>
-        <p className="text-muted leading-relaxed">
-          We aim to respond within 5 business days. When accepted, you will receive
-          an email with a link to set up your account and profile. In the meantime, if you have any
-          questions, email us at{" "}
-          <a
-            href="mailto:hello@wallplace.co.uk"
-            className="text-accent hover:underline"
-          >
+
+        {/* Profile-start CTA — the whole reason this screen exists now.
+            Framed as strengthening the application rather than extra admin. */}
+        <div className="bg-accent/5 border-2 border-accent/30 rounded-sm p-6 sm:p-8">
+          <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-accent mb-3">
+            Get a head start
+          </p>
+          <h3 className="font-serif text-xl text-foreground mb-2">
+            Start building your profile while we review
+          </h3>
+          <p className="text-sm text-muted leading-relaxed mb-5">
+            Applications with a finished profile get reviewed faster and land
+            better with venues. Claim your Wallplace space in under two
+            minutes — add a photo, a sentence about your practice, whatever
+            you have to hand. You can finish it any time.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              href={claimHref}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent text-white text-sm font-semibold rounded-sm hover:bg-accent-hover transition-colors"
+            >
+              Start my profile
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center px-6 py-3 text-sm text-muted hover:text-foreground transition-colors"
+            >
+              I&rsquo;ll do this later
+            </Link>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted text-center">
+          Questions?{" "}
+          <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">
             hello@wallplace.co.uk
           </a>
-          .
         </p>
       </div>
     );
@@ -539,7 +560,7 @@ export default function ApplicationForm() {
 
           <div>
             <label htmlFor="portfolioLink" className={labelClass}>
-              Portfolio Link <span className="text-accent">*</span>
+              Website / Portfolio <span className="text-muted font-normal">(optional)</span>
             </label>
             <input
               type="text"
@@ -547,39 +568,32 @@ export default function ApplicationForm() {
               name="portfolioLink"
               value={form.portfolioLink}
               onChange={handleChange}
-              required
-              placeholder="Link to your portfolio, website, or online gallery"
+              placeholder="Link to your website, Instagram, Behance, or similar"
               className={inputClass}
             />
             <p className="mt-2 text-xs text-muted">
-              Share a link to your best work – website, Behance, Flickr, or
-              similar. Make sure the link is publicly accessible.
+              Any public link that shows your work. Share what you have — you
+              can add more later when you build your profile on Wallplace.
             </p>
           </div>
 
           <div>
             <label htmlFor="artistStatement" className={labelClass}>
-              Artist Statement <span className="text-accent">*</span>
+              Artist Statement <span className="text-muted font-normal">(optional)</span>
             </label>
             <textarea
               id="artistStatement"
               name="artistStatement"
               value={form.artistStatement}
               onChange={handleChange}
-              required
               rows={5}
-              placeholder="Tell us about your practice – what drives your work, what themes you explore, and what makes your work suited to commercial spaces."
+              placeholder="Optional — a few lines about your practice, what drives your work, and what makes it suited to commercial spaces. You can add this later."
               className={`${inputClass} resize-none`}
             />
             {(() => {
               const words = form.artistStatement.trim().split(/\s+/).filter(Boolean).length;
-              const outOfRange = words < 100 || words > 300;
-              const empty = words === 0;
-              return (
-                <p className={`mt-1.5 text-xs ${empty ? "text-muted" : outOfRange ? "text-amber-600" : "text-green-600"}`}>
-                  {words} {words === 1 ? "word" : "words"} &middot; aim for 100&ndash;300
-                </p>
-              );
+              if (words === 0) return <p className="mt-1.5 text-xs text-muted">Skip for now and add it when you&rsquo;re ready.</p>;
+              return <p className="mt-1.5 text-xs text-muted">{words} {words === 1 ? "word" : "words"}</p>;
             })()}
           </div>
         </div>
@@ -703,26 +717,9 @@ export default function ApplicationForm() {
             </div>
           </div>
 
-          <div>
-            <p className={labelClass}>
-              Themes that best describe your work (select all that apply)
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-              {themeOptions.map((theme) => (
-                <label key={theme} className={checkboxLabelClass}>
-                  <input
-                    type="checkbox"
-                    checked={form.themes.includes(theme)}
-                    onChange={() => handleMultiCheckbox("themes", theme)}
-                    className={checkboxClass}
-                  />
-                  <span className="text-sm text-foreground group-hover:text-accent transition-colors duration-150">
-                    {theme}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
+          {/* Themes moved out of the application. They'll be captured when
+              the artist builds their profile so the application stays
+              lightweight. */}
         </div>
       </div>
 
