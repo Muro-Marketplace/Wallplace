@@ -16,7 +16,7 @@
 // Never throws — email is best-effort, API routes should not 500 because mail bounced.
 
 import { Resend } from "resend";
-import { render } from "@react-email/render";
+import { render } from "@react-email/components";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { STREAMS } from "./streams";
 import { CATEGORY_RULES, preferenceKeyFor, type EmailCategory } from "./categories";
