@@ -393,7 +393,6 @@ export default function PlacementContextPanel({
     : p.arrangement_type === "free_loan"
       ? (p.monthly_fee_gbp ? `Paid loan \u00b7 \u00a3${p.monthly_fee_gbp}/mo` : "Paid loan")
       : "Purchase";
-  const portalBase = portalType === "artist" ? "/artist-portal" : "/venue-portal";
 
   return (
     <aside className="w-full h-full bg-[#FAF8F5] border-l border-border flex flex-col overflow-y-auto">
@@ -597,7 +596,7 @@ export default function PlacementContextPanel({
           return null;
         })()}
         <Link
-          href={`${portalBase}/placements`}
+          href={`/placements/${encodeURIComponent(p.id)}`}
           className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-accent bg-surface border border-accent/40 hover:bg-accent hover:text-white hover:border-accent rounded-full transition-colors"
         >
           Open full placement

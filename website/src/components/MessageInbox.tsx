@@ -610,14 +610,16 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                   {selectedConvData?.otherPartyType === "venue" && (
                     <Link href="/spaces-looking-for-art" className="text-xs text-accent hover:text-accent-hover transition-colors">View Spaces</Link>
                   )}
-                  <Link href={`${portalType === "artist" ? "/artist-portal" : "/venue-portal"}/placements`} className="text-xs text-accent hover:text-accent-hover transition-colors">My Placements</Link>
-                  {/* Mobile-only placement drawer toggle */}
+                  {/* Mobile-only placement status drawer toggle.
+                      Rendered as an inline chevron link rather than a pill so
+                      it reads as "reveal more detail", not a separate button. */}
                   <button
                     type="button"
                     onClick={() => setPanelOpenMobile(true)}
-                    className="lg:hidden ml-auto text-xs px-2.5 py-1 rounded-full border border-accent/30 text-accent hover:bg-accent/5 transition-colors"
+                    className="lg:hidden ml-auto inline-flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors"
                   >
-                    Placement
+                    Placement Status
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                   </button>
                 </div>
               )}
