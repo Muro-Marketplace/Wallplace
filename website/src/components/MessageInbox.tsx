@@ -375,15 +375,9 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
     return `${days}d`;
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-13rem)]">
-        <p className="text-muted text-sm">Loading messages...</p>
-      </div>
-    );
-  }
-
-  // Apply search + separate placed from the rest
+  // Apply search + separate placed from the rest.
+  // MUST be declared before any early return — hooks order has to be stable
+  // across renders or React will throw "Rendered more hooks than previous render".
   const { placedConvs, otherConvs } = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const matches = (c: Conversation) => {
@@ -401,12 +395,24 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
     };
   }, [conversations, searchQuery]);
 
-  function renderConvItem(conv: Conversation) {
+  if (loading) {
     return (
-      <button
+      <div className="flex items-center justify-center h-[calc(100vh-13rem)]">
+        <p className="text-muted text-sm">Loading messages...</p>
+      </div>
+    );
+  }
+
+  function renderConvItem(conv: Conversation) {
+    const select = () => { setSelectedConv(conv.conversationId); setComposing(false); setPanelOpenMobile(false); };
+    return (
+      <div
         key={conv.conversationId}
-        onClick={() => { setSelectedConv(conv.conversationId); setComposing(false); setPanelOpenMobile(false); }}
-        className={`group w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${
+        role="button"
+        tabIndex={0}
+        onClick={select}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(); } }}
+        className={`group w-full cursor-pointer px-4 py-3 flex items-center gap-3 transition-colors ${
           selectedConv === conv.conversationId
             ? "bg-accent/8 border-l-2 border-l-accent"
             : "border-l-2 border-l-transparent hover:bg-[#FAF8F5]"
@@ -436,7 +442,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
             <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
           </button>
         </div>
-      </button>
+      </div>
     );
   }
 
