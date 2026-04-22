@@ -209,7 +209,11 @@ export async function POST(request: Request) {
     // find via its .eq("venue_user_id", auth.user.id) filter. Previously
     // the fallback silently stripped venue_user_id and the placement
     // became invisible on reload.
-    const baseRows = parsed.data.map((p) => ({
+    // Full row with every column the app understands. The fallback chain
+    // below only drops columns the DB specifically complains about — it
+    // does not blanket-strip monthly_fee_gbp / qr_enabled / message, which
+    // used to cause paid-loan placements to be saved without their £ value.
+    const fullRows = parsed.data.map((p) => ({
       id: p.id,
       artist_user_id: artistProfile!.user_id || null,
       artist_slug: artistProfile!.slug,
@@ -220,6 +224,9 @@ export async function POST(request: Request) {
       venue: venueProfile!.name,
       arrangement_type: p.type,
       revenue_share_percent: p.revenueSharePercent || null,
+      monthly_fee_gbp: p.monthlyFeeGbp ?? null,
+      qr_enabled: p.qrEnabled ?? true,
+      message: p.message || null,
       status: "pending",
       revenue: null,
       notes: p.notes || null,
@@ -227,44 +234,31 @@ export async function POST(request: Request) {
       created_at: new Date().toISOString(),
     }));
 
-    const fullRows = baseRows.map((row, i) => ({
-      ...row,
-      message: parsed.data[i].message || null,
-      qr_enabled: parsed.data[i].qrEnabled ?? true,
-      monthly_fee_gbp: parsed.data[i].monthlyFeeGbp ?? null,
-    }));
-
-    let { error } = await db.from("placements").insert(fullRows);
-
-    // If the insert failed because a column doesn't exist in the DB (or
-    // PostgREST's schema cache is stale), drop the offending column and
-    // retry. We try progressively: full → without the three optional
-    // message columns → without requester_user_id → without both.
     async function insertWithout(drop: string[]) {
-      const clean = baseRows.map((row) => {
+      const clean = fullRows.map((row) => {
         const next = { ...row } as Record<string, unknown>;
         for (const k of drop) delete next[k];
         return next;
       });
       return db.from("placements").insert(clean);
     }
-    if (error) {
-      console.warn("Placement insert failed with new columns, retrying base-only:", error.message);
-      // First retry: base columns (no message/qr/fee fields)
-      const r1 = await db.from("placements").insert(baseRows);
-      error = r1.error;
-      if (error && /requester_user_id/.test(error.message || "")) {
-        console.warn("requester_user_id missing, retrying without it:", error.message);
-        const r2 = await insertWithout(["requester_user_id"]);
-        error = r2.error;
-      }
-      if (error && /venue_slug|artist_slug/.test(error.message || "")) {
-        console.warn("slug columns missing, retrying without them:", error.message);
-        const r3 = await insertWithout(["requester_user_id", "venue_slug", "artist_slug"]);
-        error = r3.error;
-      }
-      if (error) console.warn("All fallback inserts failed:", error.message);
+
+    let { error } = await db.from("placements").insert(fullRows);
+
+    // Pattern-match the error message and strip only the columns the DB
+    // actually rejected, so we don't silently drop payment info.
+    const stripped = new Set<string>();
+    const candidates = ["requester_user_id", "venue_slug", "artist_slug", "monthly_fee_gbp", "qr_enabled", "message"];
+    while (error) {
+      const msg = error.message || "";
+      const newStrip = candidates.filter((c) => !stripped.has(c) && new RegExp(`\\b${c}\\b`).test(msg));
+      if (newStrip.length === 0) break;
+      newStrip.forEach((c) => stripped.add(c));
+      console.warn(`Placement insert missing columns [${Array.from(stripped).join(", ")}], retrying:`, msg);
+      const r = await insertWithout(Array.from(stripped));
+      error = r.error;
     }
+    if (error) console.warn("Placement insert failed:", error.message);
 
     if (error) {
       console.error("Supabase error:", error);

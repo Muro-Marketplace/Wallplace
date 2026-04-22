@@ -451,7 +451,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
   const selectedOtherPartyType = selectedConvData?.otherPartyType || "artist";
 
   return (
-    <div className="flex h-[calc(100vh-13rem)] border border-border rounded-sm overflow-hidden bg-surface">
+    <div className="flex h-[calc(100vh-13rem)] border border-border rounded-2xl overflow-hidden bg-surface shadow-sm">
       {/* Conversation list */}
       <div className={`${selectedConv || composing ? "hidden sm:flex" : "flex"} w-full sm:w-80 shrink-0 border-r border-border flex-col`}>
         {/* Search */}
@@ -463,7 +463,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search conversations…"
-              className="w-full pl-8 pr-3 py-2 bg-[#FAF8F5] border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50 placeholder:text-muted"
+              className="w-full pl-8 pr-3 py-2 bg-[#FAF8F5] border border-border rounded-full text-sm focus:outline-none focus:border-accent/50 placeholder:text-muted"
             />
           </div>
         </div>
@@ -524,7 +524,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
             </div>
             <div className="px-4 py-3 border-t border-border shadow-[0_-1px_3px_rgba(0,0,0,0.03)]">
               {sendError && (
-                <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-sm">
+                <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-red-500 shrink-0"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                   <p className="text-xs text-red-600 flex-1">{sendError}</p>
                   <button onClick={() => setSendError(null)} className="text-red-400 hover:text-red-600">
@@ -533,8 +533,8 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                 </div>
               )}
               <div className="flex gap-2">
-                <input type="text" value={composeMessage} onChange={(e) => { setComposeMessage(e.target.value); if (sendError) setSendError(null); }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendNewMessage(); } }} maxLength={5000} placeholder="Type your first message..." className="flex-1 px-3 py-2.5 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50" autoFocus />
-                <button onClick={handleSendNewMessage} disabled={!composeMessage.trim() || sending || composeMessage.length > 5000} className="px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-40">
+                <input type="text" value={composeMessage} onChange={(e) => { setComposeMessage(e.target.value); if (sendError) setSendError(null); }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendNewMessage(); } }} maxLength={5000} placeholder="Type your first message..." className="flex-1 px-3 py-2.5 bg-background border border-border rounded-full text-sm focus:outline-none focus:border-accent/50" autoFocus />
+                <button onClick={handleSendNewMessage} disabled={!composeMessage.trim() || sending || composeMessage.length > 5000} className="px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-full hover:bg-accent-hover transition-colors disabled:opacity-40">
                   {sending ? "..." : "Send"}
                 </button>
               </div>
@@ -615,7 +615,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                   <button
                     type="button"
                     onClick={() => setPanelOpenMobile(true)}
-                    className="lg:hidden ml-auto text-xs px-2.5 py-1 rounded-sm border border-accent/30 text-accent hover:bg-accent/5 transition-colors"
+                    className="lg:hidden ml-auto text-xs px-2.5 py-1 rounded-full border border-accent/30 text-accent hover:bg-accent/5 transition-colors"
                   >
                     Placement
                   </button>
@@ -639,7 +639,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                         </div>
                         <div className="px-3.5 py-3 space-y-1.5">
                           {typeof meta.workImage === "string" && meta.workImage && (
-                            <div className="w-full h-24 relative rounded-sm overflow-hidden mb-2">
+                            <div className="w-full h-24 relative rounded-md overflow-hidden mb-2">
                               <Image src={meta.workImage} alt="" fill className="object-cover" sizes="300px" />
                             </div>
                           )}
@@ -671,8 +671,8 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                           if (!isMe) {
                             return (
                               <div className="px-3.5 py-2 border-t border-border flex gap-2">
-                                <button onClick={() => handlePlacementResponse(msg, true)} className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors">Accept</button>
-                                <button onClick={() => handlePlacementResponse(msg, false)} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors">Decline</button>
+                                <button onClick={() => handlePlacementResponse(msg, true)} className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-full transition-colors">Accept</button>
+                                <button onClick={() => handlePlacementResponse(msg, false)} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-full transition-colors">Decline</button>
                               </div>
                             );
                           }
@@ -726,7 +726,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
             {/* Reply input */}
             <div className="px-4 py-3 border-t border-border shadow-[0_-1px_3px_rgba(0,0,0,0.03)]">
               {sendError && (
-                <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-sm">
+                <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-red-500 shrink-0"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                   <p className="text-xs text-red-600 flex-1">{sendError}</p>
                   <button onClick={() => setSendError(null)} className="text-red-400 hover:text-red-600">
@@ -735,8 +735,8 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                 </div>
               )}
               <div className="flex gap-2">
-                <input type="text" value={reply} onChange={(e) => { setReply(e.target.value); if (sendError) setSendError(null); }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }} maxLength={5000} placeholder="Type a message..." className="flex-1 px-3 py-2.5 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50" />
-                <button onClick={handleSendReply} disabled={!reply.trim() || sending || reply.length > 5000} className="px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-40">
+                <input type="text" value={reply} onChange={(e) => { setReply(e.target.value); if (sendError) setSendError(null); }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }} maxLength={5000} placeholder="Type a message..." className="flex-1 px-3 py-2.5 bg-background border border-border rounded-full text-sm focus:outline-none focus:border-accent/50" />
+                <button onClick={handleSendReply} disabled={!reply.trim() || sending || reply.length > 5000} className="px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-full hover:bg-accent-hover transition-colors disabled:opacity-40">
                   {sending ? "..." : "Send"}
                 </button>
               </div>

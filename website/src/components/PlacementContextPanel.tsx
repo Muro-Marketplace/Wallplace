@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { authFetch } from "@/lib/api-client";
 import type { ArtistWork } from "@/data/artists";
-import PlacementStepper from "@/components/PlacementStepper";
 import {
   normaliseStatus,
   statusBadgeClass,
@@ -142,14 +141,21 @@ export default function PlacementContextPanel({
   })();
 
   const displayStatus: DisplayStatus | null = current ? normaliseStatus(current.status as string) : null;
-  const role = current ? viewerRole(
-    { ...current, requesterUserId: (current as RemotePlacement).requester_user_id },
-    userId || null
-  ) : "observer";
-  const nextAct = current ? nextAction(
-    { ...current, requesterUserId: (current as RemotePlacement).requester_user_id },
-    role
-  ) : null;
+  // Map snake_case DB columns onto the camelCase PlacementLifecycle shape
+  // that status helpers expect. Without this, currentStage / nextStage
+  // can't read the timestamps and every active placement looks like it
+  // has no next step.
+  const lifecycleCurrent = current ? {
+    status: current.status,
+    acceptedAt: (current as RemotePlacement).accepted_at,
+    scheduledFor: (current as RemotePlacement).scheduled_for,
+    installedAt: (current as RemotePlacement).installed_at,
+    liveFrom: (current as RemotePlacement).live_from,
+    collectedAt: (current as RemotePlacement).collected_at,
+    requesterUserId: (current as RemotePlacement).requester_user_id,
+  } : null;
+  const role = lifecycleCurrent ? viewerRole(lifecycleCurrent, userId || null) : "observer";
+  const nextAct = lifecycleCurrent ? nextAction(lifecycleCurrent, role) : null;
 
   async function handleAccept() {
     if (!current) return;
@@ -180,6 +186,23 @@ export default function PlacementContextPanel({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) setError(data.error || "Could not decline");
+      else await loadPlacements();
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function handleAdvance(stage: string) {
+    if (!current || stage === "accepted") return;
+    setBusyAction(`advance-${stage}`);
+    setError(null);
+    try {
+      const res = await authFetch("/api/placements", {
+        method: "PATCH",
+        body: JSON.stringify({ id: (current as RemotePlacement).id, stage }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) setError(data.error || "Could not update stage");
       else await loadPlacements();
     } finally {
       setBusyAction(null);
@@ -309,7 +332,7 @@ export default function PlacementContextPanel({
                           return next;
                         });
                       }}
-                      className={`relative aspect-square rounded-sm overflow-hidden border-2 transition-all ${selected ? "border-accent shadow-sm" : "border-transparent hover:border-border"}`}
+                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${selected ? "border-accent shadow-sm" : "border-transparent hover:border-border"}`}
                       title={w.title}
                     >
                       <Image src={w.image} alt={w.title} fill className="object-cover" sizes="100px" />
@@ -332,30 +355,30 @@ export default function PlacementContextPanel({
           <div>
             <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted mb-2">Type</p>
             <div className="flex gap-2">
-              <button type="button" onClick={() => setReqQr(true)} className={`flex-1 px-3 py-2 text-xs rounded-sm border transition-colors ${reqQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>QR Display</button>
-              <button type="button" onClick={() => setReqQr(false)} className={`flex-1 px-3 py-2 text-xs rounded-sm border transition-colors ${!reqQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>Paid Loan</button>
+              <button type="button" onClick={() => setReqQr(true)} className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${reqQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>QR Display</button>
+              <button type="button" onClick={() => setReqQr(false)} className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${!reqQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>Paid Loan</button>
             </div>
           </div>
 
           {reqQr ? (
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted flex-1">Revenue share</span>
-              <input type="number" min={0} max={50} value={reqRevShare} onChange={(e) => setReqRevShare(Number(e.target.value) || 0)} className="w-16 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs text-center focus:outline-none focus:border-accent/50" />
+              <input type="number" min={0} max={50} value={reqRevShare} onChange={(e) => setReqRevShare(Number(e.target.value) || 0)} className="w-16 px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-center focus:outline-none focus:border-accent/50" />
               <span className="text-xs text-muted">%</span>
             </div>
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted flex-1">Monthly fee</span>
               <span className="text-xs text-muted">£</span>
-              <input type="number" min={0} value={reqFee} onChange={(e) => { const v = e.target.value; if (v === "") { setReqFee(""); return; } const n = Number(v); if (!Number.isNaN(n)) setReqFee(n); }} placeholder="e.g. 50" className="w-20 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs focus:outline-none focus:border-accent/50" />
+              <input type="number" min={0} value={reqFee} onChange={(e) => { const v = e.target.value; if (v === "") { setReqFee(""); return; } const n = Number(v); if (!Number.isNaN(n)) setReqFee(n); }} placeholder="e.g. 50" className="w-20 px-2 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:border-accent/50" />
             </div>
           )}
 
-          <textarea value={reqNote} onChange={(e) => setReqNote(e.target.value)} placeholder="Add a note (optional)" rows={3} className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50 resize-none" />
+          <textarea value={reqNote} onChange={(e) => setReqNote(e.target.value)} placeholder="Add a note (optional)" rows={3} className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-accent/50 resize-none" />
 
           {error && <p className="text-xs text-red-600">{error}</p>}
 
-          <button onClick={handleRequest} disabled={busyAction === "request" || reqSelected.size === 0} className="w-full px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-40">
+          <button onClick={handleRequest} disabled={busyAction === "request" || reqSelected.size === 0} className="w-full px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-full hover:bg-accent-hover transition-colors disabled:opacity-40">
             {busyAction === "request" ? "Sending…" : `Send placement request${reqSelected.size > 1 ? ` (${reqSelected.size})` : ""}`}
           </button>
         </div>
@@ -378,7 +401,7 @@ export default function PlacementContextPanel({
         <div className="flex items-start justify-between gap-3">
           <Header title="Placement" />
           {displayStatus && (
-            <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-sm ${statusBadgeClass(displayStatus)}`}>
+            <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full ${statusBadgeClass(displayStatus)}`}>
               {displayStatus}
             </span>
           )}
@@ -387,120 +410,9 @@ export default function PlacementContextPanel({
         <p className="text-xs text-muted">{arrangementLabel}</p>
       </div>
 
-      {/* Next action card */}
-      {nextAct && (
-        <div className="px-5 py-4 border-b border-border bg-surface">
-          <Header title="Next action" />
-          <p className="text-sm font-medium text-foreground mt-2">{nextAct.title}</p>
-          {nextAct.detail && <p className="text-xs text-muted mt-1 leading-relaxed">{nextAct.detail}</p>}
-
-          {displayStatus === "Pending" && role === "responder" && !counterOpen && (
-            <div className="mt-3 flex gap-2">
-              <button onClick={handleAccept} disabled={busyAction === "accept"} className="px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors disabled:opacity-60">
-                {busyAction === "accept" ? "Accepting…" : "Accept"}
-              </button>
-              <button onClick={() => {
-                setCounterOpen(true);
-                setCounterRevShare(p.revenue_share_percent || 0);
-                setCounterQr(p.qr_enabled ?? true);
-                setCounterFee(p.monthly_fee_gbp ?? "");
-              }} className="px-3 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors">
-                Counter
-              </button>
-              <button onClick={handleDecline} disabled={busyAction === "decline"} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-60">
-                {busyAction === "decline" ? "Declining…" : "Decline"}
-              </button>
-            </div>
-          )}
-
-          {displayStatus === "Active" && nextAct.cta?.kind === "advance" && nextAct.cta.stage && (
-            <div className="mt-3">
-              <PlacementStepper
-                placement={{
-                  id: p.id,
-                  status: p.status,
-                  acceptedAt: p.accepted_at,
-                  scheduledFor: p.scheduled_for,
-                  installedAt: p.installed_at,
-                  liveFrom: p.live_from,
-                  collectedAt: p.collected_at,
-                }}
-                canAdvance
-                onChange={() => loadPlacements()}
-              />
-            </div>
-          )}
-
-          {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
-        </div>
-      )}
-
-      {/* Counter form */}
-      {counterOpen && (
-        <div className="px-5 py-4 border-b border-border bg-surface">
-          <Header title="Counter offer" subtitle="Adjust the terms before sending back." />
-          <div className="mt-3 space-y-3">
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setCounterQr(true)} className={`flex-1 px-3 py-2 text-xs rounded-sm border transition-colors ${counterQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>QR Display</button>
-              <button type="button" onClick={() => setCounterQr(false)} className={`flex-1 px-3 py-2 text-xs rounded-sm border transition-colors ${!counterQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>Paid Loan</button>
-            </div>
-            {counterQr ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted flex-1">Revenue share</span>
-                <input type="number" min={0} max={50} value={counterRevShare} onChange={(e) => setCounterRevShare(Number(e.target.value) || 0)} className="w-16 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs text-center focus:outline-none focus:border-accent/50" />
-                <span className="text-xs text-muted">%</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted flex-1">Monthly fee</span>
-                <span className="text-xs text-muted">£</span>
-                <input type="number" min={0} value={counterFee} onChange={(e) => { const v = e.target.value; if (v === "") { setCounterFee(""); return; } const n = Number(v); if (!Number.isNaN(n)) setCounterFee(n); }} className="w-20 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs focus:outline-none focus:border-accent/50" />
-              </div>
-            )}
-            <textarea value={counterNote} onChange={(e) => setCounterNote(e.target.value)} placeholder="Add a note (optional)" rows={2} className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50 resize-none" />
-            <div className="flex gap-2">
-              <button onClick={handleCounterSubmit} disabled={busyAction === "counter"} className="flex-1 px-3 py-2 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors disabled:opacity-60">
-                {busyAction === "counter" ? "Sending…" : "Send counter"}
-              </button>
-              <button onClick={() => setCounterOpen(false)} className="px-3 py-2 text-xs text-muted hover:text-foreground">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Terms summary */}
-      <div className="px-5 py-4 border-b border-border">
-        <Header title="Terms" />
-        <div className="mt-2 space-y-1.5">
-          <TermsRow label="Type" value={arrangementLabel} />
-          {p.revenue_share_percent != null && p.arrangement_type === "revenue_share" && (
-            <TermsRow label="Revenue share" value={`${p.revenue_share_percent}%`} />
-          )}
-          {p.monthly_fee_gbp != null && (
-            <TermsRow label="Monthly fee" value={`\u00a3${p.monthly_fee_gbp}`} />
-          )}
-          {p.qr_enabled != null && (
-            <TermsRow label="QR code" value={p.qr_enabled ? "Enabled" : "Disabled"} />
-          )}
-          <TermsRow label="Requested" value={formatDate(p.created_at)} />
-          {p.accepted_at && <TermsRow label="Accepted" value={formatDate(p.accepted_at)} />}
-        </div>
-      </div>
-
-      {/* Revenue summary \u2014 no monthly figure per product ask */}
-      {displayStatus === "Active" || displayStatus === "Completed" || displayStatus === "Sold" ? (
-        <div className="px-5 py-4 border-b border-border">
-          <Header title="Revenue" />
-          <div className="mt-2 space-y-1.5">
-            {p.revenue_share_percent != null && <TermsRow label="Share" value={`${p.revenue_share_percent}%`} />}
-            <TermsRow label="Earned to date" value={`\u00a3${p.revenue_earned_gbp ?? 0}`} />
-          </div>
-        </div>
-      ) : null}
-
-      {/* Full lifecycle timeline — always visible so the user can see
-          the whole status cycle, not just the current next action. */}
-      <div className="px-5 py-4 border-b border-border">
+      {/* Progress — replaces the old "Next action" card. Shows the full
+          status cycle with inline action buttons for the current step. */}
+      <div className="px-5 py-4 border-b border-border bg-surface">
         <Header title="Progress" />
         <ol className="mt-3 space-y-0">
           {(() => {
@@ -513,9 +425,7 @@ export default function PlacementContextPanel({
               { key: "collected", label: "Collected", ts: p.collected_at, reached: !!p.collected_at },
             ];
             const isDeclined = displayStatus === "Declined";
-            // Current = last reached step index.
             const currentIdx = lifecycle.reduce((acc, s, i) => (s.reached ? i : acc), -1);
-            // If declined, override: only Requested is reached, and the chain terminates.
             if (isDeclined) {
               return (
                 <>
@@ -566,12 +476,118 @@ export default function PlacementContextPanel({
             });
           })()}
         </ol>
+
+        {/* Inline action row — Accept / Counter / Decline when Pending,
+            Mark next stage when Active. */}
+        {displayStatus === "Pending" && role === "responder" && !counterOpen && (
+          <div className="mt-4 flex gap-2">
+            <button onClick={handleAccept} disabled={busyAction === "accept"} className="px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60">
+              {busyAction === "accept" ? "Accepting…" : "Accept"}
+            </button>
+            <button onClick={() => {
+              setCounterOpen(true);
+              setCounterRevShare(p.revenue_share_percent || 0);
+              setCounterQr(p.qr_enabled ?? true);
+              setCounterFee(p.monthly_fee_gbp ?? "");
+            }} className="px-3 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-full transition-colors">
+              Counter
+            </button>
+            <button onClick={handleDecline} disabled={busyAction === "decline"} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-full transition-colors disabled:opacity-60">
+              {busyAction === "decline" ? "Declining…" : "Decline"}
+            </button>
+          </div>
+        )}
+
+        {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
       </div>
 
-      <div className="px-5 py-4 mt-auto">
+      {/* Counter form */}
+      {counterOpen && (
+        <div className="px-5 py-4 border-b border-border bg-surface">
+          <Header title="Counter offer" subtitle="Adjust the terms before sending back." />
+          <div className="mt-3 space-y-3">
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setCounterQr(true)} className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${counterQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>QR Display</button>
+              <button type="button" onClick={() => setCounterQr(false)} className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${!counterQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>Paid Loan</button>
+            </div>
+            {counterQr ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted flex-1">Revenue share</span>
+                <input type="number" min={0} max={50} value={counterRevShare} onChange={(e) => setCounterRevShare(Number(e.target.value) || 0)} className="w-16 px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-center focus:outline-none focus:border-accent/50" />
+                <span className="text-xs text-muted">%</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted flex-1">Monthly fee</span>
+                <span className="text-xs text-muted">£</span>
+                <input type="number" min={0} value={counterFee} onChange={(e) => { const v = e.target.value; if (v === "") { setCounterFee(""); return; } const n = Number(v); if (!Number.isNaN(n)) setCounterFee(n); }} className="w-20 px-2 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:border-accent/50" />
+              </div>
+            )}
+            <textarea value={counterNote} onChange={(e) => setCounterNote(e.target.value)} placeholder="Add a note (optional)" rows={2} className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:border-accent/50 resize-none" />
+            <div className="flex gap-2">
+              <button onClick={handleCounterSubmit} disabled={busyAction === "counter"} className="flex-1 px-3 py-2 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60">
+                {busyAction === "counter" ? "Sending…" : "Send counter"}
+              </button>
+              <button onClick={() => setCounterOpen(false)} className="px-3 py-2 text-xs text-muted hover:text-foreground">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Terms summary */}
+      <div className="px-5 py-4 border-b border-border">
+        <Header title="Terms" />
+        <div className="mt-2 space-y-1.5">
+          <TermsRow label="Type" value={arrangementLabel} />
+          {p.revenue_share_percent != null && p.arrangement_type === "revenue_share" && (
+            <TermsRow label="Revenue share" value={`${p.revenue_share_percent}%`} />
+          )}
+          {p.monthly_fee_gbp != null && (
+            <TermsRow label="Monthly fee" value={`\u00a3${p.monthly_fee_gbp}`} />
+          )}
+          {p.qr_enabled != null && (
+            <TermsRow label="QR code" value={p.qr_enabled ? "Enabled" : "Disabled"} />
+          )}
+          <TermsRow label="Requested" value={formatDate(p.created_at)} />
+          {p.accepted_at && <TermsRow label="Accepted" value={formatDate(p.accepted_at)} />}
+        </div>
+      </div>
+
+      {/* Revenue summary \u2014 no monthly figure per product ask */}
+      {displayStatus === "Active" || displayStatus === "Completed" || displayStatus === "Sold" ? (
+        <div className="px-5 py-4 border-b border-border">
+          <Header title="Revenue" />
+          <div className="mt-2 space-y-1.5">
+            {p.revenue_share_percent != null && <TermsRow label="Share" value={`${p.revenue_share_percent}%`} />}
+            <TermsRow label="Earned to date" value={`\u00a3${p.revenue_earned_gbp ?? 0}`} />
+          </div>
+        </div>
+      ) : null}
+
+      {/* Bottom CTAs — primary action mirrors the "Next" step on the
+          progress bar so the user can advance the placement from the
+          same spot every time. "Open full placement" stays as secondary. */}
+      <div className="px-5 py-4 mt-auto space-y-2">
+        {(() => {
+          const nextStageKey = nextAct?.cta?.kind === "advance" ? nextAct.cta.stage : null;
+          const nextLabel = nextStageKey ? `Mark ${nextStageKey === "live" ? "live on wall" : nextStageKey}` : null;
+          if (displayStatus === "Active" && nextStageKey && nextLabel) {
+            return (
+              <button
+                onClick={() => handleAdvance(nextStageKey)}
+                disabled={busyAction === `advance-${nextStageKey}`}
+                className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60"
+              >
+                {busyAction === `advance-${nextStageKey}` ? "Updating…" : nextLabel}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+              </button>
+            );
+          }
+          return null;
+        })()}
         <Link
           href={`${portalBase}/placements`}
-          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-accent bg-surface border border-accent/40 hover:bg-accent hover:text-white hover:border-accent rounded-sm transition-colors"
+          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-accent bg-surface border border-accent/40 hover:bg-accent hover:text-white hover:border-accent rounded-full transition-colors"
         >
           Open full placement
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
