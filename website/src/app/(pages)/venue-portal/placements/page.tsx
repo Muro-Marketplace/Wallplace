@@ -435,10 +435,12 @@ export default function VenuePlacementsPage() {
         workTitle,
         workImage: work?.image || "",
         venueSlug: "", // API resolves from auth
-        type: qrEnabled && rev > 0 ? "revenue_share" as const : "free_loan" as const,
+        // With QR + Paid loan now independent: if a fee is set it's a paid
+        // loan (and may also be QR-enabled); otherwise it's a revenue share.
+        type: fee > 0 ? "free_loan" as const : "revenue_share" as const,
         revenueSharePercent: qrEnabled && rev > 0 ? rev : undefined,
         qrEnabled,
-        monthlyFeeGbp: !qrEnabled && fee > 0 ? fee : undefined,
+        monthlyFeeGbp: fee > 0 ? fee : undefined,
         message: message || undefined,
       };
     });
@@ -470,7 +472,7 @@ export default function VenuePlacementsPage() {
         artistSlug,
         workTitle: p.workTitle,
         workImage: p.workImage,
-        type: qrEnabled && rev > 0 ? "Revenue Share" as ArrangementType : "Paid Loan" as ArrangementType,
+        type: fee > 0 ? "Paid Loan" as ArrangementType : "Revenue Share" as ArrangementType,
         revenueSharePercent: p.revenueSharePercent,
         status: "Pending",
         date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
@@ -618,38 +620,41 @@ export default function VenuePlacementsPage() {
               <ArtistPickerDropdown onPick={(slug, name) => { setArtistSlug(slug); setArtistName(name); loadArtistWorks(slug); }} />
             )}
 
-            {/* Placement type */}
+            {/* Arrangement — QR and Paid loan are independent toggles so
+                a placement can be paid-loan-with-QR (venue pays a monthly
+                fee and also splits QR sales). Rev share input below stays
+                live whenever QR is enabled. */}
             <div>
-              <label className="block text-sm font-medium mb-2">Placement Type</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label className="block text-sm font-medium mb-2">Arrangement</label>
+              <div className="space-y-2">
                 <label className={`flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${qrEnabled ? "border-accent bg-accent/5" : "border-border hover:border-foreground/30"}`}>
                   <input
                     type="checkbox"
                     checked={qrEnabled}
-                    onChange={() => setQrEnabled(true)}
+                    onChange={() => setQrEnabled(!qrEnabled)}
                     className="mt-0.5 accent-accent"
                   />
                   <div>
-                    <p className="text-sm font-medium text-foreground">QR Display</p>
-                    <p className="text-xs text-muted">Display the work with a QR linking to sales. Revenue share applies.</p>
+                    <p className="text-sm font-medium text-foreground">QR-enabled display</p>
+                    <p className="text-xs text-muted">Display the work with a QR code linking to the artist&rsquo;s shop. You split QR sales via the share below.</p>
                   </div>
                 </label>
-                <label className={`flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${!qrEnabled ? "border-accent bg-accent/5" : "border-border hover:border-foreground/30"}`}>
+                <label className={`flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${typeof monthlyFee === "number" && monthlyFee > 0 ? "border-accent bg-accent/5" : "border-border hover:border-foreground/30"}`}>
                   <input
                     type="checkbox"
-                    checked={!qrEnabled}
-                    onChange={() => setQrEnabled(false)}
+                    checked={typeof monthlyFee === "number" && monthlyFee > 0}
+                    onChange={(e) => setMonthlyFee(e.target.checked ? 50 : "")}
                     className="mt-0.5 accent-accent"
                   />
                   <div>
-                    <p className="text-sm font-medium text-foreground">Paid Loan</p>
-                    <p className="text-xs text-muted">Venue pays the artist a monthly fee to display the work. No QR sales link.</p>
+                    <p className="text-sm font-medium text-foreground">Paid loan (monthly fee)</p>
+                    <p className="text-xs text-muted">You pay the artist a monthly fee to display the work. Combine with QR above if you want both.</p>
                   </div>
                 </label>
               </div>
-              {!qrEnabled && (
-                <div className="mt-3">
-                  <label className="block text-sm font-medium mb-2">Monthly fee to artist (optional)</label>
+              {typeof monthlyFee === "number" && monthlyFee > 0 && (
+                <div className="mt-3 pl-3">
+                  <label className="block text-xs font-medium text-muted mb-1.5">Monthly fee to artist</label>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted">£</span>
                     <input
@@ -673,11 +678,11 @@ export default function VenuePlacementsPage() {
               )}
             </div>
 
-            {/* Revenue share (QR Display only) */}
+            {/* Revenue share (only relevant when QR is on) */}
             {qrEnabled && (
               <div>
-                <label className="block text-sm font-medium mb-2">Revenue Share (optional)</label>
-                <p className="text-xs text-muted mb-3">Propose a revenue share percentage on QR sales. Leave at 0 for a free display arrangement.</p>
+                <label className="block text-sm font-medium mb-2">Revenue share on QR sales <span className="text-muted font-normal">(optional)</span></label>
+                <p className="text-xs text-muted mb-3">Propose a revenue share percentage on QR-linked sales. Leave at 0 for a free display arrangement.</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { authFetch } from "@/lib/api-client";
@@ -139,17 +139,22 @@ export default function PlacementContextPanel({
     loadPlacements();
   }, [loadPlacements]);
 
-  // The "current" placement for this conversation = the most recent one that is
-  // still active/pending. If none, fall back to the most recent (so a completed
-  // placement is still visible in the summary).
-  const current: PlacementLifecycle & Partial<RemotePlacement> | null = (() => {
-    if (placements.length === 0) return null;
-    const live = placements.find((p) => {
+  // When a conversation has multiple placements, default the panel to the
+  // most recent live (Pending / Active) one, then let the user arrow
+  // through the rest via prev/next in the header.
+  const defaultIndex = useMemo(() => {
+    if (placements.length === 0) return 0;
+    const liveIdx = placements.findIndex((p) => {
       const s = normaliseStatus(p.status);
       return s === "Pending" || s === "Active";
     });
-    return live || placements[0];
-  })();
+    return liveIdx >= 0 ? liveIdx : 0;
+  }, [placements]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  // Re-anchor to the default live row whenever the underlying list changes.
+  useEffect(() => { setCurrentIndex(defaultIndex); }, [defaultIndex]);
+  const current: PlacementLifecycle & Partial<RemotePlacement> | null =
+    placements.length === 0 ? null : (placements[Math.min(currentIndex, placements.length - 1)] ?? placements[0]);
 
   const displayStatus: DisplayStatus | null = current ? normaliseStatus(current.status as string) : null;
   // Map snake_case DB columns onto the camelCase PlacementLifecycle shape
@@ -446,23 +451,56 @@ export default function PlacementContextPanel({
 
   // Has placement \u2014 show progress panel.
   const p = current as RemotePlacement;
-  // "Type" label: just the arrangement name. The numeric value lives on its
-  // own Terms row ("Revenue share: 1%" / "Monthly fee: £X") so we don't
-  // repeat it here.
-  const arrangementLabel = p.arrangement_type === "revenue_share"
-    ? "Revenue share"
-    : p.arrangement_type === "free_loan"
-      ? (p.monthly_fee_gbp && p.monthly_fee_gbp > 0 ? "Paid loan" : "Free loan")
-      : "Purchase";
+  // Derive the headline arrangement label from the actual data rather than
+  // trusting the raw arrangement_type, which historically got set to
+  // "free_loan" even for QR-only revenue shares. Rules:
+  //   \u2022 Monthly fee > 0              \u2192 Paid loan
+  //   \u2022 No fee but QR enabled        \u2192 Revenue share (even if DB says "free_loan")
+  //   \u2022 Explicit "revenue_share"     \u2192 Revenue share
+  //   \u2022 "purchase"                   \u2192 Direct purchase
+  //   \u2022 Anything else                \u2192 Free display
+  const hasFee = typeof p.monthly_fee_gbp === "number" && p.monthly_fee_gbp > 0;
+  const arrangementLabel = hasFee
+    ? "Paid loan"
+    : p.arrangement_type === "purchase"
+      ? "Direct purchase"
+      : p.qr_enabled || p.arrangement_type === "revenue_share"
+        ? "Revenue share"
+        : "Free display";
 
   return (
     <aside className="w-full h-full bg-[#FAF8F5] border-l border-border flex flex-col overflow-y-auto">
       {/* Compact placement header — work title + status chip on one row,
-          arrangement as a small subtitle. Dropped the "PLACEMENT" kicker
-          and the extra mt-3 gap that used to push the title down. */}
+          arrangement as a small subtitle. Prev/next arrows appear only
+          when the conversation has more than one placement. */}
       <div className="px-4 py-3 border-b border-border">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Placement</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Placement</p>
+            {placements.length > 1 && (
+              <div className="flex items-center gap-1 text-[10px] text-muted">
+                <button
+                  type="button"
+                  onClick={() => setCurrentIndex((i) => (i - 1 + placements.length) % placements.length)}
+                  className="p-0.5 text-muted hover:text-foreground disabled:opacity-30"
+                  aria-label="Previous placement"
+                  title="Previous placement"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+                </button>
+                <span className="tabular-nums">{currentIndex + 1}/{placements.length}</span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentIndex((i) => (i + 1) % placements.length)}
+                  className="p-0.5 text-muted hover:text-foreground disabled:opacity-30"
+                  aria-label="Next placement"
+                  title="Next placement"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             {displayStatus && (
               <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full ${statusBadgeClass(displayStatus)}`}>
@@ -620,45 +658,48 @@ export default function PlacementContextPanel({
           stack-of-full-width rows. QR-code row dropped for revenue share
           arrangements because rev share is always QR-enabled by design,
           so the row was redundant. */}
+      {/* Terms — rows driven by actual data, not the raw arrangement_type
+          string. Monthly fee shows when there's a fee, revenue share shows
+          when QR is enabled with a non-zero share. */}
       <div className="px-4 py-3 border-b border-border">
         <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted mb-2">Terms</p>
-        <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs">
-          <dt className="text-muted">Type</dt>
-          <dd className="text-foreground font-medium text-right">{arrangementLabel}</dd>
-
-          {p.arrangement_type === "revenue_share" && (
-            <>
-              <dt className="text-muted">Revenue share</dt>
-              <dd className="text-foreground font-medium text-right">
-                {p.revenue_share_percent != null ? `${p.revenue_share_percent}%` : "Not set"}
-              </dd>
-            </>
+        <div className="space-y-0.5 text-xs">
+          <div className="flex gap-3">
+            <span className="text-muted w-24 shrink-0">Type</span>
+            <span className="text-foreground font-medium">{arrangementLabel}</span>
+          </div>
+          {hasFee && (
+            <div className="flex gap-3">
+              <span className="text-muted w-24 shrink-0">Monthly fee</span>
+              <span className="text-foreground font-medium">£{p.monthly_fee_gbp}</span>
+            </div>
           )}
-
-          {p.arrangement_type === "free_loan" && (
-            <>
-              <dt className="text-muted">Monthly fee</dt>
-              <dd className="text-foreground font-medium text-right">
-                {p.monthly_fee_gbp != null && p.monthly_fee_gbp > 0 ? `£${p.monthly_fee_gbp}` : "Free"}
-              </dd>
-              {p.qr_enabled != null && (
-                <>
-                  <dt className="text-muted">QR code</dt>
-                  <dd className="text-foreground font-medium text-right">{p.qr_enabled ? "Enabled" : "Disabled"}</dd>
-                </>
-              )}
-            </>
+          {p.qr_enabled && p.revenue_share_percent != null && p.revenue_share_percent > 0 && (
+            <div className="flex gap-3">
+              <span className="text-muted w-24 shrink-0">Revenue share</span>
+              <span className="text-foreground font-medium">{p.revenue_share_percent}% on QR sales</span>
+            </div>
           )}
-
-          <dt className="text-muted">Requested</dt>
-          <dd className="text-foreground font-medium text-right">{formatDate(p.created_at)}</dd>
+          {/* QR indicator only matters on paid-loan rows — on revenue share
+              it's always on by definition, on paid loan the venue might be
+              paying without QR, which is useful to surface. */}
+          {hasFee && p.qr_enabled != null && (
+            <div className="flex gap-3">
+              <span className="text-muted w-24 shrink-0">QR code</span>
+              <span className="text-foreground font-medium">{p.qr_enabled ? "Enabled" : "Disabled"}</span>
+            </div>
+          )}
+          <div className="flex gap-3">
+            <span className="text-muted w-24 shrink-0">Requested</span>
+            <span className="text-foreground font-medium">{formatDate(p.created_at)}</span>
+          </div>
           {p.accepted_at && (
-            <>
-              <dt className="text-muted">Accepted</dt>
-              <dd className="text-foreground font-medium text-right">{formatDate(p.accepted_at)}</dd>
-            </>
+            <div className="flex gap-3">
+              <span className="text-muted w-24 shrink-0">Accepted</span>
+              <span className="text-foreground font-medium">{formatDate(p.accepted_at)}</span>
+            </div>
           )}
-        </dl>
+        </div>
       </div>
 
       {/* Revenue — inline single row. Only shown post-acceptance. */}

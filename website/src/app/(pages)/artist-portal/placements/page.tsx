@@ -234,12 +234,15 @@ export default function PlacementsPage() {
         workImage: work.image,
         workSize: workSizes[workIndex] || undefined,
         venueSlug,
-        type: rev > 0 ? "revenue_share" as const : "free_loan" as const,
-        revenueSharePercent: rev > 0 ? rev : undefined,
+        // QR and paid-loan are independent now. If there's a monthly fee
+        // this is a paid loan (optionally also QR-enabled); otherwise it's
+        // a revenue share. Monthly fee always flows through when set.
+        type: fee > 0 ? "free_loan" as const : "revenue_share" as const,
+        revenueSharePercent: qrEnabled && rev > 0 ? rev : undefined,
         notes: notes || undefined,
         message: message || undefined,
         qrEnabled,
-        monthlyFeeGbp: !qrEnabled && fee > 0 ? fee : undefined,
+        monthlyFeeGbp: fee > 0 ? fee : undefined,
       };
     });
 
@@ -364,10 +367,10 @@ export default function PlacementsPage() {
         </div>
       </div>
 
-      {/* Outstanding placement actions */}
-      <PlacementActionItems userId={user?.id} role="artist" heading="Needs your attention" />
-
-      {/* Request Placement Form */}
+      {/* Request Placement Form — rendered before Needs your attention
+          when open, so clicking Request Placement takes the artist
+          straight into the form without making them scroll past the
+          action items. Matches the venue-side behaviour. */}
       {showForm && (
         <div className="bg-surface border border-border rounded-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-5">
@@ -401,38 +404,40 @@ export default function PlacementsPage() {
               )}
             </div>
 
-            {/* Display type */}
+            {/* Arrangement — independent toggles so a paid loan can also
+                have a QR code (venue splits QR sales while still paying a
+                monthly fee). */}
             <div>
-              <label className="block text-sm font-medium mb-2">Display Type</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label className="block text-sm font-medium mb-2">Arrangement</label>
+              <div className="space-y-2">
                 <label className={`flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${qrEnabled ? "border-accent bg-accent/5" : "border-border hover:border-foreground/30"}`}>
                   <input
                     type="checkbox"
                     checked={qrEnabled}
-                    onChange={() => setQrEnabled(true)}
+                    onChange={() => setQrEnabled(!qrEnabled)}
                     className="mt-0.5 accent-accent"
                   />
                   <div>
-                    <p className="text-sm font-medium text-foreground">QR code display</p>
-                    <p className="text-xs text-muted">Venue displays the work with a QR that links to your profile/sales.</p>
+                    <p className="text-sm font-medium text-foreground">QR-enabled display</p>
+                    <p className="text-xs text-muted">Venue displays the work with a QR code linking to your profile and sales. You share a % of QR-linked sales with the venue (set below).</p>
                   </div>
                 </label>
-                <label className={`flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${!qrEnabled ? "border-accent bg-accent/5" : "border-border hover:border-foreground/30"}`}>
+                <label className={`flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${typeof monthlyFee === "number" && monthlyFee > 0 ? "border-accent bg-accent/5" : "border-border hover:border-foreground/30"}`}>
                   <input
                     type="checkbox"
-                    checked={!qrEnabled}
-                    onChange={() => setQrEnabled(false)}
+                    checked={typeof monthlyFee === "number" && monthlyFee > 0}
+                    onChange={(e) => setMonthlyFee(e.target.checked ? 50 : "")}
                     className="mt-0.5 accent-accent"
                   />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Paid loan (no QR)</p>
-                    <p className="text-xs text-muted">Venue pays you a monthly fee to display the work. No QR sales link.</p>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">Paid loan (monthly fee)</p>
+                    <p className="text-xs text-muted">Venue pays you a monthly fee to display the work. Can be combined with QR above.</p>
                   </div>
                 </label>
               </div>
-              {!qrEnabled && (
-                <div className="mt-3">
-                  <label className="block text-sm font-medium mb-2">Monthly Fee to Artist (optional)</label>
+              {typeof monthlyFee === "number" && monthlyFee > 0 && (
+                <div className="mt-3 pl-3">
+                  <label className="block text-xs font-medium text-muted mb-1.5">Monthly fee to artist</label>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted">£</span>
                     <input
@@ -446,7 +451,6 @@ export default function PlacementsPage() {
                         const n = Number(v);
                         if (!Number.isNaN(n)) setMonthlyFee(n);
                       }}
-                      onBlur={() => { if (monthlyFee === "") setMonthlyFee(""); }}
                       placeholder="e.g. 50"
                       className="w-28 bg-background border border-border rounded-sm px-3 py-3 text-sm focus:outline-none focus:border-accent/60"
                     />
@@ -578,6 +582,11 @@ export default function PlacementsPage() {
           </div>
         </div>
       )}
+
+      {/* Outstanding placement actions — now sits below the request form
+          so the click-path from "+ Request Placement" shows the form
+          before anything else. */}
+      <PlacementActionItems userId={user?.id} role="artist" heading="Needs your attention" />
 
       {/* Filter tabs */}
       <div className="flex gap-1 mb-6 border-b border-border">
