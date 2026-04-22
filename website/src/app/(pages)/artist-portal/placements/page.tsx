@@ -461,28 +461,31 @@ export default function PlacementsPage() {
               )}
             </div>
 
-            {/* Revenue share */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Revenue Share (optional)</label>
-              <p className="text-xs text-muted mb-3">Offer the venue a percentage of any sales made from their space. Leave at 0 for a free display arrangement.</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={0}
-                  max={50}
-                  value={revenuePercent}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === "") { setRevenuePercent(""); return; }
-                    const n = Number(v);
-                    if (!Number.isNaN(n)) setRevenuePercent(n);
-                  }}
-                  onBlur={() => { if (revenuePercent === "") setRevenuePercent(0); }}
-                  className="w-20 bg-background border border-border rounded-sm px-3 py-3 text-sm text-center focus:outline-none focus:border-accent/60"
-                />
-                <span className="text-sm text-muted">% to the venue on sales</span>
+            {/* Revenue share — only meaningful when the arrangement is
+                QR-enabled (no QR code = no QR-linked sales to share). */}
+            {qrEnabled && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Revenue share on QR sales <span className="text-muted font-normal">(optional)</span></label>
+                <p className="text-xs text-muted mb-3">Offer the venue a percentage of any QR-linked sales. Leave at 0 for a pure display arrangement.</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={50}
+                    value={revenuePercent}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") { setRevenuePercent(""); return; }
+                      const n = Number(v);
+                      if (!Number.isNaN(n)) setRevenuePercent(n);
+                    }}
+                    onBlur={() => { if (revenuePercent === "") setRevenuePercent(0); }}
+                    className="w-20 bg-background border border-border rounded-sm px-3 py-3 text-sm text-center focus:outline-none focus:border-accent/60"
+                  />
+                  <span className="text-sm text-muted">% to the venue on sales</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Select works */}
             <div>

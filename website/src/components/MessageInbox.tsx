@@ -789,11 +789,12 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
           {panelOpenMobile && (
             <div className="lg:hidden fixed inset-0 z-50 flex">
               <div className="flex-1 bg-black/40" onClick={() => setPanelOpenMobile(false)} />
-              <div className="w-[min(360px,90vw)] bg-surface border-l border-border shadow-xl overflow-hidden flex flex-col">
-                {/* No separate wrapper header — the panel renders its own
-                    header + close chevron via onClose, so we don't stack
-                    two "Placement" labels. */}
-                <div className="flex-1 overflow-y-auto">
+              {/* Single scroll container — the panel's own aside handles
+                  overflow. Nesting two scrollers was cutting the top of
+                  the panel off on iOS Safari (the inner scroll started
+                  mid-way). */}
+              <div className="w-[min(360px,90vw)] bg-surface border-l border-border shadow-xl flex flex-col h-full">
+                <div className="flex-1 min-h-0">
                   <PlacementContextPanel
                     onClose={() => setPanelOpenMobile(false)}
                     otherPartySlug={selectedOtherParty}

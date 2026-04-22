@@ -470,10 +470,10 @@ export default function PlacementContextPanel({
 
   return (
     <aside className="w-full h-full bg-[#FAF8F5] border-l border-border flex flex-col overflow-y-auto">
-      {/* Compact placement header — work title + status chip on one row,
-          arrangement as a small subtitle. Prev/next arrows appear only
-          when the conversation has more than one placement. */}
-      <div className="px-4 py-3 border-b border-border">
+      {/* Placement header — work title + status chip on one row,
+          arrangement as a small subtitle. Tight padding on mobile, the
+          original comfortable padding restored on desktop via lg: */}
+      <div className="px-4 py-3 lg:px-5 lg:py-5 border-b border-border">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Placement</p>
@@ -520,15 +520,15 @@ export default function PlacementContextPanel({
             )}
           </div>
         </div>
-        <p className="text-sm font-medium text-foreground mt-1.5 truncate">{p.work_title}</p>
-        <p className="text-[11px] text-muted">{arrangementLabel}</p>
+        <p className="text-sm font-medium text-foreground mt-1.5 lg:mt-3 truncate">{p.work_title}</p>
+        <p className="text-[11px] lg:text-xs text-muted">{arrangementLabel}</p>
       </div>
 
-      {/* Progress — tighter vertical rhythm (pb-2 instead of pb-4, smaller
-          dots) so the whole lifecycle fits in one glance. */}
-      <div className="px-4 py-3 border-b border-border bg-surface">
+      {/* Progress — mobile keeps the tighter rhythm; desktop restores the
+          original relaxed spacing. */}
+      <div className="px-4 py-3 lg:px-5 lg:py-4 border-b border-border bg-surface">
         <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Progress</p>
-        <ol className="mt-2 space-y-0">
+        <ol className="mt-2 lg:mt-3 space-y-0">
           {(() => {
             const lifecycle = [
               { key: "requested", label: "Requested", ts: p.created_at, reached: !!p.created_at },
@@ -569,16 +569,16 @@ export default function PlacementContextPanel({
                 : isNext ? "bg-accent/20 border border-accent" : "bg-border/60";
               const connectorCls = s.reached && i < currentIdx ? "bg-green-500" : "bg-border/60";
               return (
-                <li key={s.key} className={`relative pl-5 ${isLast ? "" : "pb-2"}`}>
-                  <span className={`absolute left-0 top-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center ${dotCls}`}>
+                <li key={s.key} className={`relative pl-5 lg:pl-6 ${isLast ? "" : "pb-2 lg:pb-4"}`}>
+                  <span className={`absolute left-0 top-0.5 w-3.5 h-3.5 lg:w-4 lg:h-4 rounded-full flex items-center justify-center ${dotCls}`}>
                     {s.reached ? (
-                      <svg width="8" height="8" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                      <svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
                     ) : (
                       <span className={`text-[8px] font-medium ${isNext ? "text-accent" : "text-muted"}`}>{i + 1}</span>
                     )}
                   </span>
-                  {!isLast && <span className={`absolute left-[6px] top-3.5 bottom-0 w-px ${connectorCls}`} />}
-                  <p className={`text-xs font-medium leading-tight ${s.reached ? "text-foreground" : isNext ? "text-accent" : "text-muted"}`}>
+                  {!isLast && <span className={`absolute left-[6px] lg:left-[7px] top-3.5 lg:top-4 bottom-0 w-px ${connectorCls}`} />}
+                  <p className={`text-xs font-medium leading-tight lg:leading-normal ${s.reached ? "text-foreground" : isNext ? "text-accent" : "text-muted"}`}>
                     {s.label}
                     {isCurrent && <span className="ml-1.5 text-[9px] font-normal uppercase tracking-wider text-accent">Current</span>}
                     {isNext && <span className="ml-1.5 text-[9px] font-normal uppercase tracking-wider text-accent">Next</span>}
@@ -661,9 +661,9 @@ export default function PlacementContextPanel({
       {/* Terms — rows driven by actual data, not the raw arrangement_type
           string. Monthly fee shows when there's a fee, revenue share shows
           when QR is enabled with a non-zero share. */}
-      <div className="px-4 py-3 border-b border-border">
+      <div className="px-4 py-3 lg:px-5 lg:py-4 border-b border-border">
         <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted mb-2">Terms</p>
-        <div className="space-y-0.5 text-xs">
+        <div className="space-y-0.5 lg:space-y-1.5 text-xs">
           <div className="flex gap-3">
             <span className="text-muted w-24 shrink-0">Type</span>
             <span className="text-foreground font-medium">{arrangementLabel}</span>
@@ -702,18 +702,38 @@ export default function PlacementContextPanel({
         </div>
       </div>
 
-      {/* Revenue — inline single row. Only shown post-acceptance. */}
+      {/* Revenue — inline single row on mobile (tight). Desktop gets the
+          original block layout with a proper header. */}
       {(displayStatus === "Active" || displayStatus === "Completed" || displayStatus === "Sold") ? (
-        <div className="px-4 py-2.5 border-b border-border flex items-baseline justify-between gap-3">
-          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Earned to date</p>
-          <p className="text-sm font-medium text-foreground">&pound;{(p.revenue_earned_gbp ?? 0).toLocaleString()}</p>
+        <div className="px-4 py-2.5 lg:px-5 lg:py-4 border-b border-border">
+          {/* Mobile: single inline row */}
+          <div className="flex items-baseline justify-between gap-3 lg:hidden">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Earned to date</p>
+            <p className="text-sm font-medium text-foreground">&pound;{(p.revenue_earned_gbp ?? 0).toLocaleString()}</p>
+          </div>
+          {/* Desktop: full block */}
+          <div className="hidden lg:block">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Revenue</p>
+            <div className="mt-2 space-y-1.5 text-xs">
+              {p.revenue_share_percent != null && p.qr_enabled && (
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-muted">Share</span>
+                  <span className="text-foreground font-medium">{p.revenue_share_percent}%</span>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-muted">Earned to date</span>
+                <span className="text-foreground font-medium">&pound;{(p.revenue_earned_gbp ?? 0).toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
         </div>
       ) : null}
 
-      {/* Bottom CTAs — primary action mirrors the "Next" step on the
-          progress bar. Tightened to py-2 and space-y-1.5 so the buttons
-          don't eat half the mobile drawer. */}
-      <div className="px-4 py-3 mt-auto space-y-1.5">
+      {/* Bottom CTAs — on mobile sit directly after the last section
+          (no mt-auto, so no big empty gap before the buttons). On desktop
+          mt-auto pushes them to the bottom of the side-rail. */}
+      <div className="px-4 py-3 lg:px-5 lg:py-4 lg:mt-auto space-y-1.5 lg:space-y-2">
         {(() => {
           const nextStageKey = nextAct?.cta?.kind === "advance" ? nextAct.cta.stage : null;
           const nextLabel = nextStageKey ? `Mark ${nextStageKey === "live" ? "live on wall" : nextStageKey}` : null;
@@ -722,7 +742,7 @@ export default function PlacementContextPanel({
               <button
                 onClick={() => handleAdvance(nextStageKey)}
                 disabled={busyAction === `advance-${nextStageKey}`}
-                className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 lg:py-2.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60"
               >
                 {busyAction === `advance-${nextStageKey}` ? "Updating…" : nextLabel}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
@@ -733,7 +753,7 @@ export default function PlacementContextPanel({
         })()}
         <Link
           href={`/placements/${encodeURIComponent(p.id)}`}
-          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-xs font-medium text-accent bg-surface border border-accent/40 hover:bg-accent hover:text-white hover:border-accent rounded-full transition-colors"
+          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 lg:py-2.5 text-xs font-medium text-accent bg-surface border border-accent/40 hover:bg-accent hover:text-white hover:border-accent rounded-full transition-colors"
         >
           Open full placement
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
