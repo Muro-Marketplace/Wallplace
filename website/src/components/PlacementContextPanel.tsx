@@ -9,10 +9,8 @@ import PlacementStepper from "@/components/PlacementStepper";
 import {
   normaliseStatus,
   statusBadgeClass,
-  currentStage,
   nextAction,
   viewerRole,
-  STAGE_LABEL,
   type DisplayStatus,
   type PlacementLifecycle,
 } from "@/lib/placements/status";
@@ -372,7 +370,6 @@ export default function PlacementContextPanel({
     : p.arrangement_type === "free_loan"
       ? (p.monthly_fee_gbp ? `Paid loan \u00b7 \u00a3${p.monthly_fee_gbp}/mo` : "Paid loan")
       : "Purchase";
-  const stage = currentStage({ ...p });
   const portalBase = portalType === "artist" ? "/artist-portal" : "/venue-portal";
 
   return (
@@ -501,31 +498,83 @@ export default function PlacementContextPanel({
         </div>
       ) : null}
 
-      {/* Stage timeline for reference */}
-      {stage && (
-        <div className="px-5 py-4 border-b border-border">
-          <Header title="Timeline" />
-          <div className="mt-3">
-            <PlacementStepper
-              placement={{
-                id: p.id,
-                status: p.status,
-                acceptedAt: p.accepted_at,
-                scheduledFor: p.scheduled_for,
-                installedAt: p.installed_at,
-                liveFrom: p.live_from,
-                collectedAt: p.collected_at,
-              }}
-              canAdvance={false}
-            />
-            {stage && <p className="text-[10px] text-muted mt-2">Current: {STAGE_LABEL[stage]}</p>}
-          </div>
-        </div>
-      )}
+      {/* Full lifecycle timeline — always visible so the user can see
+          the whole status cycle, not just the current next action. */}
+      <div className="px-5 py-4 border-b border-border">
+        <Header title="Progress" />
+        <ol className="mt-3 space-y-0">
+          {(() => {
+            const lifecycle = [
+              { key: "requested", label: "Requested", ts: p.created_at, reached: !!p.created_at },
+              { key: "accepted",  label: "Accepted",  ts: p.accepted_at, reached: !!p.accepted_at },
+              { key: "scheduled", label: "Scheduled", ts: p.scheduled_for, reached: !!p.scheduled_for },
+              { key: "installed", label: "Installed", ts: p.installed_at, reached: !!p.installed_at },
+              { key: "live",      label: "Live on wall", ts: p.live_from, reached: !!p.live_from },
+              { key: "collected", label: "Collected", ts: p.collected_at, reached: !!p.collected_at },
+            ];
+            const isDeclined = displayStatus === "Declined";
+            // Current = last reached step index.
+            const currentIdx = lifecycle.reduce((acc, s, i) => (s.reached ? i : acc), -1);
+            // If declined, override: only Requested is reached, and the chain terminates.
+            if (isDeclined) {
+              return (
+                <>
+                  <li className="relative pl-6 pb-4">
+                    <span className="absolute left-0 top-0.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                      <svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                    </span>
+                    <span className="absolute left-[7px] top-4 bottom-0 w-px bg-red-200" />
+                    <p className="text-xs font-medium text-foreground">Requested</p>
+                    <p className="text-[10px] text-muted">{formatDate(p.created_at)}</p>
+                  </li>
+                  <li className="relative pl-6">
+                    <span className="absolute left-0 top-0.5 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                      <svg width="8" height="8" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+                    </span>
+                    <p className="text-xs font-medium text-red-700">Declined</p>
+                    <p className="text-[10px] text-muted">Request declined</p>
+                  </li>
+                </>
+              );
+            }
+            return lifecycle.map((s, i) => {
+              const isCurrent = i === currentIdx;
+              const isNext = !s.reached && i === currentIdx + 1;
+              const isLast = i === lifecycle.length - 1;
+              const dotCls = s.reached
+                ? (isCurrent ? "bg-accent" : "bg-green-500")
+                : isNext ? "bg-accent/20 border border-accent" : "bg-border/60";
+              const connectorCls = s.reached && i < currentIdx ? "bg-green-500" : "bg-border/60";
+              return (
+                <li key={s.key} className={`relative pl-6 ${isLast ? "" : "pb-4"}`}>
+                  <span className={`absolute left-0 top-0.5 w-4 h-4 rounded-full flex items-center justify-center ${dotCls}`}>
+                    {s.reached ? (
+                      <svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                    ) : (
+                      <span className={`text-[8px] font-medium ${isNext ? "text-accent" : "text-muted"}`}>{i + 1}</span>
+                    )}
+                  </span>
+                  {!isLast && <span className={`absolute left-[7px] top-4 bottom-0 w-px ${connectorCls}`} />}
+                  <p className={`text-xs font-medium ${s.reached ? "text-foreground" : isNext ? "text-accent" : "text-muted"}`}>
+                    {s.label}
+                    {isCurrent && <span className="ml-1.5 text-[9px] font-normal uppercase tracking-wider text-accent">Current</span>}
+                    {isNext && <span className="ml-1.5 text-[9px] font-normal uppercase tracking-wider text-accent">Next</span>}
+                  </p>
+                  {s.ts && <p className="text-[10px] text-muted">{formatDate(s.ts)}</p>}
+                </li>
+              );
+            });
+          })()}
+        </ol>
+      </div>
 
       <div className="px-5 py-4 mt-auto">
-        <Link href={`${portalBase}/placements`} className="text-xs text-accent hover:text-accent-hover transition-colors">
-          Open full placement →
+        <Link
+          href={`${portalBase}/placements`}
+          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-accent bg-surface border border-accent/40 hover:bg-accent hover:text-white hover:border-accent rounded-sm transition-colors"
+        >
+          Open full placement
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
         </Link>
       </div>
     </aside>
