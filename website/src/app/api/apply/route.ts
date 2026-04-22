@@ -41,6 +41,9 @@ export async function POST(request: Request) {
       themes: d.themes || [],
       hear_about: d.hearAbout || null,
       selected_plan: d.selectedPlan || "core",
+      referred_by_code: (d as { referralCode?: string }).referralCode
+        ? ((d as { referralCode?: string }).referralCode as string).toUpperCase()
+        : null,
       status: "pending",
       created_at: new Date().toISOString(),
     });

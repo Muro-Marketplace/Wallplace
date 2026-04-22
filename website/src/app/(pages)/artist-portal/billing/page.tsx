@@ -11,6 +11,7 @@ interface ProfileSubscription {
   subscription_period_end: string | null;
   trial_end: string | null;
   is_founding_artist: boolean;
+  referral_code?: string | null;
 }
 
 // Monthly prices; annual saves ~17% (10 months' equivalent).
@@ -276,6 +277,32 @@ export default function BillingPage() {
           {status === "canceled" && (
             <div className="bg-surface border border-border rounded-sm px-4 py-3 mb-5 text-sm text-muted">
               Your subscription has been canceled. Choose a plan below to reactivate.
+            </div>
+          )}
+
+          {/* Referral code — item 25 */}
+          {sub?.referral_code && (
+            <div className="bg-accent/5 border border-accent/20 rounded-sm px-4 py-4 mb-5">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-widest text-accent mb-1">Your referral code</p>
+                  <p className="text-sm text-foreground">
+                    Refer another artist and get <strong>30 days free</strong> when they upgrade to a paid plan.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="px-3 py-1.5 bg-white border border-border rounded-sm text-sm font-mono tracking-wider text-foreground select-all">
+                    {sub.referral_code}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => { navigator.clipboard.writeText(sub.referral_code || ""); }}
+                    className="px-3 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors cursor-pointer"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

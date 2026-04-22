@@ -97,6 +97,22 @@ export async function PUT(
       invited = true;
     }
 
+    // Generate a unique 6-char referral code for the new artist (item 25).
+    // Retry on collision; unlikely but cheap to handle.
+    function makeReferralCode(): string {
+      return Math.random().toString(36).slice(2, 8).toUpperCase();
+    }
+    let referralCode = makeReferralCode();
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { data: existing } = await db
+        .from("artist_profiles")
+        .select("id")
+        .eq("referral_code", referralCode)
+        .maybeSingle();
+      if (!existing) break;
+      referralCode = makeReferralCode();
+    }
+
     // Create artist profile
     const { error: profileError } = await db
       .from("artist_profiles")
@@ -121,6 +137,8 @@ export async function PUT(
         themes: app.themes || [],
         style_tags: [],
         available_sizes: [],
+        referral_code: referralCode,
+        referred_by_code: (app as Record<string, unknown>).referred_by_code as string | null || null,
       });
 
     if (profileError) {

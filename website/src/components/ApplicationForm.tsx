@@ -124,6 +124,7 @@ interface FormState {
   themes: string[];
   hearAbout: string;
   selectedPlan: string;
+  referralCode: string;
 }
 
 const initialState: FormState = {
@@ -150,6 +151,7 @@ const initialState: FormState = {
   themes: [],
   hearAbout: "",
   selectedPlan: "core",
+  referralCode: "",
 };
 
 export default function ApplicationForm() {
@@ -655,6 +657,26 @@ export default function ApplicationForm() {
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Referral code (optional) */}
+      <div>
+        <label htmlFor="referralCode" className={labelClass}>
+          Referral code <span className="text-muted font-normal">(optional)</span>
+        </label>
+        <input
+          id="referralCode"
+          name="referralCode"
+          type="text"
+          maxLength={10}
+          value={form.referralCode}
+          onChange={(e) => setForm((p) => ({ ...p, referralCode: e.target.value.toUpperCase() }))}
+          placeholder="e.g. ABCD23"
+          className={`${inputClass} uppercase tracking-wider`}
+        />
+        <p className="mt-1.5 text-xs text-muted">
+          If an existing artist referred you, enter their code so they get a free month when you upgrade.
+        </p>
       </div>
 
       {/* Plan Selection */}

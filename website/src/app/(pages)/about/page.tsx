@@ -36,7 +36,7 @@ export default function AboutPage() {
       </section>
 
       {/* Story */}
-      <section className="pb-20 lg:pb-24">
+      <section className="pt-16 lg:pt-20 pb-20 lg:pb-24">
         <div className="max-w-[1200px] mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
             <div>

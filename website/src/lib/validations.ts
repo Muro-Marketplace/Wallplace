@@ -49,6 +49,7 @@ export const applySchema = z.object({
   themes: z.array(z.string().max(100)).max(20).optional(),
   hearAbout: optionalString(200),
   selectedPlan: z.enum(["core", "pro", "premium"]).optional(),
+  referralCode: optionalString(20),
 });
 
 export const registerVenueSchema = z.object({
