@@ -26,6 +26,10 @@ interface PanelProps {
   otherPartyWorks: ArtistWork[];
   otherPartyWorksLoading: boolean;
   onRequestSent?: () => void;
+  /** Optional close callback. When provided the panel renders a dismiss
+      chevron in its top-right corner (used by the mobile drawer and as
+      an optional collapse affordance on desktop). */
+  onClose?: () => void;
 }
 
 interface RemotePlacement extends PlacementLifecycle {
@@ -83,6 +87,7 @@ export default function PlacementContextPanel({
   otherPartyWorks,
   otherPartyWorksLoading,
   onRequestSent,
+  onClose,
 }: PanelProps) {
   const [placements, setPlacements] = useState<RemotePlacement[]>([]);
   const [loading, setLoading] = useState(false);
@@ -98,7 +103,12 @@ export default function PlacementContextPanel({
 
   // Request-a-placement form state
   const [reqSelected, setReqSelected] = useState<Set<string>>(new Set());
+  // reqQr: true \u2192 Revenue share arrangement (QR always on).
+  //        false \u2192 Paid loan arrangement (QR optional via reqPaidLoanQr).
   const [reqQr, setReqQr] = useState(true);
+  // Paid-loan sub-toggle: does the venue also want a QR card so the artist
+  // earns a share on QR sales? Independent of the monthly fee.
+  const [reqPaidLoanQr, setReqPaidLoanQr] = useState(true);
   const [reqRevShare, setReqRevShare] = useState<number>(0);
   const [reqFee, setReqFee] = useState<number | "">("");
   const [reqNote, setReqNote] = useState("");
@@ -264,7 +274,10 @@ export default function PlacementContextPanel({
     setError(null);
     try {
       const selectedWorks = otherPartyWorks.filter((w) => reqSelected.has(w.title));
-      const arrangementType = reqQr ? (reqRevShare > 0 ? "revenue_share" : "free_loan") : "free_loan";
+      const arrangementType = reqQr ? "revenue_share" : "free_loan";
+      // QR is always enabled on revenue share (that's the whole point);
+      // on paid loan it follows the venue's choice via reqPaidLoanQr.
+      const qrEnabled = reqQr ? true : reqPaidLoanQr;
       const fromVenue = portalType === "venue";
       const body = {
         fromVenue,
@@ -276,8 +289,8 @@ export default function PlacementContextPanel({
           venueSlug: fromVenue ? "" : otherPartySlug,
           venue: fromVenue ? "" : otherPartyName,
           type: arrangementType,
-          revenueSharePercent: reqQr && reqRevShare > 0 ? reqRevShare : undefined,
-          qrEnabled: reqQr,
+          revenueSharePercent: (reqQr || (qrEnabled && reqRevShare > 0)) && reqRevShare > 0 ? reqRevShare : undefined,
+          qrEnabled,
           monthlyFeeGbp: !reqQr && typeof reqFee === "number" ? reqFee : undefined,
           message: reqNote.trim() || undefined,
         })),
@@ -375,8 +388,8 @@ export default function PlacementContextPanel({
           <div>
             <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted mb-2">Type</p>
             <div className="flex gap-2">
-              <button type="button" onClick={() => setReqQr(true)} className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${reqQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>QR Display</button>
-              <button type="button" onClick={() => setReqQr(false)} className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${!reqQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>Paid Loan</button>
+              <button type="button" onClick={() => setReqQr(true)} className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${reqQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>Revenue share</button>
+              <button type="button" onClick={() => setReqQr(false)} className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${!reqQr ? "bg-accent/10 border-accent text-accent" : "border-border text-muted hover:text-foreground"}`}>Paid loan</button>
             </div>
           </div>
 
@@ -387,10 +400,35 @@ export default function PlacementContextPanel({
               <span className="text-xs text-muted">%</span>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted flex-1">Monthly fee</span>
-              <span className="text-xs text-muted">£</span>
-              <input type="number" min={0} value={reqFee} onChange={(e) => { const v = e.target.value; if (v === "") { setReqFee(""); return; } const n = Number(v); if (!Number.isNaN(n)) setReqFee(n); }} placeholder="e.g. 50" className="w-20 px-2 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:border-accent/50" />
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted flex-1">Monthly fee</span>
+                <span className="text-xs text-muted">£</span>
+                <input type="number" min={0} value={reqFee} onChange={(e) => { const v = e.target.value; if (v === "") { setReqFee(""); return; } const n = Number(v); if (!Number.isNaN(n)) setReqFee(n); }} placeholder="e.g. 50" className="w-20 px-2 py-1.5 bg-surface border border-border rounded-lg text-xs focus:outline-none focus:border-accent/50" />
+              </div>
+              {/* Optional QR for paid loans \u2014 venue still earns a share
+                  on any QR sales even while paying the artist a monthly fee. */}
+              <label className="flex items-center justify-between gap-2 cursor-pointer">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-foreground">Add a QR code</p>
+                  <p className="text-[10px] text-muted leading-snug">Let visitors buy the piece. You&rsquo;ll split QR sales.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReqPaidLoanQr(!reqPaidLoanQr)}
+                  className={`relative shrink-0 w-9 h-5 rounded-full transition-colors ${reqPaidLoanQr ? "bg-accent" : "bg-border"}`}
+                  aria-pressed={reqPaidLoanQr}
+                >
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${reqPaidLoanQr ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+                </button>
+              </label>
+              {reqPaidLoanQr && (
+                <div className="flex items-center gap-2 pl-0">
+                  <span className="text-xs text-muted flex-1">Share on QR sales</span>
+                  <input type="number" min={0} max={50} value={reqRevShare} onChange={(e) => setReqRevShare(Number(e.target.value) || 0)} className="w-16 px-2 py-1.5 bg-surface border border-border rounded-lg text-xs text-center focus:outline-none focus:border-accent/50" />
+                  <span className="text-xs text-muted">%</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -408,32 +446,51 @@ export default function PlacementContextPanel({
 
   // Has placement \u2014 show progress panel.
   const p = current as RemotePlacement;
+  // "Type" label: just the arrangement name. The numeric value lives on its
+  // own Terms row ("Revenue share: 1%" / "Monthly fee: £X") so we don't
+  // repeat it here.
   const arrangementLabel = p.arrangement_type === "revenue_share"
-    ? `Revenue share ${p.revenue_share_percent || 0}%`
+    ? "Revenue share"
     : p.arrangement_type === "free_loan"
-      ? (p.monthly_fee_gbp ? `Paid loan \u00b7 \u00a3${p.monthly_fee_gbp}/mo` : "Paid loan")
+      ? (p.monthly_fee_gbp && p.monthly_fee_gbp > 0 ? "Paid loan" : "Free loan")
       : "Purchase";
 
   return (
     <aside className="w-full h-full bg-[#FAF8F5] border-l border-border flex flex-col overflow-y-auto">
-      <div className="px-5 py-5 border-b border-border">
-        <div className="flex items-start justify-between gap-3">
-          <Header title="Placement" />
-          {displayStatus && (
-            <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full ${statusBadgeClass(displayStatus)}`}>
-              {displayStatus}
-            </span>
-          )}
+      {/* Compact placement header — work title + status chip on one row,
+          arrangement as a small subtitle. Dropped the "PLACEMENT" kicker
+          and the extra mt-3 gap that used to push the title down. */}
+      <div className="px-4 py-3 border-b border-border">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Placement</p>
+          <div className="flex items-center gap-2">
+            {displayStatus && (
+              <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full ${statusBadgeClass(displayStatus)}`}>
+                {displayStatus}
+              </span>
+            )}
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1 -mr-1 text-muted hover:text-foreground transition-colors"
+                aria-label="Close placement panel"
+                title="Collapse panel"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              </button>
+            )}
+          </div>
         </div>
-        <p className="text-sm font-medium text-foreground mt-3 truncate">{p.work_title}</p>
-        <p className="text-xs text-muted">{arrangementLabel}</p>
+        <p className="text-sm font-medium text-foreground mt-1.5 truncate">{p.work_title}</p>
+        <p className="text-[11px] text-muted">{arrangementLabel}</p>
       </div>
 
-      {/* Progress — replaces the old "Next action" card. Shows the full
-          status cycle with inline action buttons for the current step. */}
-      <div className="px-5 py-4 border-b border-border bg-surface">
-        <Header title="Progress" />
-        <ol className="mt-3 space-y-0">
+      {/* Progress — tighter vertical rhythm (pb-2 instead of pb-4, smaller
+          dots) so the whole lifecycle fits in one glance. */}
+      <div className="px-4 py-3 border-b border-border bg-surface">
+        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Progress</p>
+        <ol className="mt-2 space-y-0">
           {(() => {
             const lifecycle = [
               { key: "requested", label: "Requested", ts: p.created_at, reached: !!p.created_at },
@@ -448,20 +505,19 @@ export default function PlacementContextPanel({
             if (isDeclined) {
               return (
                 <>
-                  <li className="relative pl-6 pb-4">
-                    <span className="absolute left-0 top-0.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                      <svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                  <li className="relative pl-5 pb-2">
+                    <span className="absolute left-0 top-0.5 w-3.5 h-3.5 rounded-full bg-green-500 flex items-center justify-center">
+                      <svg width="8" height="8" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
                     </span>
-                    <span className="absolute left-[7px] top-4 bottom-0 w-px bg-red-200" />
-                    <p className="text-xs font-medium text-foreground">Requested</p>
-                    <p className="text-[10px] text-muted">{formatDate(p.created_at)}</p>
+                    <span className="absolute left-[6px] top-3.5 bottom-0 w-px bg-red-200" />
+                    <p className="text-xs font-medium text-foreground leading-tight">Requested</p>
+                    <p className="text-[10px] text-muted leading-tight">{formatDate(p.created_at)}</p>
                   </li>
-                  <li className="relative pl-6">
-                    <span className="absolute left-0 top-0.5 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
-                      <svg width="8" height="8" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+                  <li className="relative pl-5">
+                    <span className="absolute left-0 top-0.5 w-3.5 h-3.5 rounded-full bg-red-500 flex items-center justify-center">
+                      <svg width="7" height="7" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
                     </span>
-                    <p className="text-xs font-medium text-red-700">Declined</p>
-                    <p className="text-[10px] text-muted">Request declined</p>
+                    <p className="text-xs font-medium text-red-700 leading-tight">Declined</p>
                   </li>
                 </>
               );
@@ -475,21 +531,21 @@ export default function PlacementContextPanel({
                 : isNext ? "bg-accent/20 border border-accent" : "bg-border/60";
               const connectorCls = s.reached && i < currentIdx ? "bg-green-500" : "bg-border/60";
               return (
-                <li key={s.key} className={`relative pl-6 ${isLast ? "" : "pb-4"}`}>
-                  <span className={`absolute left-0 top-0.5 w-4 h-4 rounded-full flex items-center justify-center ${dotCls}`}>
+                <li key={s.key} className={`relative pl-5 ${isLast ? "" : "pb-2"}`}>
+                  <span className={`absolute left-0 top-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center ${dotCls}`}>
                     {s.reached ? (
-                      <svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                      <svg width="8" height="8" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
                     ) : (
                       <span className={`text-[8px] font-medium ${isNext ? "text-accent" : "text-muted"}`}>{i + 1}</span>
                     )}
                   </span>
-                  {!isLast && <span className={`absolute left-[7px] top-4 bottom-0 w-px ${connectorCls}`} />}
-                  <p className={`text-xs font-medium ${s.reached ? "text-foreground" : isNext ? "text-accent" : "text-muted"}`}>
+                  {!isLast && <span className={`absolute left-[6px] top-3.5 bottom-0 w-px ${connectorCls}`} />}
+                  <p className={`text-xs font-medium leading-tight ${s.reached ? "text-foreground" : isNext ? "text-accent" : "text-muted"}`}>
                     {s.label}
                     {isCurrent && <span className="ml-1.5 text-[9px] font-normal uppercase tracking-wider text-accent">Current</span>}
                     {isNext && <span className="ml-1.5 text-[9px] font-normal uppercase tracking-wider text-accent">Next</span>}
                   </p>
-                  {s.ts && <p className="text-[10px] text-muted">{formatDate(s.ts)}</p>}
+                  {s.ts && s.reached && <p className="text-[10px] text-muted leading-tight">{formatDate(s.ts)}</p>}
                 </li>
               );
             });
@@ -499,7 +555,7 @@ export default function PlacementContextPanel({
         {/* Inline action row — Accept / Counter / Decline when Pending,
             Mark next stage when Active. */}
         {displayStatus === "Pending" && canViewerRespond && !counterOpen && (
-          <div className="mt-4 flex gap-2">
+          <div className="mt-3 flex gap-2">
             <button onClick={handleAccept} disabled={busyAction === "accept"} className="px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60">
               {busyAction === "accept" ? "Accepting…" : "Accept"}
             </button>
@@ -517,17 +573,14 @@ export default function PlacementContextPanel({
           </div>
         )}
 
-        {/* Pending but we sent it — surface the waiting state rather than
-            leaving the panel silent (or worse, letting the requester accept
-            their own request). */}
         {displayStatus === "Pending" && !canViewerRespond && (
-          <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+          <div className="mt-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px]">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
             Awaiting the other side&rsquo;s response
           </div>
         )}
 
-        {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+        {error && <p className="text-[11px] text-red-600 mt-2">{error}</p>}
       </div>
 
       {/* Counter form */}
@@ -563,51 +616,63 @@ export default function PlacementContextPanel({
         </div>
       )}
 
-      {/* Terms summary */}
-      <div className="px-5 py-4 border-b border-border">
-        <Header title="Terms" />
-        <div className="mt-2 space-y-1.5">
-          <TermsRow label="Type" value={arrangementLabel} />
-          {/* Revenue share — always shown for revenue_share arrangements so
-              the agreed split is visible in the panel. Falls back to "Not set"
-              if the value is missing rather than silently hiding the row. */}
+      {/* Terms — two-column key/value rows, denser than the previous
+          stack-of-full-width rows. QR-code row dropped for revenue share
+          arrangements because rev share is always QR-enabled by design,
+          so the row was redundant. */}
+      <div className="px-4 py-3 border-b border-border">
+        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted mb-2">Terms</p>
+        <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs">
+          <dt className="text-muted">Type</dt>
+          <dd className="text-foreground font-medium text-right">{arrangementLabel}</dd>
+
           {p.arrangement_type === "revenue_share" && (
-            <TermsRow
-              label="Revenue share"
-              value={p.revenue_share_percent != null ? `${p.revenue_share_percent}%` : "Not set"}
-            />
+            <>
+              <dt className="text-muted">Revenue share</dt>
+              <dd className="text-foreground font-medium text-right">
+                {p.revenue_share_percent != null ? `${p.revenue_share_percent}%` : "Not set"}
+              </dd>
+            </>
           )}
-          {/* Monthly fee — always shown for paid-loan arrangements. "Free"
-              when no fee was agreed, £X when one was. */}
+
           {p.arrangement_type === "free_loan" && (
-            <TermsRow
-              label="Monthly fee"
-              value={p.monthly_fee_gbp != null && p.monthly_fee_gbp > 0 ? `£${p.monthly_fee_gbp}` : "Free"}
-            />
+            <>
+              <dt className="text-muted">Monthly fee</dt>
+              <dd className="text-foreground font-medium text-right">
+                {p.monthly_fee_gbp != null && p.monthly_fee_gbp > 0 ? `£${p.monthly_fee_gbp}` : "Free"}
+              </dd>
+              {p.qr_enabled != null && (
+                <>
+                  <dt className="text-muted">QR code</dt>
+                  <dd className="text-foreground font-medium text-right">{p.qr_enabled ? "Enabled" : "Disabled"}</dd>
+                </>
+              )}
+            </>
           )}
-          {p.qr_enabled != null && (
-            <TermsRow label="QR code" value={p.qr_enabled ? "Enabled" : "Disabled"} />
+
+          <dt className="text-muted">Requested</dt>
+          <dd className="text-foreground font-medium text-right">{formatDate(p.created_at)}</dd>
+          {p.accepted_at && (
+            <>
+              <dt className="text-muted">Accepted</dt>
+              <dd className="text-foreground font-medium text-right">{formatDate(p.accepted_at)}</dd>
+            </>
           )}
-          <TermsRow label="Requested" value={formatDate(p.created_at)} />
-          {p.accepted_at && <TermsRow label="Accepted" value={formatDate(p.accepted_at)} />}
-        </div>
+        </dl>
       </div>
 
-      {/* Revenue summary \u2014 no monthly figure per product ask */}
-      {displayStatus === "Active" || displayStatus === "Completed" || displayStatus === "Sold" ? (
-        <div className="px-5 py-4 border-b border-border">
-          <Header title="Revenue" />
-          <div className="mt-2 space-y-1.5">
-            {p.revenue_share_percent != null && <TermsRow label="Share" value={`${p.revenue_share_percent}%`} />}
-            <TermsRow label="Earned to date" value={`\u00a3${p.revenue_earned_gbp ?? 0}`} />
-          </div>
+      {/* Revenue — inline single row. Only shown post-acceptance. */}
+      {(displayStatus === "Active" || displayStatus === "Completed" || displayStatus === "Sold") ? (
+        <div className="px-4 py-2.5 border-b border-border flex items-baseline justify-between gap-3">
+          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Earned to date</p>
+          <p className="text-sm font-medium text-foreground">&pound;{(p.revenue_earned_gbp ?? 0).toLocaleString()}</p>
         </div>
       ) : null}
 
       {/* Bottom CTAs — primary action mirrors the "Next" step on the
-          progress bar so the user can advance the placement from the
-          same spot every time. "Open full placement" stays as secondary. */}
-      <div className="px-5 py-4 mt-auto space-y-2">
+          progress bar. Tightened to py-2 and space-y-1.5 so the buttons
+          don't eat half the mobile drawer. */}
+      <div className="px-4 py-3 mt-auto space-y-1.5">
         {(() => {
           const nextStageKey = nextAct?.cta?.kind === "advance" ? nextAct.cta.stage : null;
           const nextLabel = nextStageKey ? `Mark ${nextStageKey === "live" ? "live on wall" : nextStageKey}` : null;
@@ -616,7 +681,7 @@ export default function PlacementContextPanel({
               <button
                 onClick={() => handleAdvance(nextStageKey)}
                 disabled={busyAction === `advance-${nextStageKey}`}
-                className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60"
               >
                 {busyAction === `advance-${nextStageKey}` ? "Updating…" : nextLabel}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
@@ -627,7 +692,7 @@ export default function PlacementContextPanel({
         })()}
         <Link
           href={`/placements/${encodeURIComponent(p.id)}`}
-          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-accent bg-surface border border-accent/40 hover:bg-accent hover:text-white hover:border-accent rounded-full transition-colors"
+          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-xs font-medium text-accent bg-surface border border-accent/40 hover:bg-accent hover:text-white hover:border-accent rounded-full transition-colors"
         >
           Open full placement
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>

@@ -790,14 +790,12 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
             <div className="lg:hidden fixed inset-0 z-50 flex">
               <div className="flex-1 bg-black/40" onClick={() => setPanelOpenMobile(false)} />
               <div className="w-[min(360px,90vw)] bg-surface border-l border-border shadow-xl overflow-hidden flex flex-col">
-                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                  <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Placement</p>
-                  <button onClick={() => setPanelOpenMobile(false)} className="text-muted hover:text-foreground">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
-                  </button>
-                </div>
+                {/* No separate wrapper header — the panel renders its own
+                    header + close chevron via onClose, so we don't stack
+                    two "Placement" labels. */}
                 <div className="flex-1 overflow-y-auto">
                   <PlacementContextPanel
+                    onClose={() => setPanelOpenMobile(false)}
                     otherPartySlug={selectedOtherParty}
                     otherPartyName={selectedConvData.otherPartyDisplayName}
                     otherPartyType={selectedOtherPartyType}
