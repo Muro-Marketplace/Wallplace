@@ -6,6 +6,7 @@ import Link from "next/link";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
 import { type ArtistWork, type Artist } from "@/data/artists";
 import { themes as allThemes } from "@/data/themes";
+import { DISCIPLINES, formatSubStyleLabel, getDisciplineById, type DisciplineId } from "@/data/categories";
 import { uploadImage } from "@/lib/upload";
 import { useCurrentArtist } from "@/hooks/useCurrentArtist";
 import { authFetch } from "@/lib/api-client";
@@ -37,6 +38,8 @@ interface ProfileState {
   location: string;
   postcode: string;
   primaryMedium: string;
+  discipline: DisciplineId | "";
+  subStyles: string[];
   shortBio: string;
   extendedBio: string;
   instagram: string;
@@ -66,6 +69,8 @@ function initProfile(a: Artist): ProfileState {
     location: a.location,
     postcode: a.postcode || "",
     primaryMedium: a.primaryMedium,
+    discipline: a.discipline || "",
+    subStyles: [...(a.subStyles || [])],
     shortBio: a.shortBio,
     extendedBio: a.extendedBio,
     instagram: a.instagram,
@@ -217,6 +222,8 @@ export default function ProfileEditorPage() {
           location: profile.location,
           postcode: profile.postcode,
           primary_medium: profile.primaryMedium,
+          discipline: profile.discipline || null,
+          sub_styles: profile.subStyles,
           style_tags: profile.styleTags,
           themes: profile.themes,
           instagram: profile.instagram,
@@ -412,6 +419,87 @@ export default function ProfileEditorPage() {
         </div>
 
 
+
+        {/* 4a. Discipline & Sub-styles */}
+        <div className={sectionClass}>
+          <h2 className="text-lg font-medium mb-2">Discipline & Sub-styles</h2>
+          <p className="text-xs text-muted mb-5">
+            Pick the single top-level discipline your work sits in, then any
+            sub-styles that describe it. Venues browse by these.
+          </p>
+
+          {/* Discipline radio group */}
+          <div className="mb-6">
+            <label className={labelClass}>Discipline</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {DISCIPLINES.map((d) => {
+                const selected = profile.discipline === d.id;
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => {
+                      // Switching discipline prunes sub-styles that don't belong
+                      // to the new discipline, so the persisted list stays tidy.
+                      const allowed = new Set<string>(getDisciplineById(d.id)?.subStyles ?? []);
+                      const prunedSubStyles = profile.subStyles.filter((s) => allowed.has(s));
+                      setProfile((prev) => prev ? { ...prev, discipline: d.id, subStyles: prunedSubStyles } : prev);
+                      setSaved(false);
+                      setHasUnsavedChanges(true);
+                    }}
+                    className={`px-3 py-2.5 text-sm text-left rounded-sm border transition-colors ${
+                      selected
+                        ? "border-accent bg-accent/5 text-foreground"
+                        : "border-border text-muted hover:border-foreground/30"
+                    }`}
+                    aria-pressed={selected}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`w-3 h-3 rounded-full border flex-shrink-0 ${
+                          selected ? "border-accent bg-accent" : "border-border"
+                        }`}
+                      />
+                      {d.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sub-style multi-select — filtered to the chosen discipline */}
+          {profile.discipline && (
+            <div>
+              <label className={labelClass}>Sub-styles</label>
+              <div className="flex flex-wrap gap-1.5">
+                {(getDisciplineById(profile.discipline)?.subStyles ?? []).map((sub) => {
+                  const active = profile.subStyles.includes(sub);
+                  return (
+                    <button
+                      key={sub}
+                      type="button"
+                      onClick={() => {
+                        const next = active
+                          ? profile.subStyles.filter((s) => s !== sub)
+                          : [...profile.subStyles, sub];
+                        update("subStyles", next);
+                      }}
+                      className={`px-3 py-1.5 text-xs rounded-sm border transition-colors ${
+                        active
+                          ? "bg-foreground text-white border-foreground"
+                          : "border-border text-muted hover:border-foreground/30"
+                      }`}
+                      aria-pressed={active}
+                    >
+                      {formatSubStyleLabel(sub)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* 4. Style & Themes */}
         <div className={sectionClass}>

@@ -1,4 +1,5 @@
 import { artists, type Artist, type WorkOrientation, type SizePricing } from "./artists";
+import type { DisciplineId } from "./categories";
 
 export interface GalleryWork {
   id: string;
@@ -17,6 +18,8 @@ export interface GalleryWork {
   artistLocation: string;
   artistCoordinates: { lat: number; lng: number } | null;
   artistPrimaryMedium: string;
+  artistDiscipline?: DisciplineId;
+  artistSubStyles?: string[];
   offersOriginals: boolean;
   offersPrints: boolean;
   offersFramed: boolean;
@@ -50,6 +53,8 @@ export function artistsToGalleryWorks(allArtists: Artist[]): GalleryWork[] {
       artistLocation: artist.location,
       artistCoordinates: artist.coordinates,
       artistPrimaryMedium: artist.primaryMedium,
+      artistDiscipline: artist.discipline,
+      artistSubStyles: artist.subStyles,
       offersOriginals: artist.offersOriginals,
       offersPrints: artist.offersPrints,
       offersFramed: artist.offersFramed,

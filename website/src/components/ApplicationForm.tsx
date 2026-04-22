@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import TermsCheckbox from "@/components/TermsCheckbox";
+import { DISCIPLINES, formatSubStyleLabel, getDisciplineById, type DisciplineId } from "@/data/categories";
 
 const primaryMediums = [
   "Oil Painting",
@@ -110,6 +111,8 @@ interface FormState {
   businessName: string;
   vatNumber: string;
   primaryMedium: string;
+  discipline: DisciplineId | "";
+  subStyles: string[];
   portfolioLink: string;
   artistStatement: string;
   offersOriginals: boolean;
@@ -137,6 +140,8 @@ const initialState: FormState = {
   businessName: "",
   vatNumber: "",
   primaryMedium: "",
+  discipline: "",
+  subStyles: [],
   portfolioLink: "",
   artistStatement: "",
   offersOriginals: false,
@@ -451,6 +456,84 @@ export default function ApplicationForm() {
               ))}
             </select>
           </div>
+
+          {/* Discipline + sub-style — the new taxonomy venues browse by. */}
+          <div>
+            <p className={labelClass}>
+              Discipline <span className="text-accent">*</span>
+            </p>
+            <p className="text-xs text-muted mb-3">
+              Pick the single top-level discipline your work sits in.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {DISCIPLINES.map((d) => {
+                const selected = form.discipline === d.id;
+                return (
+                  <label
+                    key={d.id}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-sm border cursor-pointer transition-colors ${
+                      selected
+                        ? "border-accent bg-accent/5"
+                        : "border-border hover:border-accent/30 bg-background"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="discipline"
+                      value={d.id}
+                      checked={selected}
+                      onChange={() => {
+                        // Prune sub-styles that don't belong to the new discipline.
+                        const allowed = new Set<string>(getDisciplineById(d.id)?.subStyles ?? []);
+                        setForm((prev) => ({
+                          ...prev,
+                          discipline: d.id,
+                          subStyles: prev.subStyles.filter((s) => allowed.has(s)),
+                        }));
+                      }}
+                      className="w-4 h-4 text-accent border-border focus:ring-accent/50 cursor-pointer"
+                    />
+                    <span className="text-sm text-foreground">{d.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {form.discipline && (
+            <div>
+              <p className={labelClass}>
+                Sub-styles <span className="text-muted font-normal">(select any that apply)</span>
+              </p>
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {(getDisciplineById(form.discipline)?.subStyles ?? []).map((sub) => {
+                  const active = form.subStyles.includes(sub);
+                  return (
+                    <button
+                      key={sub}
+                      type="button"
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          subStyles: active
+                            ? prev.subStyles.filter((s) => s !== sub)
+                            : [...prev.subStyles, sub],
+                        }));
+                      }}
+                      className={`px-3 py-1.5 text-xs rounded-sm border transition-colors cursor-pointer ${
+                        active
+                          ? "bg-foreground text-white border-foreground"
+                          : "border-border text-muted hover:border-foreground/30"
+                      }`}
+                      aria-pressed={active}
+                    >
+                      {formatSubStyleLabel(sub)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div>
             <label htmlFor="portfolioLink" className={labelClass}>

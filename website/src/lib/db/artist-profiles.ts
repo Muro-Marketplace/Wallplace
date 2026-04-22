@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import type { Artist, ArtistWork, SizePricing } from "@/data/artists";
+import type { DisciplineId } from "@/data/categories";
 
 export interface DbArtistProfile {
   id: string;
@@ -15,6 +16,9 @@ export interface DbArtistProfile {
   primary_medium: string;
   style_tags: string[];
   themes: string[];
+  /** Phase 3 taxonomy. */
+  discipline?: string | null;
+  sub_styles?: string[] | null;
   instagram: string;
   website: string;
   offers_originals: boolean;
@@ -78,6 +82,8 @@ export function dbProfileToArtist(profile: DbArtistProfile, works: DbArtistWork[
     location: profile.location,
     primaryMedium: profile.primary_medium,
     styleTags: profile.style_tags || [],
+    discipline: (profile.discipline || undefined) as DisciplineId | undefined,
+    subStyles: profile.sub_styles || [],
     instagram: profile.instagram || "",
     website: profile.website || undefined,
     offersOriginals: profile.offers_originals,

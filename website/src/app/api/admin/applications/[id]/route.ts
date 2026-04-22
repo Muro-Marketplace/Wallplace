@@ -122,6 +122,8 @@ export async function PUT(
         name: app.name,
         location: app.location || "",
         primary_medium: app.primary_medium || "",
+        discipline: app.discipline || null,
+        sub_styles: app.sub_styles || [],
         short_bio: app.artist_statement?.slice(0, 200) || "",
         extended_bio: app.artist_statement || "",
         instagram: app.instagram || "",

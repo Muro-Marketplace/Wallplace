@@ -1,3 +1,5 @@
+import type { DisciplineId } from "@/data/categories";
+
 export type WorkOrientation = "portrait" | "landscape" | "square";
 
 export interface SizePricing {
@@ -34,6 +36,9 @@ export interface Artist {
   location: string;
   primaryMedium: string;
   styleTags: string[];
+  /** Phase 3 taxonomy — discipline + flat sub-styles. Optional while data migrates. */
+  discipline?: DisciplineId;
+  subStyles?: string[];
   instagram: string;
   website?: string;
   offersOriginals: boolean;

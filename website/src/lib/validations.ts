@@ -35,6 +35,11 @@ export const applySchema = z.object({
   instagram: optionalString(200),
   website: optionalString(500),
   primaryMedium: safeString(100),
+  // Phase 3 taxonomy. Optional to keep back-compat with any in-flight forms.
+  discipline: z
+    .enum(["photography", "painting", "digital", "drawing", "sketching", "sculpture", "mixed"])
+    .optional(),
+  subStyles: z.array(z.string().max(50)).max(20).optional(),
   portfolioLink: safeString(500),
   artistStatement: safeString(2000),
   offersOriginals: z.boolean().optional(),

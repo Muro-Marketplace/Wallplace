@@ -1,126 +1,105 @@
-export interface ArtCategory {
-  id: string;
-  label: string;
-  /** primaryMedium values that belong to this category */
-  mediums: string[];
-  /** Subcategory labels derived from styleTags/themes within this medium group */
-  subcategories: string[];
-}
-
-export const artCategories: ArtCategory[] = [
+/**
+ * Wallplace taxonomy (Phase 3 rewrite).
+ *
+ * A single clean model: 6 top-level disciplines + flat sub-styles per
+ * discipline. (Seven entries if you count the "mixed" fallback bucket.)
+ *
+ * Digital Art replaces Printmaking as a top-level. Printmaking is now a
+ * sub-style under Painting + Drawing.
+ */
+export const DISCIPLINES = [
   {
     id: "photography",
     label: "Photography",
-    mediums: [
-      "Street Photography",
-      "Architectural Photography",
-      "Abstract Photography",
-      "Landscape Photography",
-      "Documentary Photography",
-      "Urban Photography",
-      "Fine Art Photography",
-      "Still Life Photography",
-      "Portrait Photography",
-      "Nature Photography",
-    ],
-    subcategories: [
-      "Landscape",
-      "Street",
-      "Architectural",
-      "Portrait",
-      "Documentary",
-      "Fine Art",
-      "Nature",
-      "Abstract",
-      "Urban",
-      "Still Life",
-      "Black & White",
+    subStyles: [
+      "landscape",
+      "portrait",
+      "urban",
+      "documentary",
+      "black-and-white",
+      "fine-art",
+      "abstract",
+      "architectural",
+      "still-life",
     ],
   },
   {
     id: "painting",
     label: "Painting",
-    mediums: [
-      "Oil Painting",
-      "Acrylic Painting",
-      "Watercolour",
-      "Abstract Painting",
-      "Gouache Painting",
-      "Encaustic Painting",
-      "Acrylic & Collage",
-    ],
-    subcategories: [
-      "Abstract",
-      "Landscape",
-      "Portrait",
-      "Still Life",
-      "Contemporary",
-      "Minimalist",
-      "Expressionist",
-      "Plein Air",
+    subStyles: [
+      "abstract",
+      "figurative",
+      "landscape",
+      "portrait",
+      "still-life",
+      "expressionist",
+      "minimalist",
+      "pop-art",
+      "printmaking",
+      "linocut",
+      "screen-print",
     ],
   },
   {
-    id: "printmaking",
-    label: "Printmaking",
-    mediums: [
-      "Screen Printing",
-      "Linocut Printmaking",
-      "Risograph Printing",
-      "Woodcut Printmaking",
-    ],
-    subcategories: [
-      "Screen Print",
-      "Linocut",
-      "Woodcut",
-      "Risograph",
-      "Limited Edition",
+    id: "digital",
+    label: "Digital Art",
+    subStyles: [
+      "illustration",
+      "3d-render",
+      "generative",
+      "pixel-art",
+      "collage",
+      "graphic",
+      "typography",
     ],
   },
   {
     id: "drawing",
     label: "Drawing & Illustration",
-    mediums: [
-      "Charcoal Drawing",
-      "Ink & Wash",
-      "Botanical Illustration",
-      "Digital Illustration",
-    ],
-    subcategories: [
-      "Charcoal",
-      "Ink",
-      "Botanical",
-      "Digital",
-      "Figurative",
+    subStyles: [
+      "botanical",
+      "architectural",
+      "portrait",
+      "fashion",
+      "editorial",
+      "children",
+      "line-art",
+      "printmaking",
     ],
   },
   {
-    id: "mixed-media",
-    label: "Mixed Media",
-    mediums: [
-      "Mixed Media",
-      "Textile Art",
-      "Ceramic Wall Art",
-    ],
-    subcategories: [
-      "Collage",
-      "Textile",
-      "Ceramic",
-      "Sculptural",
-    ],
+    id: "sketching",
+    label: "Sketching",
+    subStyles: ["urban", "figurative", "travel", "still-life", "architectural"],
   },
-];
+  {
+    id: "sculpture",
+    label: "Sculpture",
+    subStyles: ["figurative", "abstract", "ceramic", "metal", "wood", "mixed-media"],
+  },
+  {
+    id: "mixed",
+    label: "Mixed / Other",
+    subStyles: ["collage", "textile", "installation", "found-object", "multimedia"],
+  },
+] as const;
 
-/** Find which category an artist's primaryMedium belongs to */
-export function getCategoryForMedium(primaryMedium: string): ArtCategory | null {
-  return artCategories.find((cat) => cat.mediums.includes(primaryMedium)) || null;
+export type DisciplineId = (typeof DISCIPLINES)[number]["id"];
+export type Discipline = (typeof DISCIPLINES)[number];
+
+/** Find a discipline by its id. */
+export function getDisciplineById(id: string): Discipline | null {
+  return DISCIPLINES.find((d) => d.id === id) ?? null;
 }
 
-/** Check if an artist matches a subcategory (via styleTags or themes) */
-export function matchesSubcategory(subcategory: string, styleTags: string[], themes: string[]): boolean {
-  const lower = subcategory.toLowerCase();
-  return (
-    styleTags.some((t) => t.toLowerCase().includes(lower)) ||
-    themes.some((t) => t.toLowerCase().includes(lower))
-  );
+/** Get the sub-style list for a given discipline id (empty array if unknown). */
+export function getSubStylesForDiscipline(id: string): readonly string[] {
+  return getDisciplineById(id)?.subStyles ?? [];
+}
+
+/** Human-readable label for a sub-style slug ("black-and-white" -> "Black and white"). */
+export function formatSubStyleLabel(slug: string): string {
+  if (!slug) return "";
+  const spaced = slug.replace(/-/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }

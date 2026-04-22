@@ -8,7 +8,7 @@ import { artists as staticArtists, type Artist } from "@/data/artists";
 import { themes } from "@/data/themes";
 import { artistsToGalleryWorks } from "@/data/galleries";
 import { collections as staticCollections, type ArtistCollection } from "@/data/collections";
-import { artCategories, getCategoryForMedium, matchesSubcategory, type ArtCategory } from "@/data/categories";
+import { DISCIPLINES, formatSubStyleLabel, getDisciplineById } from "@/data/categories";
 import { slugify } from "@/lib/slugify";
 import { geocodePostcode } from "@/lib/geocode";
 import Button from "@/components/Button";
@@ -140,8 +140,13 @@ export default function BrowsePortfoliosPage() {
 const PAGE_SIZE = 20;
 
 function BrowsePortfoliosPageInner() {
-  const [activeCategory, setActiveCategory] = useState<string>("");
-  const [activeSubcategories, setActiveSubcategories] = useState<Set<string>>(new Set());
+  // activeDiscipline stores either:
+  //   - a discipline id (e.g. "photography")
+  //   - "" for All
+  //   - "collections" — sentinel for the Collections view (kept for back-compat
+  //     with the existing view-switcher buttons and ?view=collections param).
+  const [activeDiscipline, setActiveDiscipline] = useState<string>("");
+  const [activeSubStyles, setActiveSubStyles] = useState<Set<string>>(new Set());
   const [viewAs, setViewAs] = useState<"artists" | "works">("artists");
   // Pagination — "Show 20 more" pattern per view.
   const [loadedArtists, setLoadedArtists] = useState(PAGE_SIZE);
@@ -159,16 +164,16 @@ function BrowsePortfoliosPageInner() {
     setLoadedArtists(PAGE_SIZE);
     setLoadedWorks(PAGE_SIZE);
     setLoadedCollections(PAGE_SIZE);
-  }, [activeCategory, viewAs]);
+  }, [activeDiscipline, viewAs]);
 
   useEffect(() => {
     if (viewParam === "collections") {
-      setActiveCategory("collections");
+      setActiveDiscipline("collections");
     } else if (viewParam === "gallery") {
-      setActiveCategory("");
+      setActiveDiscipline("");
       setViewAs("works");
     } else if (viewParam === "portfolios") {
-      setActiveCategory("");
+      setActiveDiscipline("");
       setViewAs("artists");
     }
   }, [viewParam]);
@@ -298,33 +303,36 @@ function BrowsePortfoliosPageInner() {
     filters.venueTypes.length > 0 ||
     filters.styleMedium !== "";
 
-  // Get active category object
-  const activeCategoryObj = useMemo(() =>
-    artCategories.find((c) => c.id === activeCategory) || null,
-    [activeCategory]
+  // Get active discipline object. "collections" is a UI-only sentinel that
+  // activates the Collections view, so we explicitly treat it as null here.
+  const activeDisciplineObj = useMemo(
+    () => (activeDiscipline && activeDiscipline !== "collections" ? getDisciplineById(activeDiscipline) : null),
+    [activeDiscipline]
   );
 
-  // Available subcategories for the active category (dynamically computed from actual artist data)
-  const availableSubcategories = useMemo(() => {
-    if (!activeCategoryObj) return [];
-    const artistsInCat = artists.filter((a) => activeCategoryObj.mediums.includes(a.primaryMedium));
+  // Available sub-styles for the active discipline, narrowed to ones that at
+  // least one artist in the current data set actually has. This keeps the pill
+  // row from showing totally empty buckets.
+  const availableSubStyles = useMemo(() => {
+    if (!activeDisciplineObj) return [] as string[];
+    const artistsInDiscipline = artists.filter((a) => a.discipline === activeDisciplineObj.id);
     const subs = new Set<string>();
-    for (const sub of activeCategoryObj.subcategories) {
-      if (artistsInCat.some((a) => matchesSubcategory(sub, a.styleTags, a.themes))) {
+    for (const sub of activeDisciplineObj.subStyles) {
+      if (artistsInDiscipline.some((a) => a.subStyles?.includes(sub))) {
         subs.add(sub);
       }
     }
     return Array.from(subs);
-  }, [activeCategoryObj, artists]);
+  }, [activeDisciplineObj, artists]);
 
   const filteredArtists = useMemo(() => {
     return artists.filter((artist) => {
       // Must have at least one artwork to appear in marketplace
       if (!artist.works || artist.works.length === 0) return false;
-      // Category filter
-      if (activeCategoryObj && !activeCategoryObj.mediums.includes(artist.primaryMedium)) return false;
-      // Subcategory filter (any selected subcategory must match)
-      if (activeSubcategories.size > 0 && !Array.from(activeSubcategories).some((sub) => matchesSubcategory(sub, artist.styleTags, artist.themes))) return false;
+      // Discipline filter
+      if (activeDisciplineObj && artist.discipline !== activeDisciplineObj.id) return false;
+      // Sub-style filter — artist must have at least one of the active sub-styles
+      if (activeSubStyles.size > 0 && !artist.subStyles?.some((s) => activeSubStyles.has(s))) return false;
 
       if (filters.mode === "local") {
         if (!userCoords || !artist.coordinates) return false;
@@ -377,7 +385,7 @@ function BrowsePortfoliosPageInner() {
       if (!a.isFoundingArtist && b.isFoundingArtist) return 1;
       return 0;
     });
-  }, [artists, filters, userCoords, activeCategoryObj, activeSubcategories, artistSort]);
+  }, [artists, filters, userCoords, activeDisciplineObj, activeSubStyles, artistSort]);
 
   const allMediums = useMemo(
     () => Array.from(new Set(artists.map((a) => a.primaryMedium))).sort(),
@@ -393,16 +401,10 @@ function BrowsePortfoliosPageInner() {
 
   const filteredGalleryWorks = useMemo(() => {
     return allGalleryWorks.filter((work) => {
-      // Category filter
-      if (activeCategoryObj && !activeCategoryObj.mediums.includes(work.artistPrimaryMedium)) return false;
-      // Subcategory filter
-      if (activeSubcategories.size > 0) {
-        const matchesAny = Array.from(activeSubcategories).some((sub) => {
-          const lower = sub.toLowerCase();
-          return work.themes.some((t) => t.toLowerCase().includes(lower)) || work.medium.toLowerCase().includes(lower) || work.artistPrimaryMedium.toLowerCase().includes(lower);
-        });
-        if (!matchesAny) return false;
-      }
+      // Discipline filter
+      if (activeDisciplineObj && work.artistDiscipline !== activeDisciplineObj.id) return false;
+      // Sub-style filter — work's artist must have at least one matching sub-style
+      if (activeSubStyles.size > 0 && !work.artistSubStyles?.some((s) => activeSubStyles.has(s))) return false;
       // Theme
       if (galleryTheme && !work.themes.includes(galleryTheme)) return false;
       // Medium (work-level)
@@ -455,7 +457,7 @@ function BrowsePortfoliosPageInner() {
       }
       return 0; // "featured": original order
     });
-  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.maxDistance, activeCategoryObj, activeSubcategories, gallerySort]);
+  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.maxDistance, activeDisciplineObj, activeSubStyles, gallerySort]);
 
   const hasGalleryFilters =
     !!galleryTheme || !!galleryMedium || !!galleryStyle || galleryAvailableOnly || galleryPriceMin > 0 || galleryPriceMax < 1000 || galleryOriginals || galleryPrints || galleryFraming || galleryFreeLoan || galleryRevenueShare || galleryPurchase || galleryLocationMode === "local";
@@ -747,34 +749,34 @@ function BrowsePortfoliosPageInner() {
   return (
     <div className="bg-background">
 
-      {/* Category tabs */}
+      {/* Discipline tabs */}
       <div className="border-b border-border bg-[#FAF8F5]">
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
             {/* All */}
             <button
               type="button"
-              onClick={() => { setActiveCategory(""); setActiveSubcategories(new Set()); }}
+              onClick={() => { setActiveDiscipline(""); setActiveSubStyles(new Set()); }}
               className={`py-4 px-3 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
-                activeCategory === ""
+                activeDiscipline === ""
                   ? "border-foreground text-foreground"
                   : "border-transparent text-muted hover:text-foreground"
               }`}
             >
               All
             </button>
-            {artCategories.map((cat) => (
+            {DISCIPLINES.map((d) => (
               <button
-                key={cat.id}
+                key={d.id}
                 type="button"
-                onClick={() => { setActiveCategory(cat.id); setActiveSubcategories(new Set()); }}
+                onClick={() => { setActiveDiscipline(d.id); setActiveSubStyles(new Set()); }}
                 className={`py-4 px-3 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
-                  activeCategory === cat.id
+                  activeDiscipline === d.id
                     ? "border-foreground text-foreground"
                     : "border-transparent text-muted hover:text-foreground"
                 }`}
               >
-                {cat.label}
+                {d.label}
               </button>
             ))}
             {/* spacer so tabs don't stretch full width */}
@@ -783,35 +785,45 @@ function BrowsePortfoliosPageInner() {
         </div>
       </div>
 
-      {/* Subcategory pills — only when a category is selected */}
-      {activeCategoryObj && activeCategory !== "collections" && (
+      {/* Sub-style pills — only when a discipline is selected */}
+      {activeDisciplineObj && activeDiscipline !== "collections" && (
         <div className="border-b border-border bg-white">
           <div className="max-w-[1400px] mx-auto px-6 py-3 flex items-center gap-2 overflow-x-auto scrollbar-none">
             <button
               type="button"
-              onClick={() => setActiveSubcategories(new Set())}
+              onClick={() => setActiveSubStyles(new Set())}
               className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
-                activeSubcategories.size === 0
+                activeSubStyles.size === 0
                   ? "bg-foreground text-white border-foreground"
                   : "border-border bg-[#F8F6F2] lg:bg-white text-muted hover:border-foreground/30"
               }`}
             >
-              All {activeCategoryObj.label}
+              All {activeDisciplineObj.label}
             </button>
-            {availableSubcategories.map((sub) => (
-              <button
-                key={sub}
-                type="button"
-                onClick={() => setActiveSubcategories((prev) => { const next = new Set(prev); if (next.has(sub)) next.delete(sub); else next.add(sub); return next; })}
-                className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
-                  activeSubcategories.has(sub)
-                    ? "bg-foreground text-white border-foreground"
-                    : "border-border bg-[#F8F6F2] lg:bg-white text-muted hover:border-foreground/30"
-                }`}
-              >
-                {sub}
-              </button>
-            ))}
+            {/* Render the full discipline sub-style list so the pill row is
+                stable even when no artists currently match a particular
+                sub-style. Pills for sub-styles with no artists are rendered
+                but muted — they still let a user clear any active filter. */}
+            {activeDisciplineObj.subStyles.map((sub) => {
+              const hasArtists = availableSubStyles.includes(sub);
+              const active = activeSubStyles.has(sub);
+              return (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => setActiveSubStyles((prev) => { const next = new Set(prev); if (next.has(sub)) next.delete(sub); else next.add(sub); return next; })}
+                  className={`px-3 py-1.5 text-xs rounded-full border transition-colors cursor-pointer whitespace-nowrap ${
+                    active
+                      ? "bg-foreground text-white border-foreground"
+                      : hasArtists
+                        ? "border-border bg-[#F8F6F2] lg:bg-white text-muted hover:border-foreground/30"
+                        : "border-border/50 bg-[#F8F6F2]/60 lg:bg-white/60 text-muted/50 hover:border-foreground/20"
+                  }`}
+                >
+                  {formatSubStyleLabel(sub)}
+                </button>
+              );
+            })}
             <span className="ml-auto text-xs text-muted shrink-0">
               {viewAs === "artists" ? `${filteredArtists.length} artists` : `${filteredGalleryWorks.length} works`}
             </span>
@@ -819,7 +831,7 @@ function BrowsePortfoliosPageInner() {
         </div>
       )}
 
-      {activeCategory !== "collections" && viewAs === "artists" && (
+      {activeDiscipline !== "collections" && viewAs === "artists" && (
         /* ── Artists view ── */
         <section className="pt-5 pb-10 lg:pt-8 lg:pb-14">
           <div className="max-w-[1400px] mx-auto px-6">
@@ -865,12 +877,12 @@ function BrowsePortfoliosPageInner() {
                     {/* View dropdown (mobile — pill-shaped native select) */}
                     <div className="relative">
                       <select
-                        value={activeCategory === "collections" ? "collections" : ((viewAs as string) === "works" ? "gallery" : "portfolios")}
+                        value={activeDiscipline === "collections" ? "collections" : ((viewAs as string) === "works" ? "gallery" : "portfolios")}
                         onChange={(e) => {
                           const v = e.target.value;
-                          if (v === "collections") setActiveCategory("collections");
-                          else if (v === "gallery") { setViewAs("works"); setActiveCategory(""); }
-                          else { setViewAs("artists"); setActiveCategory(""); }
+                          if (v === "collections") setActiveDiscipline("collections");
+                          else if (v === "gallery") { setViewAs("works"); setActiveDiscipline(""); }
+                          else { setViewAs("artists"); setActiveDiscipline(""); }
                         }}
                         className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
                       >
@@ -942,13 +954,13 @@ function BrowsePortfoliosPageInner() {
                   <div className="flex items-center gap-2">
                     {/* Portfolio/Gallery toggle */}
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5 mr-1">
-                      <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { setViewAs("artists"); setActiveDiscipline(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => { setViewAs("works"); setActiveCategory(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { setViewAs("works"); setActiveDiscipline(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Gallery
                       </button>
-                      <button type="button" onClick={() => setActiveCategory("collections")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => setActiveDiscipline("collections")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Collections
                       </button>
                     </div>
@@ -1134,7 +1146,7 @@ function BrowsePortfoliosPageInner() {
         </section>
       )}
 
-      {activeCategory !== "collections" && viewAs === "works" && (
+      {activeDiscipline !== "collections" && viewAs === "works" && (
         /* ── Gallery mode with sidebar ── */
         <section className="pt-5 pb-10 lg:pt-8 lg:pb-14">
           <div className="max-w-[1400px] mx-auto px-6">
@@ -1319,12 +1331,12 @@ function BrowsePortfoliosPageInner() {
                     {/* View dropdown (mobile — pill-shaped native select) */}
                     <div className="relative">
                       <select
-                        value={activeCategory === "collections" ? "collections" : ((viewAs as string) === "works" ? "gallery" : "portfolios")}
+                        value={activeDiscipline === "collections" ? "collections" : ((viewAs as string) === "works" ? "gallery" : "portfolios")}
                         onChange={(e) => {
                           const v = e.target.value;
-                          if (v === "collections") setActiveCategory("collections");
-                          else if (v === "gallery") { setViewAs("works"); setActiveCategory(""); }
-                          else { setViewAs("artists"); setActiveCategory(""); }
+                          if (v === "collections") setActiveDiscipline("collections");
+                          else if (v === "gallery") { setViewAs("works"); setActiveDiscipline(""); }
+                          else { setViewAs("artists"); setActiveDiscipline(""); }
                         }}
                         className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
                       >
@@ -1349,7 +1361,7 @@ function BrowsePortfoliosPageInner() {
                 </div>
 
                 {/* Mobile filter drawer */}
-                {sidebarOpen && activeCategory !== "collections" && viewAs === "works" && (
+                {sidebarOpen && activeDiscipline !== "collections" && viewAs === "works" && (
                   <div className="lg:hidden mb-6 bg-surface border border-border rounded-sm p-4 space-y-5">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Filters</span>
@@ -1529,13 +1541,13 @@ function BrowsePortfoliosPageInner() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5 mr-1">
-                      <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { setViewAs("artists"); setActiveDiscipline(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => { setViewAs("works"); setActiveCategory(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { setViewAs("works"); setActiveDiscipline(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Gallery
                       </button>
-                      <button type="button" onClick={() => setActiveCategory("collections")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeCategory === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => setActiveDiscipline("collections")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Collections
                       </button>
                     </div>
@@ -1684,7 +1696,7 @@ function BrowsePortfoliosPageInner() {
         </section>
       )}
 
-      {activeCategory === "collections" && (
+      {activeDiscipline === "collections" && (
         <section className="py-10 lg:py-14">
           <div className="max-w-[1400px] mx-auto px-6">
             {/* Mobile toolbar — view pill-dropdown + Global/Local pills + slider */}
@@ -1695,8 +1707,8 @@ function BrowsePortfoliosPageInner() {
                     value="collections"
                     onChange={(e) => {
                       const v = e.target.value;
-                      if (v === "gallery") { setViewAs("works"); setActiveCategory(""); }
-                      else if (v === "portfolios") { setViewAs("artists"); setActiveCategory(""); }
+                      if (v === "gallery") { setViewAs("works"); setActiveDiscipline(""); }
+                      else if (v === "portfolios") { setViewAs("artists"); setActiveDiscipline(""); }
                     }}
                     className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
                   >
@@ -1783,13 +1795,13 @@ function BrowsePortfoliosPageInner() {
             {/* Desktop view toggle — 3-way pill group, right-aligned */}
             <div className="hidden lg:flex mb-6 items-center justify-end">
               <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                <button type="button" onClick={() => { setViewAs("artists"); setActiveCategory(""); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
+                <button type="button" onClick={() => { setViewAs("artists"); setActiveDiscipline(""); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
                   Portfolios
                 </button>
-                <button type="button" onClick={() => { setViewAs("works"); setActiveCategory(""); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
+                <button type="button" onClick={() => { setViewAs("works"); setActiveDiscipline(""); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
                   Gallery
                 </button>
-                <button type="button" onClick={() => setActiveCategory("collections")} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer bg-white text-foreground shadow-sm">
+                <button type="button" onClick={() => setActiveDiscipline("collections")} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer bg-white text-foreground shadow-sm">
                   Collections
                 </button>
               </div>

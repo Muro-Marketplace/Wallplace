@@ -27,6 +27,8 @@ export async function POST(request: Request) {
       instagram: d.instagram || null,
       website: d.website || null,
       primary_medium: d.primaryMedium,
+      discipline: d.discipline || null,
+      sub_styles: d.subStyles || [],
       portfolio_link: d.portfolioLink,
       artist_statement: d.artistStatement,
       offers_originals: d.offersOriginals || false,
