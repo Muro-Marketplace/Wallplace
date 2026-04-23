@@ -11,6 +11,7 @@ import { authFetch } from "@/lib/api-client";
 import { useAuth } from "@/context/AuthContext";
 import { canRespond, isRequester } from "@/lib/placement-permissions";
 import { normaliseStatus as sharedNormaliseStatus, statusBadgeClass, arrangementLabel } from "@/lib/placements/status";
+import PlacementDirectionTag, { directionFor } from "@/components/PlacementDirectionTag";
 
 function formatSlug(slug: string): string {
   if (!slug) return "";
@@ -896,9 +897,18 @@ export default function VenuePlacementsPage() {
                       <td className="px-4 py-3.5">
                         <div className="flex flex-col gap-1.5">
                         {p.status === "Pending" ? (
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
-                            Awaiting response
-                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
+                              {directionFor({ requester_user_id: p.requesterUserId }, user?.id) === "sent"
+                                ? "Awaiting their response"
+                                : directionFor({ requester_user_id: p.requesterUserId }, user?.id) === "received"
+                                  ? "Your response needed"
+                                  : "Pending"}
+                            </span>
+                            {directionFor({ requester_user_id: p.requesterUserId }, user?.id) && (
+                              <PlacementDirectionTag direction={directionFor({ requester_user_id: p.requesterUserId }, user?.id)!} />
+                            )}
+                          </div>
                         ) : p.status === "Declined" ? (
                           <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
                             Declined
@@ -1026,6 +1036,19 @@ export default function VenuePlacementsPage() {
                                   >
                                     {responding === p.id ? "…" : "Accept"}
                                   </button>
+                                  {/* Counter lives alongside Accept / Decline
+                                      on the list row so the user doesn't
+                                      have to open the message thread to
+                                      adjust terms. Jumps to the placement
+                                      detail page where the full counter
+                                      form lives. */}
+                                  <Link
+                                    href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}&counter=${encodeURIComponent(p.id)}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="px-4 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
+                                  >
+                                    Counter
+                                  </Link>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
                                     disabled={responding === p.id}
@@ -1037,7 +1060,7 @@ export default function VenuePlacementsPage() {
                               )}
                               {p.status === "Pending" && isRequester({ requester_user_id: p.requesterUserId }, user?.id) && (
                                 <span className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-sm">
-                                  Awaiting artist response
+                                  Awaiting their response
                                 </span>
                               )}
                               <Link
@@ -1105,8 +1128,17 @@ export default function VenuePlacementsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      {directionFor({ requester_user_id: p.requesterUserId }, user?.id) && (
+                        <PlacementDirectionTag direction={directionFor({ requester_user_id: p.requesterUserId }, user?.id)!} size="compact" />
+                      )}
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${statusBadge(p.status)}`}>
-                        {p.status === "Pending" ? "Awaiting response" : p.status}
+                        {p.status === "Pending"
+                          ? (directionFor({ requester_user_id: p.requesterUserId }, user?.id) === "sent"
+                              ? "Awaiting their reply"
+                              : directionFor({ requester_user_id: p.requesterUserId }, user?.id) === "received"
+                                ? "Your turn"
+                                : "Pending")
+                          : p.status}
                       </span>
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={`text-muted transition-transform duration-200 ${expandedId === p.id ? "rotate-180" : ""}`}>
                         <polyline points="3 5 7 9 11 5" />
@@ -1234,6 +1266,13 @@ export default function VenuePlacementsPage() {
                             >
                               {responding === p.id ? "…" : "Accept"}
                             </button>
+                            <Link
+                              href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}&counter=${encodeURIComponent(p.id)}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-4 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
+                            >
+                              Counter
+                            </Link>
                             <button
                               onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
                               disabled={responding === p.id}
@@ -1245,7 +1284,7 @@ export default function VenuePlacementsPage() {
                         )}
                         {p.status === "Pending" && isRequester({ requester_user_id: p.requesterUserId }, user?.id) && (
                           <span className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-sm">
-                            Awaiting artist response
+                            Awaiting their response
                           </span>
                         )}
                         <Link

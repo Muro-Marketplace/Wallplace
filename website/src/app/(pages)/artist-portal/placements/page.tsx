@@ -10,6 +10,7 @@ import { useCurrentArtist } from "@/hooks/useCurrentArtist";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 import { normaliseStatus as sharedNormaliseStatus, statusBadgeClass, arrangementLabel } from "@/lib/placements/status";
+import PlacementDirectionTag from "@/components/PlacementDirectionTag";
 
 type FilterTab = "All" | "Pending" | "Active" | "Completed";
 // Display-only strings — arrangementLabel() can return combined values
@@ -33,6 +34,7 @@ interface Placement {
   notes?: string;
   message?: string;
   canRespond?: boolean;
+  direction?: "sent" | "received" | null;
   acceptedAt?: string | null;
   scheduledFor?: string | null;
   installedAt?: string | null;
@@ -148,10 +150,13 @@ export default function PlacementsPage() {
         if (data.placements && data.placements.length > 0) {
           const mapped: Placement[] = data.placements.map((p: Record<string, unknown>) => {
             const requesterId = (p.requester_user_id as string) || null;
-            // F39 — show Accept/Decline whenever the current user is NOT the
-            // requester. If requester is unknown (legacy row), still allow
-            // (server-side guard is the authority).
-            const canRespond = requesterId === null || requesterId !== user?.id;
+            // Strict: only the recipient of a request can respond. Requests
+            // the viewer sent themselves show a "Sent" tag and no
+            // Accept/Counter/Decline buttons.
+            const canRespond = !!requesterId && !!user?.id && requesterId !== user.id;
+            const direction: "sent" | "received" | null = requesterId && user?.id
+              ? (requesterId === user.id ? "sent" : "received")
+              : null;
             return {
               id: p.id as string,
               workTitle: (p.work_title as string) || "Untitled",
@@ -172,6 +177,7 @@ export default function PlacementsPage() {
               notes: p.notes as string | undefined,
               message: p.message as string | undefined,
               canRespond,
+              direction,
               acceptedAt: (p.accepted_at as string | null) ?? null,
               scheduledFor: (p.scheduled_for as string | null) ?? null,
               installedAt: (p.installed_at as string | null) ?? null,
@@ -673,9 +679,12 @@ export default function PlacementsPage() {
                   <td className="px-4 py-3.5">
                     <div className="flex flex-col gap-1.5">
                     {p.status === "Pending" ? (
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
-                        Awaiting response
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
+                          {p.direction === "sent" ? "Awaiting their response" : p.direction === "received" ? "Your response needed" : "Awaiting response"}
+                        </span>
+                        {p.direction && <PlacementDirectionTag direction={p.direction} />}
+                      </div>
                     ) : p.status === "Declined" ? (
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
                         Declined
@@ -813,6 +822,16 @@ export default function PlacementsPage() {
                               >
                                 {responding === p.id ? "…" : "Accept"}
                               </button>
+                              {/* Counter lives inline on the placement row
+                                  so the artist doesn't have to open the
+                                  message thread to adjust terms. */}
+                              <Link
+                                href={`/artist-portal/messages?artist=${p.venueSlug}&artistName=${encodeURIComponent(p.venue)}&counter=${encodeURIComponent(p.id)}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="px-4 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
+                              >
+                                Counter
+                              </Link>
                               <button
                                 onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
                                 disabled={responding === p.id}
@@ -821,6 +840,11 @@ export default function PlacementsPage() {
                                 Decline
                               </button>
                             </>
+                          )}
+                          {p.status === "Pending" && !p.canRespond && p.direction === "sent" && (
+                            <span className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-sm">
+                              Awaiting their response
+                            </span>
                           )}
                           <Link
                             href={`/placements/${encodeURIComponent(p.id)}`}
@@ -886,9 +910,12 @@ export default function PlacementsPage() {
                     <p className="text-xs text-muted">{p.venue}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {p.direction && <PlacementDirectionTag direction={p.direction} size="compact" />}
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${statusBadge(p.status)}`}>
-                    {p.status === "Pending" ? "Awaiting response" : p.status}
+                    {p.status === "Pending"
+                      ? (p.direction === "sent" ? "Awaiting their reply" : p.direction === "received" ? "Your turn" : "Pending")
+                      : p.status}
                   </span>
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className={`text-muted transition-transform duration-200 ${expandedId === p.id ? "rotate-180" : ""}`}>
                     <polyline points="3 5 7 9 11 5" />

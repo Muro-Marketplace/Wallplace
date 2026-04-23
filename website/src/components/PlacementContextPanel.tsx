@@ -14,6 +14,8 @@ import {
   type PlacementLifecycle,
 } from "@/lib/placements/status";
 import { canRespond } from "@/lib/placement-permissions";
+import PlacementDirectionTag from "@/components/PlacementDirectionTag";
+import { useSearchParams } from "next/navigation";
 
 interface PanelProps {
   otherPartySlug: string | null;
@@ -105,6 +107,12 @@ export default function PlacementContextPanel({
   const [counterFee, setCounterFee] = useState<number | "">("");
   const [counterNote, setCounterNote] = useState("");
 
+  // If the user arrived via a Counter link on the placements list page, the
+  // URL carries ?counter=<placementId>. Auto-open the counter form for that
+  // placement as soon as we've loaded it.
+  const searchParams = useSearchParams();
+  const counterParam = searchParams?.get("counter") || null;
+
   // Request-a-placement form state
   const [reqSelected, setReqSelected] = useState<Set<string>>(new Set());
   // reqQr: true \u2192 Revenue share arrangement (QR always on).
@@ -157,6 +165,24 @@ export default function PlacementContextPanel({
   const [currentIndex, setCurrentIndex] = useState(0);
   // Re-anchor to the default live row whenever the underlying list changes.
   useEffect(() => { setCurrentIndex(defaultIndex); }, [defaultIndex]);
+
+  // If the URL carries ?counter=<placementId>, jump the panel to that
+  // placement and auto-open the counter form. This is what the "Counter"
+  // button on the placements list pages links to.
+  useEffect(() => {
+    if (!counterParam || placements.length === 0) return;
+    const idx = placements.findIndex((x) => x.id === counterParam);
+    if (idx >= 0) {
+      setCurrentIndex(idx);
+      const p = placements[idx];
+      setCounterRevShare(p.revenue_share_percent || 0);
+      setCounterQr(p.qr_enabled ?? true);
+      const fee = typeof p.monthly_fee_gbp === "number" ? p.monthly_fee_gbp : 0;
+      setCounterPaidLoan(fee > 0);
+      setCounterFee(fee > 0 ? fee : "");
+      setCounterOpen(true);
+    }
+  }, [counterParam, placements]);
   const current: PlacementLifecycle & Partial<RemotePlacement> | null =
     placements.length === 0 ? null : (placements[Math.min(currentIndex, placements.length - 1)] ?? placements[0]);
 
@@ -511,7 +537,13 @@ export default function PlacementContextPanel({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            {(() => {
+              const dir = p.requester_user_id && userId
+                ? (p.requester_user_id === userId ? "sent" : "received")
+                : null;
+              return dir ? <PlacementDirectionTag direction={dir} size="compact" /> : null;
+            })()}
             {displayStatus && (
               <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full ${statusBadgeClass(displayStatus)}`}>
                 {displayStatus}
@@ -625,12 +657,19 @@ export default function PlacementContextPanel({
           </div>
         )}
 
-        {displayStatus === "Pending" && !canViewerRespond && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px]">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-            Awaiting the other side&rsquo;s response
-          </div>
-        )}
+        {displayStatus === "Pending" && !canViewerRespond && (() => {
+          const iAmRequester = !!p.requester_user_id && p.requester_user_id === userId;
+          return (
+            <div className={`mt-3 flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] ${
+              iAmRequester
+                ? "bg-amber-50 text-amber-800 border border-amber-200"
+                : "bg-accent/10 text-accent border border-accent/25"
+            }`}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+              {iAmRequester ? "Awaiting their response" : "Pending — review on the request they sent"}
+            </div>
+          );
+        })()}
 
         {error && <p className="text-[11px] text-red-600 mt-2">{error}</p>}
       </div>
