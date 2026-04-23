@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import type { ShippingInfo } from "@/lib/types";
+import { resolveShippingCost, tierLabel } from "@/lib/shipping-calculator";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -23,31 +24,73 @@ export default function CheckoutPage() {
   });
   const [errors, setErrors] = useState<Record<string, boolean>>({});
 
-  const DEFAULT_SHIPPING = 9.95;
   const isInternational = shipping.country !== "United Kingdom" && shipping.country !== "";
+  const region = isInternational ? "international" : "uk";
 
-  // Group items by artist for shipping breakdown
-  const artistGroups = items.reduce<Record<string, { artistName: string; items: typeof items; shipping: number }>>((acc, item) => {
+  // Group items by artist. Each artist ships separately, so shipping is
+  // calculated per-group: take the largest piece's cost in full, add 50%
+  // of each additional piece (consolidated tube / shared box).
+  const artistGroups = items.reduce<Record<string, {
+    artistName: string;
+    items: typeof items;
+    shipping: number;
+    needsSignature: boolean;
+    longestTierLabel: string | null;
+    estimatedDays: string | null;
+    anyEstimated: boolean;
+  }>>((acc, item) => {
     if (!acc[item.artistSlug]) {
-      acc[item.artistSlug] = { artistName: item.artistName, items: [], shipping: 0 };
+      acc[item.artistSlug] = {
+        artistName: item.artistName,
+        items: [],
+        shipping: 0,
+        needsSignature: false,
+        longestTierLabel: null,
+        estimatedDays: null,
+        anyEstimated: false,
+      };
     }
     acc[item.artistSlug].items.push(item);
     return acc;
   }, {});
 
-  // Calculate per-artist shipping: highest single item shipping + 50% of each additional
-  // Use international rates when shipping outside the UK
+  // Resolve per-item shipping cost, honouring:
+  //   1. Artist-set manualPrice (shippingPrice / internationalShippingPrice)
+  //   2. Otherwise the calculator based on dimensions + framed + region + price
+  //   3. Finally fall back to a conservative £14.50 medium-parcel rate
+  const FALLBACK_MEDIUM_UK = 14.50;
+  const FALLBACK_MEDIUM_INT = 38.00;
   for (const group of Object.values(artistGroups)) {
-    const shippingRates = group.items
-      .flatMap((item) => {
-        const rate = isInternational && item.internationalShippingPrice != null
-          ? item.internationalShippingPrice
-          : (item.shippingPrice ?? DEFAULT_SHIPPING);
-        return Array(item.quantity).fill(rate);
-      })
-      .sort((a, b) => b - a);
-    if (shippingRates.length === 0) continue;
-    group.shipping = shippingRates[0] + shippingRates.slice(1).reduce((sum, r) => sum + r * 0.5, 0);
+    const perItem = group.items.flatMap((item) => {
+      const manualPrice = isInternational && item.internationalShippingPrice != null
+        ? item.internationalShippingPrice
+        : item.shippingPrice;
+      const resolved = resolveShippingCost({
+        manualPrice: typeof manualPrice === "number" ? manualPrice : null,
+        dimensions: item.dimensions || null,
+        framed: item.framed,
+        priceGbp: item.price,
+        region,
+      });
+      let rate = resolved.cost;
+      if (rate == null) rate = isInternational ? FALLBACK_MEDIUM_INT : FALLBACK_MEDIUM_UK;
+      if (resolved.estimate?.requiresSignature || item.price >= 250) {
+        group.needsSignature = true;
+      }
+      if (resolved.source === "estimate" && resolved.estimate) {
+        group.anyEstimated = true;
+        // Biggest parcel drives the tier / days display.
+        if (!group.longestTierLabel || (resolved.estimate.longestEdgeCm > 60 && group.longestTierLabel !== "Oversized — specialist courier")) {
+          group.longestTierLabel = tierLabel(resolved.estimate.tier);
+          group.estimatedDays = resolved.estimate.estimatedDays;
+        }
+      }
+      return Array(item.quantity).fill(rate as number);
+    }).sort((a, b) => b - a);
+
+    if (perItem.length === 0) continue;
+    // Largest piece full price + 50% of each extra piece.
+    group.shipping = Math.round((perItem[0] + perItem.slice(1).reduce((s, r) => s + r * 0.5, 0)) * 100) / 100;
   }
 
   const shippingCost = Object.values(artistGroups).reduce((sum, g) => sum + g.shipping, 0);
@@ -289,18 +332,30 @@ export default function CheckoutPage() {
                 <span className="text-muted">Shipping</span>
                 <span>{shippingCost === 0 ? "Free" : `£${shippingCost.toFixed(2)}`}</span>
               </div>
-              {shippingCost > 0 && Object.keys(artistGroups).length > 1 && (
+              {shippingCost > 0 && (
                 <div className="space-y-1 pl-2">
                   {Object.values(artistGroups).map((group) => (
-                    <div key={group.artistName} className="flex justify-between text-[10px] text-muted">
-                      <span>Shipped by {group.artistName}</span>
-                      <span>{group.shipping === 0 ? "Free" : `£${group.shipping.toFixed(2)}`}</span>
+                    <div key={group.artistName} className="text-[10px] text-muted">
+                      <div className="flex justify-between">
+                        <span>{Object.keys(artistGroups).length > 1 ? `Shipped by ${group.artistName}` : "Tracked shipping"}</span>
+                        <span>{group.shipping === 0 ? "Free" : `£${group.shipping.toFixed(2)}`}</span>
+                      </div>
+                      {(group.longestTierLabel || group.estimatedDays) && (
+                        <p className="text-[9px] text-muted/80 mt-0.5">
+                          {group.longestTierLabel}
+                          {group.longestTierLabel && group.estimatedDays ? " · " : ""}
+                          {group.estimatedDays}
+                          {group.needsSignature ? " · Signed-for" : ""}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
-              {shippingCost > 0 && Object.keys(artistGroups).length <= 1 && (
-                <p className="text-[10px] text-muted">Shipping costs set by each artist</p>
+              {shippingCost > 0 && Object.values(artistGroups).some((g) => g.anyEstimated) && (
+                <p className="text-[10px] text-muted">
+                  Shipping is estimated from artwork size. Your artist may adjust before dispatch if the piece needs a specialist courier.
+                </p>
               )}
               <div className="flex justify-between text-sm font-medium pt-2 border-t border-border">
                 <span>Total</span>
@@ -316,7 +371,7 @@ export default function CheckoutPage() {
                   </svg>
                   <div>
                     <span className="text-foreground font-medium">Dispatched within 7 days.</span>{" "}
-                    Most orders arrive within 5&ndash;10 working days once dispatched. Orders of &pound;500+ are sent signed-for.
+                    Most orders arrive within 5&ndash;10 working days once dispatched. Orders of &pound;250+ are sent signed-for.
                   </div>
                 </div>
               </div>

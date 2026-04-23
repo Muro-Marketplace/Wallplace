@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { scheduleTransfer } from "@/lib/stripe-connect";
 import { notifyArtistNewOrder, notifyVenueOrderFromPlacement, notifyCurationCustomerPaid } from "@/lib/email";
+import { platformFeePercentForArtist, DEFAULT_PLAN_FEE_PERCENT } from "@/lib/platform-fee";
 import type Stripe from "stripe";
 
 export async function POST(request: Request) {
@@ -109,7 +110,7 @@ export async function POST(request: Request) {
         // Compute revenue splits
         let venueRevSharePct = 0;
         let venueRevenue = 0;
-        let platformFeePct = 10; // Default Core plan fee
+        let platformFeePct = DEFAULT_PLAN_FEE_PERCENT; // Default Core plan fee
         let platformFee = 0;
         let artistRevenue = 0;
         let placementId: string | null = null;
@@ -120,14 +121,7 @@ export async function POST(request: Request) {
           const { data: ap } = await db.from("artist_profiles").select("user_id, subscription_plan, free_until").eq("slug", firstArtistSlug).single();
           if (ap) {
             artistUserId = ap.user_id;
-            // Check if artist is in free period (founding artist or trial)
-            const isFree = ap.free_until && new Date(ap.free_until) > new Date();
-            if (isFree) {
-              platformFeePct = 0; // No platform fee during free period
-            } else {
-              const planFees: Record<string, number> = { core: 15, premium: 8, pro: 5 };
-              platformFeePct = planFees[ap.subscription_plan || "core"] || 15;
-            }
+            platformFeePct = platformFeePercentForArtist(ap);
           }
         }
 

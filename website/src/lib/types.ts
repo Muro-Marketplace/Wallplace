@@ -17,6 +17,12 @@ export interface CartItem {
   quantityAvailable?: number | null;
   shippingPrice?: number;
   internationalShippingPrice?: number;
+  /** Dimensions string for the selected size ("50 x 70 cm", "A2", …).
+      Used by the shipping calculator when the artist hasn't set a
+      manual shippingPrice. */
+  dimensions?: string;
+  /** True when this is the framed variant — affects weight + tier. */
+  framed?: boolean;
 }
 
 export interface ShippingInfo {

@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import SaveButton from "@/components/SaveButton";
 import { useToast } from "@/context/ToastContext";
 import WallVisualiser from "@/components/WallVisualiser";
+import { resolveShippingCost, tierLabel, SIGNATURE_THRESHOLD_GBP } from "@/lib/shipping-calculator";
 
 interface ArtworkPageClientProps {
   work: ArtistWork;
@@ -141,21 +142,57 @@ export default function ArtworkPageClient({
         </div>
       )}
 
-      {/* Shipping info */}
-      <div className="text-[11px] text-muted space-y-0.5 mb-6">
-        <p>
-          {work.shippingPrice === 0
-            ? "Free UK shipping"
-            : work.shippingPrice
-              ? `UK shipping £${work.shippingPrice.toFixed(2)}`
-              : "UK shipping £9.95"}
-        </p>
-        {shipsInternationally && internationalShippingPrice != null ? (
-          <p>International £{internationalShippingPrice.toFixed(2)}</p>
-        ) : (
-          <p>Ships to UK only</p>
-        )}
-      </div>
+      {/* Shipping info — uses the calculator when the artist hasn't set
+          a manual shippingPrice. Shows tier + delivery window + signature
+          line so buyers know what they're getting. */}
+      {(() => {
+        const sizeLabelForCalc = selectedPricing?.label || work.dimensions;
+        const totalPriceForCalc = (displayPrice ?? selectedPricing?.price) || 0;
+        const uk = resolveShippingCost({
+          manualPrice: typeof work.shippingPrice === "number" ? work.shippingPrice : null,
+          dimensions: sizeLabelForCalc,
+          framed: !!selectedFrame,
+          priceGbp: totalPriceForCalc,
+          region: "uk",
+        });
+        const intl = shipsInternationally
+          ? resolveShippingCost({
+              manualPrice: typeof internationalShippingPrice === "number" ? internationalShippingPrice : null,
+              dimensions: sizeLabelForCalc,
+              framed: !!selectedFrame,
+              priceGbp: totalPriceForCalc,
+              region: "international",
+            })
+          : null;
+
+        const ukLabel = uk.cost === 0
+          ? "Free UK shipping"
+          : uk.cost != null
+            ? `UK shipping £${uk.cost.toFixed(2)}`
+            : "UK shipping calculated at checkout";
+
+        return (
+          <div className="text-[11px] text-muted space-y-0.5 mb-6">
+            <p>{ukLabel}</p>
+            {uk.estimate && (
+              <p className="text-[10px] text-muted/80">
+                {tierLabel(uk.estimate.tier)} · {uk.estimate.estimatedDays}
+                {uk.estimate.requiresSignature ? " · Signed-for" : ""}
+              </p>
+            )}
+            {intl ? (
+              <p>
+                {intl.cost != null ? `International £${intl.cost.toFixed(2)}` : "International calculated at checkout"}
+              </p>
+            ) : (
+              <p>Ships to UK only</p>
+            )}
+            {totalPriceForCalc >= SIGNATURE_THRESHOLD_GBP && uk.estimate && !uk.estimate.requiresSignature && (
+              <p className="text-[10px] text-accent">Signed-for delivery included (£{SIGNATURE_THRESHOLD_GBP}+ orders)</p>
+            )}
+          </div>
+        );
+      })()}
 
       {/* CTAs */}
       <div className="space-y-2">
@@ -201,6 +238,8 @@ export default function ArtworkPageClient({
                     quantityAvailable: work.quantityAvailable ?? null,
                     shippingPrice: work.shippingPrice ?? undefined,
                     internationalShippingPrice: shipsInternationally && internationalShippingPrice != null ? internationalShippingPrice : undefined,
+                    dimensions: selectedPricing.label || work.dimensions,
+                    framed: !!selectedFrame,
                   });
                   if (!r.ok) {
                     showToast(r.reason === "out-of-stock" ? "This size is sold out" : `Only ${r.available} left at this size`);
@@ -227,6 +266,8 @@ export default function ArtworkPageClient({
                     quantityAvailable: work.quantityAvailable ?? null,
                     shippingPrice: work.shippingPrice ?? undefined,
                     internationalShippingPrice: shipsInternationally && internationalShippingPrice != null ? internationalShippingPrice : undefined,
+                    dimensions: selectedPricing.label || work.dimensions,
+                    framed: !!selectedFrame,
                   });
                   if (!r.ok) {
                     showToast(r.reason === "out-of-stock" ? "This size is sold out" : `Only ${r.available} left at this size`);

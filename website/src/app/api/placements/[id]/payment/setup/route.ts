@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAuthenticatedUser } from "@/lib/api-auth";
 import { stripe } from "@/lib/stripe";
+import { platformFeePercentForArtist } from "@/lib/platform-fee";
 
 export const dynamic = "force-dynamic";
 
@@ -43,9 +44,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { data: artistProfile } = await db
     .from("artist_profiles")
-    .select("name, stripe_connect_account_id")
+    .select("name, stripe_connect_account_id, subscription_plan, free_until")
     .eq("user_id", placement.artist_user_id)
     .maybeSingle();
+
+  // Application fee mirrors the artist's existing platform-fee tier — the
+  // same 5% / 8% / 15% that applies to their sales. Founding / trialling
+  // artists (free_until in the future) pay 0% on recurring loan payments.
+  const feePct = platformFeePercentForArtist(artistProfile);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -73,9 +79,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           venue_user_id: placement.venue_user_id,
           artist_user_id: placement.artist_user_id,
           kind: "paid_loan_monthly",
+          platform_fee_percent: String(feePct),
         },
-        // 10% application fee placeholder — revise once commercial policy is locked.
-        application_fee_percent: 10,
+        // Use the artist's tier fee; omit the field entirely when it's
+        // zero (Stripe rejects application_fee_percent: 0 on some APIs).
+        ...(feePct > 0 ? { application_fee_percent: feePct } : {}),
         transfer_data: artistProfile?.stripe_connect_account_id
           ? { destination: artistProfile.stripe_connect_account_id }
           : undefined,
