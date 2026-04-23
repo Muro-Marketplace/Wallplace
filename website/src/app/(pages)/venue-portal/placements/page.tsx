@@ -365,72 +365,72 @@ export default function VenuePlacementsPage() {
     setWorksLoading(false);
   }
 
-  // Load existing placements
-  useEffect(() => {
-    async function loadPlacements() {
-      try {
-        const res = await authFetch("/api/placements");
-        const data = await res.json();
-        if (data.placements) {
-          // Resolve artist names from browse-artists
-          const artistNameMap: Record<string, string> = {};
-          try {
-            const artistRes = await fetch("/api/browse-artists");
-            const artistData = await artistRes.json();
-            for (const a of (artistData.artists || [])) {
-              artistNameMap[a.slug] = a.name;
-            }
-          } catch { /* fallback to slug */ }
+  // Load existing placements. Exposed via useCallback so callers
+  // (e.g. counter-dialog onSuccess) can trigger a fresh fetch.
+  const loadPlacements = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await authFetch("/api/placements");
+      const data = await res.json();
+      if (!data.placements) return;
 
-          const mapped: PlacementRequest[] = data.placements.map((p: Record<string, unknown>) => ({
-            id: p.id as string,
-            artistName: artistNameMap[p.artist_slug as string] || formatSlug(p.artist_slug as string) || "Artist",
-            artistSlug: (p.artist_slug as string) || "",
-            workTitle: (p.work_title as string) || "Untitled",
-            workImage: (p.work_image as string) || "",
-            workSize: (p.work_size as string) || undefined,
-            type: normaliseType((p.arrangement_type as string) || "free_loan", {
-              monthly_fee_gbp: p.monthly_fee_gbp as number | null,
-              qr_enabled: p.qr_enabled as boolean | null,
-              message: p.message as string | null,
-            }),
-            revenueSharePercent: p.revenue_share_percent as number | undefined,
-            status: normaliseStatus((p.status as string) || "pending"),
-            date: p.created_at ? new Date(p.created_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "",
-            respondedAt: p.responded_at ? new Date(p.responded_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : undefined,
-            message: p.message as string | undefined,
-            notes: p.notes as string | undefined,
-            revenueEarned: typeof p.revenue_earned_gbp === "number" ? p.revenue_earned_gbp : 0,
-            acceptedAt: (p.accepted_at as string | null) ?? null,
-            scheduledFor: (p.scheduled_for as string | null) ?? null,
-            installedAt: (p.installed_at as string | null) ?? null,
-            liveFrom: (p.live_from as string | null) ?? null,
-            collectedAt: (p.collected_at as string | null) ?? null,
-            requesterUserId: (p.requester_user_id as string | null) ?? null,
-            monthlyFeeGbp: (p.monthly_fee_gbp as number | null) ?? null,
-            qrEnabledOnPlacement: (p.qr_enabled as boolean | null) ?? null,
-            proposedStage: (p.proposed_stage as "installed" | "collected" | null) ?? null,
-            proposedByUserId: (p.proposed_by_user_id as string | null) ?? null,
-            artistUserId: (p.artist_user_id as string | null) ?? null,
-            venueUserId: (p.venue_user_id as string | null) ?? null,
-            createdAtTs: p.created_at ? new Date(p.created_at as string).getTime() : 0,
-            qrScans: typeof p.qr_scans === "number" ? p.qr_scans : 0,
-          }));
-          // Sort: Pending first (needs attention), then by most-recent created_at
-          mapped.sort((a, b) => {
-            const aPending = a.status === "Pending" ? 1 : 0;
-            const bPending = b.status === "Pending" ? 1 : 0;
-            if (aPending !== bPending) return bPending - aPending;
-            return (b.createdAtTs || 0) - (a.createdAtTs || 0);
-          });
-          setPlacements(mapped);
+      // Resolve artist names from browse-artists
+      const artistNameMap: Record<string, string> = {};
+      try {
+        const artistRes = await fetch("/api/browse-artists");
+        const artistData = await artistRes.json();
+        for (const a of (artistData.artists || [])) {
+          artistNameMap[a.slug] = a.name;
         }
-      } catch { /* ignore */ } finally {
-        setLoading(false);
-      }
+      } catch { /* fallback to slug */ }
+
+      const mapped: PlacementRequest[] = data.placements.map((p: Record<string, unknown>) => ({
+        id: p.id as string,
+        artistName: artistNameMap[p.artist_slug as string] || formatSlug(p.artist_slug as string) || "Artist",
+        artistSlug: (p.artist_slug as string) || "",
+        workTitle: (p.work_title as string) || "Untitled",
+        workImage: (p.work_image as string) || "",
+        workSize: (p.work_size as string) || undefined,
+        type: normaliseType((p.arrangement_type as string) || "free_loan", {
+          monthly_fee_gbp: p.monthly_fee_gbp as number | null,
+          qr_enabled: p.qr_enabled as boolean | null,
+          message: p.message as string | null,
+        }),
+        revenueSharePercent: p.revenue_share_percent as number | undefined,
+        status: normaliseStatus((p.status as string) || "pending"),
+        date: p.created_at ? new Date(p.created_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "",
+        respondedAt: p.responded_at ? new Date(p.responded_at as string).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : undefined,
+        message: p.message as string | undefined,
+        notes: p.notes as string | undefined,
+        revenueEarned: typeof p.revenue_earned_gbp === "number" ? p.revenue_earned_gbp : 0,
+        acceptedAt: (p.accepted_at as string | null) ?? null,
+        scheduledFor: (p.scheduled_for as string | null) ?? null,
+        installedAt: (p.installed_at as string | null) ?? null,
+        liveFrom: (p.live_from as string | null) ?? null,
+        collectedAt: (p.collected_at as string | null) ?? null,
+        requesterUserId: (p.requester_user_id as string | null) ?? null,
+        monthlyFeeGbp: (p.monthly_fee_gbp as number | null) ?? null,
+        qrEnabledOnPlacement: (p.qr_enabled as boolean | null) ?? null,
+        proposedStage: (p.proposed_stage as "installed" | "collected" | null) ?? null,
+        proposedByUserId: (p.proposed_by_user_id as string | null) ?? null,
+        artistUserId: (p.artist_user_id as string | null) ?? null,
+        venueUserId: (p.venue_user_id as string | null) ?? null,
+        createdAtTs: p.created_at ? new Date(p.created_at as string).getTime() : 0,
+        qrScans: typeof p.qr_scans === "number" ? p.qr_scans : 0,
+      }));
+      mapped.sort((a, b) => {
+        const aPending = a.status === "Pending" ? 1 : 0;
+        const bPending = b.status === "Pending" ? 1 : 0;
+        if (aPending !== bPending) return bPending - aPending;
+        return (b.createdAtTs || 0) - (a.createdAtTs || 0);
+      });
+      setPlacements(mapped);
+    } catch { /* ignore */ } finally {
+      setLoading(false);
     }
-    loadPlacements();
   }, []);
+
+  useEffect(() => { loadPlacements(); }, [loadPlacements]);
 
   function toggleWork(title: string) {
     setSelectedWorks((prev) => {
@@ -1354,7 +1354,7 @@ export default function VenuePlacementsPage() {
               qr_enabled: target?.qrEnabledOnPlacement,
             }}
             onClose={() => setCounteringId(null)}
-            onSuccess={() => { setPlacements([]); setLoading(true); }}
+            onSuccess={() => { setCounteringId(null); loadPlacements(); }}
           />
         );
       })()}

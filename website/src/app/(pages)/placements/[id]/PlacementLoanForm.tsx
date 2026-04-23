@@ -303,7 +303,7 @@ export default function PlacementLoanForm({ placementId, record, viewerRole, onS
       {/* Contract + internal */}
       <div>
         <label className={labelCls}>Signed contract URL</label>
-        <input type="url" value={form.contractAttachmentUrl} onChange={(e) => update("contractAttachmentUrl", e.target.value)} placeholder="https://\u2026" className={inputCls} />
+        <input type="url" value={form.contractAttachmentUrl} onChange={(e) => update("contractAttachmentUrl", e.target.value)} placeholder="https://…" className={inputCls} />
       </div>
       <div>
         <label className={labelCls}>Internal notes</label>
@@ -319,7 +319,7 @@ export default function PlacementLoanForm({ placementId, record, viewerRole, onS
           disabled={saving}
           className="px-5 py-2 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-60"
         >
-          {saving ? "Saving\u2026" : "Save record"}
+          {saving ? "Saving…" : "Save record"}
         </button>
       </div>
     </div>

@@ -148,10 +148,11 @@ export default function PlacementsPage() {
   const [venues, setVenues] = useState<InteractedVenue[]>([]);
   const [venuesLoading, setVenuesLoading] = useState(false);
 
-  // Load placements from API
-  useEffect(() => {
-    if (!artist || initialised) return;
-    authFetch("/api/placements")
+  // Load placements. Exposed via useCallback so callers (e.g. counter
+  // dialog onSuccess) can trigger a fresh fetch.
+  const loadPlacements = React.useCallback(() => {
+    if (!artist) return;
+    return authFetch("/api/placements")
       .then((res) => res.json())
       .then((data) => {
         if (data.placements && data.placements.length > 0) {
@@ -205,11 +206,18 @@ export default function PlacementsPage() {
             };
           });
           setPlacements(mapped);
+        } else {
+          setPlacements([]);
         }
       })
       .catch(() => {})
       .finally(() => setInitialised(true));
-  }, [artist, initialised, user?.id]);
+  }, [artist, user?.id]);
+
+  useEffect(() => {
+    if (!artist || initialised) return;
+    loadPlacements();
+  }, [artist, initialised, loadPlacements]);
 
   async function respond(id: string, accept: boolean) {
     setResponding(id);
@@ -1129,7 +1137,7 @@ export default function PlacementsPage() {
               qr_enabled: target?.qrEnabled,
             }}
             onClose={() => setCounteringId(null)}
-            onSuccess={() => { setInitialised(false); }}
+            onSuccess={() => { setCounteringId(null); loadPlacements(); }}
           />
         );
       })()}

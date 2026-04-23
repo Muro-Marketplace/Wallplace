@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 import { uploadImage } from "@/lib/upload";
-import PlacementStepper, { type PlacementStepperData } from "@/components/PlacementStepper";
 import PlacementLoanForm from "./PlacementLoanForm";
 import CounterPlacementDialog from "@/components/CounterPlacementDialog";
 
@@ -132,6 +131,18 @@ export default function PlacementDetailClient({ placementId }: Props) {
     if (user) load();
   }, [user, authLoading, load, router]);
 
+  async function handleAdvance(stage: "scheduled" | "installed" | "live" | "collected") {
+    if (!placement) return;
+    try {
+      const res = await authFetch("/api/placements", {
+        method: "PATCH",
+        body: JSON.stringify({ id: placement.id, stage }),
+      });
+      if (!res.ok) return;
+      await load();
+    } catch { /* ignore; next load will reconcile */ }
+  }
+
   async function handleRespond(accept: boolean) {
     if (!placement) return;
     setResponding(accept ? "accept" : "decline");
@@ -185,7 +196,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
   }
 
   if (loading || authLoading) {
-    return <div className="px-6 py-16 text-center text-muted text-sm">Loading placement\u2026</div>;
+    return <div className="px-6 py-16 text-center text-muted text-sm">Loading placement…</div>;
   }
 
   if (error) {
@@ -200,15 +211,6 @@ export default function PlacementDetailClient({ placementId }: Props) {
   if (!placement) return null;
 
   const portalBase = viewerRole === "venue" ? "/venue-portal" : "/artist-portal";
-  const stepperData: PlacementStepperData = {
-    id: placement.id,
-    status: placement.status,
-    acceptedAt: placement.accepted_at,
-    scheduledFor: placement.scheduled_for,
-    installedAt: placement.installed_at,
-    liveFrom: placement.live_from,
-    collectedAt: placement.collected_at,
-  };
 
   const createRecordIfMissing = async () => {
     if (record) return;
@@ -285,11 +287,11 @@ export default function PlacementDetailClient({ placementId }: Props) {
         </div>
       </div>
 
-      {/* Progress — full 6-step lifecycle. Visible even while pending so
-          both sides can see where things stand before acceptance. Each
-          step lights up as its timestamp lands. Stages only become
-          actionable once the placement is active (handled by the
-          stepper below). */}
+      {/* Progress — single combined block. Shows the 6-step lifecycle and
+          exposes the "Mark <next stage>" action directly below the bar
+          when the viewer is allowed to advance it. Previously this page
+          had a duplicate "Lifecycle actions" box; merging them means
+          there's one place to look for progress + actions. */}
       <div className="bg-surface border border-border rounded-sm p-4 sm:p-5 mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-medium">Progress</h2>
@@ -302,50 +304,77 @@ export default function PlacementDetailClient({ placementId }: Props) {
         </div>
         {(() => {
           const lifecycle = [
-            { label: "Requested", ts: placement.created_at, reached: !!placement.created_at },
-            { label: "Accepted",  ts: placement.accepted_at, reached: !!placement.accepted_at },
-            { label: "Scheduled", ts: placement.scheduled_for, reached: !!placement.scheduled_for },
-            { label: "Installed", ts: placement.installed_at, reached: !!placement.installed_at },
-            { label: "Live on wall", ts: placement.live_from, reached: !!placement.live_from },
-            { label: "Collected", ts: placement.collected_at, reached: !!placement.collected_at },
-          ];
+            { key: "requested", label: "Requested", ts: placement.created_at, reached: !!placement.created_at },
+            { key: "accepted",  label: "Accepted",  ts: placement.accepted_at, reached: !!placement.accepted_at },
+            { key: "scheduled", label: "Scheduled", ts: placement.scheduled_for, reached: !!placement.scheduled_for },
+            { key: "installed", label: "Installed", ts: placement.installed_at, reached: !!placement.installed_at },
+            { key: "live",      label: "Live on wall", ts: placement.live_from, reached: !!placement.live_from },
+            { key: "collected", label: "Collected", ts: placement.collected_at, reached: !!placement.collected_at },
+          ] as const;
           const reachedIdx = lifecycle.reduce((acc, s, i) => (s.reached ? i : acc), -1);
           const isDeclined = placement.status === "declined";
+          // Next advanceable stage — "requested" and "accepted" aren't
+          // manually advanced (request is implicit; accepted fires off
+          // the Accept button). Everything else can be marked here
+          // once the placement is active.
+          const advanceable: Array<"scheduled" | "installed" | "live" | "collected"> = ["scheduled", "installed", "live", "collected"];
+          const nextKey = (advanceable as readonly string[]).find((k) => {
+            const entry = lifecycle.find((l) => l.key === k);
+            return entry && !entry.reached;
+          }) as ("scheduled" | "installed" | "live" | "collected" | undefined);
+          const nextLabel = nextKey ? lifecycle.find((l) => l.key === nextKey)?.label : null;
           return (
-            <ol className="flex items-start gap-1 overflow-x-auto pb-1">
-              {lifecycle.map((s, i) => {
-                const reached = s.reached;
-                const isCurrent = i === reachedIdx;
-                return (
-                  <li key={s.label} className="flex-1 min-w-[80px]">
-                    <div className="flex items-center gap-1">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
-                        isDeclined ? "bg-red-200 text-red-700" :
-                        reached ? (isCurrent ? "bg-accent text-white" : "bg-green-500 text-white") :
-                        "bg-border"
-                      }`}>
-                        {reached ? (
-                          <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
-                        ) : (
-                          <span className="text-[9px] text-muted">{i + 1}</span>
+            <>
+              <ol className="flex items-start gap-1 overflow-x-auto pb-1">
+                {lifecycle.map((s, i) => {
+                  const reached = s.reached;
+                  const isCurrent = i === reachedIdx;
+                  return (
+                    <li key={s.key} className="flex-1 min-w-[80px]">
+                      <div className="flex items-center gap-1">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                          isDeclined ? "bg-red-200 text-red-700" :
+                          reached ? (isCurrent ? "bg-accent text-white" : "bg-green-500 text-white") :
+                          "bg-border"
+                        }`}>
+                          {reached ? (
+                            <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                          ) : (
+                            <span className="text-[9px] text-muted">{i + 1}</span>
+                          )}
+                        </div>
+                        {i < lifecycle.length - 1 && (
+                          <div className={`flex-1 h-px ${i < reachedIdx ? "bg-green-500" : "bg-border"}`} />
                         )}
                       </div>
-                      {i < lifecycle.length - 1 && (
-                        <div className={`flex-1 h-px ${i < reachedIdx ? "bg-green-500" : "bg-border"}`} />
-                      )}
-                    </div>
-                    <div className="mt-1.5 pr-1">
-                      <p className={`text-[10px] font-medium ${reached ? "text-foreground" : "text-muted"}`}>{s.label}</p>
-                      {s.ts && (
-                        <p className="text-[9px] text-muted">
-                          {new Date(s.ts).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                        </p>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
+                      <div className="mt-1.5 pr-1">
+                        <p className={`text-[10px] font-medium ${reached ? "text-foreground" : "text-muted"}`}>{s.label}</p>
+                        {s.ts && (
+                          <p className="text-[9px] text-muted">
+                            {new Date(s.ts).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+              {/* Advance action — one button for the next unreached
+                  stage. Kept inline under the progress bar so there's
+                  a single source of truth for "where are we" and
+                  "what's next". */}
+              {placement.status === "active" && nextKey && nextLabel && (
+                <div className="mt-4 pt-3 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => handleAdvance(nextKey)}
+                    className="px-3.5 py-1.5 text-xs font-medium text-accent bg-accent/5 border border-accent/30 hover:bg-accent/10 rounded-sm transition-colors"
+                  >
+                    Mark {nextLabel.toLowerCase()}
+                  </button>
+                </div>
+              )}
+            </>
           );
         })()}
       </div>
@@ -392,27 +421,8 @@ export default function PlacementDetailClient({ placementId }: Props) {
         </div>
       )}
 
-      {/* Stepper — advance-stage buttons kick in once the placement is
-          active. While pending, the visual progress above still shows
-          the requested step so the user has context. */}
-      {(placement.status === "active" || placement.status === "completed") && (
-      <div className="bg-surface border border-border rounded-sm p-4 sm:p-5 mb-6">
-        <h2 className="text-sm font-medium mb-3">Lifecycle actions</h2>
-        <PlacementStepper
-          placement={stepperData}
-          canAdvance={placement.status === "active"}
-          onChange={(next) => setPlacement((p) => p ? ({
-            ...p,
-            status: next.status === "completed" ? "completed" : p.status,
-            accepted_at: next.acceptedAt ?? p.accepted_at,
-            scheduled_for: next.scheduledFor ?? p.scheduled_for,
-            installed_at: next.installedAt ?? p.installed_at,
-            live_from: next.liveFrom ?? p.live_from,
-            collected_at: next.collectedAt ?? p.collected_at,
-          }) : p)}
-        />
-      </div>
-      )}
+      {/* Lifecycle actions block removed — Progress block above now
+          owns both the 6-step bar AND the Mark-next-stage button. */}
 
       {/* Counter dialog on the detail page — used by the Respond panel
           above. Bound to this placement directly. */}
@@ -543,7 +553,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
               disabled={creatingRecord}
               className="px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors disabled:opacity-60"
             >
-              {creatingRecord ? "Creating\u2026" : "+ Add record"}
+              {creatingRecord ? "Creating…" : "+ Add record"}
             </button>
           )}
         </div>
@@ -566,7 +576,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-serif text-xl text-foreground">Photos in venue</h2>
           <label className={`px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors cursor-pointer ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
-            {uploading ? "Uploading\u2026" : "+ Upload"}
+            {uploading ? "Uploading…" : "+ Upload"}
             <input
               type="file"
               accept="image/*"
