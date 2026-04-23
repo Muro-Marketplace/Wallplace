@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 import { normaliseStatus as sharedNormaliseStatus, statusBadgeClass, arrangementLabel } from "@/lib/placements/status";
 import PlacementDirectionTag, { directionFor } from "@/components/PlacementDirectionTag";
+import CounterPlacementDialog from "@/components/CounterPlacementDialog";
 
 type FilterTab = "All" | "Pending" | "Active" | "Completed";
 // Display-only strings — arrangementLabel() can return combined values
@@ -35,6 +36,8 @@ interface Placement {
   message?: string;
   canRespond?: boolean;
   direction?: "sent" | "received" | null;
+  monthlyFeeGbp?: number | null;
+  qrEnabled?: boolean | null;
   acceptedAt?: string | null;
   scheduledFor?: string | null;
   installedAt?: string | null;
@@ -121,6 +124,8 @@ export default function PlacementsPage() {
   const [respondError, setRespondError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
   const [placements, setPlacements] = useState<Placement[]>([]);
+  // id of the placement currently being countered via the dialog. null = closed.
+  const [counteringId, setCounteringId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [initialised, setInitialised] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -186,6 +191,8 @@ export default function PlacementsPage() {
               message: p.message as string | undefined,
               canRespond,
               direction,
+              monthlyFeeGbp: (p.monthly_fee_gbp as number | null) ?? null,
+              qrEnabled: (p.qr_enabled as boolean | null) ?? null,
               acceptedAt: (p.accepted_at as string | null) ?? null,
               scheduledFor: (p.scheduled_for as string | null) ?? null,
               installedAt: (p.installed_at as string | null) ?? null,
@@ -817,7 +824,34 @@ export default function PlacementsPage() {
                         } : x))}
                       />
 
-                      <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
+                      <div className="flex items-center gap-3 mt-4 flex-wrap">
+                        {/* Response buttons pinned left — primary actions
+                            read as the main thing on the row. */}
+                        {p.status === "Pending" && p.canRespond && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
+                              disabled={responding === p.id}
+                              className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
+                            >
+                              {responding === p.id ? "…" : "Accept"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setCounteringId(p.id); }}
+                              className="px-4 py-1.5 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-sm transition-colors"
+                            >
+                              Counter
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
+                              disabled={responding === p.id}
+                              className="px-4 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-sm transition-colors disabled:opacity-50"
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        )}
                         <Link
                           href={`/artist-portal/messages?artist=${p.venueSlug}&artistName=${encodeURIComponent(p.venue)}`}
                           className="text-xs text-muted hover:text-foreground transition-colors"
@@ -825,35 +859,7 @@ export default function PlacementsPage() {
                         >
                           Message Venue
                         </Link>
-                        <div className="flex items-center gap-2 ml-auto">
-                          {p.status === "Pending" && p.canRespond && (
-                            <>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
-                                disabled={responding === p.id}
-                                className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
-                              >
-                                {responding === p.id ? "…" : "Accept"}
-                              </button>
-                              {/* Counter lives inline on the placement row
-                                  so the artist doesn't have to open the
-                                  message thread to adjust terms. */}
-                              <Link
-                                href={`/artist-portal/messages?artist=${p.venueSlug}&artistName=${encodeURIComponent(p.venue)}&counter=${encodeURIComponent(p.id)}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="px-4 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
-                              >
-                                Counter
-                              </Link>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
-                                disabled={responding === p.id}
-                                className="px-4 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
-                              >
-                                Decline
-                              </button>
-                            </>
-                          )}
+                        <div className="flex items-center gap-2 ml-auto flex-wrap">
                           {p.status === "Pending" && !p.canRespond && p.direction === "sent" && (
                             <span className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-sm">
                               Awaiting their response
@@ -1029,6 +1035,34 @@ export default function PlacementsPage() {
                   } : x))}
                 />
 
+                {/* Accept / Counter / Decline get their own row on
+                    mobile so they don't wrap awkwardly next to the
+                    longer Add Loan / Open full placement chips. */}
+                {p.status === "Pending" && p.canRespond && (
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
+                      disabled={responding === p.id}
+                      className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
+                    >
+                      {responding === p.id ? "…" : "Accept"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setCounteringId(p.id); }}
+                      className="px-4 py-1.5 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-sm transition-colors"
+                    >
+                      Counter
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
+                      disabled={responding === p.id}
+                      className="px-4 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-sm transition-colors disabled:opacity-50"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-3 mt-3 flex-wrap">
                   <Link
                     href={`/artist-portal/messages?artist=${p.venueSlug}&artistName=${encodeURIComponent(p.venue)}`}
@@ -1036,25 +1070,7 @@ export default function PlacementsPage() {
                   >
                     Message Venue
                   </Link>
-                  <div className="flex items-center gap-2 ml-auto">
-                    {p.status === "Pending" && p.canRespond && (
-                      <>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
-                          disabled={responding === p.id}
-                          className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
-                        >
-                          {responding === p.id ? "…" : "Accept"}
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
-                          disabled={responding === p.id}
-                          className="px-4 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
-                        >
-                          Decline
-                        </button>
-                      </>
-                    )}
+                  <div className="flex items-center gap-2 ml-auto flex-wrap">
                     <Link
                       href={`/placements/${encodeURIComponent(p.id)}`}
                       className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
@@ -1082,6 +1098,25 @@ export default function PlacementsPage() {
           <p className="text-center text-muted text-sm py-8">No placements found.</p>
         )}
       </div>
+
+      {/* Counter-offer dialog — opens inline on Counter click, no
+          navigation. On success we just reload the list so the updated
+          terms and the auto-generated counter message appear. */}
+      {counteringId && (() => {
+        const target = placements.find((x) => x.id === counteringId);
+        return (
+          <CounterPlacementDialog
+            placementId={counteringId}
+            initial={{
+              monthly_fee_gbp: target?.monthlyFeeGbp,
+              revenue_share_percent: target?.revenueSharePercent,
+              qr_enabled: target?.qrEnabled,
+            }}
+            onClose={() => setCounteringId(null)}
+            onSuccess={() => { setInitialised(false); }}
+          />
+        );
+      })()}
     </ArtistPortalLayout>
   );
 }

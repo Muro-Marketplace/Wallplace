@@ -352,17 +352,11 @@ export async function POST(request: Request) {
       const workLine = workTitles.length === 1
         ? workTitles[0]
         : workTitles.join(", ");
-      const arrangementLine = parsed.data[0].type === "revenue_share"
-        ? `Revenue share: ${parsed.data[0].revenueSharePercent || 0}% to the venue`
-        : parsed.data[0].type === "free_loan"
-          ? "Paid loan arrangement"
-          : "Purchase arrangement";
+      // Message content is just the sender's optional note. The work
+      // title and arrangement are already rendered as a card in the
+      // thread, so repeating them here duplicates the info.
       const userMessage = (parsed.data[0].message || "").trim();
-      const content = [
-        `Placement request sent for: ${workLine}`,
-        arrangementLine,
-        userMessage ? `\n"${userMessage}"` : "",
-      ].filter(Boolean).join("\n");
+      const content = userMessage || "";
 
       // Prefer an existing conversation between these two parties so the
       // request lands in the same chat the user is already having.

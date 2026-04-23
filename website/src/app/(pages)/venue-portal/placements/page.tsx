@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { canRespond, isRequester } from "@/lib/placement-permissions";
 import { normaliseStatus as sharedNormaliseStatus, statusBadgeClass, arrangementLabel } from "@/lib/placements/status";
 import PlacementDirectionTag, { directionFor } from "@/components/PlacementDirectionTag";
+import CounterPlacementDialog from "@/components/CounterPlacementDialog";
 
 function formatSlug(slug: string): string {
   if (!slug) return "";
@@ -50,6 +51,8 @@ interface PlacementRequest {
   /** Raw ISO / timestamp used for sorting. Display `date` stays formatted. */
   createdAtTs?: number;
   qrScans?: number;
+  monthlyFeeGbp?: number | null;
+  qrEnabledOnPlacement?: boolean | null;
 }
 
 interface ArtistWork {
@@ -286,6 +289,7 @@ export default function VenuePlacementsPage() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
   const [placements, setPlacements] = useState<PlacementRequest[]>([]);
+  const [counteringId, setCounteringId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [responding, setResponding] = useState<string | null>(null);
   const [respondError, setRespondError] = useState<string | null>(null);
@@ -400,6 +404,8 @@ export default function VenuePlacementsPage() {
             liveFrom: (p.live_from as string | null) ?? null,
             collectedAt: (p.collected_at as string | null) ?? null,
             requesterUserId: (p.requester_user_id as string | null) ?? null,
+            monthlyFeeGbp: (p.monthly_fee_gbp as number | null) ?? null,
+            qrEnabledOnPlacement: (p.qr_enabled as boolean | null) ?? null,
             artistUserId: (p.artist_user_id as string | null) ?? null,
             venueUserId: (p.venue_user_id as string | null) ?? null,
             createdAtTs: p.created_at ? new Date(p.created_at as string).getTime() : 0,
@@ -1022,7 +1028,34 @@ export default function VenuePlacementsPage() {
                             } : x))}
                           />
 
-                          <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
+                          <div className="flex items-center gap-3 mt-4 flex-wrap">
+                            {/* Response buttons pinned to the left of the
+                                row so they read as the primary actions. */}
+                            {canRespond({ status: p.status, requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id, "venue") && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
+                                  disabled={responding === p.id}
+                                  className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
+                                >
+                                  {responding === p.id ? "…" : "Accept"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); setCounteringId(p.id); }}
+                                  className="px-4 py-1.5 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-sm transition-colors"
+                                >
+                                  Counter
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
+                                  disabled={responding === p.id}
+                                  className="px-4 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-sm transition-colors disabled:opacity-50"
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            )}
                             <Link
                               href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}`}
                               className="text-xs text-muted hover:text-foreground transition-colors"
@@ -1030,38 +1063,7 @@ export default function VenuePlacementsPage() {
                             >
                               Message Artist
                             </Link>
-                            <div className="flex items-center gap-2 ml-auto">
-                              {canRespond({ status: p.status, requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id, "venue") && (
-                                <>
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
-                                    disabled={responding === p.id}
-                                    className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
-                                  >
-                                    {responding === p.id ? "…" : "Accept"}
-                                  </button>
-                                  {/* Counter lives alongside Accept / Decline
-                                      on the list row so the user doesn't
-                                      have to open the message thread to
-                                      adjust terms. Jumps to the placement
-                                      detail page where the full counter
-                                      form lives. */}
-                                  <Link
-                                    href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}&counter=${encodeURIComponent(p.id)}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="px-4 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
-                                  >
-                                    Counter
-                                  </Link>
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
-                                    disabled={responding === p.id}
-                                    className="px-4 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
-                                  >
-                                    Decline
-                                  </button>
-                                </>
-                              )}
+                            <div className="flex items-center gap-2 ml-auto flex-wrap">
                               {p.status === "Pending" && isRequester({ requester_user_id: p.requesterUserId }, user?.id) && (
                                 <span className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-sm">
                                   Awaiting their response
@@ -1253,6 +1255,34 @@ export default function VenuePlacementsPage() {
                       } : x))}
                     />
 
+                    {/* Mobile action layout — Accept/Counter/Decline on
+                        their own row so they don't wrap awkwardly next to
+                        the wider "Add Loan / Consignment Record" chip. */}
+                    {canRespond({ status: p.status, requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id, "venue") && (
+                      <div className="flex items-center gap-2 mt-3 flex-wrap">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
+                          disabled={responding === p.id}
+                          className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
+                        >
+                          {responding === p.id ? "…" : "Accept"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setCounteringId(p.id); }}
+                          className="px-4 py-1.5 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-sm transition-colors"
+                        >
+                          Counter
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
+                          disabled={responding === p.id}
+                          className="px-4 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-sm transition-colors disabled:opacity-50"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-3 mt-3 flex-wrap">
                       <Link
                         href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}`}
@@ -1260,32 +1290,7 @@ export default function VenuePlacementsPage() {
                       >
                         Message Artist
                       </Link>
-                      <div className="flex items-center gap-2 ml-auto">
-                        {canRespond({ status: p.status, requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id, "venue") && (
-                          <>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
-                              disabled={responding === p.id}
-                              className="px-4 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-sm transition-colors disabled:opacity-50"
-                            >
-                              {responding === p.id ? "…" : "Accept"}
-                            </button>
-                            <Link
-                              href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}&counter=${encodeURIComponent(p.id)}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="px-4 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
-                            >
-                              Counter
-                            </Link>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
-                              disabled={responding === p.id}
-                              className="px-4 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
-                            >
-                              Decline
-                            </button>
-                          </>
-                        )}
+                      <div className="flex items-center gap-2 ml-auto flex-wrap">
                         {p.status === "Pending" && isRequester({ requester_user_id: p.requesterUserId }, user?.id) && (
                           <span className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-sm">
                             Awaiting their response
@@ -1320,6 +1325,25 @@ export default function VenuePlacementsPage() {
           </div>
         </>
       )}
+
+      {/* Inline counter dialog — lives at the portal root so opening a
+          counter from any row simply toggles counteringId. On success we
+          bust the placements state so the updated terms reload. */}
+      {counteringId && (() => {
+        const target = placements.find((x) => x.id === counteringId);
+        return (
+          <CounterPlacementDialog
+            placementId={counteringId}
+            initial={{
+              monthly_fee_gbp: target?.monthlyFeeGbp,
+              revenue_share_percent: target?.revenueSharePercent,
+              qr_enabled: target?.qrEnabledOnPlacement,
+            }}
+            onClose={() => setCounteringId(null)}
+            onSuccess={() => { setPlacements([]); setLoading(true); }}
+          />
+        );
+      })()}
     </VenuePortalLayout>
   );
 }

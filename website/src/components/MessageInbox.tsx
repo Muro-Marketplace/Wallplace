@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 import type { ArtistWork } from "@/data/artists";
 import PlacementContextPanel from "@/components/PlacementContextPanel";
+import CounterPlacementDialog from "@/components/CounterPlacementDialog";
 
 interface Conversation {
   conversationId: string;
@@ -88,6 +89,8 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
 
   // Mobile: right-side panel toggle
   const [panelOpenMobile, setPanelOpenMobile] = useState(false);
+  // Placement id currently being countered via the inline dialog.
+  const [counteringId, setCounteringId] = useState<string | null>(null);
 
   const slugRef = useRef(userSlug);
   slugRef.current = userSlug;
@@ -701,7 +704,31 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                               return parts.join(" · ");
                             })()}
                           </p>
-                          {msg.content && <p className="text-xs text-muted whitespace-pre-wrap">{msg.content}</p>}
+                          {(() => {
+                            // Strip legacy auto-generated boilerplate
+                            // ("Placement request sent for: X" /
+                            // "Revenue share: 10% to the venue") because
+                            // the card above already conveys that. Only
+                            // show the sender's actual note.
+                            const raw = (msg.content || "").trim();
+                            if (!raw) return null;
+                            const cleaned = raw
+                              .split("\n")
+                              .filter((l) => {
+                                const t = l.trim();
+                                if (!t) return false;
+                                if (/^placement request sent for:/i.test(t)) return false;
+                                if (/^revenue share:\s*\d/i.test(t)) return false;
+                                if (/^paid loan arrangement$/i.test(t)) return false;
+                                if (/^purchase arrangement$/i.test(t)) return false;
+                                return true;
+                              })
+                              .join("\n")
+                              .replace(/^"([\s\S]+)"$/, "$1")
+                              .trim();
+                            if (!cleaned) return null;
+                            return <p className="text-xs text-muted whitespace-pre-wrap">{cleaned}</p>;
+                          })()}
                         </div>
                         {(() => {
                           // Check if this placement request has already been responded to
@@ -731,10 +758,20 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                             ? metaRequesterId === user?.id
                             : isMe;
                           if (!iAmRequester) {
+                            const placementIdForCounter = meta.placementId as string | undefined;
                             return (
-                              <div className="px-3.5 py-2 border-t border-border flex gap-2">
+                              <div className="px-3.5 py-2 border-t border-border flex gap-2 flex-wrap">
                                 <button onClick={() => handlePlacementResponse(msg, true)} className="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-full transition-colors">Accept</button>
-                                <button onClick={() => handlePlacementResponse(msg, false)} className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-full transition-colors">Decline</button>
+                                {placementIdForCounter && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setCounteringId(placementIdForCounter)}
+                                    className="px-3 py-1.5 text-xs font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-full transition-colors"
+                                  >
+                                    Counter
+                                  </button>
+                                )}
+                                <button onClick={() => handlePlacementResponse(msg, false)} className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-full transition-colors">Decline</button>
                               </div>
                             );
                           }
@@ -856,6 +893,17 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
             </div>
           )}
         </>
+      )}
+
+      {/* Inline counter-offer dialog triggered from the placement_request
+          card's Counter button. Closes on submit; the thread will
+          refresh via the normal message poll. */}
+      {counteringId && (
+        <CounterPlacementDialog
+          placementId={counteringId}
+          onClose={() => setCounteringId(null)}
+          onSuccess={() => { setCounteringId(null); if (selectedConv) loadThread(selectedConv); }}
+        />
       )}
     </div>
   );
