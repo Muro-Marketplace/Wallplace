@@ -346,14 +346,52 @@ export default function CollectionsPage() {
                 rows={2}
                 className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50"
               />
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="Bundle price (e.g. 450)"
-                value={form.bundlePrice}
-                onChange={(e) => setForm((p) => ({ ...p, bundlePrice: e.target.value }))}
-                className="w-full px-3 py-2.5 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50"
-              />
+              {/* Bundle price — show £ prefix, and once we have sizes picked
+                  for each work, calculate the sum-of-individual vs bundle so
+                  the artist can see the saving (or, critically, if they've
+                  UNDER-priced the bundle relative to individuals). */}
+              {(() => {
+                // Sum individual prices from the selected works + their sizes
+                const individualTotal = form.workIds.reduce((sum, wid) => {
+                  const work = artist?.works.find((w) => w.id === wid);
+                  if (!work) return sum;
+                  const sizeLabel = form.workSizes[wid];
+                  const sizeRow = (work.pricing || []).find((p) => p.label === sizeLabel) || (work.pricing || [])[0];
+                  return sum + (sizeRow?.price || 0);
+                }, 0);
+                const bundle = parseFloat(form.bundlePrice) || 0;
+                const saving = individualTotal - bundle;
+                const savingPct = individualTotal > 0 && bundle > 0 ? Math.round((saving / individualTotal) * 100) : 0;
+
+                return (
+                  <div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted pointer-events-none">&pound;</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Bundle price (e.g. 450)"
+                        value={form.bundlePrice}
+                        onChange={(e) => setForm((p) => ({ ...p, bundlePrice: e.target.value.replace(/^£\s*/, "") }))}
+                        className="w-full pl-7 pr-3 py-2.5 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50"
+                      />
+                    </div>
+                    {individualTotal > 0 && bundle > 0 && (
+                      <div className={`mt-1.5 flex items-center gap-2 text-xs ${saving > 0 ? "text-muted" : "text-red-600"}`}>
+                        <span>Individually: <span className="text-foreground font-medium">&pound;{individualTotal.toFixed(0)}</span></span>
+                        <span className="opacity-40">•</span>
+                        {saving > 0 ? (
+                          <span>Buyers save <span className="text-green-700 font-medium">&pound;{saving.toFixed(0)} ({savingPct}%)</span></span>
+                        ) : saving === 0 ? (
+                          <span>No saving vs buying individually — consider dropping the bundle price</span>
+                        ) : (
+                          <span>Bundle is <span className="font-semibold">&pound;{Math.abs(saving).toFixed(0)} more</span> than buying individually — double-check this</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Images */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

@@ -460,8 +460,10 @@ export default function PlacementContextPanel({
   //   \u2022 "purchase"                   \u2192 Direct purchase
   //   \u2022 Anything else                \u2192 Free display
   const hasFee = typeof p.monthly_fee_gbp === "number" && p.monthly_fee_gbp > 0;
+  // "Paid loan + QR" when both are in play — rev share on QR scans tops up
+  // the monthly fee. Single labels otherwise.
   const arrangementLabel = hasFee
-    ? "Paid loan"
+    ? (p.qr_enabled ? "Paid loan + QR" : "Paid loan")
     : p.arrangement_type === "purchase"
       ? "Direct purchase"
       : p.qr_enabled || p.arrangement_type === "revenue_share"

@@ -28,10 +28,10 @@ export default function PrivacyPage() {
                   data controller for the personal information we hold about you.
                   You can contact us at{" "}
                   <a
-                    href="mailto:hello@wallplace.co.uk"
+                    href="mailto:privacy@wallplace.co.uk"
                     className="text-accent hover:underline"
                   >
-                    hello@wallplace.co.uk
+                    privacy@wallplace.co.uk
                   </a>
                   .
                 </p>
@@ -195,10 +195,10 @@ export default function PrivacyPage() {
                 <p className="text-muted leading-relaxed mt-4">
                   To exercise any of these rights, please email us at{" "}
                   <a
-                    href="mailto:hello@wallplace.co.uk"
+                    href="mailto:privacy@wallplace.co.uk"
                     className="text-accent hover:underline"
                   >
-                    hello@wallplace.co.uk
+                    privacy@wallplace.co.uk
                   </a>
                   . We will respond within 30 days. You also have the right to
                   lodge a complaint with the Information Commissioner&rsquo;s
@@ -273,10 +273,10 @@ export default function PrivacyPage() {
                   </p>
                   <p className="text-sm text-muted mt-1">London, UK</p>
                   <a
-                    href="mailto:hello@wallplace.co.uk"
+                    href="mailto:privacy@wallplace.co.uk"
                     className="text-sm text-accent hover:underline mt-1 block"
                   >
-                    hello@wallplace.co.uk
+                    privacy@wallplace.co.uk
                   </a>
                 </div>
               </div>

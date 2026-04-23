@@ -92,9 +92,12 @@ export default function TermsPage() {
                 <div className="space-y-3 text-muted leading-relaxed">
                   <p>Buyers may purchase artwork by scanning QR labels on displayed artwork or by browsing the Platform directly. The contract of sale is between the buyer and the artist. Wallplace is not the seller.</p>
                   <p>Prices are displayed in GBP. Payment is processed via Stripe. Wallplace does not hold buyer funds at any point.</p>
-                  <p><strong className="text-foreground">Cooling-off period:</strong> Under the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013, you have a 14-day cooling-off period for online purchases, except for bespoke or personalised artwork. To cancel, notify the artist within 14 days of receiving the artwork. Return the artwork in its original condition at your own cost (unless faulty). The artist will issue a refund within 14 days of receiving the returned artwork.</p>
+                  <p><strong className="text-foreground">Cooling-off period:</strong> Under the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013, you have a 14-day cooling-off period for online purchases, except for bespoke or personalised artwork (which is commissioned specifically for you and is exempt under Regulation 28(1)(b)). To cancel, notify the artist within 14 days of receiving the artwork. Return the artwork in its original condition at your own cost (unless faulty). The artist will issue a refund within 14 days of receiving the returned artwork.</p>
                   <p><strong className="text-foreground">Faulty or misdescribed goods:</strong> You have additional rights under the Consumer Rights Act 2015, including the right to repair, replacement, or refund for goods that are faulty or not as described.</p>
                   <p><strong className="text-foreground">Seller information:</strong> The seller for each order is the individual artist, not Wallplace. The artist&rsquo;s trading name and contact route are disclosed on every listing page and in your order confirmation, as required under the Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013.</p>
+                  <p><strong className="text-foreground">Delivery responsibility:</strong> Risk of loss or damage in transit remains with the seller (the artist) until the artwork is received by the buyer at the delivery address. Wallplace is not a party to the delivery contract and is not liable for delays, loss, or damage caused by third-party couriers. Artists are expected to use a reputable, tracked courier service appropriate to the value of the work.</p>
+                  <p><strong className="text-foreground">Signature on delivery:</strong> Artworks sold for <strong className="text-foreground">&pound;500 or more</strong> require a signed-for delivery service. Artists are responsible for arranging this and must retain proof of signature for at least 12 months.</p>
+                  <p><strong className="text-foreground">Item not received:</strong> If an order has not arrived by the expected delivery window, the buyer may raise an &ldquo;Item not received&rdquo; dispute through the account dashboard. The dispute flow asks the buyer to confirm they have checked with neighbours and the delivery address, and to report any delivery notification or tracking status. Wallplace will then contact the artist and the courier to investigate. Where tracking shows the item was not delivered or a signature (where required) is missing, Wallplace will typically refund the buyer and recover the amount from the artist&rsquo;s future payouts. See <Link href="/complaints" className="text-accent hover:underline">Complaints Procedure</Link> for escalation routes.</p>
                   <p><strong className="text-foreground">If an artist becomes unresponsive:</strong> Where an artist fails to respond to a legitimate refund or return request within 7 days, Wallplace may, at its discretion, issue a refund to you on the artist&rsquo;s behalf and recover that amount from future payouts owed to the artist. This is a goodwill measure and does not make Wallplace a party to the contract of sale.</p>
                 </div>
               </div>
@@ -163,7 +166,7 @@ export default function TermsPage() {
                   <div className="space-y-4 mt-4">
                     <div>
                       <h3 className="text-base font-medium text-foreground mb-1">Step 1 : Raise a Dispute</h3>
-                      <p>Contact <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a> with your order number, the nature of the dispute, and any supporting evidence (photographs, messages, tracking information). You may also raise a dispute through your account dashboard.</p>
+                      <p>Contact <a href="mailto:legal@wallplace.co.uk" className="text-accent hover:underline">legal@wallplace.co.uk</a> with your order number, the nature of the dispute, and any supporting evidence (photographs, messages, tracking information). You may also raise a dispute through your account dashboard.</p>
                     </div>
 
                     <div>
@@ -254,7 +257,7 @@ export default function TermsPage() {
                 <h2 className="text-2xl mb-4">18. Contact</h2>
                 <p className="text-muted leading-relaxed">
                   Wallplace, London, United Kingdom.<br />
-                  Email: <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a><br />
+                  Email: <a href="mailto:legal@wallplace.co.uk" className="text-accent hover:underline">legal@wallplace.co.uk</a><br />
                   For data protection queries, see our <Link href="/privacy" className="text-accent hover:underline">Privacy Policy</Link>.
                 </p>
               </div>

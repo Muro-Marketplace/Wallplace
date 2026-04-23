@@ -29,7 +29,7 @@ export default function ComplaintsPage() {
                 <div className="space-y-3 text-muted leading-relaxed">
                   <p>Please contact us by any of the following routes:</p>
                   <ul className="list-disc pl-6 space-y-1">
-                    <li>Email: <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a></li>
+                    <li>Email: <a href="mailto:complaints@wallplace.co.uk" className="text-accent hover:underline">complaints@wallplace.co.uk</a></li>
                     <li>Your account dashboard (Disputes / Request Refund)</li>
                     <li>Post: Wallplace, London, United Kingdom (please email us first for a postal address if you wish to write to us)</li>
                   </ul>
@@ -54,7 +54,7 @@ export default function ComplaintsPage() {
                 <div className="space-y-3 text-muted leading-relaxed">
                   <p>If you are not satisfied with our response, you have the following escalation routes:</p>
                   <ul className="list-disc pl-6 space-y-2">
-                    <li><strong className="text-foreground">Senior review:</strong> you may request a senior review within 14 days of our initial decision. Email <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a> with the subject line &ldquo;Senior Review Request&rdquo; and your case reference.</li>
+                    <li><strong className="text-foreground">Senior review:</strong> you may request a senior review within 14 days of our initial decision. Email <a href="mailto:complaints@wallplace.co.uk" className="text-accent hover:underline">complaints@wallplace.co.uk</a> with the subject line &ldquo;Senior Review Request&rdquo; and your case reference.</li>
                     <li><strong className="text-foreground">Independent guidance:</strong> Citizens Advice (<a href="https://www.citizensadvice.org.uk" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">citizensadvice.org.uk</a>) offers free, impartial consumer advice.</li>
                     <li><strong className="text-foreground">Alternative Dispute Resolution (ADR):</strong> you may refer your complaint to the Centre for Effective Dispute Resolution (<a href="https://www.cedr.com" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">cedr.com</a>), a certified ADR provider. Wallplace is <strong>not currently a member</strong> of CEDR; it is named here as an available ADR body in accordance with the Alternative Dispute Resolution for Consumer Disputes Regulations 2015. CEDR may charge a fee for their service and may decline to take on a case where Wallplace is not a member.</li>
                     <li><strong className="text-foreground">Information Commissioner&rsquo;s Office (ICO):</strong> complaints relating to how we handle your personal data can be raised with the ICO at <a href="https://ico.org.uk" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">ico.org.uk</a>.</li>
@@ -89,7 +89,7 @@ export default function ComplaintsPage() {
                 <h2 className="text-2xl mb-4">Contact</h2>
                 <p className="text-muted leading-relaxed">
                   Wallplace, London, United Kingdom.<br />
-                  Email: <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a>
+                  Email: <a href="mailto:complaints@wallplace.co.uk" className="text-accent hover:underline">complaints@wallplace.co.uk</a>
                 </p>
               </div>
             </div>

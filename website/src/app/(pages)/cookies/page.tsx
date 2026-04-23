@@ -185,10 +185,10 @@ export default function CookiesPage() {
                       would like us to delete any logs that may indirectly
                       relate to your device, email{" "}
                       <a
-                        href="mailto:hello@wallplace.co.uk"
+                        href="mailto:privacy@wallplace.co.uk"
                         className="text-accent hover:underline"
                       >
-                        hello@wallplace.co.uk
+                        privacy@wallplace.co.uk
                       </a>{" "}
                       and we will investigate and respond in line with our{" "}
                       <a
@@ -222,10 +222,10 @@ export default function CookiesPage() {
                   If you have questions about our use of cookies or this Cookie
                   Policy, please contact us at{" "}
                   <a
-                    href="mailto:hello@wallplace.co.uk"
+                    href="mailto:privacy@wallplace.co.uk"
                     className="text-accent hover:underline"
                   >
-                    hello@wallplace.co.uk
+                    privacy@wallplace.co.uk
                   </a>
                   . For more information about how we handle your personal data,
                   please read our{" "}

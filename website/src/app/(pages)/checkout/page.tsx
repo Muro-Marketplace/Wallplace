@@ -306,6 +306,20 @@ export default function CheckoutPage() {
                 <span>Total</span>
                 <span>£{total.toFixed(2)}</span>
               </div>
+              {/* Handling time expectation — artists are expected to dispatch
+                  within 7 days. Sets buyer expectation pre-purchase so they
+                  don't message at day 3 worrying the order is lost. */}
+              <div className="pt-3 mt-2 border-t border-border">
+                <div className="flex items-start gap-2 text-[11px] text-muted">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-accent">
+                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <div>
+                    <span className="text-foreground font-medium">Dispatched within 7 days.</span>{" "}
+                    Most orders arrive within 5&ndash;10 working days once dispatched. Orders of &pound;500+ are sent signed-for.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

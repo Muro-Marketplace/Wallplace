@@ -294,8 +294,8 @@ export default function ApplicationForm() {
 
         <p className="text-xs text-muted text-center">
           Questions?{" "}
-          <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">
-            hello@wallplace.co.uk
+          <a href="mailto:applications@wallplace.co.uk" className="text-accent hover:underline">
+            applications@wallplace.co.uk
           </a>
         </p>
       </div>

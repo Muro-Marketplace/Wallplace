@@ -293,6 +293,10 @@ export default function VenuePlacementsPage() {
   const [qrEnabled, setQrEnabled] = useState(true);
   const [monthlyFee, setMonthlyFee] = useState<number | "">("");
   const [message, setMessage] = useState("");
+  // Venues can request a specific size (e.g. A2, 60x80cm). Applied to every
+  // selected work in the request so the artist knows what physical piece
+  // the venue is after rather than having to guess from the listed sizes.
+  const [preferredDimensions, setPreferredDimensions] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [worksLoading, setWorksLoading] = useState(false);
@@ -428,6 +432,13 @@ export default function VenuePlacementsPage() {
 
     const rev = typeof revenuePercent === "number" ? revenuePercent : 0;
     const fee = typeof monthlyFee === "number" ? monthlyFee : 0;
+    // Compose the outbound message. Dimensions request (if any) rides along
+    // with the free-form message so the artist sees both in one block.
+    const composed = [
+      preferredDimensions.trim() ? `Preferred size: ${preferredDimensions.trim()}` : "",
+      message.trim(),
+    ].filter(Boolean).join("\n\n");
+
     const newPlacements = Array.from(selectedWorks).map((workTitle) => {
       const work = artistWorks.find((w) => w.title === workTitle);
       return {
@@ -441,7 +452,8 @@ export default function VenuePlacementsPage() {
         revenueSharePercent: qrEnabled && rev > 0 ? rev : undefined,
         qrEnabled,
         monthlyFeeGbp: fee > 0 ? fee : undefined,
-        message: message || undefined,
+        message: composed || undefined,
+        requestedDimensions: preferredDimensions.trim() || undefined,
       };
     });
 
@@ -484,6 +496,7 @@ export default function VenuePlacementsPage() {
       setMonthlyFee("");
       setSelectedWorks(new Set());
       setMessage("");
+      setPreferredDimensions("");
       setRevenuePercent(0);
     } catch (err) {
       console.error("Placement request error:", err);
@@ -741,6 +754,24 @@ export default function VenuePlacementsPage() {
                   })}
                 </div>
               )}
+            </div>
+
+            {/* Preferred dimensions — lets the venue request a specific size
+                rather than accepting whatever the artist's default is. Free-
+                form so metric and imperial both work. Attached to the message
+                so the artist sees it alongside the request. */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Preferred size / dimensions <span className="text-muted font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={preferredDimensions}
+                onChange={(e) => setPreferredDimensions(e.target.value)}
+                placeholder="e.g. A2, 60x80cm, 24x36 in, or 'largest you have'"
+                className={inputClass}
+              />
+              <p className="text-xs text-muted mt-1">We&rsquo;ll share this with the artist so they can confirm what they have available.</p>
             </div>
 
             {/* Message to artist */}

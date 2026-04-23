@@ -27,7 +27,7 @@ export default function IpPolicyPage() {
               <div>
                 <h2 className="text-2xl mb-4">Reporting Infringement</h2>
                 <div className="space-y-3 text-muted leading-relaxed">
-                  <p>If you believe that content on Wallplace infringes your intellectual property rights, please contact us at <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a> with the subject line &ldquo;IP Takedown Request&rdquo; and the following information:</p>
+                  <p>If you believe that content on Wallplace infringes your intellectual property rights, please contact us at <a href="mailto:legal@wallplace.co.uk" className="text-accent hover:underline">legal@wallplace.co.uk</a> with the subject line &ldquo;IP Takedown Request&rdquo; and the following information:</p>
                   <ul className="list-disc pl-6 space-y-2">
                     <li>Your name and contact information</li>
                     <li>A description of the copyrighted work you believe has been infringed, including evidence of your ownership (registration number, publication reference, earlier dated copies, etc.)</li>
@@ -90,7 +90,7 @@ export default function IpPolicyPage() {
               <div>
                 <h2 className="text-2xl mb-4">Contact</h2>
                 <p className="text-muted leading-relaxed">
-                  Intellectual property queries: <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a>
+                  Intellectual property queries: <a href="mailto:legal@wallplace.co.uk" className="text-accent hover:underline">legal@wallplace.co.uk</a>
                 </p>
               </div>
             </div>
