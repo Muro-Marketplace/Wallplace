@@ -49,14 +49,11 @@ export function canRespond(
     return false;
   }
 
-  // Legacy fallback for rows without requester_user_id. We don't know who
-  // sent the request, so we allow either the artist or the venue on the
-  // placement to respond. This used to assume "venue created → artist
-  // accepts" but artist-initiated requests predate the requester field too,
-  // so the old assumption was locking venues out of responding to
-  // artist-requested placements.
-  if (placement.artist_user_id && placement.artist_user_id === userId) return true;
-  if (placement.venue_user_id && placement.venue_user_id === userId) return true;
+  // No requester_user_id → row is ambiguous. We can't tell who sent the
+  // request, so refuse the response rather than let the wrong party act
+  // on it. Every modern creation path (messages POST, placements POST,
+  // placement counter) now stamps requester_user_id, so this only hits
+  // legacy rows that need to be reviewed manually.
   return false;
 }
 

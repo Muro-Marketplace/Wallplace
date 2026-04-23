@@ -711,20 +711,23 @@ export default function PlacementContextPanel({
           string. Monthly fee shows when there's a fee, revenue share shows
           when QR is enabled with a non-zero share. */}
       <div className="px-4 py-3 lg:px-5 lg:py-4 border-b border-border">
-        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted mb-2">Terms</p>
-        <div className="space-y-0.5 lg:space-y-1.5 text-xs">
-          <div className="flex gap-3">
+        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted mb-2.5 lg:mb-2">Terms</p>
+        {/* Rows breathe a bit more on mobile (1.5/6px) vs desktop
+            (1.5/6px) — previously mobile was at 0.5/2px, which crammed
+            the labels uncomfortably together. */}
+        <div className="space-y-1.5 lg:space-y-1.5 text-xs">
+          <div className="flex gap-3 py-0.5">
             <span className="text-muted w-24 shrink-0">Type</span>
             <span className="text-foreground font-medium">{arrangementLabel}</span>
           </div>
           {hasFee && (
-            <div className="flex gap-3">
+            <div className="flex gap-3 py-0.5">
               <span className="text-muted w-24 shrink-0">Monthly fee</span>
               <span className="text-foreground font-medium">£{p.monthly_fee_gbp}</span>
             </div>
           )}
           {p.qr_enabled && p.revenue_share_percent != null && p.revenue_share_percent > 0 && (
-            <div className="flex gap-3">
+            <div className="flex gap-3 py-0.5">
               <span className="text-muted w-24 shrink-0">Revenue share</span>
               <span className="text-foreground font-medium">{p.revenue_share_percent}% on QR sales</span>
             </div>
@@ -733,7 +736,7 @@ export default function PlacementContextPanel({
               it's always on by definition, on paid loan the venue might be
               paying without QR, which is useful to surface. */}
           {hasFee && p.qr_enabled != null && (
-            <div className="flex gap-3">
+            <div className="flex gap-3 py-0.5">
               <span className="text-muted w-24 shrink-0">QR code</span>
               <span className="text-foreground font-medium">{p.qr_enabled ? "Enabled" : "Disabled"}</span>
             </div>
@@ -743,7 +746,7 @@ export default function PlacementContextPanel({
             <span className="text-foreground font-medium">{formatDate(p.created_at)}</span>
           </div>
           {p.accepted_at && (
-            <div className="flex gap-3">
+            <div className="flex gap-3 py-0.5">
               <span className="text-muted w-24 shrink-0">Accepted</span>
               <span className="text-foreground font-medium">{formatDate(p.accepted_at)}</span>
             </div>

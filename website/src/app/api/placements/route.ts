@@ -769,8 +769,26 @@ export async function PATCH(request: Request) {
           const content = status === "active"
             ? "Placement request accepted."
             : "Placement request declined.";
+
+          // Land the response in the same conversation as the original
+          // placement_request so the thread shows "Accepted" / "Declined"
+          // inline. Fall back to the legacy placement-* id, then to the
+          // dm-* id used by /api/messages.
+          const { data: originalMsg } = await db
+            .from("messages")
+            .select("conversation_id")
+            .eq("message_type", "placement_request")
+            .contains("metadata", { placementId: id })
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const [a, b] = [senderSlug, recipientSlug].sort();
+          const conversationId = originalMsg?.conversation_id
+            || deterministicConversationId(senderSlug, recipientSlug)
+            || `dm-${a}__${b}`;
+
           const baseMsg = {
-            conversation_id: deterministicConversationId(senderSlug, recipientSlug),
+            conversation_id: conversationId,
             sender_id: auth.user!.id,
             sender_name: senderSlug,
             sender_type: senderType,
