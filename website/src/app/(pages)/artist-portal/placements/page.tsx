@@ -13,7 +13,7 @@ import { normaliseStatus as sharedNormaliseStatus, statusBadgeClass, arrangement
 import PlacementDirectionTag, { directionFor } from "@/components/PlacementDirectionTag";
 import CounterPlacementDialog from "@/components/CounterPlacementDialog";
 
-type FilterTab = "All" | "Pending" | "Active" | "Completed";
+type FilterTab = "All" | "Pending" | "Active" | "Completed" | "Archived";
 // Display-only strings — arrangementLabel() can return combined values
 // like "Paid loan + QR" so this is deliberately open.
 type ArrangementType = string;
@@ -104,7 +104,7 @@ function MiniStatusBar({ p }: { p: Placement }) {
   );
 }
 
-const tabs: FilterTab[] = ["All", "Pending", "Active", "Completed"];
+const tabs: FilterTab[] = ["All", "Pending", "Active", "Completed", "Archived"];
 
 const normaliseStatus = (raw: string): PlacementStatus => sharedNormaliseStatus(raw) as PlacementStatus;
 
@@ -128,9 +128,13 @@ export default function PlacementsPage() {
   const [responding, setResponding] = useState<string | null>(null);
   const [respondError, setRespondError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
+  const showArchived = activeTab === "Archived";
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d" | "year">("all");
-  const [showArchived, setShowArchived] = useState(false);
+  // Archived is a filter tab rather than a separate toggle — derive
+  // from activeTab so all the fetch / filter / bulk-archive logic can
+  // keep reading the same boolean.
+  // (intentionally no setShowArchived; tab change drives it)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [placements, setPlacements] = useState<Placement[]>([]);
@@ -473,7 +477,9 @@ export default function PlacementsPage() {
   })();
   const search = searchTerm.trim().toLowerCase();
   const filtered = placements.filter((p) => {
-    if (activeTab !== "All") {
+    // 'Archived' is its own tab — placements already holds only the
+    // archived rows when it's active, so no extra status filter.
+    if (activeTab !== "All" && activeTab !== "Archived") {
       if (activeTab === "Completed") {
         if (p.status !== "Completed" && p.status !== "Sold") return false;
       } else if (p.status !== activeTab) {
@@ -748,29 +754,39 @@ export default function PlacementsPage() {
           before anything else. */}
       <PlacementActionItems userId={user?.id} role="artist" heading="Needs your attention" />
 
-      {/* Filter tabs */}
-      <div className="flex gap-1 mb-6 border-b border-border">
+      {/* Filter tabs — horizontal scroll on mobile so narrow screens
+          don't break Completed / Archived onto a second row. */}
+      <div className="flex gap-1 mb-6 border-b border-border overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 flex-nowrap">
         {tabs.map((tab) => {
-          const count =
-            tab === "All"
-              ? placements.length
-              : tab === "Completed"
-              ? placements.filter((p) => p.status === "Completed" || p.status === "Sold").length
-              : placements.filter((p) => p.status === tab).length;
+          const onArchivedTab = activeTab === "Archived";
+          let count: number | null;
+          if (tab === "Archived") {
+            count = onArchivedTab ? placements.length : null;
+          } else if (onArchivedTab) {
+            count = null;
+          } else if (tab === "All") {
+            count = placements.length;
+          } else if (tab === "Completed") {
+            count = placements.filter((p) => p.status === "Completed" || p.status === "Sold").length;
+          } else {
+            count = placements.filter((p) => p.status === tab).length;
+          }
           return (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === tab
                   ? "border-accent text-accent"
                   : "border-transparent text-muted hover:text-foreground"
               }`}
             >
               {tab}
-              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-accent/10 text-accent" : "bg-border text-muted"}`}>
-                {count}
-              </span>
+              {count !== null && (
+                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-accent/10 text-accent" : "bg-border text-muted"}`}>
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}
@@ -800,21 +816,6 @@ export default function PlacementsPage() {
           <option value="90d">Last 90 days</option>
           <option value="year">This year</option>
         </select>
-        <button
-          type="button"
-          onClick={() => setShowArchived((v) => !v)}
-          className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-sm border transition-colors whitespace-nowrap ${
-            showArchived
-              ? "bg-accent/5 border-accent/30 text-accent"
-              : "bg-background border-border text-muted hover:text-foreground"
-          }`}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 7h18v4H3zM5 11v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9" />
-            <line x1="10" y1="16" x2="14" y2="16" />
-          </svg>
-          {showArchived ? "Main list" : "Archived"}
-        </button>
       </div>
 
       {/* Table - desktop */}

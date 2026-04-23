@@ -19,7 +19,7 @@ function formatSlug(slug: string): string {
   return slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
 
-type FilterTab = "All" | "Pending" | "Active" | "Completed";
+type FilterTab = "All" | "Pending" | "Active" | "Completed" | "Archived";
 // Open-ended so combined labels ("Paid loan + QR") can come through the
 // shared arrangementLabel helper.
 type ArrangementType = string;
@@ -73,7 +73,7 @@ interface ArtistWork {
 
 const statusBadge = (status: string) => statusBadgeClass(sharedNormaliseStatus(status));
 
-const tabs: FilterTab[] = ["All", "Pending", "Active", "Completed"];
+const tabs: FilterTab[] = ["All", "Pending", "Active", "Completed", "Archived"];
 
 const normaliseStatus = (raw: string): PlacementStatus => sharedNormaliseStatus(raw) as PlacementStatus;
 
@@ -297,9 +297,11 @@ export default function VenuePlacementsPage() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  // The Archived filter tab controls what we fetch — ?archived=1
+  // returns the user's archive rather than their live list.
+  const showArchived = activeTab === "Archived";
   const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d" | "year">("all");
   const [placements, setPlacements] = useState<PlacementRequest[]>([]);
   const [counteringId, setCounteringId] = useState<string | null>(null);
@@ -757,7 +759,9 @@ export default function VenuePlacementsPage() {
   })();
   const search = searchTerm.trim().toLowerCase();
   const filtered = placements.filter((p) => {
-    if (activeTab !== "All") {
+    // 'Archived' is its own tab — the placements state already holds
+    // only archived rows when that tab is active, so no extra filter.
+    if (activeTab !== "All" && activeTab !== "Archived") {
       if (activeTab === "Completed") {
         if (p.status !== "Completed" && p.status !== "Sold") return false;
       } else if (p.status !== activeTab) {
@@ -1063,29 +1067,42 @@ export default function VenuePlacementsPage() {
           so new-request flow isn't hidden behind a long to-do list */}
       <PlacementActionItems userId={user?.id} role="venue" heading="Needs your attention" />
 
-      {/* Filter tabs */}
-      <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto">
+      {/* Filter tabs — horizontal scroll on mobile so narrow screens
+          don't break 'Completed' / 'Archived' onto a second row. */}
+      <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 flex-nowrap">
         {tabs.map((tab) => {
-          const count =
-            tab === "All"
-              ? placements.length
-              : tab === "Completed"
-              ? placements.filter((p) => p.status === "Completed" || p.status === "Sold").length
-              : placements.filter((p) => p.status === tab).length;
+          // Archived is a separately-fetched list so its count only
+          // makes sense when that tab is active. Other tabs compute
+          // from the currently-loaded placements.
+          const onArchivedTab = activeTab === "Archived";
+          let count: number | null;
+          if (tab === "Archived") {
+            count = onArchivedTab ? placements.length : null;
+          } else if (onArchivedTab) {
+            count = null;
+          } else if (tab === "All") {
+            count = placements.length;
+          } else if (tab === "Completed") {
+            count = placements.filter((p) => p.status === "Completed" || p.status === "Sold").length;
+          } else {
+            count = placements.filter((p) => p.status === tab).length;
+          }
           return (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === tab
                   ? "border-accent text-accent"
                   : "border-transparent text-muted hover:text-foreground"
               }`}
             >
               {tab}
-              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-accent/10 text-accent" : "bg-border text-muted"}`}>
-                {count}
-              </span>
+              {count !== null && (
+                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-accent/10 text-accent" : "bg-border text-muted"}`}>
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}
@@ -1116,21 +1133,6 @@ export default function VenuePlacementsPage() {
           <option value="90d">Last 90 days</option>
           <option value="year">This year</option>
         </select>
-        <button
-          type="button"
-          onClick={() => setShowArchived((v) => !v)}
-          className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-sm border transition-colors whitespace-nowrap ${
-            showArchived
-              ? "bg-accent/5 border-accent/30 text-accent"
-              : "bg-background border-border text-muted hover:text-foreground"
-          }`}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 7h18v4H3zM5 11v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9" />
-            <line x1="10" y1="16" x2="14" y2="16" />
-          </svg>
-          {showArchived ? "Main list" : "Archived"}
-        </button>
       </div>
 
       {loading ? (

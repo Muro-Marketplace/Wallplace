@@ -271,7 +271,7 @@ export default function CheckoutPage() {
               <line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
             <p className="text-sm text-foreground/70">
-              Your order will be fulfilled directly by the artist. They&apos;ll pack and ship your artwork within 5–10 working days.
+              Your order will be fulfilled directly by the artist. They&apos;ll pack and ship your artwork within 7 working days.
             </p>
           </div>
 

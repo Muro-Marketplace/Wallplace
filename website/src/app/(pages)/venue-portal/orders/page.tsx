@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
 import OrderStatusTracker from "@/components/OrderStatusTracker";
 import { authFetch } from "@/lib/api-client";
@@ -26,12 +27,26 @@ interface Order {
 type OrderTab = "sales" | "purchases";
 
 export default function VenueOrdersPage() {
+  return (
+    <Suspense fallback={<VenuePortalLayout><p className="text-muted text-sm py-12 text-center">Loading orders...</p></VenuePortalLayout>}>
+      <VenueOrdersContent />
+    </Suspense>
+  );
+}
+
+function VenueOrdersContent() {
+  const searchParams = useSearchParams();
+  // After a venue completes checkout the confirmation page sends them
+  // here with ?tab=purchases, since the relevant order is the one
+  // they just placed (lives in "Orders I made"). Any other entry
+  // defaults to the sales tab.
+  const initialTab: OrderTab = searchParams?.get("tab") === "purchases" ? "purchases" : "sales";
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
   const [venueSlug, setVenueSlug] = useState<string>("");
-  const [tab, setTab] = useState<OrderTab>("sales");
+  const [tab, setTab] = useState<OrderTab>(initialTab);
 
   useEffect(() => {
     authFetch("/api/orders")
@@ -121,7 +136,7 @@ export default function VenueOrdersPage() {
             <button onClick={() => setSelectedOrder(null)} className="text-xs text-muted hover:text-foreground">Close</button>
           </div>
 
-          <OrderStatusTracker currentStatus={selected.status} statusHistory={selected.status_history || []} />
+          <OrderStatusTracker currentStatus={selected.status || "confirmed"} statusHistory={selected.status_history || []} />
 
           {selected.tracking_number && (
             <p className="text-sm text-muted mt-4">Tracking: <span className="text-foreground font-medium">{selected.tracking_number}</span></p>
@@ -129,19 +144,48 @@ export default function VenueOrdersPage() {
 
           <div className="mt-6 space-y-2">
             <p className="text-xs text-muted uppercase tracking-wider">Items</p>
-            {(selected.items || []).map((item: { title: string; qty: number; price: number }, i: number) => (
-              <div key={i} className="flex justify-between text-sm border-b border-border pb-2">
-                <span>{item.title} &times; {item.qty}</span>
-                <span className="font-medium">&pound;{(item.price * item.qty).toFixed(2)}</span>
-              </div>
-            ))}
+            {(selected.items || []).map((item, i) => {
+              const qty = item?.qty ?? 1;
+              const price = typeof item?.price === "number" ? item.price : 0;
+              return (
+                <div key={i} className="flex justify-between text-sm border-b border-border pb-2">
+                  <span>{item?.title || "Item"} &times; {qty}</span>
+                  <span className="font-medium">&pound;{(price * qty).toFixed(2)}</span>
+                </div>
+              );
+            })}
           </div>
 
-          {selected.venue_revenue > 0 && (
-            <div className="mt-5 p-4 bg-accent/5 rounded-sm border border-accent/20 space-y-2">
-              <p className="text-xs text-accent uppercase tracking-wider mb-2">Your Revenue</p>
-              <div className="flex justify-between text-sm"><span>Sale total</span><span>&pound;{selected.total?.toFixed(2)}</span></div>
-              <div className="flex justify-between text-sm"><span>Your share ({selected.venue_revenue_share_percent}%)</span><span className="font-medium text-accent">&pound;{selected.venue_revenue.toFixed(2)}</span></div>
+          {(() => {
+            const venueRev = typeof selected.venue_revenue === "number" ? selected.venue_revenue : 0;
+            const total = typeof selected.total === "number" ? selected.total : 0;
+            const sharePct = typeof selected.venue_revenue_share_percent === "number"
+              ? selected.venue_revenue_share_percent
+              : 0;
+            // This block is meaningful on the placement-sales side
+            // only. For orders the venue made themselves it stays
+            // hidden since venueRev is 0.
+            if (venueRev <= 0) return null;
+            return (
+              <div className="mt-5 p-4 bg-accent/5 rounded-sm border border-accent/20 space-y-2">
+                <p className="text-xs text-accent uppercase tracking-wider mb-2">Your Revenue</p>
+                <div className="flex justify-between text-sm"><span>Sale total</span><span>&pound;{total.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm"><span>Your share ({sharePct}%)</span><span className="font-medium text-accent">&pound;{venueRev.toFixed(2)}</span></div>
+              </div>
+            );
+          })()}
+
+          {tab === "purchases" && (
+            <div className="mt-5 p-4 bg-surface rounded-sm border border-border space-y-2">
+              <p className="text-xs text-muted uppercase tracking-wider mb-2">You paid</p>
+              <div className="flex justify-between text-sm"><span>Total</span><span className="font-medium">&pound;{(typeof selected.total === "number" ? selected.total : 0).toFixed(2)}</span></div>
+              {selected.shipping?.fullName && (
+                <p className="text-[11px] text-muted mt-2">
+                  Ship to {selected.shipping.fullName}
+                  {selected.shipping.city ? `, ${selected.shipping.city}` : ""}
+                  {selected.shipping.postcode ? `, ${selected.shipping.postcode}` : ""}
+                </p>
+              )}
             </div>
           )}
 
@@ -184,7 +228,12 @@ export default function VenueOrdersPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  {order.venue_revenue > 0 && <p className="text-sm font-medium text-accent">&pound;{order.venue_revenue.toFixed(2)}</p>}
+                  {typeof order.venue_revenue === "number" && order.venue_revenue > 0 && (
+                    <p className="text-sm font-medium text-accent">&pound;{order.venue_revenue.toFixed(2)}</p>
+                  )}
+                  {tab === "purchases" && typeof order.total === "number" && (
+                    <p className="text-sm font-medium text-foreground">&pound;{order.total.toFixed(2)}</p>
+                  )}
                   <OrderStatusTracker currentStatus={order.status} compact />
                 </div>
               </div>
