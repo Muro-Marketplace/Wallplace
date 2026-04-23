@@ -1155,6 +1155,10 @@ export default function VenuePlacementsPage() {
                                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
                                     Declined
                                   </span>
+                                ) : p.status === "Cancelled" ? (
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                                    Cancelled
+                                  </span>
                                 ) : (
                                   <select
                                     value={p.status}

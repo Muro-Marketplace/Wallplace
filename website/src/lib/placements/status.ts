@@ -35,7 +35,7 @@ export function statusBadgeClass(status: DisplayStatus): string {
     case "Active":    return "bg-green-50 text-green-700 border border-green-200";
     case "Pending":   return "bg-amber-50 text-amber-800 border border-amber-200";
     case "Declined":  return "bg-red-50 text-red-700 border border-red-200";
-    case "Cancelled": return "bg-neutral-100 text-neutral-700 border border-neutral-300";
+    case "Cancelled": return "bg-red-50 text-red-700 border border-red-200";
     case "Sold":      return "bg-blue-50 text-blue-700 border border-blue-200";
     case "Completed": return "bg-neutral-100 text-neutral-700 border border-neutral-200";
   }
