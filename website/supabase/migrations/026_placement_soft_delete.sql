@@ -29,3 +29,26 @@ CREATE INDEX IF NOT EXISTS idx_placements_hidden_for_artist
 CREATE INDEX IF NOT EXISTS idx_placements_hidden_for_venue
   ON placements(hidden_for_venue)
   WHERE hidden_for_venue = false;
+
+-- Fallback audit table for the archive flow. The application code
+-- prefers the hidden_for_* columns above, but if those columns are
+-- ever missing (e.g. this migration hasn't run yet) the DELETE
+-- endpoint writes the archive record here instead. This guarantees
+-- archive state always has somewhere to persist without needing the
+-- primary schema change. Safe to keep long-term; functions as a
+-- simple audit trail of who archived what and when.
+CREATE TABLE IF NOT EXISTS placement_archives (
+  placement_id TEXT NOT NULL,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  archived_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (placement_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_placement_archives_user
+  ON placement_archives(user_id);
+
+ALTER TABLE placement_archives ENABLE ROW LEVEL SECURITY;
+-- Users read / modify their own archive rows only.
+CREATE POLICY IF NOT EXISTS "placement_archives_own" ON placement_archives
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);

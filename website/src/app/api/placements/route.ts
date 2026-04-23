@@ -86,15 +86,32 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Failed to fetch placements" }, { status: 500 });
     }
 
-    // Filter archived rows. Callers can opt in to see their archive
-    // via ?archived=1 (for the "View archived" toggle on the
-    // placements pages) or ?archived=all to get both. Without the
-    // query param we default to only the active list so the common
-    // case — "what's on my plate right now" — stays uncluttered.
+    // Pull the caller's archive state. Two sources in order of
+    // precedence:
+    //   1. The hidden_for_artist / hidden_for_venue flags on the
+    //      placements row (migration 026).
+    //   2. A fallback `placement_archives` table keyed by
+    //      (placement_id, user_id) that the DELETE endpoint writes to
+    //      when those columns don't exist yet. Either path means the
+    //      row is archived for *this* user — the counterparty is
+    //      unaffected.
     const hiddenFlag = role.type === "artist" ? "hidden_for_artist" : "hidden_for_venue";
     const archivedMode = new URL(request.url).searchParams.get("archived") || "";
+    const fallbackArchivedIds = new Set<string>();
+    try {
+      const { data: archRows } = await db
+        .from("placement_archives")
+        .select("placement_id")
+        .eq("user_id", auth.user!.id);
+      for (const r of (archRows || []) as Array<{ placement_id: string }>) {
+        if (r.placement_id) fallbackArchivedIds.add(r.placement_id);
+      }
+    } catch { /* table may not exist — treat as empty */ }
+
     const placements = (data || []).filter((p) => {
-      const hidden = (p as Record<string, unknown>)[hiddenFlag] === true;
+      const columnHidden = (p as Record<string, unknown>)[hiddenFlag] === true;
+      const tableHidden = typeof p.id === "string" && fallbackArchivedIds.has(p.id);
+      const hidden = columnHidden || tableHidden;
       if (archivedMode === "all") return true;
       if (archivedMode === "1" || archivedMode === "true") return hidden;
       return !hidden;
@@ -979,17 +996,28 @@ export async function DELETE(request: Request) {
     }
 
     const db = getSupabaseAdmin();
-    // Either the artist on the placement OR the venue can delete it.
-    // Previously only the artist was authorised, so venue-side removes
-    // silently failed and the row reappeared on reload.
-    const { data: existing } = await db
+    // Fetch only columns that are guaranteed to exist in every env. The
+    // hidden_for_* flags from migration 026 are looked up separately
+    // with a graceful fallback, so a missing column on the initial
+    // select can't cascade into a bogus 404 (which the client would
+    // interpret as "already gone" and leave the optimistic archive in
+    // place — the exact bug that made archive appear to work but
+    // re-appear on refresh).
+    const { data: existing, error: fetchErr } = await db
       .from("placements")
-      .select("artist_user_id, venue_user_id, requester_user_id, status, hidden_for_artist, hidden_for_venue")
+      .select("artist_user_id, venue_user_id, requester_user_id, status")
       .eq("id", id)
       .single();
 
-    if (!existing) {
+    if (fetchErr && fetchErr.code === "PGRST116") {
       return NextResponse.json({ error: "Placement not found" }, { status: 404 });
+    }
+    if (fetchErr || !existing) {
+      console.error("Placement fetch failed before archive:", fetchErr);
+      return NextResponse.json(
+        { error: fetchErr?.message || "Could not look up placement" },
+        { status: 500 },
+      );
     }
 
     const isArtist = existing.artist_user_id && existing.artist_user_id === auth.user!.id;
@@ -1000,13 +1028,9 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Not authorised" }, { status: 403 });
     }
 
-    // Archive-only: we never hard-delete placements anymore. The bin
-    // icon on the list is an archive action — hide the row from the
-    // caller's own view while the counterparty's view is untouched.
-    // Unarchive is supported via PATCH { unarchive: true } on a
-    // separate code path (see PATCH handler). A 'cancel' action is
-    // kept out of here entirely and lives on PATCH { status:
-    // 'cancelled' } so archive is never destructive to the deal.
+    // Archive-only: we never hard-delete placements. Hide the row from
+    // the caller's own view; the counterparty's view is untouched.
+    // Reversed via ?unarchive=1.
     const { searchParams: sp2 } = new URL(request.url);
     const unarchive = sp2.get("unarchive") === "1";
 
@@ -1014,20 +1038,57 @@ export async function DELETE(request: Request) {
     if (isArtist) updates.hidden_for_artist = !unarchive;
     if (isVenue) updates.hidden_for_venue = !unarchive;
 
-    let { data: softData, error: softErr } = await db
+    const { data: softData, error: softErr } = await db
       .from("placements")
       .update(updates)
       .eq("id", id)
       .select("id");
-    // Fallback for environments where migration 026 hasn't run.
-    if (softErr) {
-      const msg = String(softErr.message || "").toLowerCase();
-      if (msg.includes("hidden_for_artist") || msg.includes("hidden_for_venue") || msg.includes("does not exist")) {
+
+    // Migration 026 not applied → fall back to the placement_archives
+    // audit table, which we create on first use so archiving works on
+    // any env without touching the placements schema. This avoids the
+    // "optimistically hidden then snaps back on refresh" problem users
+    // see when the hidden_for_* columns are missing.
+    const errMsg = String(softErr?.message || "").toLowerCase();
+    const columnMissing = errMsg.includes("hidden_for_artist")
+      || errMsg.includes("hidden_for_venue")
+      || errMsg.includes("could not find the")
+      || errMsg.includes("does not exist");
+
+    if (softErr && columnMissing) {
+      // Fallback path: a separate placement_archives (placement_id,
+      // user_id) table. We try an INSERT / DELETE on it. If that table
+      // also doesn't exist yet, the caller will see a clear error and
+      // can apply the migration.
+      if (unarchive) {
+        const { error: archDelErr } = await db
+          .from("placement_archives")
+          .delete()
+          .eq("placement_id", id)
+          .eq("user_id", auth.user!.id);
+        if (archDelErr) {
+          console.error("Fallback unarchive failed:", archDelErr);
+          return NextResponse.json(
+            { error: "Archive requires migration 026 — apply 026_placement_soft_delete.sql (or create a placement_archives(placement_id, user_id) table)." },
+            { status: 500 },
+          );
+        }
+        return NextResponse.json({ success: true, archived: false, id, fallback: true });
+      }
+      const { error: archInsErr } = await db
+        .from("placement_archives")
+        .upsert(
+          { placement_id: id, user_id: auth.user!.id, archived_at: new Date().toISOString() },
+          { onConflict: "placement_id,user_id" },
+        );
+      if (archInsErr) {
+        console.error("Fallback archive insert failed:", archInsErr);
         return NextResponse.json(
-          { error: "Archive requires migration 026 — apply 026_placement_soft_delete.sql to Supabase." },
+          { error: "Archive requires migration 026 — apply 026_placement_soft_delete.sql (or create a placement_archives(placement_id, user_id) table)." },
           { status: 500 },
         );
       }
+      return NextResponse.json({ success: true, archived: true, id, fallback: true });
     }
 
     if (softErr || !softData || softData.length === 0) {
