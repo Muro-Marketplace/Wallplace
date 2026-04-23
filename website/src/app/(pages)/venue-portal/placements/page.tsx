@@ -294,6 +294,7 @@ export default function VenuePlacementsPage() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d" | "year">("all");
   const [placements, setPlacements] = useState<PlacementRequest[]>([]);
   const [counteringId, setCounteringId] = useState<string | null>(null);
@@ -381,7 +382,8 @@ export default function VenuePlacementsPage() {
   const loadPlacements = React.useCallback(async () => {
     try {
       setLoading(true);
-      const res = await authFetch("/api/placements");
+      const url = showArchived ? "/api/placements?archived=1" : "/api/placements";
+      const res = await authFetch(url);
       const data = await res.json();
       if (!data.placements) return;
 
@@ -439,7 +441,7 @@ export default function VenuePlacementsPage() {
     } catch { /* ignore */ } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => { loadPlacements(); }, [loadPlacements]);
 
@@ -611,36 +613,57 @@ export default function VenuePlacementsPage() {
     }).catch((err) => console.error("Status update error:", err));
   }
 
-  async function removePlacement(id: string) {
+  // Archive or unarchive — the bin icon on the list. Hides the row
+  // from the caller's own view only (the counterparty is untouched).
+  // Reversible via the "Show archived" toggle.
+  async function archivePlacement(id: string, unarchive: boolean) {
     const snapshot = placements;
-    // Optimistic remove
     setPlacements(placements.filter((p) => p.id !== id));
     try {
-      const res = await authFetch(`/api/placements?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      // 404 = already gone, treat as success.
+      const url = `/api/placements?id=${encodeURIComponent(id)}${unarchive ? "&unarchive=1" : ""}`;
+      const res = await authFetch(url, { method: "DELETE" });
       if (res.status === 404) return;
       if (!res.ok) {
         setPlacements(snapshot);
         const body = await res.json().catch(() => ({}));
-        alert(body?.error || `Could not delete placement (HTTP ${res.status})`);
+        alert(body?.error || `Could not ${unarchive ? "unarchive" : "archive"} placement (HTTP ${res.status})`);
         return;
       }
-      // Confirm by re-fetching fresh. If the row is STILL present after a
-      // successful DELETE, Supabase silently ignored the request (usually
-      // RLS or a FK constraint). Surface this to the user rather than
-      // lying with an optimistic remove that gets undone on reload.
-      const verifyRes = await authFetch(`/api/placements?_t=${Date.now()}`, { cache: "no-store" as RequestCache });
-      const verifyData = await verifyRes.json().catch(() => ({}));
-      const stillThere = Array.isArray(verifyData.placements)
-        && verifyData.placements.some((p: { id?: string }) => p.id === id);
-      if (stillThere) {
-        setPlacements(snapshot);
-        alert("Server said the placement was deleted, but it's still there on reload. This is usually a database permission policy — check Supabase logs. The placement has been put back on-screen.");
-      }
+      // Reload so the current tab (main / archived) picks up the change.
+      loadPlacements();
     } catch (err) {
       setPlacements(snapshot);
-      console.error("Placement delete error:", err);
-      alert("Network error — placement not deleted. Please try again.");
+      console.error("Placement archive error:", err);
+      alert("Network error — placement not archived. Please try again.");
+    }
+  }
+
+  // Cancel — status transition for an active or pending placement.
+  // Keeps the row visible to both parties (the counterparty sees
+  // "Cancelled"). Separate from archive: archive is personal; cancel
+  // is shared and changes the deal.
+  async function cancelPlacement(id: string) {
+    const snapshot = placements;
+    setPlacements((prev) => prev.map((p) => p.id === id ? { ...p, status: "Cancelled" } : p));
+    try {
+      const res = await authFetch("/api/placements", {
+        method: "PATCH",
+        body: JSON.stringify({ id, status: "cancelled" }),
+      });
+      if (!res.ok) {
+        setPlacements(snapshot);
+        const body = await res.json().catch(() => ({}));
+        alert(body?.error || `Could not cancel placement (HTTP ${res.status})`);
+        return;
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { placementId: id, action: "cancel" } }));
+      }
+      loadPlacements();
+    } catch (err) {
+      setPlacements(snapshot);
+      console.error("Placement cancel error:", err);
+      alert("Network error — placement not cancelled. Please try again.");
     }
   }
 
@@ -1014,6 +1037,21 @@ export default function VenuePlacementsPage() {
           <option value="90d">Last 90 days</option>
           <option value="year">This year</option>
         </select>
+        <button
+          type="button"
+          onClick={() => setShowArchived((v) => !v)}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-sm border transition-colors whitespace-nowrap ${
+            showArchived
+              ? "bg-accent/5 border-accent/30 text-accent"
+              : "bg-background border-border text-muted hover:text-foreground"
+          }`}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 7h18v4H3zM5 11v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9" />
+            <line x1="10" y1="16" x2="14" y2="16" />
+          </svg>
+          {showArchived ? "Main list" : "Archived"}
+        </button>
       </div>
 
       {loading ? (
@@ -1105,19 +1143,33 @@ export default function VenuePlacementsPage() {
                         })()}
                       </td>
                       <td className="px-6 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-3">
+                        <div className="flex items-center justify-end gap-2">
+                          {(p.status === "Active" || p.status === "Pending") && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); if (confirm("Cancel this placement? The other party will see it as cancelled.")) cancelPlacement(p.id); }}
+                              className="px-2.5 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-sm transition-colors"
+                              title="Cancel placement"
+                            >
+                              Cancel
+                            </button>
+                          )}
                           <button
-                            onClick={(e) => { e.stopPropagation(); if (confirm("Remove this placement?")) removePlacement(p.id); }}
-                            className="p-1.5 rounded-sm text-muted hover:text-red-500 hover:bg-red-50 transition-colors"
-                            aria-label="Remove placement"
-                            title="Remove placement"
+                            onClick={(e) => { e.stopPropagation(); const word = showArchived ? "Unarchive" : "Archive"; if (confirm(`${word} this placement? It ${showArchived ? "will return to your main list" : "moves to your archive and stays visible to the other party"}.`)) archivePlacement(p.id, showArchived); }}
+                            className="p-1.5 rounded-sm text-muted hover:text-accent hover:bg-accent/5 transition-colors"
+                            aria-label={showArchived ? "Unarchive placement" : "Archive placement"}
+                            title={showArchived ? "Unarchive placement" : "Archive placement"}
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6" />
-                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                              <path d="M10 11v6M14 11v6" />
-                              <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
-                            </svg>
+                            {showArchived ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 7h18M3 7v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7M3 7l2-4h14l2 4" />
+                                <path d="M12 11l3 3-3 3M9 14h6" />
+                              </svg>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M3 7h18v4H3zM5 11v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9" />
+                                <line x1="10" y1="16" x2="14" y2="16" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </td>

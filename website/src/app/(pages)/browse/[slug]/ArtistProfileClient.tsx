@@ -268,28 +268,32 @@ export default function ArtistProfileClient({
                       </div>
                     </div>
                   </div>
-                  {/* Save button */}
-                  <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <SaveButton type="work" itemId={work.id} />
-                  </div>
-                  {/* Selection checkbox for placement (venue only) */}
+                  {/* Top-left cluster: selection tick (venue only) then
+                      the heart (Save) to its right. Moved off the bottom
+                      of the image so the icons don't cover the price
+                      line underneath. Selection stays tick-shaped —
+                      an outlined rounded square that fills with the
+                      accent colour once ticked. */}
                   {user && userType === "venue" && (
                     <button
                       onClick={(e) => { e.stopPropagation(); togglePlacementSelection(index); }}
-                      className={`absolute bottom-3 left-3 w-7 h-7 rounded-full flex items-center justify-center transition-all z-10 ${
+                      className={`absolute top-3 left-3 w-7 h-7 rounded-md flex items-center justify-center transition-all z-10 ${
                         selectedForPlacement.has(index)
-                          ? "bg-accent text-white shadow-lg"
-                          : "bg-white/80 text-foreground/40 opacity-0 group-hover:opacity-100 hover:bg-white hover:text-accent backdrop-blur-sm"
+                          ? "bg-accent text-white shadow-md"
+                          : "bg-white/80 text-foreground/70 border border-white/70 opacity-0 group-hover:opacity-100 hover:bg-white hover:text-accent backdrop-blur-sm"
                       }`}
                       title={selectedForPlacement.has(index) ? "Deselect" : "Select for placement"}
                     >
                       {selectedForPlacement.has(index) ? (
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
                       ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /></svg>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="10" height="10" rx="1.5" /></svg>
                       )}
                     </button>
                   )}
+                  <div className={`absolute top-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${user && userType === "venue" ? "left-12" : "left-3"}`}>
+                    <SaveButton type="work" itemId={work.id} />
+                  </div>
                   {/* Availability — hidden on hover, replaced by action buttons */}
                   <div className="absolute top-3 right-3 transition-opacity duration-200 group-hover:opacity-0 pointer-events-none">
                     {work.available ? (

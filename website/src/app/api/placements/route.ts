@@ -86,13 +86,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Failed to fetch placements" }, { status: 500 });
     }
 
-    // Filter out rows the current user has soft-deleted from their own
-    // list. The counterparty still sees them (as cancelled / declined)
-    // until they also remove them.
+    // Filter archived rows. Callers can opt in to see their archive
+    // via ?archived=1 (for the "View archived" toggle on the
+    // placements pages) or ?archived=all to get both. Without the
+    // query param we default to only the active list so the common
+    // case — "what's on my plate right now" — stays uncluttered.
     const hiddenFlag = role.type === "artist" ? "hidden_for_artist" : "hidden_for_venue";
+    const archivedMode = new URL(request.url).searchParams.get("archived") || "";
     const placements = (data || []).filter((p) => {
-      const hidden = (p as Record<string, unknown>)[hiddenFlag];
-      return hidden !== true;
+      const hidden = (p as Record<string, unknown>)[hiddenFlag] === true;
+      if (archivedMode === "all") return true;
+      if (archivedMode === "1" || archivedMode === "true") return hidden;
+      return !hidden;
     });
 
     // Compute realised revenue per placement. For venues we sum
@@ -995,102 +1000,49 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Not authorised" }, { status: 403 });
     }
 
-    const currentStatus = String(existing.status || "").toLowerCase();
-    const alreadyHiddenForOtherParty = isArtist
-      ? Boolean(existing.hidden_for_venue)
-      : Boolean(existing.hidden_for_artist);
-    // Declined rows and rows the other side has also walked away from
-    // can be cleaned up entirely — no value keeping them around.
-    const shouldHardDelete = currentStatus === "declined" || alreadyHiddenForOtherParty;
+    // Archive-only: we never hard-delete placements anymore. The bin
+    // icon on the list is an archive action — hide the row from the
+    // caller's own view while the counterparty's view is untouched.
+    // Unarchive is supported via PATCH { unarchive: true } on a
+    // separate code path (see PATCH handler). A 'cancel' action is
+    // kept out of here entirely and lives on PATCH { status:
+    // 'cancelled' } so archive is never destructive to the deal.
+    const { searchParams: sp2 } = new URL(request.url);
+    const unarchive = sp2.get("unarchive") === "1";
 
-    if (!shouldHardDelete) {
-      // Soft-delete path: hide from the deleter's list, and if the row
-      // was "active" (or still pending) transition it to a cancelled
-      // state so the other party sees what happened instead of the
-      // placement silently disappearing / lingering as "Active".
-      const softUpdates: Record<string, unknown> = {
-        ...(isArtist ? { hidden_for_artist: true } : {}),
-        ...(isVenue ? { hidden_for_venue: true } : {}),
-      };
-      const shouldMarkCancelled = currentStatus === "active" || currentStatus === "pending";
-      if (shouldMarkCancelled) {
-        softUpdates.status = "cancelled";
-        softUpdates.cancelled_at = new Date().toISOString();
-        softUpdates.cancelled_by_user_id = auth.user!.id;
-      }
+    const updates: Record<string, unknown> = {};
+    if (isArtist) updates.hidden_for_artist = !unarchive;
+    if (isVenue) updates.hidden_for_venue = !unarchive;
 
-      let { data: softData, error: softErr } = await db
-        .from("placements")
-        .update(softUpdates)
-        .eq("id", id)
-        .select("id");
-      // If any of the new columns don't exist in this environment, retry
-      // with just the status flip and ignore the hidden flags.
-      if (softErr) {
-        const msg = String(softErr.message || "").toLowerCase();
-        const retryUpdates: Record<string, unknown> = { ...softUpdates };
-        if (msg.includes("hidden_for_artist")) delete retryUpdates.hidden_for_artist;
-        if (msg.includes("hidden_for_venue")) delete retryUpdates.hidden_for_venue;
-        if (msg.includes("cancelled_at")) delete retryUpdates.cancelled_at;
-        if (msg.includes("cancelled_by_user_id")) delete retryUpdates.cancelled_by_user_id;
-        if (Object.keys(retryUpdates).length > 0) {
-          const retry = await db.from("placements").update(retryUpdates).eq("id", id).select("id");
-          softErr = retry.error;
-          softData = retry.data;
-        }
-      }
-
-      if (softErr || !softData || softData.length === 0) {
-        console.error("Placement soft-delete failed:", softErr);
+    let { data: softData, error: softErr } = await db
+      .from("placements")
+      .update(updates)
+      .eq("id", id)
+      .select("id");
+    // Fallback for environments where migration 026 hasn't run.
+    if (softErr) {
+      const msg = String(softErr.message || "").toLowerCase();
+      if (msg.includes("hidden_for_artist") || msg.includes("hidden_for_venue") || msg.includes("does not exist")) {
         return NextResponse.json(
-          { error: softErr?.message || "Could not remove the placement" },
+          { error: "Archive requires migration 026 — apply 026_placement_soft_delete.sql to Supabase." },
           { status: 500 },
         );
       }
-
-      return NextResponse.json({ success: true, soft: true, newStatus: shouldMarkCancelled ? "cancelled" : currentStatus });
     }
 
-    // Hard-delete path — declined rows and rows the other party has
-    // already walked from. Clear child / linking rows first so FK
-    // RESTRICT constraints can't silently abort the delete and leave
-    // the row ghost-visible on reload.
-    await Promise.all([
-      db.from("placement_records").delete().eq("placement_id", id),
-      db.from("placement_photos").delete().eq("placement_id", id),
-      db.from("messages")
-        .delete()
-        .in("message_type", ["placement_request", "placement_response"])
-        .contains("metadata", { placementId: id }),
-    ]).catch((err) => {
-      // Non-fatal: the tables may not exist in every env.
-      console.warn("Side-table cleanup for placement", id, "failed:", err);
-    });
-    // Detach any orders that referenced this placement so the main row
-    // can go. We don't want to delete the orders — they're the payment
-    // record of truth — but we do need to drop the foreign key link.
-    await db.from("orders").update({ placement_id: null }).eq("placement_id", id).then(() => {}, () => {});
-
-    const { data: deleted, error } = await db
-      .from("placements")
-      .delete()
-      .eq("id", id)
-      .select("id");
-
-    if (error) {
-      console.error("Placement DELETE error:", error);
-      return NextResponse.json({ error: error.message || "Failed to delete placement" }, { status: 500 });
-    }
-
-    if (!deleted || deleted.length === 0) {
-      console.warn("Placement DELETE returned no rows for id=", id);
+    if (softErr || !softData || softData.length === 0) {
+      console.error("Placement archive failed:", softErr);
       return NextResponse.json(
-        { error: "Delete did not remove any row (possible RLS policy or FK constraint). Check Supabase logs." },
+        { error: softErr?.message || "Could not archive the placement" },
         { status: 500 },
       );
     }
 
-    return NextResponse.json({ success: true, soft: false, deletedId: deleted[0]?.id });
+    return NextResponse.json({
+      success: true,
+      archived: !unarchive,
+      id,
+    });
   } catch (err) {
     console.error("DELETE /api/placements exception:", err);
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });

@@ -55,8 +55,14 @@ export async function POST(request: Request) {
       });
     }
 
-    // Use fixed base URL — never trust Origin header for redirect URLs
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    // Prefer the caller's origin so local dev redirects back to
+    // localhost instead of hitting the production domain. Fall back to
+    // the configured site URL (set on Vercel) and finally localhost for
+    // completeness. NEXT_PUBLIC_SITE_URL can be pinned to production
+    // via env to stop spoofing in server-to-server callers that don't
+    // set Origin.
+    const requestOrigin = request.headers.get("origin");
+    const origin = requestOrigin || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
