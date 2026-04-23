@@ -307,15 +307,16 @@ export default function VenuePlacementsPage() {
   const [artistSlug, setArtistSlug] = useState("");
   const [artistName, setArtistName] = useState("");
   const [artistWorks, setArtistWorks] = useState<ArtistWork[]>([]);
-  const [selectedWorks, setSelectedWorks] = useState<Set<string>>(new Set());
+  // Map of work title → chosen size label. Empty string means "any
+  // size" (venue has no preference). A work is selected iff it appears
+  // as a key in this map.
+  const [selectedWorkSizes, setSelectedWorkSizes] = useState<Record<string, string>>({});
+  // Which work's size picker popover is currently open, if any.
+  const [sizePickerFor, setSizePickerFor] = useState<string | null>(null);
   const [revenuePercent, setRevenuePercent] = useState<number | "">(0);
   const [qrEnabled, setQrEnabled] = useState(true);
   const [monthlyFee, setMonthlyFee] = useState<number | "">("");
   const [message, setMessage] = useState("");
-  // Venues can request a specific size (e.g. A2, 60x80cm). Applied to every
-  // selected work in the request so the artist knows what physical piece
-  // the venue is after rather than having to guess from the listed sizes.
-  const [preferredDimensions, setPreferredDimensions] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [worksLoading, setWorksLoading] = useState(false);
@@ -332,9 +333,11 @@ export default function VenuePlacementsPage() {
       setArtistName(paramName || paramArtist);
       setShowForm(true);
 
-      // Pre-select the work from lightbox
+      // Pre-select the work from lightbox (no specific size — opens
+      // the picker on the card so the venue can choose one).
       if (paramWork) {
-        setSelectedWorks(new Set([paramWork]));
+        setSelectedWorkSizes({ [paramWork]: "" });
+        setSizePickerFor(paramWork);
       }
 
       // Load artist's full portfolio
@@ -444,13 +447,20 @@ export default function VenuePlacementsPage() {
     return () => window.removeEventListener("wallplace:placement-changed", handler);
   }, [loadPlacements]);
 
-  function toggleWork(title: string) {
-    setSelectedWorks((prev) => {
-      const next = new Set(prev);
-      if (next.has(title)) next.delete(title);
-      else next.add(title);
+  function setWorkSize(title: string, sizeLabel: string) {
+    setSelectedWorkSizes((prev) => ({ ...prev, [title]: sizeLabel }));
+    setSizePickerFor(null);
+  }
+  function removeWork(title: string) {
+    setSelectedWorkSizes((prev) => {
+      const next = { ...prev };
+      delete next[title];
       return next;
     });
+    setSizePickerFor(null);
+  }
+  function toggleSizePicker(title: string) {
+    setSizePickerFor((prev) => (prev === title ? null : title));
   }
 
   async function handleSubmitRequest() {
@@ -458,7 +468,8 @@ export default function VenuePlacementsPage() {
       setSubmitError("Select an artist before sending a request.");
       return;
     }
-    if (selectedWorks.size === 0) {
+    const selectedTitles = Object.keys(selectedWorkSizes);
+    if (selectedTitles.length === 0) {
       setSubmitError("Select at least one work to request.");
       return;
     }
@@ -467,15 +478,20 @@ export default function VenuePlacementsPage() {
 
     const rev = typeof revenuePercent === "number" ? revenuePercent : 0;
     const fee = typeof monthlyFee === "number" ? monthlyFee : 0;
-    // Compose the outbound message. Dimensions request (if any) rides along
-    // with the free-form message so the artist sees both in one block.
+    // Compose the outbound message. Each work now carries its own
+    // requested size so the artist sees exactly what was asked for
+    // per piece, not a single lumped "preferred size".
+    const perWorkSizeLines = selectedTitles
+      .filter((t) => (selectedWorkSizes[t] || "").trim())
+      .map((t) => `\u2022 ${t}: ${selectedWorkSizes[t]}`);
     const composed = [
-      preferredDimensions.trim() ? `Preferred size: ${preferredDimensions.trim()}` : "",
+      perWorkSizeLines.length > 0 ? `Requested sizes:\n${perWorkSizeLines.join("\n")}` : "",
       message.trim(),
     ].filter(Boolean).join("\n\n");
 
-    const newPlacements = Array.from(selectedWorks).map((workTitle) => {
+    const newPlacements = selectedTitles.map((workTitle) => {
       const work = artistWorks.find((w) => w.title === workTitle);
+      const chosenSize = (selectedWorkSizes[workTitle] || "").trim();
       return {
         id: `p-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         workTitle,
@@ -488,7 +504,7 @@ export default function VenuePlacementsPage() {
         qrEnabled,
         monthlyFeeGbp: fee > 0 ? fee : undefined,
         message: composed || undefined,
-        requestedDimensions: preferredDimensions.trim() || undefined,
+        requestedDimensions: chosenSize || undefined,
       };
     });
 
@@ -529,9 +545,9 @@ export default function VenuePlacementsPage() {
       setShowForm(false);
       setQrEnabled(true);
       setMonthlyFee("");
-      setSelectedWorks(new Set());
+      setSelectedWorkSizes({});
+      setSizePickerFor(null);
       setMessage("");
-      setPreferredDimensions("");
       setRevenuePercent(0);
     } catch (err) {
       console.error("Placement request error:", err);
@@ -671,7 +687,7 @@ export default function VenuePlacementsPage() {
         <div className="bg-surface border border-border rounded-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-medium">Request Placement</h2>
-            <button onClick={() => { setShowForm(false); setArtistSlug(""); setArtistWorks([]); setSelectedWorks(new Set()); }} className="text-xs text-muted hover:text-foreground transition-colors">Cancel</button>
+            <button onClick={() => { setShowForm(false); setArtistSlug(""); setArtistWorks([]); setSelectedWorkSizes({}); setSizePickerFor(null); }} className="text-xs text-muted hover:text-foreground transition-colors">Cancel</button>
           </div>
 
           <div className="space-y-5">
@@ -681,7 +697,7 @@ export default function VenuePlacementsPage() {
                 <p className="text-sm"><span className="text-accent font-medium">Artist:</span> {artistName || artistSlug}</p>
                 <button
                   type="button"
-                  onClick={() => { setArtistSlug(""); setArtistName(""); setArtistWorks([]); setSelectedWorks(new Set()); }}
+                  onClick={() => { setArtistSlug(""); setArtistName(""); setArtistWorks([]); setSelectedWorkSizes({}); setSizePickerFor(null); }}
                   className="text-xs text-muted hover:text-foreground underline"
                 >
                   Change
@@ -778,101 +794,107 @@ export default function VenuePlacementsPage() {
             <div>
               <label className="block text-sm font-medium mb-2">
                 Select Works <span className="text-accent">*</span>
-                {selectedWorks.size > 0 && <span className="text-accent ml-2 font-normal">{selectedWorks.size} selected</span>}
+                {Object.keys(selectedWorkSizes).length > 0 && (
+                  <span className="text-accent ml-2 font-normal">{Object.keys(selectedWorkSizes).length} selected</span>
+                )}
               </label>
+              <p className="text-xs text-muted mb-3">
+                Click a work to pick the size you&rsquo;d like. The artist will confirm what&rsquo;s available.
+              </p>
               {worksLoading ? (
                 <p className="text-sm text-muted">Loading portfolio...</p>
               ) : artistWorks.length === 0 ? (
                 <p className="text-sm text-muted">No works found. Browse an artist&rsquo;s profile to select works for placement.</p>
               ) : (
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {artistWorks.map((work) => {
-                    const selected = selectedWorks.has(work.title);
+                    const selected = work.title in selectedWorkSizes;
+                    const chosenSize = selectedWorkSizes[work.title] || "";
+                    const pickerOpen = sizePickerFor === work.title;
+                    const sizes = Array.isArray(work.pricing) && work.pricing.length > 0
+                      ? work.pricing
+                      : (work.dimensions ? [{ label: work.dimensions, price: 0 }] : []);
                     return (
-                      <button
-                        key={work.id}
-                        type="button"
-                        onClick={() => toggleWork(work.title)}
-                        className={`relative aspect-square rounded-sm overflow-hidden border-2 transition-all ${
-                          selected ? "border-accent shadow-sm" : "border-transparent hover:border-border"
-                        }`}
-                      >
-                        {work.image && (
-                          <Image src={work.image} alt={work.title} fill className="object-cover" sizes="80px" />
-                        )}
-                        {selected && (
-                          <div className="absolute inset-0 bg-accent/20 flex items-center justify-center">
-                            <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center">
-                              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                      <div key={work.id} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => toggleSizePicker(work.title)}
+                          className={`relative block w-full aspect-square rounded-sm overflow-hidden border-2 transition-all ${
+                            selected ? "border-accent shadow-sm" : "border-transparent hover:border-border"
+                          }`}
+                        >
+                          {work.image && (
+                            <Image src={work.image} alt={work.title} fill className="object-cover" sizes="160px" />
+                          )}
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pt-6 pb-1.5">
+                            <p className="text-[11px] font-medium text-white truncate text-left">{work.title}</p>
+                          </div>
+                          {selected && (
+                            <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
+                              <span className="px-1.5 py-0.5 rounded-sm bg-accent text-white text-[10px] font-medium">
+                                {chosenSize || "Any size"}
+                              </span>
                             </div>
+                          )}
+                        </button>
+                        {pickerOpen && (
+                          <div
+                            className="absolute left-0 right-0 mt-1 bg-background border border-border rounded-sm shadow-lg z-20 overflow-hidden"
+                            style={{ top: "100%" }}
+                          >
+                            <div className="px-3 py-2 border-b border-border">
+                              <p className="text-[10px] font-medium uppercase tracking-wider text-muted">Pick a size</p>
+                              <p className="text-[11px] text-foreground truncate">{work.title}</p>
+                            </div>
+                            <ul className="max-h-56 overflow-y-auto py-1">
+                              {sizes.length === 0 && (
+                                <li className="px-3 py-2 text-[11px] text-muted">No sizes published yet.</li>
+                              )}
+                              {sizes.map((s) => (
+                                <li key={s.label}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setWorkSize(work.title, s.label)}
+                                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-[12px] hover:bg-surface transition-colors ${
+                                      chosenSize === s.label ? "bg-accent/5 text-accent font-medium" : "text-foreground"
+                                    }`}
+                                  >
+                                    <span className="truncate">{s.label}</span>
+                                    {s.price > 0 && <span className="text-muted text-[11px]">&pound;{s.price.toFixed(0)}</span>}
+                                  </button>
+                                </li>
+                              ))}
+                              <li>
+                                <button
+                                  type="button"
+                                  onClick={() => setWorkSize(work.title, "")}
+                                  className={`w-full flex items-center px-3 py-2 text-[12px] hover:bg-surface transition-colors ${
+                                    selected && !chosenSize ? "bg-accent/5 text-accent font-medium" : "text-muted"
+                                  }`}
+                                >
+                                  Any size — let the artist suggest
+                                </button>
+                              </li>
+                              {selected && (
+                                <li className="border-t border-border mt-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeWork(work.title)}
+                                    className="w-full flex items-center px-3 py-2 text-[12px] text-red-600 hover:bg-red-50 transition-colors"
+                                  >
+                                    Remove from selection
+                                  </button>
+                                </li>
+                              )}
+                            </ul>
                           </div>
                         )}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
               )}
             </div>
-
-            {/* Preferred size — dropdown of the artist's published sizes
-                plus a "Custom size" escape hatch. Previously this was a
-                freeform input; most venues just didn't know what to put.
-                Pulling from the artist's actual sizes reduces mismatches
-                and makes pricing explicit. */}
-            {(() => {
-              const selected = artistWorks.filter((w) => selectedWorks.has(w.title));
-              const seen = new Set<string>();
-              const sizeOptions: { label: string; value: string }[] = [];
-              for (const w of selected) {
-                if (Array.isArray(w.pricing)) {
-                  for (const s of w.pricing) {
-                    if (s?.label && !seen.has(s.label)) {
-                      seen.add(s.label);
-                      sizeOptions.push({
-                        label: s.price > 0 ? `${s.label} — £${s.price.toFixed(0)}` : s.label,
-                        value: s.label,
-                      });
-                    }
-                  }
-                } else if (w.dimensions && !seen.has(w.dimensions)) {
-                  seen.add(w.dimensions);
-                  sizeOptions.push({ label: w.dimensions, value: w.dimensions });
-                }
-              }
-              const isCustom = preferredDimensions !== "" && !seen.has(preferredDimensions);
-              return (
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Preferred size <span className="text-muted font-normal">(optional)</span>
-                  </label>
-                  <select
-                    value={isCustom ? "__custom__" : preferredDimensions}
-                    onChange={(e) => {
-                      if (e.target.value === "__custom__") setPreferredDimensions(" ");
-                      else setPreferredDimensions(e.target.value);
-                    }}
-                    className={inputClass}
-                    disabled={sizeOptions.length === 0}
-                  >
-                    <option value="">{sizeOptions.length === 0 ? "Select a work first" : "No preference"}</option>
-                    {sizeOptions.map((s) => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                    <option value="__custom__">Custom size…</option>
-                  </select>
-                  {isCustom && (
-                    <input
-                      type="text"
-                      value={preferredDimensions.trim()}
-                      onChange={(e) => setPreferredDimensions(e.target.value)}
-                      placeholder="e.g. A2, 60x80cm, 24x36 in"
-                      className={`${inputClass} mt-2`}
-                    />
-                  )}
-                  <p className="text-xs text-muted mt-1">We&rsquo;ll share this with the artist so they can confirm what they have available.</p>
-                </div>
-              );
-            })()}
 
             {/* Message to artist */}
             <div>
@@ -892,14 +914,29 @@ export default function VenuePlacementsPage() {
                 <p className="text-sm text-red-600 mb-3">{submitError}</p>
               )}
               <div className="flex gap-3">
+                {(() => {
+                  const count = Object.keys(selectedWorkSizes).length;
+                  return (
+                    <button
+                      onClick={handleSubmitRequest}
+                      disabled={count === 0 || !artistSlug || submitting}
+                      className="px-6 py-2.5 text-sm font-medium text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {submitting ? "Sending..." : `Request ${count} Placement${count !== 1 ? "s" : ""}`}
+                    </button>
+                  );
+                })()}
                 <button
-                  onClick={handleSubmitRequest}
-                  disabled={selectedWorks.size === 0 || !artistSlug || submitting}
-                  className="px-6 py-2.5 text-sm font-medium text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    setShowForm(false);
+                    setArtistSlug("");
+                    setArtistWorks([]);
+                    setSelectedWorkSizes({});
+                    setSizePickerFor(null);
+                    setSubmitError(null);
+                  }}
+                  className="px-6 py-2.5 text-sm text-muted border border-border rounded-sm hover:text-foreground transition-colors"
                 >
-                  {submitting ? "Sending..." : `Request ${selectedWorks.size} Placement${selectedWorks.size !== 1 ? "s" : ""}`}
-                </button>
-                <button onClick={() => { setShowForm(false); setArtistSlug(""); setArtistWorks([]); setSelectedWorks(new Set()); setSubmitError(null); }} className="px-6 py-2.5 text-sm text-muted border border-border rounded-sm hover:text-foreground transition-colors">
                   Cancel
                 </button>
               </div>
@@ -1449,13 +1486,28 @@ export default function VenuePlacementsPage() {
         return (
           <CounterPlacementDialog
             placementId={counteringId}
+            currentUserId={user?.id}
             initial={{
               monthly_fee_gbp: target?.monthlyFeeGbp,
               revenue_share_percent: target?.revenueSharePercent,
               qr_enabled: target?.qrEnabledOnPlacement,
             }}
             onClose={() => setCounteringId(null)}
-            onSuccess={() => { setCounteringId(null); loadPlacements(); }}
+            onSuccess={(result) => {
+              // Optimistic update so the row shows the new terms AND hides
+              // the Accept/Decline buttons for the counter sender without
+              // waiting for a round-trip. The background reload then
+              // reconciles with server truth.
+              setPlacements((prev) => prev.map((p) => p.id === result.placementId ? {
+                ...p,
+                monthlyFeeGbp: result.monthlyFeeGbp,
+                qrEnabledOnPlacement: result.qrEnabled,
+                revenueSharePercent: result.revenueSharePercent ?? undefined,
+                requesterUserId: result.senderUserId ?? p.requesterUserId,
+              } : p));
+              setCounteringId(null);
+              loadPlacements();
+            }}
           />
         );
       })()}

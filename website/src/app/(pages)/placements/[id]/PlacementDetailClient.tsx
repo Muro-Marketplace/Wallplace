@@ -479,13 +479,27 @@ export default function PlacementDetailClient({ placementId }: Props) {
       {counterOpen && (
         <CounterPlacementDialog
           placementId={placement.id}
+          currentUserId={user?.id}
           initial={{
             monthly_fee_gbp: placement.monthly_fee_gbp,
             revenue_share_percent: placement.revenue_share_percent,
             qr_enabled: placement.qr_enabled,
           }}
           onClose={() => setCounterOpen(false)}
-          onSuccess={() => { setCounterOpen(false); load(); }}
+          onSuccess={(result) => {
+            // Optimistic update so the terms + role flip show instantly,
+            // even before the follow-up load() resolves.
+            setPlacement((prev) => prev ? {
+              ...prev,
+              monthly_fee_gbp: result.monthlyFeeGbp,
+              qr_enabled: result.qrEnabled,
+              revenue_share_percent: result.revenueSharePercent,
+              arrangement_type: result.arrangementType,
+              requester_user_id: result.senderUserId ?? prev.requester_user_id,
+            } : prev);
+            setCounterOpen(false);
+            load();
+          }}
         />
       )}
 

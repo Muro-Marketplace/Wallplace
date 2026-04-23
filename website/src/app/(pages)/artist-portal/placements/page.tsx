@@ -1188,13 +1188,29 @@ export default function PlacementsPage() {
         return (
           <CounterPlacementDialog
             placementId={counteringId}
+            currentUserId={user?.id}
             initial={{
               monthly_fee_gbp: target?.monthlyFeeGbp,
               revenue_share_percent: target?.revenueSharePercent,
               qr_enabled: target?.qrEnabled,
             }}
             onClose={() => setCounteringId(null)}
-            onSuccess={() => { setCounteringId(null); loadPlacements(); }}
+            onSuccess={(result) => {
+              // Optimistic update — the row now shows the new terms, and
+              // canRespond flips to false on the sender's side so they
+              // can't accept their own counter while waiting for the
+              // reload to finish.
+              setPlacements((prev) => prev.map((p) => p.id === result.placementId ? {
+                ...p,
+                monthlyFeeGbp: result.monthlyFeeGbp,
+                qrEnabled: result.qrEnabled,
+                revenueSharePercent: result.revenueSharePercent ?? undefined,
+                canRespond: false,
+                direction: "sent",
+              } : p));
+              setCounteringId(null);
+              loadPlacements();
+            }}
           />
         );
       })()}

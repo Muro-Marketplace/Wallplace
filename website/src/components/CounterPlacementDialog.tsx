@@ -14,8 +14,22 @@ import { authFetch } from "@/lib/api-client";
  * On a successful PATCH, calls onSuccess so the caller can refresh /
  * optimistically update its local state.
  */
+export interface CounterResult {
+  placementId: string;
+  monthlyFeeGbp: number | null;
+  qrEnabled: boolean;
+  revenueSharePercent: number | null;
+  arrangementType: "free_loan" | "revenue_share" | "purchase";
+  /** Current user's id — lets the caller optimistically flip requester_user_id. */
+  senderUserId: string | null;
+}
+
 interface Props {
   placementId: string;
+  /** Current user's id — echoed back to onSuccess so callers can
+      optimistically flip requester_user_id on the placement without a
+      round-trip. Optional for backward compat. */
+  currentUserId?: string | null;
   /** Prefill from the current placement so the form doesn't start empty. */
   initial?: {
     monthly_fee_gbp?: number | null;
@@ -23,10 +37,13 @@ interface Props {
     qr_enabled?: boolean | null;
   };
   onClose: () => void;
-  onSuccess?: () => void;
+  /** Fires on successful submit. If the parent wants to update its
+      local state optimistically it can read the returned payload;
+      otherwise it can just call its own reload. */
+  onSuccess?: (result: CounterResult) => void;
 }
 
-export default function CounterPlacementDialog({ placementId, initial, onClose, onSuccess }: Props) {
+export default function CounterPlacementDialog({ placementId, currentUserId, initial, onClose, onSuccess }: Props) {
   const seedFee = typeof initial?.monthly_fee_gbp === "number" ? initial.monthly_fee_gbp : 0;
   const [paidLoan, setPaidLoan] = useState<boolean>(seedFee > 0);
   const [fee, setFee] = useState<number | "">(seedFee > 0 ? seedFee : "");
@@ -42,16 +59,18 @@ export default function CounterPlacementDialog({ placementId, initial, onClose, 
     try {
       // Server treats "free_loan" as "has a monthly fee" (legacy column
       // name). Pure revenue share has no fee.
-      const arrangementType = paidLoan ? "free_loan" : qr ? "revenue_share" : "free_loan";
+      const arrangementType: "free_loan" | "revenue_share" = paidLoan ? "free_loan" : qr ? "revenue_share" : "free_loan";
+      const finalMonthlyFee = paidLoan && typeof fee === "number" ? fee : null;
+      const finalRevShare = qr && revShare > 0 ? revShare : null;
       const res = await authFetch("/api/placements", {
         method: "PATCH",
         body: JSON.stringify({
           id: placementId,
           counter: {
             arrangementType,
-            revenueSharePercent: qr && revShare > 0 ? revShare : undefined,
+            revenueSharePercent: finalRevShare ?? undefined,
             qrEnabled: qr,
-            monthlyFeeGbp: paidLoan && typeof fee === "number" ? fee : undefined,
+            monthlyFeeGbp: finalMonthlyFee ?? undefined,
             message: note.trim() || undefined,
           },
         }),
@@ -62,10 +81,18 @@ export default function CounterPlacementDialog({ placementId, initial, onClose, 
         setBusy(false);
         return;
       }
+      const result: CounterResult = {
+        placementId,
+        monthlyFeeGbp: finalMonthlyFee,
+        qrEnabled: qr,
+        revenueSharePercent: finalRevShare,
+        arrangementType,
+        senderUserId: currentUserId ?? null,
+      };
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { placementId, action: "counter" } }));
+        window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { ...result, action: "counter" } }));
       }
-      onSuccess?.();
+      onSuccess?.(result);
       onClose();
     } catch {
       setError("Network error. Please try again.");

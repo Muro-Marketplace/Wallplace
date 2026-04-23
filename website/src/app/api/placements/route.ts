@@ -514,11 +514,32 @@ export async function PATCH(request: Request) {
     // allow either party to accept — the previous "only venue accepts" fallback
     // was wrong for venue-initiated placements.
     const requesterId = existing.requester_user_id || null;
-    const isRequester = requesterId !== null && requesterId === auth.user!.id;
+    let isRequester = requesterId !== null && requesterId === auth.user!.id;
     const isSelfPlacement =
       !!existing.artist_user_id &&
       !!existing.venue_user_id &&
       existing.artist_user_id === existing.venue_user_id;
+
+    // Belt-and-braces: even if requester_user_id didn't flip on a prior
+    // counter (e.g. the column update warned instead of erroring), the
+    // most recent counter message carries the counterer's user_id in
+    // metadata.requesterUserId. If that matches the current user, they
+    // are effectively the current requester and must not accept/decline
+    // their own counter.
+    if (!isRequester && (status === "active" || status === "declined")) {
+      const { data: latestCounter } = await db
+        .from("messages")
+        .select("metadata")
+        .eq("message_type", "placement_request")
+        .contains("metadata", { placementId: id, counter: true })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const latestRequesterFromCounter = (latestCounter?.metadata as Record<string, unknown> | null)?.requesterUserId as string | undefined;
+      if (latestRequesterFromCounter && latestRequesterFromCounter === auth.user!.id) {
+        isRequester = true;
+      }
+    }
 
     if (existing.status === "pending" && (status === "active" || status === "declined")) {
       if (isSelfPlacement) {
@@ -555,23 +576,57 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: "Not authorised" }, { status: 403 });
       }
 
-      const counterUpdates: Record<string, unknown> = {};
-      if (counter.revenueSharePercent !== undefined) counterUpdates.revenue_share_percent = counter.revenueSharePercent;
-      if (counter.qrEnabled !== undefined) counterUpdates.qr_enabled = counter.qrEnabled;
-      if (counter.monthlyFeeGbp !== undefined) counterUpdates.monthly_fee_gbp = counter.monthlyFeeGbp;
-      if (counter.arrangementType !== undefined) counterUpdates.arrangement_type = counter.arrangementType;
-      counterUpdates.requester_user_id = auth.user!.id; // role flip \u2014 other side now responds
+      // Build the terms-only update (no role flip yet). We apply it with
+      // .select() so the response tells us exactly which columns the DB
+      // accepted, and we narrow the retry to the column that actually
+      // failed rather than blanket-stripping requester_user_id.
+      const termsUpdates: Record<string, unknown> = {};
+      if (counter.revenueSharePercent !== undefined) termsUpdates.revenue_share_percent = counter.revenueSharePercent;
+      if (counter.qrEnabled !== undefined) termsUpdates.qr_enabled = counter.qrEnabled;
+      if (counter.monthlyFeeGbp !== undefined) termsUpdates.monthly_fee_gbp = counter.monthlyFeeGbp;
+      if (counter.arrangementType !== undefined) termsUpdates.arrangement_type = counter.arrangementType;
 
-      let { error: counterErr } = await db.from("placements").update(counterUpdates).eq("id", id);
-      // Retry without new columns if DB schema is older
-      if (counterErr) {
-        const { qr_enabled: _q, monthly_fee_gbp: _m, requester_user_id: _r, ...safe } = counterUpdates as Record<string, unknown>;
-        const retry = await db.from("placements").update(safe).eq("id", id);
-        counterErr = retry.error;
+      let termsSaved = false;
+      {
+        const { data, error: termsErr } = await db.from("placements").update(termsUpdates).eq("id", id).select("id");
+        if (!termsErr && Array.isArray(data) && data.length > 0) {
+          termsSaved = true;
+        } else if (termsErr) {
+          // Retry by progressively stripping columns that the DB doesn't
+          // know about. We only drop columns mentioned in the error
+          // message — everything else we want to keep trying.
+          const msg = String(termsErr.message || "").toLowerCase();
+          const safe = { ...termsUpdates };
+          if (msg.includes("qr_enabled")) delete safe.qr_enabled;
+          if (msg.includes("monthly_fee_gbp")) delete safe.monthly_fee_gbp;
+          if (msg.includes("arrangement_type")) delete safe.arrangement_type;
+          if (Object.keys(safe).length > 0) {
+            const retry = await db.from("placements").update(safe).eq("id", id).select("id");
+            if (!retry.error && Array.isArray(retry.data) && retry.data.length > 0) termsSaved = true;
+          }
+        }
       }
-      if (counterErr) {
-        console.error("Counter update failed:", counterErr);
-        return NextResponse.json({ error: "Failed to update placement" }, { status: 500 });
+
+      if (!termsSaved) {
+        // We didn't update a single term — reject the counter. Returning
+        // success here would leave the user thinking the new offer was
+        // sent when the DB actually still holds the old terms.
+        console.error("Counter terms update failed for placement", id);
+        return NextResponse.json({ error: "Failed to save counter offer" }, { status: 500 });
+      }
+
+      // Role flip — write separately so a missing requester_user_id column
+      // on older environments doesn't roll back the terms update we just
+      // confirmed. Fire-and-forget the retry; the terms are the critical
+      // part of the counter.
+      {
+        const { error: flipErr } = await db
+          .from("placements")
+          .update({ requester_user_id: auth.user!.id })
+          .eq("id", id);
+        if (flipErr) {
+          console.warn("Counter role-flip failed (requester_user_id):", flipErr.message);
+        }
       }
 
       // Auto-message into the conversation so both parties see the counter in-thread.
@@ -585,7 +640,23 @@ export async function PATCH(request: Request) {
           : { data: null };
 
         if (mine && theirs) {
-          const cid = deterministicConversationId(mine.slug, theirs.slug);
+          // Use the EXISTING conversation between these two parties if
+          // one already has messages, so a counter doesn't spin up a
+          // fresh thread in parallel to the chat the user is already
+          // having. Only fall back to the deterministic id when no prior
+          // thread exists. This fixes the "counter opened a new chat"
+          // bug that happened after we consolidated placement threads.
+          let cid: string | null = null;
+          const { data: existingThread } = await db
+            .from("messages")
+            .select("conversation_id")
+            .or(
+              `and(sender_name.eq.${mine.slug},recipient_slug.eq.${theirs.slug}),and(sender_name.eq.${theirs.slug},recipient_slug.eq.${mine.slug})`,
+            )
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          cid = existingThread?.conversation_id || deterministicConversationId(mine.slug, theirs.slug);
           const terms: string[] = [];
           if (counter.arrangementType === "revenue_share" && counter.revenueSharePercent !== undefined) {
             terms.push(`Revenue share: ${counter.revenueSharePercent}% to the venue`);
