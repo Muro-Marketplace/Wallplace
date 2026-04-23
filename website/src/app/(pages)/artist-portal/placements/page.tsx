@@ -45,6 +45,7 @@ interface Placement {
   installedAt?: string | null;
   liveFrom?: string | null;
   collectedAt?: string | null;
+  createdAtTs?: number;
 }
 
 interface InteractedVenue {
@@ -125,6 +126,8 @@ export default function PlacementsPage() {
   const [responding, setResponding] = useState<string | null>(null);
   const [respondError, setRespondError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d" | "year">("all");
   const [placements, setPlacements] = useState<Placement[]>([]);
   // id of the placement currently being countered via the dialog. null = closed.
   const [counteringId, setCounteringId] = useState<string | null>(null);
@@ -203,6 +206,7 @@ export default function PlacementsPage() {
               installedAt: (p.installed_at as string | null) ?? null,
               liveFrom: (p.live_from as string | null) ?? null,
               collectedAt: (p.collected_at as string | null) ?? null,
+              createdAtTs: p.created_at ? new Date(p.created_at as string).getTime() : 0,
             };
           });
           setPlacements(mapped);
@@ -381,10 +385,30 @@ export default function PlacementsPage() {
     }
   }
 
+  const dateCutoff = (() => {
+    if (dateFilter === "all") return 0;
+    const d = new Date();
+    if (dateFilter === "7d") d.setDate(d.getDate() - 7);
+    else if (dateFilter === "30d") d.setDate(d.getDate() - 30);
+    else if (dateFilter === "90d") d.setDate(d.getDate() - 90);
+    else if (dateFilter === "year") d.setMonth(0, 1);
+    return d.getTime();
+  })();
+  const search = searchTerm.trim().toLowerCase();
   const filtered = placements.filter((p) => {
-    if (activeTab === "All") return true;
-    if (activeTab === "Completed") return p.status === "Completed" || p.status === "Sold";
-    return p.status === activeTab;
+    if (activeTab !== "All") {
+      if (activeTab === "Completed") {
+        if (p.status !== "Completed" && p.status !== "Sold") return false;
+      } else if (p.status !== activeTab) {
+        return false;
+      }
+    }
+    if (dateCutoff && p.createdAtTs && p.createdAtTs < dateCutoff) return false;
+    if (search) {
+      const haystack = `${p.workTitle} ${p.venue} ${p.type}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
   });
 
   const inputClass = "w-full bg-background border border-border rounded-sm px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent/60 transition-colors";
@@ -673,6 +697,32 @@ export default function PlacementsPage() {
             </button>
           );
         })}
+      </div>
+
+      {/* Search + date filter — narrow by venue / work / type and a
+          quick time window. Mirrors the venue-side controls. */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-5">
+        <div className="relative flex-1">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by venue, work or type…"
+            className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50"
+          />
+        </div>
+        <select
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value as typeof dateFilter)}
+          className="px-3 py-2 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50"
+        >
+          <option value="all">All time</option>
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+          <option value="90d">Last 90 days</option>
+          <option value="year">This year</option>
+        </select>
       </div>
 
       {/* Table - desktop */}

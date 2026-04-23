@@ -64,8 +64,11 @@ export default function ArtistOrdersPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const [statusError, setStatusError] = useState<string | null>(null);
+
   async function updateStatus(orderId: string, newStatus: string) {
     setUpdating(true);
+    setStatusError(null);
     try {
       const body: Record<string, string> = { orderId, status: newStatus };
       if (newStatus === "shipped" && trackingInput) body.trackingNumber = trackingInput;
@@ -74,19 +77,29 @@ export default function ArtistOrdersPage() {
         method: "PATCH",
         body: JSON.stringify(body),
       });
-      if (res.ok) {
-        setOrders((prev) => prev.map((o) =>
-          o.id === orderId ? {
-            ...o,
-            status: newStatus,
-            tracking_number: newStatus === "shipped" && trackingInput ? trackingInput : o.tracking_number,
-            status_history: [...(o.status_history || []), { status: newStatus, timestamp: new Date().toISOString() }],
-          } : o
-        ));
-        setTrackingInput("");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // Surface the real reason. The most common failure here is the
+        // order not having artist_user_id set (legacy rows predating
+        // migration 0XX) — without it the 403 check can't authorise
+        // the artist. Now the user at least sees *why* it silently
+        // failed previously.
+        setStatusError(data.error || `Could not update order (HTTP ${res.status}). Contact support if this keeps happening.`);
+        setUpdating(false);
+        return;
       }
+      setOrders((prev) => prev.map((o) =>
+        o.id === orderId ? {
+          ...o,
+          status: newStatus,
+          tracking_number: newStatus === "shipped" && trackingInput ? trackingInput : o.tracking_number,
+          status_history: [...(o.status_history || []), { status: newStatus, timestamp: new Date().toISOString() }],
+        } : o
+      ));
+      setTrackingInput("");
     } catch (err) {
       console.error("Status update failed:", err);
+      setStatusError("Network error. Please try again.");
     }
     setUpdating(false);
   }
@@ -190,13 +203,18 @@ export default function ArtistOrdersPage() {
 
           <OrderStatusTracker currentStatus={selected.status} statusHistory={selected.status_history || []} />
 
+          {selected.tracking_number && (
+            <p className="text-sm text-muted mt-4">Tracking: <span className="text-foreground font-medium">{selected.tracking_number}</span></p>
+          )}
+
           {/* Status action */}
           {statusActions[selected.status] && (
             <div className="mt-5 p-4 bg-[#FAF8F5] rounded-sm border border-border">
               {statusActions[selected.status].next === "shipped" && (
                 <div className="mb-3">
-                  <label className="block text-xs text-muted mb-1">Tracking number (optional)</label>
+                  <label className="block text-xs text-muted mb-1">Tracking number</label>
                   <input type="text" value={trackingInput} onChange={(e) => setTrackingInput(e.target.value)} placeholder="e.g. RM123456789GB" className="w-full px-3 py-2 bg-white border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50" />
+                  <p className="text-[11px] text-muted mt-1">Required for &pound;100+ orders (signed-for delivery).</p>
                 </div>
               )}
               <button
@@ -206,6 +224,9 @@ export default function ArtistOrdersPage() {
               >
                 {updating ? "Updating..." : statusActions[selected.status].label}
               </button>
+              {statusError && (
+                <p className="text-xs text-red-600 mt-2">{statusError}</p>
+              )}
             </div>
           )}
 

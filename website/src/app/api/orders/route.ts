@@ -42,6 +42,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       orders: data || [],
       userType: artistProfile ? "artist" : venueProfile ? "venue" : "customer",
+      userEmail: email,
+      artistSlug: artistProfile?.slug || null,
+      venueSlug: venueProfile?.slug || null,
     });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -68,10 +71,32 @@ export async function PATCH(request: Request) {
 
     const db = getSupabaseAdmin();
 
-    // Verify the artist owns this order
-    const { data: order } = await db.from("orders").select("artist_user_id, buyer_email, status_history").eq("id", orderId).single();
+    // Verify the artist owns this order. Legacy orders (pre-migration)
+    // may have artist_user_id = NULL but artist_slug populated; fall back
+    // to matching the caller's artist_profiles.slug so those orders
+    // aren't locked out of the status transitions.
+    const { data: order } = await db
+      .from("orders")
+      .select("artist_user_id, artist_slug, buyer_email, status_history")
+      .eq("id", orderId)
+      .single();
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    if (order.artist_user_id !== auth.user!.id) return NextResponse.json({ error: "Not authorised" }, { status: 403 });
+
+    let authorised = order.artist_user_id === auth.user!.id;
+    if (!authorised && order.artist_slug) {
+      const { data: myArtistProfile } = await db
+        .from("artist_profiles")
+        .select("slug, user_id")
+        .eq("user_id", auth.user!.id)
+        .single();
+      if (myArtistProfile?.slug === order.artist_slug) {
+        authorised = true;
+        // Back-fill the missing column so subsequent updates hit the
+        // fast path.
+        db.from("orders").update({ artist_user_id: auth.user!.id }).eq("id", orderId).then(() => {}, () => {});
+      }
+    }
+    if (!authorised) return NextResponse.json({ error: "Not authorised" }, { status: 403 });
 
     // Append to status history
     const history = Array.isArray(order.status_history) ? order.status_history : [];

@@ -14,6 +14,8 @@ interface Order {
   venue_revenue: number;
   venue_revenue_share_percent: number;
   artist_slug?: string;
+  venue_slug?: string;
+  buyer_email?: string;
   status: string;
   status_history: { status: string; timestamp: string }[];
   tracking_number?: string;
@@ -21,20 +23,41 @@ interface Order {
   created_at: string;
 }
 
+type OrderTab = "sales" | "purchases";
+
 export default function VenueOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [venueSlug, setVenueSlug] = useState<string>("");
+  const [tab, setTab] = useState<OrderTab>("sales");
 
   useEffect(() => {
     authFetch("/api/orders")
       .then((r) => r.json())
-      .then((data) => { if (data.orders) setOrders(data.orders); })
+      .then((data) => {
+        if (data.orders) setOrders(data.orders);
+        if (data.userEmail) setUserEmail(data.userEmail);
+        if (data.venueSlug) setVenueSlug(data.venueSlug);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.venue_revenue || 0), 0);
+  // Classify each order: placement-driven sale (venue-attributed revenue)
+  // vs a purchase the venue itself made. Legacy orders without venue_slug
+  // fall back to venue_revenue > 0 as the signal.
+  const salesOrders = orders.filter((o) =>
+    (venueSlug && o.venue_slug === venueSlug) || (o.venue_revenue || 0) > 0
+  );
+  const purchaseOrders = orders.filter((o) =>
+    userEmail && o.buyer_email && o.buyer_email === userEmail
+  );
+  const visibleOrders = tab === "sales" ? salesOrders : purchaseOrders;
+
+  const totalRevenue = salesOrders.reduce((sum, o) => sum + (o.venue_revenue || 0), 0);
+  const totalPurchases = purchaseOrders.reduce((sum, o) => sum + (o.total || 0), 0);
   const selected = orders.find((o) => o.id === selectedOrder);
 
   return (
@@ -44,16 +67,50 @@ export default function VenueOrdersPage() {
         <p className="text-sm text-muted mt-1">Sales from your venue and your purchases</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      {/* Stats — split into venue sales (revenue share from placements)
+          vs the venue's own purchases so venues can see both sides of
+          their ledger at a glance. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-surface border border-border rounded-sm p-5">
-          <p className="text-xs text-muted uppercase tracking-wider mb-1">Total Orders</p>
-          <p className="text-2xl font-serif">{orders.length}</p>
+          <p className="text-xs text-muted uppercase tracking-wider mb-1">Placement sales</p>
+          <p className="text-2xl font-serif">{salesOrders.length}</p>
         </div>
         <div className="bg-surface border border-border rounded-sm p-5">
-          <p className="text-xs text-muted uppercase tracking-wider mb-1">Revenue Earned</p>
+          <p className="text-xs text-muted uppercase tracking-wider mb-1">Revenue earned</p>
           <p className="text-2xl font-serif text-accent">&pound;{totalRevenue.toFixed(2)}</p>
         </div>
+        <div className="bg-surface border border-border rounded-sm p-5">
+          <p className="text-xs text-muted uppercase tracking-wider mb-1">Your purchases</p>
+          <p className="text-2xl font-serif">{purchaseOrders.length}</p>
+        </div>
+        <div className="bg-surface border border-border rounded-sm p-5">
+          <p className="text-xs text-muted uppercase tracking-wider mb-1">Spent on art</p>
+          <p className="text-2xl font-serif">&pound;{totalPurchases.toFixed(2)}</p>
+        </div>
+      </div>
+
+      {/* Tab selector */}
+      <div className="flex gap-1 mb-5 border-b border-border">
+        <button
+          onClick={() => { setTab("sales"); setSelectedOrder(null); }}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            tab === "sales"
+              ? "border-accent text-accent"
+              : "border-transparent text-muted hover:text-foreground"
+          }`}
+        >
+          Placement sales ({salesOrders.length})
+        </button>
+        <button
+          onClick={() => { setTab("purchases"); setSelectedOrder(null); }}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            tab === "purchases"
+              ? "border-accent text-accent"
+              : "border-transparent text-muted hover:text-foreground"
+          }`}
+        >
+          Orders I made ({purchaseOrders.length})
+        </button>
       </div>
 
       {/* Order detail */}
@@ -99,13 +156,17 @@ export default function VenueOrdersPage() {
       {/* Order list */}
       {loading ? (
         <p className="text-muted text-sm py-12 text-center">Loading orders...</p>
-      ) : orders.length === 0 ? (
+      ) : visibleOrders.length === 0 ? (
         <div className="bg-surface border border-border rounded-sm px-6 py-12 text-center">
-          <p className="text-muted text-sm">No orders yet. Sales from your placements will appear here.</p>
+          <p className="text-muted text-sm">
+            {tab === "sales"
+              ? "No placement sales yet. Sales attributed to your venue will appear here."
+              : "You haven't purchased anything yet. Art you buy will appear here."}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {orders.map((order) => (
+          {visibleOrders.map((order) => (
             <button
               key={order.id}
               onClick={() => setSelectedOrder(selectedOrder === order.id ? null : order.id)}

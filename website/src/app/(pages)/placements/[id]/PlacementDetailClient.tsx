@@ -9,6 +9,8 @@ import { authFetch } from "@/lib/api-client";
 import { uploadImage } from "@/lib/upload";
 import PlacementLoanForm from "./PlacementLoanForm";
 import CounterPlacementDialog from "@/components/CounterPlacementDialog";
+import PlacementQRModal from "@/components/PlacementQRModal";
+import { slugify } from "@/lib/slugify";
 
 interface PlacementRow {
   id: string;
@@ -96,6 +98,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
   const [responding, setResponding] = useState<"accept" | "decline" | null>(null);
   const [respondError, setRespondError] = useState<string | null>(null);
   const [counterOpen, setCounterOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -290,7 +293,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
             <span className="text-foreground">{venue?.name || placement.venue}</span>
             {venue?.location && <><span className="text-muted">&middot;</span><span className="text-muted">{venue.location}</span></>}
           </div>
-          <div className="mt-3">
+          <div className="mt-3 flex items-center gap-3 flex-wrap">
             <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${
               placement.status === "active" ? "bg-green-100 text-green-700" :
               placement.status === "pending" ? "bg-amber-100 text-amber-700" :
@@ -299,9 +302,39 @@ export default function PlacementDetailClient({ placementId }: Props) {
             }`}>
               {placement.status.charAt(0).toUpperCase() + placement.status.slice(1)}
             </span>
+            {/* QR label — scannable code + download / print shortcut.
+                Visible for both portals so artists and venues can grab
+                a label without leaving the placement page. */}
+            <button
+              type="button"
+              onClick={() => setQrOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-accent bg-accent/5 border border-accent/30 hover:bg-accent/10 rounded-sm px-2.5 py-1 transition-colors"
+              title="Show QR label"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+                <path d="M14 14h3v3h-3zM20 14h1v1h-1zM14 20h1v1h-1zM20 20h1v1h-1z" />
+              </svg>
+              QR label
+            </button>
           </div>
         </div>
       </div>
+
+      <PlacementQRModal
+        open={qrOpen}
+        onClose={() => setQrOpen(false)}
+        targetUrl={typeof window !== "undefined"
+          ? `${window.location.origin}/browse/${placement.artist_slug || ""}/${slugify(placement.work_title || "")}`
+          : `/browse/${placement.artist_slug || ""}/${slugify(placement.work_title || "")}`
+        }
+        placementId={placement.id}
+        portalBase={portalBase as "/artist-portal" | "/venue-portal"}
+        artistName={artist?.name}
+        workTitle={placement.work_title}
+      />
 
       {/* Progress — single combined block. Shows the 6-step lifecycle and
           exposes the "Mark <next stage>" action directly below the bar

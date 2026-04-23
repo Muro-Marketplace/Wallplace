@@ -291,6 +291,8 @@ export default function VenuePlacementsPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d" | "year">("all");
   const [placements, setPlacements] = useState<PlacementRequest[]>([]);
   const [counteringId, setCounteringId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -612,10 +614,30 @@ export default function VenuePlacementsPage() {
     }
   }
 
+  const dateCutoff = (() => {
+    if (dateFilter === "all") return 0;
+    const d = new Date();
+    if (dateFilter === "7d") d.setDate(d.getDate() - 7);
+    else if (dateFilter === "30d") d.setDate(d.getDate() - 30);
+    else if (dateFilter === "90d") d.setDate(d.getDate() - 90);
+    else if (dateFilter === "year") d.setMonth(0, 1);
+    return d.getTime();
+  })();
+  const search = searchTerm.trim().toLowerCase();
   const filtered = placements.filter((p) => {
-    if (activeTab === "All") return true;
-    if (activeTab === "Completed") return p.status === "Completed" || p.status === "Sold";
-    return p.status === activeTab;
+    if (activeTab !== "All") {
+      if (activeTab === "Completed") {
+        if (p.status !== "Completed" && p.status !== "Sold") return false;
+      } else if (p.status !== activeTab) {
+        return false;
+      }
+    }
+    if (dateCutoff && p.createdAtTs && p.createdAtTs < dateCutoff) return false;
+    if (search) {
+      const haystack = `${p.workTitle} ${p.artistName} ${p.type}`.toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
   });
 
   const inputClass = "w-full bg-background border border-border rounded-sm px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent/60 transition-colors";
@@ -847,7 +869,7 @@ export default function VenuePlacementsPage() {
       <PlacementActionItems userId={user?.id} role="venue" heading="Needs your attention" />
 
       {/* Filter tabs */}
-      <div className="flex gap-1 mb-6 border-b border-border">
+      <div className="flex gap-1 mb-4 border-b border-border overflow-x-auto">
         {tabs.map((tab) => {
           const count =
             tab === "All"
@@ -859,7 +881,7 @@ export default function VenuePlacementsPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
                 activeTab === tab
                   ? "border-accent text-accent"
                   : "border-transparent text-muted hover:text-foreground"
@@ -872,6 +894,33 @@ export default function VenuePlacementsPage() {
             </button>
           );
         })}
+      </div>
+
+      {/* Search + date filter — narrow the list by artist / work / type
+          and a quick time window. Together with the status tabs above
+          these cover the 80% of "I'm looking for X" cases. */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-5">
+        <div className="relative flex-1">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by artist, work or type…"
+            className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50"
+          />
+        </div>
+        <select
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value as typeof dateFilter)}
+          className="px-3 py-2 bg-background border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50"
+        >
+          <option value="all">All time</option>
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+          <option value="90d">Last 90 days</option>
+          <option value="year">This year</option>
+        </select>
       </div>
 
       {loading ? (
