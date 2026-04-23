@@ -55,9 +55,13 @@ export default function PlacementActionItems({
   userId: string | null | undefined;
   role: "artist" | "venue";
   heading?: string;
+  /** How many items to show in the collapsed state. "View all" toggles
+      to the full list — there's no hard cap on how many the component
+      will surface in total. */
   maxItems?: number;
 }) {
   const [items, setItems] = useState<ActionItem[] | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (!userId) { setItems([]); return; }
@@ -124,13 +128,18 @@ export default function PlacementActionItems({
           }
         }
 
-        setItems(out.slice(0, maxItems));
+        // Keep the full list in state — the render phase decides how
+        // many to show based on the expanded toggle.
+        setItems(out);
       })
       .catch(() => setItems([]));
-  }, [userId, role, maxItems]);
+  }, [userId, role]);
 
   if (items === null) return null; // loading — don't flicker
   if (items.length === 0) return null; // nothing to do — quiet dashboard
+
+  const visibleItems = expanded ? items : items.slice(0, maxItems);
+  const hiddenCount = items.length - visibleItems.length;
 
   return (
     <div className="bg-surface border border-border rounded-sm p-5 mb-8">
@@ -139,15 +148,18 @@ export default function PlacementActionItems({
           {heading}
           <span className="text-[10px] px-1.5 py-0.5 bg-accent text-white rounded-full">{items.length}</span>
         </h2>
-        <Link
-          href={role === "venue" ? "/venue-portal/placements" : "/artist-portal/placements"}
-          className="text-xs text-muted hover:text-foreground underline"
-        >
-          View all
-        </Link>
+        {items.length > maxItems && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="text-xs text-muted hover:text-foreground underline"
+          >
+            {expanded ? "Show less" : `View all (${items.length})`}
+          </button>
+        )}
       </div>
       <ul className="space-y-2">
-        {items.map((item) => (
+        {visibleItems.map((item) => (
           <li key={item.id}>
             <Link
               href={item.href}
@@ -169,6 +181,15 @@ export default function PlacementActionItems({
           </li>
         ))}
       </ul>
+      {!expanded && hiddenCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-3 w-full text-center text-xs text-muted hover:text-foreground transition-colors"
+        >
+          + {hiddenCount} more
+        </button>
+      )}
     </div>
   );
 }

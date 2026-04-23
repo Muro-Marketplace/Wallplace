@@ -659,14 +659,21 @@ export default function PlacementContextPanel({
 
         {displayStatus === "Pending" && !canViewerRespond && (() => {
           const iAmRequester = !!p.requester_user_id && p.requester_user_id === userId;
+          // Two states where the viewer can't respond:
+          //   • They sent the request → waiting on the other party
+          //   • Row has no requester_user_id (legacy/ambiguous) → just
+          //     show "Awaiting response" neutrally without guessing.
+          const label = iAmRequester
+            ? "Awaiting their response"
+            : "Awaiting response";
           return (
             <div className={`mt-3 flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] ${
               iAmRequester
                 ? "bg-amber-50 text-amber-800 border border-amber-200"
-                : "bg-accent/10 text-accent border border-accent/25"
+                : "bg-amber-50 text-amber-800 border border-amber-200"
             }`}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-              {iAmRequester ? "Awaiting their response" : "Pending — review on the request they sent"}
+              {label}
             </div>
           );
         })()}

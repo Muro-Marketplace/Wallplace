@@ -678,28 +678,31 @@ export default function PlacementsPage() {
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex flex-col gap-1.5">
-                    {p.status === "Pending" ? (
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
-                          {p.direction === "sent" ? "Awaiting their response" : p.direction === "received" ? "Your response needed" : "Awaiting response"}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {p.status === "Pending" ? (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                          {p.direction === "sent" ? "Awaiting their reply" : p.direction === "received" ? "Your turn" : "Pending"}
                         </span>
-                        {p.direction && <PlacementDirectionTag direction={p.direction} />}
-                      </div>
-                    ) : p.status === "Declined" ? (
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
-                        Declined
-                      </span>
-                    ) : (
-                      <select
-                        value={p.status}
-                        onChange={(e) => updateStatus(p.id, e.target.value as PlacementStatus)}
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full border-none cursor-pointer self-start ${statusBadge(p.status)}`}
-                      >
-                        <option value="Active">Active</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Sold">Sold</option>
-                      </select>
-                    )}
+                      ) : p.status === "Declined" ? (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                          Declined
+                        </span>
+                      ) : (
+                        <select
+                          value={p.status}
+                          onChange={(e) => updateStatus(p.id, e.target.value as PlacementStatus)}
+                          className={`text-xs font-medium px-2 py-0.5 rounded-full border-none cursor-pointer ${statusBadge(p.status)}`}
+                        >
+                          <option value="Active">Active</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Sold">Sold</option>
+                        </select>
+                      )}
+                      {/* Direction chip is shown on every status, not just
+                          Pending, so the artist can always see at a glance
+                          whether they sent or received each placement. */}
+                      {p.direction && <PlacementDirectionTag direction={p.direction} size="compact" />}
+                    </div>
                     {(p.status === "Active" || p.status === "Completed" || p.status === "Sold") && (
                       <MiniStatusBar p={p} />
                     )}

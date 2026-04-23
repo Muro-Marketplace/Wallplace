@@ -895,40 +895,42 @@ export default function VenuePlacementsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5">
-                        <div className="flex flex-col gap-1.5">
-                        {p.status === "Pending" ? (
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
-                              {directionFor({ requester_user_id: p.requesterUserId }, user?.id) === "sent"
-                                ? "Awaiting their response"
-                                : directionFor({ requester_user_id: p.requesterUserId }, user?.id) === "received"
-                                  ? "Your response needed"
-                                  : "Pending"}
-                            </span>
-                            {directionFor({ requester_user_id: p.requesterUserId }, user?.id) && (
-                              <PlacementDirectionTag direction={directionFor({ requester_user_id: p.requesterUserId }, user?.id)!} />
-                            )}
-                          </div>
-                        ) : p.status === "Declined" ? (
-                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full self-start ${statusBadge(p.status)}`}>
-                            Declined
-                          </span>
-                        ) : (
-                          <select
-                            value={p.status}
-                            onChange={(e) => updateStatus(p.id, e.target.value as PlacementStatus)}
-                            className={`text-xs font-medium px-2 py-0.5 rounded-full border-none cursor-pointer self-start ${statusBadge(p.status)}`}
-                          >
-                            <option value="Active">Active</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Sold">Sold</option>
-                          </select>
-                        )}
-                        {/* Inline mini status bar on desktop too (web parity) */}
-                        {(p.status === "Active" || p.status === "Completed" || p.status === "Sold") && (
-                          <MiniStatusBar p={p} />
-                        )}
-                        </div>
+                        {(() => {
+                          const dir = directionFor({ requester_user_id: p.requesterUserId }, user?.id);
+                          return (
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {p.status === "Pending" ? (
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                                    {dir === "sent" ? "Awaiting their reply" : dir === "received" ? "Your turn" : "Pending"}
+                                  </span>
+                                ) : p.status === "Declined" ? (
+                                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusBadge(p.status)}`}>
+                                    Declined
+                                  </span>
+                                ) : (
+                                  <select
+                                    value={p.status}
+                                    onChange={(e) => updateStatus(p.id, e.target.value as PlacementStatus)}
+                                    className={`text-xs font-medium px-2 py-0.5 rounded-full border-none cursor-pointer ${statusBadge(p.status)}`}
+                                  >
+                                    <option value="Active">Active</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="Sold">Sold</option>
+                                  </select>
+                                )}
+                                {/* Direction chip always visible so the
+                                    venue can tell sent vs received at a
+                                    glance on every row regardless of
+                                    status. */}
+                                {dir && <PlacementDirectionTag direction={dir} size="compact" />}
+                              </div>
+                              {(p.status === "Active" || p.status === "Completed" || p.status === "Sold") && (
+                                <MiniStatusBar p={p} />
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3.5 text-muted whitespace-nowrap">{p.date}</td>
                       <td className="px-4 py-3.5 text-right font-medium text-foreground">
