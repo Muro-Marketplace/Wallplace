@@ -409,12 +409,19 @@ export async function POST(request: Request) {
         ? workTitles[0]
         : `${workTitles.length} works`;
       const requesterName = fromVenue ? venueProfile!.name : artistProfile!.name;
+      // Deep-link to the full placement page. If we're creating a batch
+      // (multiple placements from one request), link to the list since
+      // there's no single id to point at.
+      const firstPlacementId = parsed.data[0]?.id;
+      const link = parsed.data.length === 1 && firstPlacementId
+        ? `/placements/${encodeURIComponent(firstPlacementId)}`
+        : `${portalBase}/placements`;
       createNotification({
         userId: notifyUserId,
         kind: "placement_request",
         title: "New placement request",
         body: `${requesterName} requested a placement for ${workSummary}`,
-        link: `${portalBase}/placements`,
+        link,
       }).catch(() => {});
     }
 
@@ -769,13 +776,12 @@ export async function PATCH(request: Request) {
           });
 
           if (counterpartyUserId) {
-            const portalBase = isArtist ? "/venue-portal" : "/artist-portal";
             createNotification({
               userId: counterpartyUserId,
               kind: "placement_request",
               title: "Counter offer received",
               body: `${mine.name} sent revised terms`,
-              link: `${portalBase}/messages`,
+              link: `/placements/${encodeURIComponent(id)}`,
             }).catch(() => {});
           }
         }
@@ -889,14 +895,15 @@ export async function PATCH(request: Request) {
           }).catch((err) => { if (err) console.error("Fire-and-forget error:", err); });
         }
 
-        // In-app notification to the requester
-        const portalBase = requesterId === existing.artist_user_id ? "/artist-portal" : "/venue-portal";
+        // In-app notification to the requester. Deep-link to the
+        // specific placement page so clicking the notification lands
+        // exactly on the deal that changed, not the full list.
         createNotification({
           userId: requesterId,
           kind: status === "active" ? "placement_accepted" : "placement_declined",
           title: status === "active" ? "Placement accepted" : "Placement declined",
           body: `${artistProfile?.name || "Artist"} · ${existing.venue || "Venue"}`,
-          link: `${portalBase}/placements`,
+          link: `/placements/${encodeURIComponent(id)}`,
         }).catch(() => {});
       } catch (err) {
         console.warn("Response notification skipped:", err);
@@ -996,16 +1003,17 @@ export async function DELETE(request: Request) {
     }
 
     const db = getSupabaseAdmin();
-    // Fetch only columns that are guaranteed to exist in every env. The
-    // hidden_for_* flags from migration 026 are looked up separately
-    // with a graceful fallback, so a missing column on the initial
-    // select can't cascade into a bogus 404 (which the client would
-    // interpret as "already gone" and leave the optimistic archive in
-    // place — the exact bug that made archive appear to work but
-    // re-appear on refresh).
+    // Fetch only the two ownership columns — these are the only ones we
+    // need to authorise the archive action, and every env has them.
+    // requester_user_id was previously also requested here but some
+    // Supabase instances predate migration 008 and don't have that
+    // column; its absence made the SELECT error, `existing` come back
+    // null, the endpoint return 404, and the client interpret 404 as
+    // "already gone" (leaving the optimistic hide in place but no
+    // server change, so the row reappeared on refresh).
     const { data: existing, error: fetchErr } = await db
       .from("placements")
-      .select("artist_user_id, venue_user_id, requester_user_id, status")
+      .select("artist_user_id, venue_user_id")
       .eq("id", id)
       .single();
 
@@ -1020,11 +1028,10 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const isArtist = existing.artist_user_id && existing.artist_user_id === auth.user!.id;
-    const isVenue = existing.venue_user_id && existing.venue_user_id === auth.user!.id;
-    const isRequesterRow = existing.requester_user_id && existing.requester_user_id === auth.user!.id;
+    const isArtist = !!existing.artist_user_id && existing.artist_user_id === auth.user!.id;
+    const isVenue = !!existing.venue_user_id && existing.venue_user_id === auth.user!.id;
 
-    if (!isArtist && !isVenue && !isRequesterRow) {
+    if (!isArtist && !isVenue) {
       return NextResponse.json({ error: "Not authorised" }, { status: 403 });
     }
 

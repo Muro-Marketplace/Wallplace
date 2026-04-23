@@ -30,6 +30,12 @@ export default function ArtworkPageClient({
   const { user, userType } = useAuth();
   const { showToast } = useToast();
   const [selectedSizeIdx, setSelectedSizeIdx] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+
+  // Reset the quantity stepper when the user picks a different size —
+  // the per-size stock cap changes, and carrying a too-large number
+  // over would look broken next to the new "X available" caption.
+  useEffect(() => { setQuantity(1); }, [selectedSizeIdx]);
   const frameOptions = work.frameOptions && work.frameOptions.length > 0 ? work.frameOptions : [];
   const [selectedFrameIdx, setSelectedFrameIdx] = useState(0);
   const selectedFrame = frameOptions[selectedFrameIdx];
@@ -50,11 +56,19 @@ export default function ArtworkPageClient({
   const displayPrice = selectedPricing
     ? Math.round((selectedPricing.price + frameUplift) * 100) / 100
     : null;
+  // Per-size stock cap, falling back to the work-level quantity for
+  // legacy artworks that don't track stock per size yet.
+  const sizeStock: number | null = (() => {
+    const perSize = selectedPricing?.quantityAvailable;
+    if (typeof perSize === "number") return perSize;
+    if (typeof work.quantityAvailable === "number") return work.quantityAvailable;
+    return null;
+  })();
 
   const availabilityLabel = (() => {
     if (!work.available) return "Sold";
-    if (typeof work.quantityAvailable === "number") {
-      return work.quantityAvailable > 0 ? `${work.quantityAvailable} available` : "Sold out";
+    if (typeof sizeStock === "number") {
+      return sizeStock > 0 ? `${sizeStock} available` : "Sold out";
     }
     return "Available";
   })();
@@ -235,15 +249,46 @@ export default function ArtworkPageClient({
           const totalPrice = displayPrice ?? selectedPricing.price;
           return (
             <>
-              {typeof work.quantityAvailable === "number" && work.quantityAvailable <= 3 && work.quantityAvailable > 0 && (
-                <p className="text-xs text-amber-700 -mt-1">Only {work.quantityAvailable} left at this size</p>
+              {typeof sizeStock === "number" && sizeStock <= 3 && sizeStock > 0 && (
+                <p className="text-xs text-amber-700 -mt-1">Only {sizeStock} left at this size</p>
               )}
-              {typeof work.quantityAvailable === "number" && work.quantityAvailable === 0 ? (
+              {typeof sizeStock === "number" && sizeStock === 0 ? (
                 <button disabled className="w-full px-5 py-3.5 text-[13px] font-medium tracking-wider uppercase text-muted bg-border rounded-sm cursor-not-allowed">
                   Sold out
                 </button>
               ) : (
               <>
+              {/* Quantity stepper — lets the buyer grab multiples of
+                  this specific size in one go instead of hammering Add
+                  to Basket. Capped to the size's own stock count when
+                  present (falls back to work-level cap for legacy). */}
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] uppercase tracking-wider text-muted">Quantity</span>
+                <div className="flex items-center border border-border rounded-sm">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((n) => Math.max(1, n - 1))}
+                    disabled={quantity <= 1}
+                    className="w-8 h-8 flex items-center justify-center text-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Decrease quantity"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                  </button>
+                  <span className="w-8 text-center text-sm font-medium tabular-nums">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity((n) => typeof sizeStock === "number" ? Math.min(sizeStock, n + 1) : n + 1)}
+                    disabled={typeof sizeStock === "number" && quantity >= sizeStock}
+                    className="w-8 h-8 flex items-center justify-center text-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                  </button>
+                </div>
+                {typeof sizeStock === "number" && (
+                  <span className="text-[11px] text-muted">{sizeStock} available at this size</span>
+                )}
+              </div>
               <button
                 onClick={() => {
                   const r = addItem({
@@ -255,8 +300,8 @@ export default function ArtworkPageClient({
                     image: work.image,
                     size: sizeLabel,
                     price: totalPrice,
-                    quantity: 1,
-                    quantityAvailable: work.quantityAvailable ?? null,
+                    quantity,
+                    quantityAvailable: sizeStock ?? null,
                     shippingPrice: work.shippingPrice ?? undefined,
                     internationalShippingPrice: shipsInternationally && internationalShippingPrice != null ? internationalShippingPrice : undefined,
                     dimensions: selectedPricing.label || work.dimensions,
@@ -283,8 +328,8 @@ export default function ArtworkPageClient({
                     image: work.image,
                     size: sizeLabel,
                     price: totalPrice,
-                    quantity: 1,
-                    quantityAvailable: work.quantityAvailable ?? null,
+                    quantity,
+                    quantityAvailable: sizeStock ?? null,
                     shippingPrice: work.shippingPrice ?? undefined,
                     internationalShippingPrice: shipsInternationally && internationalShippingPrice != null ? internationalShippingPrice : undefined,
                     dimensions: selectedPricing.label || work.dimensions,

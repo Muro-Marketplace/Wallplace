@@ -48,7 +48,10 @@ CREATE INDEX IF NOT EXISTS idx_placement_archives_user
   ON placement_archives(user_id);
 
 ALTER TABLE placement_archives ENABLE ROW LEVEL SECURITY;
--- Users read / modify their own archive rows only.
-CREATE POLICY IF NOT EXISTS "placement_archives_own" ON placement_archives
+-- Users read / modify their own archive rows only. Postgres doesn't
+-- support CREATE POLICY IF NOT EXISTS, so drop-then-create makes this
+-- migration re-runnable.
+DROP POLICY IF EXISTS "placement_archives_own" ON placement_archives;
+CREATE POLICY "placement_archives_own" ON placement_archives
   FOR ALL USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);

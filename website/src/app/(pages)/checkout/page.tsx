@@ -10,7 +10,7 @@ import { resolveShippingCost, tierLabel, SIGNATURE_THRESHOLD_GBP } from "@/lib/s
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, removeItem, subtotal, ready } = useCart();
+  const { items, removeItem, updateQuantity, subtotal, ready } = useCart();
   const [shipping, setShipping] = useState<ShippingInfo>({
     fullName: "",
     email: "",
@@ -289,21 +289,43 @@ export default function CheckoutPage() {
           <div className="bg-surface border border-border rounded-sm p-5 lg:sticky lg:top-24">
             <h2 className="text-sm font-medium mb-4">Order Summary</h2>
             <div className="space-y-4 mb-5">
-              {items.map((item) => (
+              {items.map((item) => {
+                const cap = typeof item.quantityAvailable === "number" ? item.quantityAvailable : null;
+                return (
                 <div key={item.id} className="flex gap-3">
                   <div className="w-16 h-16 relative rounded-sm overflow-hidden bg-border/20 shrink-0">
                     <Image src={item.image} alt={item.title} fill className="object-cover" sizes="64px" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {item.title}
-                      {item.quantity > 1 && (
-                        <span className="ml-1 text-muted font-normal">× {item.quantity}</span>
-                      )}
-                    </p>
+                    <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
                     <p className="text-xs text-muted">{item.artistName}</p>
                     {item.size && <p className="text-xs text-muted">{item.size}</p>}
-                    <div className="flex items-center justify-between mt-1">
+                    <div className="flex items-center justify-between mt-1.5 gap-2 flex-wrap">
+                      {/* Per-line quantity stepper so buyers can grab
+                          N of a specific size without going back to
+                          the artwork page. Capped to the size's stock
+                          when we know it. */}
+                      <div className="flex items-center border border-border rounded-sm">
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                          className="w-7 h-7 flex items-center justify-center text-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          aria-label="Decrease quantity"
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        </button>
+                        <span className="w-7 text-center text-[12px] font-medium tabular-nums">{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          disabled={cap !== null && item.quantity >= cap}
+                          className="w-7 h-7 flex items-center justify-center text-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          aria-label="Increase quantity"
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        </button>
+                      </div>
                       <p className="text-sm font-medium text-accent">
                         £{(item.price * item.quantity).toFixed(2)}
                         {item.quantity > 1 && (
@@ -321,7 +343,8 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className="border-t border-border pt-4 space-y-2">
               <div className="flex justify-between text-sm">

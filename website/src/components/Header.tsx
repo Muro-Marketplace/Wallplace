@@ -245,13 +245,16 @@ export default function Header() {
           // — they already know they sent it. Same applies to accept /
           // decline actions they performed themselves.
           const iAmRequester = p.requester_user_id && p.requester_user_id === user?.id;
+          // Deep-link each placement-related notification to the full
+          // placement page so clicking it lands on the specific deal.
+          const placementLink = `/placements/${encodeURIComponent(p.id)}`;
           if (p.status === "pending" && !iAmRequester) {
-            notifs.push({ id: p.id, type: "placement", title: "Placement Request", description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`, time: p.created_at, link: `${portalBase}/placements` });
+            notifs.push({ id: p.id, type: "placement", title: "Placement Request", description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`, time: p.created_at, link: placementLink });
           } else if (p.status === "active" && p.responded_at && iAmRequester) {
             // Requester hears back on their request being accepted.
-            notifs.push({ id: p.id + "-a", type: "placement_accepted", title: "Placement Accepted", description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`, time: p.responded_at, link: `${portalBase}/placements` });
+            notifs.push({ id: p.id + "-a", type: "placement_accepted", title: "Placement Accepted", description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`, time: p.responded_at, link: placementLink });
           } else if (p.status === "declined" && p.responded_at && iAmRequester) {
-            notifs.push({ id: p.id + "-d", type: "placement_declined", title: "Placement Declined", description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`, time: p.responded_at, link: `${portalBase}/placements` });
+            notifs.push({ id: p.id + "-d", type: "placement_declined", title: "Placement Declined", description: `${p.work_title || "Artwork"} — ${p.venue || p.artist_slug || ""}`, time: p.responded_at, link: placementLink });
           }
         }
         const msgsRes = await authFetch(`/api/messages?slug=${resolvedSlug}`);

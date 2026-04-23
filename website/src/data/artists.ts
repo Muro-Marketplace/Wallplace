@@ -5,6 +5,10 @@ export type WorkOrientation = "portrait" | "landscape" | "square";
 export interface SizePricing {
   label: string;
   price: number;
+  /** Optional stock cap for this specific size. When unset the cart
+      falls back to the work-level `quantityAvailable` (legacy
+      artworks) or treats the size as unlimited. */
+  quantityAvailable?: number | null;
 }
 
 export interface ArtistWork {
