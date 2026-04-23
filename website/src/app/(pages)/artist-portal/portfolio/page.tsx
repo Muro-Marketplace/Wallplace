@@ -883,35 +883,53 @@ export default function PortfolioPage() {
                 </div>
               )}
 
-              {/* Desktop table — columns adjust based on toggles */}
-              <div className="hidden sm:block overflow-x-auto -mx-2 px-2">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-[10px] text-muted uppercase tracking-wider">
-                      <th className="text-left font-medium pb-2 pr-3">Size</th>
-                      <th className="text-right font-medium pb-2 px-2 whitespace-nowrap">Price</th>
-                      {form.shippingPerSize && <th className="text-right font-medium pb-2 px-2 whitespace-nowrap">Shipping</th>}
-                      {form.inStoreEnabled && <th className="text-right font-medium pb-2 px-2 whitespace-nowrap">In-store</th>}
-                      <th className="w-6 pb-2" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {form.sizes.map((size, i) => {
-                      const shipEst = estimateShipping({ dimensions: size.label || form.dimensions, framed: false, medium: form.medium });
-                      const shipCurrent = form.sizeShipping[i] || "";
-                      const storeCurrent = form.inStorePricing?.[i] || "";
-                      return (
-                        <tr key={i} className="border-t border-border/60">
-                          <td className="py-2 pr-3">
+              {/* Desktop grid — explicit column template so Size takes
+                  the space it needs and the price columns hug to the
+                  right. Avoids the "Price floating 1000px from Size"
+                  look that plain <table width=100%> was giving when
+                  shipping and in-store were turned off. */}
+              {(() => {
+                // Build the grid-template-columns dynamically. Size is
+                // a flexible column capped at ~340px; price/shipping/
+                // in-store cells are fixed-width; the last column is
+                // the remove icon.
+                const cols = [
+                  "minmax(140px, 340px)",   // Size
+                  "110px",                  // Price (£ + input)
+                  form.shippingPerSize ? "140px" : null,
+                  form.inStoreEnabled   ? "110px" : null,
+                  "20px",                   // Remove
+                ].filter(Boolean).join(" ");
+                return (
+                  <div className="hidden sm:block">
+                    <div
+                      className="grid items-center text-[10px] text-muted uppercase tracking-wider pb-2 gap-x-3"
+                      style={{ gridTemplateColumns: cols }}
+                    >
+                      <div>Size</div>
+                      <div className="text-right pr-1">Price</div>
+                      {form.shippingPerSize && <div className="text-right pr-1">Shipping</div>}
+                      {form.inStoreEnabled && <div className="text-right pr-1">In-store</div>}
+                      <div />
+                    </div>
+                    <div className="divide-y divide-border/60">
+                      {form.sizes.map((size, i) => {
+                        const shipEst = estimateShipping({ dimensions: size.label || form.dimensions, framed: false, medium: form.medium });
+                        const shipCurrent = form.sizeShipping[i] || "";
+                        const storeCurrent = form.inStorePricing?.[i] || "";
+                        return (
+                          <div
+                            key={i}
+                            className="grid items-start py-2 gap-x-3"
+                            style={{ gridTemplateColumns: cols }}
+                          >
                             <input
                               type="text"
                               value={size.label}
                               onChange={(e) => updateSize(i, "label", e.target.value)}
                               placeholder='e.g. 12×16" (A3)'
-                              className="w-full bg-background border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent/60"
+                              className="bg-background border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent/60 min-w-0"
                             />
-                          </td>
-                          <td className="py-2 px-2">
                             <div className="flex items-center gap-1 justify-end">
                               <span className="text-xs text-muted">£</span>
                               <input
@@ -919,47 +937,45 @@ export default function PortfolioPage() {
                                 min={0}
                                 value={size.price || ""}
                                 onChange={(e) => updateSize(i, "price", Number(e.target.value) || 0)}
-                                placeholder="Price"
-                                className="w-24 bg-background border border-border rounded-sm px-2 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
+                                placeholder="0"
+                                className="w-[90px] bg-background border border-border rounded-sm px-2 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
                               />
                             </div>
-                          </td>
-                          {form.shippingPerSize && (
-                            <td className="py-2 px-2">
-                              <div className="flex items-center gap-1 justify-end">
-                                <span className="text-xs text-muted">£</span>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  step="0.01"
-                                  value={shipCurrent}
-                                  onChange={(e) => setForm((p) => {
-                                    const updated = [...p.sizeShipping];
-                                    updated[i] = e.target.value;
-                                    return { ...p, sizeShipping: updated };
-                                  })}
-                                  placeholder={shipEst ? shipEst.cost.toFixed(2) : (defaultShipping || "9.95")}
-                                  className="w-20 bg-background border border-border rounded-sm px-2 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
-                                />
+                            {form.shippingPerSize && (
+                              <div className="flex flex-col items-end gap-1 min-w-0">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs text-muted">£</span>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    step="0.01"
+                                    value={shipCurrent}
+                                    onChange={(e) => setForm((p) => {
+                                      const updated = [...p.sizeShipping];
+                                      updated[i] = e.target.value;
+                                      return { ...p, sizeShipping: updated };
+                                    })}
+                                    placeholder={shipEst ? shipEst.cost.toFixed(2) : (defaultShipping || "9.95")}
+                                    className="w-[90px] bg-background border border-border rounded-sm px-2 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
+                                  />
+                                </div>
+                                {shipEst && !shipCurrent && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setForm((p) => {
+                                      const updated = [...p.sizeShipping];
+                                      updated[i] = shipEst.cost.toFixed(2);
+                                      return { ...p, sizeShipping: updated };
+                                    })}
+                                    className="text-[10px] text-accent hover:text-accent-hover whitespace-nowrap"
+                                    title={`${tierLabel(shipEst.tier)} · ${shipEst.estimatedDays}`}
+                                  >
+                                    Use £{shipEst.cost.toFixed(2)}
+                                  </button>
+                                )}
                               </div>
-                              {shipEst && !shipCurrent && (
-                                <button
-                                  type="button"
-                                  onClick={() => setForm((p) => {
-                                    const updated = [...p.sizeShipping];
-                                    updated[i] = shipEst.cost.toFixed(2);
-                                    return { ...p, sizeShipping: updated };
-                                  })}
-                                  className="text-[10px] text-accent hover:text-accent-hover mt-1 block ml-auto"
-                                  title={`${tierLabel(shipEst.tier)} · ${shipEst.estimatedDays}`}
-                                >
-                                  Use £{shipEst.cost.toFixed(2)}
-                                </button>
-                              )}
-                            </td>
-                          )}
-                          {form.inStoreEnabled && (
-                            <td className="py-2 px-2">
+                            )}
+                            {form.inStoreEnabled && (
                               <div className="flex items-center gap-1 justify-end">
                                 <span className="text-xs text-muted">£</span>
                                 <input
@@ -973,29 +989,29 @@ export default function PortfolioPage() {
                                     return { ...p, inStorePricing: updated };
                                   })}
                                   placeholder="—"
-                                  className="w-20 bg-background border border-border rounded-sm px-2 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
+                                  className="w-[90px] bg-background border border-border rounded-sm px-2 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
                                 />
                               </div>
-                            </td>
-                          )}
-                          <td className="py-2 pl-1">
-                            {form.sizes.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => removeSize(i)}
-                                className="text-muted hover:text-red-500 transition-colors"
-                                aria-label="Remove size"
-                              >
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
-                              </button>
                             )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                            <div className="flex items-center justify-end h-full">
+                              {form.sizes.length > 1 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => removeSize(i)}
+                                  className="text-muted hover:text-red-500 transition-colors p-1"
+                                  aria-label="Remove size"
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Mobile — stacked cards per size. The table doesn't fit
                   well on small viewports when multiple columns are on. */}
