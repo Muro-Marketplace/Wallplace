@@ -10,7 +10,7 @@ import { useCurrentArtist } from "@/hooks/useCurrentArtist";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 import { normaliseStatus as sharedNormaliseStatus, statusBadgeClass, arrangementLabel } from "@/lib/placements/status";
-import PlacementDirectionTag from "@/components/PlacementDirectionTag";
+import PlacementDirectionTag, { directionFor } from "@/components/PlacementDirectionTag";
 
 type FilterTab = "All" | "Pending" | "Active" | "Completed";
 // Display-only strings — arrangementLabel() can return combined values
@@ -154,9 +154,17 @@ export default function PlacementsPage() {
             // the viewer sent themselves show a "Sent" tag and no
             // Accept/Counter/Decline buttons.
             const canRespond = !!requesterId && !!user?.id && requesterId !== user.id;
-            const direction: "sent" | "received" | null = requesterId && user?.id
-              ? (requesterId === user.id ? "sent" : "received")
-              : null;
+            // Use the shared helper so legacy rows without
+            // requester_user_id still resolve to a "Received" chip (see
+            // directionFor() fallback).
+            const direction = directionFor(
+              {
+                requester_user_id: requesterId,
+                artist_user_id: p.artist_user_id as string | null,
+                venue_user_id: p.venue_user_id as string | null,
+              },
+              user?.id,
+            );
             return {
               id: p.id as string,
               workTitle: (p.work_title as string) || "Untitled",

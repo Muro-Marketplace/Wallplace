@@ -14,7 +14,7 @@ import {
   type PlacementLifecycle,
 } from "@/lib/placements/status";
 import { canRespond } from "@/lib/placement-permissions";
-import PlacementDirectionTag from "@/components/PlacementDirectionTag";
+import PlacementDirectionTag, { directionFor } from "@/components/PlacementDirectionTag";
 import { useSearchParams } from "next/navigation";
 
 interface PanelProps {
@@ -539,9 +539,11 @@ export default function PlacementContextPanel({
           </div>
           <div className="flex items-center gap-1.5">
             {(() => {
-              const dir = p.requester_user_id && userId
-                ? (p.requester_user_id === userId ? "sent" : "received")
-                : null;
+              const dir = directionFor({
+                requester_user_id: p.requester_user_id,
+                artist_user_id: p.artist_user_id,
+                venue_user_id: p.venue_user_id,
+              }, userId || null);
               return dir ? <PlacementDirectionTag direction={dir} size="compact" /> : null;
             })()}
             {displayStatus && (

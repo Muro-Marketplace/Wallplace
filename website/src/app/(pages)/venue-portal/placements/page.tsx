@@ -896,7 +896,7 @@ export default function VenuePlacementsPage() {
                       </td>
                       <td className="px-4 py-3.5">
                         {(() => {
-                          const dir = directionFor({ requester_user_id: p.requesterUserId }, user?.id);
+                          const dir = directionFor({ requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id);
                           return (
                             <div className="flex flex-col gap-1.5">
                               <div className="flex flex-wrap items-center gap-1.5">
@@ -1130,14 +1130,14 @@ export default function VenuePlacementsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {directionFor({ requester_user_id: p.requesterUserId }, user?.id) && (
-                        <PlacementDirectionTag direction={directionFor({ requester_user_id: p.requesterUserId }, user?.id)!} size="compact" />
+                      {directionFor({ requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id) && (
+                        <PlacementDirectionTag direction={directionFor({ requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id)!} size="compact" />
                       )}
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${statusBadge(p.status)}`}>
                         {p.status === "Pending"
-                          ? (directionFor({ requester_user_id: p.requesterUserId }, user?.id) === "sent"
+                          ? (directionFor({ requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id) === "sent"
                               ? "Awaiting their reply"
-                              : directionFor({ requester_user_id: p.requesterUserId }, user?.id) === "received"
+                              : directionFor({ requester_user_id: p.requesterUserId, artist_user_id: p.artistUserId, venue_user_id: p.venueUserId }, user?.id) === "received"
                                 ? "Your turn"
                                 : "Pending")
                           : p.status}

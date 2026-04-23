@@ -26,9 +26,12 @@ export default function PlacementDirectionTag({ direction, size = "default", cla
   const isSent = direction === "sent";
   const label = isSent ? "Sent" : "Received";
   const pad = size === "compact" ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]";
+  // Sent → green (you've dispatched, waiting). Received → red (something
+  // on your plate to action). Deliberately high-contrast so the
+  // direction reads at a glance on a table row.
   const tone = isSent
-    ? "bg-slate-100 text-slate-600 border border-slate-200"
-    : "bg-accent/10 text-accent border border-accent/25";
+    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+    : "bg-red-50 text-red-700 border border-red-200";
 
   return (
     <span
@@ -53,13 +56,28 @@ export default function PlacementDirectionTag({ direction, size = "default", cla
 
 /**
  * Helper — tells you what direction chip to show from the placement row
- * + the viewing user's id. Returns null when we can't tell (legacy row
- * without requester_user_id) so the caller can omit the chip.
+ * + the viewing user's id.
+ *
+ * Modern rows carry requester_user_id — we compare that to the viewer.
+ * Legacy rows without the field default to "received" so the chip still
+ * renders; Accept/Counter/Decline remain strict-gated via canRespond()
+ * so a display-only default can't cause an accidental self-accept.
  */
 export function directionFor(
-  placement: { requester_user_id?: string | null },
+  placement: {
+    requester_user_id?: string | null;
+    artist_user_id?: string | null;
+    venue_user_id?: string | null;
+  },
   userId: string | null | undefined,
 ): PlacementDirection | null {
-  if (!userId || !placement.requester_user_id) return null;
-  return placement.requester_user_id === userId ? "sent" : "received";
+  if (!userId) return null;
+  if (placement.requester_user_id) {
+    return placement.requester_user_id === userId ? "sent" : "received";
+  }
+  // Legacy fallback — assume the viewer is on the receiving side. This
+  // matches the historical "venue requests, artist accepts" pattern for
+  // rows that predate migration 008.
+  if (placement.artist_user_id === userId || placement.venue_user_id === userId) return "received";
+  return null;
 }
