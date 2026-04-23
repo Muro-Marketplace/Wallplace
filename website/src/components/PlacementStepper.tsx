@@ -11,6 +11,10 @@ export interface PlacementStepperData {
   installedAt?: string | null;
   liveFrom?: string | null;
   collectedAt?: string | null;
+  /** Bilateral-confirmation milestone proposed by one side but not yet confirmed. */
+  proposedStage?: "installed" | "collected" | null;
+  /** user_id of whoever proposed proposedStage. Used to show "waiting on X". */
+  proposedByUserId?: string | null;
 }
 
 type Stage = "accepted" | "scheduled" | "installed" | "live" | "collected";
@@ -29,10 +33,13 @@ function formatDate(ts: string | null | undefined) {
 interface Props {
   placement: PlacementStepperData;
   canAdvance?: boolean;
+  /** Current user — used to tell whether they proposed a pending milestone
+      or are the one who needs to confirm it. */
+  currentUserId?: string | null;
   onChange?: (updated: PlacementStepperData) => void;
 }
 
-export default function PlacementStepper({ placement, canAdvance = false, onChange }: Props) {
+export default function PlacementStepper({ placement, canAdvance = false, currentUserId, onChange }: Props) {
   const [busy, setBusy] = useState<Stage | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,9 +70,25 @@ export default function PlacementStepper({ placement, canAdvance = false, onChan
       const now = new Date().toISOString();
       const next: PlacementStepperData = { ...placement };
       if (stage === "scheduled") next.scheduledFor = now;
-      if (stage === "installed") next.installedAt = now;
       if (stage === "live") next.liveFrom = now;
-      if (stage === "collected") { next.collectedAt = now; next.status = "completed"; }
+
+      // Bilateral milestones: if the other side had already proposed this
+      // exact stage, the server writes the real timestamp AND clears the
+      // proposal — we mirror that here. Otherwise record our own proposal
+      // and leave the timestamp unset.
+      const bilateral = stage === "installed" || stage === "collected";
+      if (bilateral) {
+        const otherProposed = placement.proposedStage === stage && placement.proposedByUserId && placement.proposedByUserId !== currentUserId;
+        if (otherProposed) {
+          if (stage === "installed") next.installedAt = now;
+          if (stage === "collected") { next.collectedAt = now; next.status = "completed"; }
+          next.proposedStage = null;
+          next.proposedByUserId = null;
+        } else {
+          next.proposedStage = stage;
+          next.proposedByUserId = currentUserId || null;
+        }
+      }
       onChange?.(next);
     } catch {
       setError("Network error. Please try again.");
@@ -117,19 +140,45 @@ export default function PlacementStepper({ placement, canAdvance = false, onChan
           );
         })}
       </ol>
-      {canAdvance && nextStage && (
-        <div className="mt-2 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); advance(nextStage); }}
-            disabled={busy !== null}
-            className="px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors disabled:opacity-60"
-          >
-            {busy === nextStage ? "Updating\u2026" : `Mark ${steps.find((s) => s.key === nextStage)!.label.toLowerCase()}`}
-          </button>
-          {error && <span className="text-xs text-red-600">{error}</span>}
-        </div>
-      )}
+      {canAdvance && nextStage && (() => {
+        const isBilateral = nextStage === "installed" || nextStage === "collected";
+        const pendingProposal = placement.proposedStage;
+        const iProposed = pendingProposal && placement.proposedByUserId === currentUserId;
+        const theyProposed = pendingProposal && placement.proposedByUserId && placement.proposedByUserId !== currentUserId;
+
+        if (isBilateral && iProposed && pendingProposal === nextStage) {
+          // I've already clicked — the other side needs to confirm.
+          return (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-sm">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 15 15" /></svg>
+                Awaiting confirmation from the other party
+              </span>
+            </div>
+          );
+        }
+
+        const label = steps.find((s) => s.key === nextStage)!.label.toLowerCase();
+        const ctaLabel = isBilateral && theyProposed && pendingProposal === nextStage
+          ? `Confirm ${label}`
+          : isBilateral
+            ? `Mark ${label} (needs confirmation)`
+            : `Mark ${label}`;
+
+        return (
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); advance(nextStage); }}
+              disabled={busy !== null}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors disabled:opacity-60"
+            >
+              {busy === nextStage ? "Updating\u2026" : ctaLabel}
+            </button>
+            {error && <span className="text-xs text-red-600">{error}</span>}
+          </div>
+        );
+      })()}
     </div>
   );
 }

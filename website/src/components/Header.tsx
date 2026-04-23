@@ -131,7 +131,7 @@ export default function Header() {
   const [msgDropdownOpen, setMsgDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const [conversations, setConversations] = useState<{ conversationId: string; otherPartyDisplayName: string; otherPartyImage: string | null; otherParty: string; latestMessage: string; unreadCount: number; lastActivity: string }[]>([]);
-  const [notifications, setNotifications] = useState<{ id: string; type: string; title: string; description: string; time: string; link: string }[]>([]);
+  const [notifications, setNotifications] = useState<{ id: string; type: string; title: string; description: string; time: string; link: string; readAt?: string | null }[]>([]);
   const msgDropdownRef = useRef<HTMLDivElement>(null);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
   const moreDropdownRef = useRef<HTMLDivElement>(null);
@@ -517,8 +517,29 @@ export default function Header() {
 
                   {notifDropdownOpen && (
                     <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[110]">
-                      <div className="px-4 py-3 border-b border-border">
+                      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                         <p className="text-sm font-medium text-foreground">Notifications</p>
+                        {unreadNotifCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              // Optimistic: flip all to read now, then
+                              // ask the server. Reverting on failure is
+                              // not worth the code — next poll will
+                              // reconcile.
+                              setNotifications((prev) => prev.map((x) => ({ ...x, readAt: x.readAt || new Date().toISOString() })));
+                              setUnreadNotifCount(0);
+                              authFetch("/api/notifications", {
+                                method: "PATCH",
+                                body: JSON.stringify({ all: true }),
+                              }).catch(() => {});
+                            }}
+                            className="text-[11px] text-accent hover:text-accent-hover transition-colors"
+                          >
+                            Mark all read
+                          </button>
+                        )}
                       </div>
                       <div className="max-h-80 overflow-y-auto">
                         {notifications.length === 0 ? (
@@ -526,13 +547,20 @@ export default function Header() {
                             <p className="text-xs text-muted">No new notifications</p>
                           </div>
                         ) : (
-                          notifications.map((n) => (
+                          notifications.map((n) => {
+                            const isUnread = !n.readAt;
+                            return (
                             <Link
                               key={n.id}
                               href={n.link || "#"}
                               onClick={() => {
                                 setNotifDropdownOpen(false);
-                                // Mark as read in the background — ignore errors (e.g. derived items)
+                                // Optimistically mark this one read so the
+                                // dot / background update instantly.
+                                if (isUnread) {
+                                  setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, readAt: x.readAt || new Date().toISOString() } : x));
+                                  setUnreadNotifCount((c) => Math.max(0, c - 1));
+                                }
                                 if (n.id && !n.id.startsWith("msg-")) {
                                   authFetch("/api/notifications", {
                                     method: "PATCH",
@@ -540,8 +568,15 @@ export default function Header() {
                                   }).catch(() => {});
                                 }
                               }}
-                              className="block px-4 py-3 hover:bg-[#FAF8F5] transition-colors border-b border-border last:border-b-0"
+                              className={`block px-4 py-3 transition-colors border-b border-border last:border-b-0 relative ${
+                                isUnread
+                                  ? "bg-accent/5 hover:bg-accent/10"
+                                  : "bg-white hover:bg-[#FAF8F5]"
+                              }`}
                             >
+                              {isUnread && (
+                                <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-accent" aria-hidden />
+                              )}
                               <div className="flex items-start gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                                   n.type === "placement" ? "bg-amber-100" : n.type === "placement_declined" ? "bg-red-100" : n.type === "message" ? "bg-accent/10" : "bg-green-100"
@@ -557,13 +592,17 @@ export default function Header() {
                                   )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-medium text-foreground">{n.title}</p>
-                                  <p className="text-xs text-muted truncate">{n.description}</p>
+                                  <div className="flex items-center gap-1.5">
+                                    <p className={`text-sm truncate ${isUnread ? "font-semibold text-foreground" : "font-normal text-muted"}`}>{n.title}</p>
+                                    {isUnread && <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" aria-label="Unread" />}
+                                  </div>
+                                  <p className={`text-xs truncate ${isUnread ? "text-foreground/70" : "text-muted/70"}`}>{n.description}</p>
                                   <p className="text-[10px] text-muted mt-0.5">{new Date(n.time).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</p>
                                 </div>
                               </div>
                             </Link>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     </div>

@@ -12,6 +12,9 @@ export interface CartItem {
   size: string;
   price: number;
   quantity: number;
+  /** Live stock cap for the selected size. Optional — undefined means unlimited
+      (e.g. collections / bundles where stock is implicit). */
+  quantityAvailable?: number | null;
   shippingPrice?: number;
   internationalShippingPrice?: number;
 }

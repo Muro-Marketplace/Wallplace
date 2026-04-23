@@ -176,9 +176,18 @@ export default function ArtworkPageClient({
           const totalPrice = displayPrice ?? selectedPricing.price;
           return (
             <>
+              {typeof work.quantityAvailable === "number" && work.quantityAvailable <= 3 && work.quantityAvailable > 0 && (
+                <p className="text-xs text-amber-700 -mt-1">Only {work.quantityAvailable} left at this size</p>
+              )}
+              {typeof work.quantityAvailable === "number" && work.quantityAvailable === 0 ? (
+                <button disabled className="w-full px-5 py-3.5 text-[13px] font-medium tracking-wider uppercase text-muted bg-border rounded-sm cursor-not-allowed">
+                  Sold out
+                </button>
+              ) : (
+              <>
               <button
                 onClick={() => {
-                  addItem({
+                  const r = addItem({
                     type: "work",
                     workId: work.id,
                     artistSlug,
@@ -188,9 +197,14 @@ export default function ArtworkPageClient({
                     size: sizeLabel,
                     price: totalPrice,
                     quantity: 1,
+                    quantityAvailable: work.quantityAvailable ?? null,
                     shippingPrice: work.shippingPrice ?? undefined,
                     internationalShippingPrice: shipsInternationally && internationalShippingPrice != null ? internationalShippingPrice : undefined,
                   });
+                  if (!r.ok) {
+                    showToast(r.reason === "out-of-stock" ? "This size is sold out" : `Only ${r.available} left at this size`);
+                    return;
+                  }
                   router.push("/checkout");
                 }}
                 className="w-full px-5 py-3.5 text-[13px] font-medium tracking-wider uppercase text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors"
@@ -199,7 +213,7 @@ export default function ArtworkPageClient({
               </button>
               <button
                 onClick={() => {
-                  addItem({
+                  const r = addItem({
                     type: "work",
                     workId: work.id,
                     artistSlug,
@@ -209,15 +223,22 @@ export default function ArtworkPageClient({
                     size: sizeLabel,
                     price: totalPrice,
                     quantity: 1,
+                    quantityAvailable: work.quantityAvailable ?? null,
                     shippingPrice: work.shippingPrice ?? undefined,
                     internationalShippingPrice: shipsInternationally && internationalShippingPrice != null ? internationalShippingPrice : undefined,
                   });
-                  showToast("Added to basket");
+                  if (!r.ok) {
+                    showToast(r.reason === "out-of-stock" ? "This size is sold out" : `Only ${r.available} left at this size`);
+                  } else {
+                    showToast("Added to basket");
+                  }
                 }}
                 className="w-full px-5 py-3 text-sm font-medium text-foreground border border-border hover:border-foreground/50 rounded-sm transition-colors"
               >
                 Add to Basket
               </button>
+              </>
+              )}
             </>
           );
         })()}
