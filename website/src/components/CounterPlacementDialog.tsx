@@ -62,6 +62,9 @@ export default function CounterPlacementDialog({ placementId, initial, onClose, 
         setBusy(false);
         return;
       }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { placementId, action: "counter" } }));
+      }
       onSuccess?.();
       onClose();
     } catch {

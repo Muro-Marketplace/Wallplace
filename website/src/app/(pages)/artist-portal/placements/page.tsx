@@ -219,6 +219,13 @@ export default function PlacementsPage() {
     loadPlacements();
   }, [artist, initialised, loadPlacements]);
 
+  // Refresh when an accept / counter / advance fires anywhere else.
+  useEffect(() => {
+    const handler = () => { if (artist) loadPlacements(); };
+    window.addEventListener("wallplace:placement-changed", handler);
+    return () => window.removeEventListener("wallplace:placement-changed", handler);
+  }, [artist, loadPlacements]);
+
   async function respond(id: string, accept: boolean) {
     setResponding(id);
     setRespondError(null);
@@ -236,6 +243,9 @@ export default function PlacementsPage() {
               : p
           )
         );
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { placementId: id, action: accept ? "accept" : "decline" } }));
+        }
       } else {
         setRespondError(data.error || "Could not update placement. Please try again.");
       }

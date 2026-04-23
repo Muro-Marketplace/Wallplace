@@ -12,9 +12,15 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+// One canonical conversation per pair of parties. Historically the
+// placement flow created its own `placement-…` thread, which meant an
+// artist and venue could end up with TWO chats (a regular DM thread
+// and the placement thread) and never realise the other existed. We
+// now unify everything into the `dm-…` thread so every message — DMs,
+// placement requests, counters, responses — lives in one place.
 function deterministicConversationId(slugA: string, slugB: string): string {
   const [a, b] = [slugA, slugB].sort();
-  return `placement-${a}__${b}`;
+  return `dm-${a}__${b}`;
 }
 
 /**
@@ -870,11 +876,16 @@ export async function DELETE(request: Request) {
     // foreign key to placements.id with ON DELETE RESTRICT, the main row
     // delete will silently return 0 rows and the placement will "come
     // back" on reload. Order matters: side tables → orders linkage →
-    // messages → placements itself.
+    // placement_request / placement_response messages → placements.
+    // DMs within the same conversation stay — we only drop the placement
+    // card, not the whole chat history.
     await Promise.all([
       db.from("placement_records").delete().eq("placement_id", id),
       db.from("placement_photos").delete().eq("placement_id", id),
-      db.from("messages").delete().eq("conversation_id", `placement-${id}`),
+      db.from("messages")
+        .delete()
+        .in("message_type", ["placement_request", "placement_response"])
+        .contains("metadata", { placementId: id }),
     ]).catch((err) => {
       // Non-fatal: the tables may not exist in every env.
       console.warn("Side-table cleanup for placement", id, "failed:", err);

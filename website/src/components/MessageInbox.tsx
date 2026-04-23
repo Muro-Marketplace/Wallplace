@@ -383,6 +383,24 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
         message_type: "placement_response",
         metadata: { placementId, status: accept ? "active" : "declined" },
       }]);
+      // Reflect the new active placement in the conversation sidebar
+      // immediately — the poll that would otherwise sync it runs every
+      // 15s which is too slow for the "I just clicked accept" moment.
+      if (accept) {
+        setConversations((prev) => prev.map((c) =>
+          c.conversationId === selectedConv ? { ...c, hasActivePlacement: true } : c
+        ));
+      }
+      // Re-fetch conversations + thread in the background so every piece
+      // of state (latest terms, status chip on other party's side, etc.)
+      // matches the server truth without waiting for the next poll.
+      loadConversations(true);
+      if (selectedConv) loadThread(selectedConv, true);
+      // Broadcast so the placement context panel (and any other listener)
+      // refreshes without waiting for its own poll.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { placementId, action: accept ? "accept" : "decline" } }));
+      }
     } catch (err) {
       console.error("Placement response message failed:", err);
     }
@@ -495,7 +513,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
   const selectedOtherPartyType = selectedConvData?.otherPartyType || "artist";
 
   return (
-    <div className="flex h-[calc(100vh-13rem)] border border-border rounded-2xl overflow-hidden bg-surface shadow-sm">
+    <div className="flex h-[calc(100vh-9rem)] lg:h-[calc(100vh-10rem)] border border-border rounded-2xl overflow-hidden bg-surface shadow-sm">
       {/* Conversation list */}
       <div className={`${selectedConv || composing ? "hidden sm:flex" : "flex"} w-full sm:w-80 shrink-0 border-r border-border flex-col`}>
         {/* Search */}

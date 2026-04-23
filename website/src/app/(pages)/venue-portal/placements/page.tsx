@@ -432,6 +432,14 @@ export default function VenuePlacementsPage() {
 
   useEffect(() => { loadPlacements(); }, [loadPlacements]);
 
+  // Listen for any placement mutation dispatched from Messages / Counter
+  // dialog / Stepper so the list refreshes without a manual reload.
+  useEffect(() => {
+    const handler = () => { loadPlacements(); };
+    window.addEventListener("wallplace:placement-changed", handler);
+    return () => window.removeEventListener("wallplace:placement-changed", handler);
+  }, [loadPlacements]);
+
   function toggleWork(title: string) {
     setSelectedWorks((prev) => {
       const next = new Set(prev);
@@ -545,6 +553,9 @@ export default function VenuePlacementsPage() {
               : p
           )
         );
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { placementId: id, action: accept ? "accept" : "decline" } }));
+        }
       } else {
         setRespondError(data.error || "Could not update placement. Please try again.");
       }

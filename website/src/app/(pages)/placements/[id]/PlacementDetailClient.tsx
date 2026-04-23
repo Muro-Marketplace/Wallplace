@@ -131,6 +131,22 @@ export default function PlacementDetailClient({ placementId }: Props) {
     if (user) load();
   }, [user, authLoading, load, router]);
 
+  // Keep the detail page in sync if the user accepts / counters / advances
+  // elsewhere (Messages, the placements list, etc.). We re-load on tab
+  // focus rather than polling on a timer because placements can sit on a
+  // user's screen for a long time while they read the terms.
+  useEffect(() => {
+    if (!user) return;
+    const onFocus = () => { load(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") load();
+    });
+    return () => {
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [user, load]);
+
   async function handleAdvance(stage: "scheduled" | "installed" | "live" | "collected") {
     if (!placement) return;
     try {

@@ -151,6 +151,16 @@ export default function PlacementContextPanel({
     loadPlacements();
   }, [loadPlacements]);
 
+  // Re-load whenever any placement-changing action fires anywhere on the
+  // page (Messages accept / decline, counter, stage advance). Gives the
+  // panel near-instant consistency with actions taken elsewhere in the
+  // same session without waiting for a poll.
+  useEffect(() => {
+    const handler = () => { loadPlacements(); };
+    window.addEventListener("wallplace:placement-changed", handler);
+    return () => window.removeEventListener("wallplace:placement-changed", handler);
+  }, [loadPlacements]);
+
   // When a conversation has multiple placements, default the panel to the
   // most recent live (Pending / Active) one, then let the user arrow
   // through the rest via prev/next in the header.

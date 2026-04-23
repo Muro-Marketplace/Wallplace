@@ -84,6 +84,9 @@ export default function PlacementStepper({ placement, canAdvance = false, onChan
       if (stage === "live") next.liveFrom = now;
       if (stage === "collected") { next.collectedAt = now; next.status = "completed"; }
       onChange?.(next);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { placementId: placement.id, action: "advance", stage } }));
+      }
     } catch {
       setError("Network error. Please try again.");
     } finally {
