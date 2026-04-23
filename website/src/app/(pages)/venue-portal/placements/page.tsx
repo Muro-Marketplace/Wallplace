@@ -1049,21 +1049,21 @@ export default function VenuePlacementsPage() {
                                   <button
                                     onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
                                     disabled={responding === p.id}
-                                    className="px-3.5 py-1.5 text-xs font-medium text-emerald-700 border border-emerald-300 hover:bg-emerald-50 rounded-sm transition-colors disabled:opacity-50"
+                                    className="px-3.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-sm transition-colors disabled:opacity-50"
                                   >
                                     {responding === p.id ? "…" : "Accept"}
                                   </button>
                                   <button
                                     type="button"
                                     onClick={(e) => { e.stopPropagation(); setCounteringId(p.id); }}
-                                    className="px-3.5 py-1.5 text-xs font-medium text-amber-700 border border-amber-300 hover:bg-amber-50 rounded-sm transition-colors"
+                                    className="px-3.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-sm transition-colors"
                                   >
                                     Counter
                                   </button>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
                                     disabled={responding === p.id}
-                                    className="px-3.5 py-1.5 text-xs font-medium text-red-700 border border-red-300 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
+                                    className="px-3.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-sm transition-colors disabled:opacity-50"
                                   >
                                     Decline
                                   </button>
@@ -1278,21 +1278,21 @@ export default function VenuePlacementsPage() {
                           <button
                             onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
                             disabled={responding === p.id}
-                            className="flex-1 px-3.5 py-1.5 text-xs font-medium text-emerald-700 border border-emerald-300 hover:bg-emerald-50 rounded-sm transition-colors disabled:opacity-50"
+                            className="flex-1 px-3.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-sm transition-colors disabled:opacity-50"
                           >
                             {responding === p.id ? "…" : "Accept"}
                           </button>
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setCounteringId(p.id); }}
-                            className="flex-1 px-3.5 py-1.5 text-xs font-medium text-amber-700 border border-amber-300 hover:bg-amber-50 rounded-sm transition-colors"
+                            className="flex-1 px-3.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-sm transition-colors"
                           >
                             Counter
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
                             disabled={responding === p.id}
-                            className="flex-1 px-3.5 py-1.5 text-xs font-medium text-red-700 border border-red-300 hover:bg-red-50 rounded-sm transition-colors disabled:opacity-50"
+                            className="flex-1 px-3.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-sm transition-colors disabled:opacity-50"
                           >
                             Decline
                           </button>

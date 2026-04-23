@@ -659,59 +659,28 @@ export async function PATCH(request: Request) {
       if (status === "active") updates.accepted_at = now;
     }
 
-    // Stage transitions (F13) — only allowed once the placement is active.
-    //
-    // Milestones split into two groups:
-    //   * single-sided: scheduled, live
-    //     (scheduling is conversational; "live" is a flip-the-switch moment
-    //     that either side can do once install is confirmed).
-    //   * bilateral:   installed, collected
-    //     The first party proposes; the second confirms. This prevents the
-    //     venue from marking "installed" on a day the artist hasn't actually
-    //     delivered — or the artist from pre-emptively marking work "collected"
-    //     before the venue has handed it back. Proposal is stored in
-    //     proposed_stage / proposed_by_user_id; confirmation writes the real
-    //     timestamp.
+    // Stage transitions — once the placement is active, either party can
+    // advance any stage in one click. The earlier bilateral-confirmation
+    // flow (propose → other side confirms) was more friction than value
+    // for the pilot, so it's been removed and the stepper writes the
+    // real timestamp immediately.
     if (stage) {
       const effectiveStatus = status || existing.status;
       if (effectiveStatus !== "active") {
         return NextResponse.json({ error: "Placement must be active to advance the stage" }, { status: 400 });
       }
 
-      const bilateral = stage === "installed" || stage === "collected";
-      // Re-read the placement including the proposal columns so we can tell
-      // whether we're proposing or confirming.
-      const { data: proposalRow } = await db
-        .from("placements")
-        .select("proposed_stage, proposed_by_user_id")
-        .eq("id", id)
-        .maybeSingle();
-      const currentProposal = proposalRow?.proposed_stage || null;
-      const proposerId = proposalRow?.proposed_by_user_id || null;
-
       if (stage === "scheduled") updates.scheduled_for = now;
+      if (stage === "installed") updates.installed_at = now;
       if (stage === "live") updates.live_from = now;
-
-      if (bilateral) {
-        if (currentProposal === stage && proposerId && proposerId !== auth.user!.id) {
-          // The other party already proposed this exact stage. Writing the
-          // confirmation now — set the real timestamp, clear the proposal.
-          if (stage === "installed") updates.installed_at = now;
-          if (stage === "collected") {
-            updates.collected_at = now;
-            updates.status = "completed";
-          }
-          updates.proposed_stage = null;
-          updates.proposed_by_user_id = null;
-          updates.proposed_at = null;
-        } else {
-          // No active proposal from the other side — record this side's
-          // proposal and wait. The real timestamp stays NULL until confirmed.
-          updates.proposed_stage = stage;
-          updates.proposed_by_user_id = auth.user!.id;
-          updates.proposed_at = now;
-        }
+      if (stage === "collected") {
+        updates.collected_at = now;
+        updates.status = "completed";
       }
+      // Clear any lingering proposal columns left over from the old flow.
+      updates.proposed_stage = null;
+      updates.proposed_by_user_id = null;
+      updates.proposed_at = null;
     }
 
     let { error } = await db.from("placements").update(updates).eq("id", id);

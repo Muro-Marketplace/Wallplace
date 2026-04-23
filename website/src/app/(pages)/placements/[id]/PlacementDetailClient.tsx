@@ -9,6 +9,7 @@ import { authFetch } from "@/lib/api-client";
 import { uploadImage } from "@/lib/upload";
 import PlacementStepper, { type PlacementStepperData } from "@/components/PlacementStepper";
 import PlacementLoanForm from "./PlacementLoanForm";
+import CounterPlacementDialog from "@/components/CounterPlacementDialog";
 
 interface PlacementRow {
   id: string;
@@ -30,6 +31,7 @@ interface PlacementRow {
   monthly_fee_gbp?: number | null;
   created_at?: string;
   responded_at?: string | null;
+  requester_user_id?: string | null;
   accepted_at?: string | null;
   scheduled_for?: string | null;
   installed_at?: string | null;
@@ -92,6 +94,9 @@ export default function PlacementDetailClient({ placementId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [creatingRecord, setCreatingRecord] = useState(false);
+  const [responding, setResponding] = useState<"accept" | "decline" | null>(null);
+  const [respondError, setRespondError] = useState<string | null>(null);
+  const [counterOpen, setCounterOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -126,6 +131,28 @@ export default function PlacementDetailClient({ placementId }: Props) {
     }
     if (user) load();
   }, [user, authLoading, load, router]);
+
+  async function handleRespond(accept: boolean) {
+    if (!placement) return;
+    setResponding(accept ? "accept" : "decline");
+    setRespondError(null);
+    try {
+      const res = await authFetch("/api/placements", {
+        method: "PATCH",
+        body: JSON.stringify({ id: placement.id, status: accept ? "active" : "declined" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setRespondError(data.error || "Could not update placement");
+        return;
+      }
+      await load();
+    } catch {
+      setRespondError("Network error. Please try again.");
+    } finally {
+      setResponding(null);
+    }
+  }
 
   async function handlePhotoUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -258,9 +285,119 @@ export default function PlacementDetailClient({ placementId }: Props) {
         </div>
       </div>
 
-      {/* Stepper */}
+      {/* Progress — full 6-step lifecycle. Visible even while pending so
+          both sides can see where things stand before acceptance. Each
+          step lights up as its timestamp lands. Stages only become
+          actionable once the placement is active (handled by the
+          stepper below). */}
       <div className="bg-surface border border-border rounded-sm p-4 sm:p-5 mb-6">
-        <h2 className="text-sm font-medium mb-3">Lifecycle</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-medium">Progress</h2>
+          {placement.status === "pending" && (
+            <span className="text-[11px] text-muted">Awaiting response</span>
+          )}
+          {placement.status === "declined" && (
+            <span className="text-[11px] text-red-600">Declined — progress stops here</span>
+          )}
+        </div>
+        {(() => {
+          const lifecycle = [
+            { label: "Requested", ts: placement.created_at, reached: !!placement.created_at },
+            { label: "Accepted",  ts: placement.accepted_at, reached: !!placement.accepted_at },
+            { label: "Scheduled", ts: placement.scheduled_for, reached: !!placement.scheduled_for },
+            { label: "Installed", ts: placement.installed_at, reached: !!placement.installed_at },
+            { label: "Live on wall", ts: placement.live_from, reached: !!placement.live_from },
+            { label: "Collected", ts: placement.collected_at, reached: !!placement.collected_at },
+          ];
+          const reachedIdx = lifecycle.reduce((acc, s, i) => (s.reached ? i : acc), -1);
+          const isDeclined = placement.status === "declined";
+          return (
+            <ol className="flex items-start gap-1 overflow-x-auto pb-1">
+              {lifecycle.map((s, i) => {
+                const reached = s.reached;
+                const isCurrent = i === reachedIdx;
+                return (
+                  <li key={s.label} className="flex-1 min-w-[80px]">
+                    <div className="flex items-center gap-1">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                        isDeclined ? "bg-red-200 text-red-700" :
+                        reached ? (isCurrent ? "bg-accent text-white" : "bg-green-500 text-white") :
+                        "bg-border"
+                      }`}>
+                        {reached ? (
+                          <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                        ) : (
+                          <span className="text-[9px] text-muted">{i + 1}</span>
+                        )}
+                      </div>
+                      {i < lifecycle.length - 1 && (
+                        <div className={`flex-1 h-px ${i < reachedIdx ? "bg-green-500" : "bg-border"}`} />
+                      )}
+                    </div>
+                    <div className="mt-1.5 pr-1">
+                      <p className={`text-[10px] font-medium ${reached ? "text-foreground" : "text-muted"}`}>{s.label}</p>
+                      {s.ts && (
+                        <p className="text-[9px] text-muted">
+                          {new Date(s.ts).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          );
+        })()}
+      </div>
+
+      {/* Accept / Counter / Decline — shown on the detail page for any
+          pending placement the viewer can respond to. Mirrors the
+          controls on the list rows so the venue/artist can act from the
+          full page without going back. */}
+      {placement.status === "pending" && viewerRole && placement.requester_user_id !== user?.id && (
+        <div className="bg-surface border border-border rounded-sm p-4 sm:p-5 mb-6">
+          <h2 className="text-sm font-medium mb-3">Respond to this request</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => handleRespond(true)}
+              disabled={responding !== null}
+              className="px-3.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-sm transition-colors disabled:opacity-50"
+            >
+              {responding === "accept" ? "Accepting…" : "Accept"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCounterOpen(true)}
+              className="px-3.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-sm transition-colors"
+            >
+              Counter
+            </button>
+            <button
+              onClick={() => handleRespond(false)}
+              disabled={responding !== null}
+              className="px-3.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-sm transition-colors disabled:opacity-50"
+            >
+              {responding === "decline" ? "Declining…" : "Decline"}
+            </button>
+          </div>
+          {respondError && <p className="mt-2 text-xs text-red-600">{respondError}</p>}
+        </div>
+      )}
+      {placement.status === "pending" && placement.requester_user_id === user?.id && (
+        <div className="bg-surface border border-border rounded-sm p-4 sm:p-5 mb-6 flex items-center gap-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-sm">
+            Awaiting their response
+          </span>
+          <p className="text-xs text-muted">You sent this request — the other party will accept, counter, or decline.</p>
+        </div>
+      )}
+
+      {/* Stepper — advance-stage buttons kick in once the placement is
+          active. While pending, the visual progress above still shows
+          the requested step so the user has context. */}
+      {(placement.status === "active" || placement.status === "completed") && (
+      <div className="bg-surface border border-border rounded-sm p-4 sm:p-5 mb-6">
+        <h2 className="text-sm font-medium mb-3">Lifecycle actions</h2>
         <PlacementStepper
           placement={stepperData}
           canAdvance={placement.status === "active"}
@@ -275,6 +412,22 @@ export default function PlacementDetailClient({ placementId }: Props) {
           }) : p)}
         />
       </div>
+      )}
+
+      {/* Counter dialog on the detail page — used by the Respond panel
+          above. Bound to this placement directly. */}
+      {counterOpen && (
+        <CounterPlacementDialog
+          placementId={placement.id}
+          initial={{
+            monthly_fee_gbp: placement.monthly_fee_gbp,
+            revenue_share_percent: placement.revenue_share_percent,
+            qr_enabled: placement.qr_enabled,
+          }}
+          onClose={() => setCounterOpen(false)}
+          onSuccess={() => { setCounterOpen(false); load(); }}
+        />
+      )}
 
       {/* Summary grid — the first box is the headline commercial term so it
           reads clearly at a glance: revenue share %, monthly paid-loan fee,
