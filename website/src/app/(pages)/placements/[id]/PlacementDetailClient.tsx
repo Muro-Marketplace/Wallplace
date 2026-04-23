@@ -19,6 +19,8 @@ interface PlacementRow {
   venue_slug?: string;
   work_title: string;
   work_image?: string;
+  /** Additional works covered by the same placement (#16). */
+  extra_works?: Array<{ title: string; image?: string | null; size?: string | null }> | null;
   venue: string;
   arrangement_type: string;
   revenue_share_percent?: number | null;
@@ -579,6 +581,43 @@ export default function PlacementDetailClient({ placementId }: Props) {
           </p>
         </div>
       </div>
+
+      {/* Works covered by this placement. The primary work is the
+          header; additional works (#16) appear as a labelled gallery
+          underneath so both parties see the full set of pieces the
+          deal covers. */}
+      {placement.extra_works && placement.extra_works.length > 0 && (
+        <div className="mb-6">
+          <h2 className="font-serif text-xl text-foreground mb-3">Works in this placement</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {/* Primary first so its position is clear. */}
+            <div className="bg-surface border border-accent/30 rounded-sm overflow-hidden">
+              <div className="aspect-square relative bg-[#f5f5f3]">
+                {placement.work_image && (
+                  <Image src={placement.work_image} alt={placement.work_title} fill className="object-cover" sizes="160px" />
+                )}
+                <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-sm bg-accent text-white text-[10px] font-medium">Primary</span>
+              </div>
+              <div className="p-2.5">
+                <p className="text-xs font-medium text-foreground truncate">{placement.work_title}</p>
+              </div>
+            </div>
+            {placement.extra_works.map((w, i) => (
+              <div key={`${w.title}-${i}`} className="bg-surface border border-border rounded-sm overflow-hidden">
+                <div className="aspect-square relative bg-[#f5f5f3]">
+                  {w.image && (
+                    <Image src={w.image} alt={w.title} fill className="object-cover" sizes="160px" />
+                  )}
+                </div>
+                <div className="p-2.5">
+                  <p className="text-xs font-medium text-foreground truncate">{w.title}</p>
+                  {w.size && <p className="text-[10px] text-muted truncate">{w.size}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Negotiation log — every offer / counter / response that led
           to the current terms. Only rendered when there's something to

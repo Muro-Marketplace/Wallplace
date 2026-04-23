@@ -27,7 +27,16 @@ function ConfirmationContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const { clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, userType } = useAuth();
+  // Where the "View My Orders" CTA lands depends on who's buying:
+  // venues go to their own venue-portal orders (where placement
+  // sales and purchases sit as separate tabs), artists to the artist
+  // orders page, everyone else to the customer portal.
+  const ordersHref = userType === "venue"
+    ? "/venue-portal/orders"
+    : userType === "artist"
+      ? "/artist-portal/orders"
+      : "/customer-portal";
   const [order, setOrder] = useState<StripeOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -191,7 +200,7 @@ function ConfirmationContent() {
         </Link>
         {user && (
           <Link
-            href="/customer-portal"
+            href={ordersHref}
             className="inline-flex items-center justify-center px-6 py-3 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors"
           >
             View My Orders

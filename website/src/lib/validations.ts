@@ -101,6 +101,16 @@ export const placementSchema = z.object({
   message: optionalString(2000),
   qrEnabled: z.boolean().optional(),
   monthlyFeeGbp: z.number().min(0).max(100000).optional(),
+  // Additional works covered by the same placement. The primary work
+  // still lives in workTitle / workImage; extras ride along and share
+  // terms + lifecycle. Capped at 20 so a single placement can't be
+  // used to shove an entire portfolio into one row.
+  extraWorks: z.array(z.object({
+    title: safeString(200),
+    image: optionalString(1000),
+    size: optionalString(100),
+  })).max(20).optional(),
+  requestedDimensions: optionalString(100),
 });
 
 export const placementUpdateSchema = z.object({

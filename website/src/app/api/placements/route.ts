@@ -339,6 +339,12 @@ export async function POST(request: Request) {
       venue_slug: venueProfile!.slug,
       work_title: p.workTitle,
       work_image: p.workImage || null,
+      // Additional works sharing the same placement row. Saved into
+      // extra_works (migration 027); if the column isn't applied yet
+      // the retry logic below strips it gracefully.
+      extra_works: Array.isArray(p.extraWorks) && p.extraWorks.length > 0
+        ? p.extraWorks.map((w) => ({ title: w.title, image: w.image || null, size: w.size || null }))
+        : null,
       venue: venueProfile!.name,
       arrangement_type: p.type,
       revenue_share_percent: p.revenueSharePercent || null,
@@ -366,7 +372,7 @@ export async function POST(request: Request) {
     // Pattern-match the error message and strip only the columns the DB
     // actually rejected, so we don't silently drop payment info.
     const stripped = new Set<string>();
-    const candidates = ["requester_user_id", "venue_slug", "artist_slug", "monthly_fee_gbp", "qr_enabled", "message"];
+    const candidates = ["requester_user_id", "venue_slug", "artist_slug", "monthly_fee_gbp", "qr_enabled", "message", "extra_works"];
     while (error) {
       const msg = error.message || "";
       const newStrip = candidates.filter((c) => !stripped.has(c) && new RegExp(`\\b${c}\\b`).test(msg));

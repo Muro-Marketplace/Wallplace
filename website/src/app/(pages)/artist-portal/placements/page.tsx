@@ -22,6 +22,8 @@ type PlacementStatus = "Active" | "Pending" | "Declined" | "Completed" | "Sold" 
 interface Placement {
   id: string;
   workTitle: string;
+  /** Additional works sharing this placement (#16). */
+  extraWorks?: Array<{ title: string; image: string | null; size: string | null }>;
   workImage: string;
   workSize?: string;
   venue: string;
@@ -183,6 +185,9 @@ export default function PlacementsPage() {
               workTitle: (p.work_title as string) || "Untitled",
               workImage: (p.work_image as string) || "",
               workSize: (p.work_size as string) || undefined,
+              extraWorks: Array.isArray(p.extra_works)
+                ? (p.extra_works as Array<{ title: string; image: string | null; size: string | null }>)
+                : undefined,
               venue: (p.venue as string) || "",
               venueSlug: (p.venue_slug as string) || "",
               type: normaliseType((p.arrangement_type as string) || "free_loan", {
@@ -797,7 +802,14 @@ export default function PlacementsPage() {
                         <Image src={p.workImage} alt={p.workTitle} fill className="object-cover" sizes="32px" />
                       </div>
                       <div className="min-w-0">
-                        <span className="font-medium text-foreground block truncate">{p.workTitle}</span>
+                        <span className="font-medium text-foreground block truncate">
+                          {p.workTitle}
+                          {p.extraWorks && p.extraWorks.length > 0 && (
+                            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-accent bg-accent/10 rounded-sm align-middle">
+                              +{p.extraWorks.length} more
+                            </span>
+                          )}
+                        </span>
                         {nextActionText(p) && (
                           <span className="text-[11px] text-accent block truncate">{nextActionText(p)}</span>
                         )}
@@ -1062,7 +1074,14 @@ export default function PlacementsPage() {
                     <Image src={p.workImage} alt={p.workTitle} fill className="object-cover" sizes="40px" />
                   </div>
                   <div>
-                    <p className="font-medium text-foreground text-sm leading-snug">{p.workTitle}</p>
+                    <p className="font-medium text-foreground text-sm leading-snug">
+                      {p.workTitle}
+                      {p.extraWorks && p.extraWorks.length > 0 && (
+                        <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-accent bg-accent/10 rounded-sm align-middle">
+                          +{p.extraWorks.length} more
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-muted">{p.venue}</p>
                   </div>
                 </div>
