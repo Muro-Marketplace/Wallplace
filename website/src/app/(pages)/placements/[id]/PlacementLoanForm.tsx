@@ -27,6 +27,61 @@ function strOr(v: unknown): string {
   return v === null || v === undefined ? "" : String(v);
 }
 
+function ApprovalRow({
+  label,
+  editable,
+  checked,
+  approvedAt,
+  unapprovedText,
+  onChange,
+}: {
+  label: string;
+  editable: boolean;
+  checked: boolean;
+  approvedAt?: string | null;
+  unapprovedText: string;
+  onChange: (v: boolean) => void;
+}) {
+  const dateLabel = approvedAt
+    ? new Date(approvedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : null;
+  if (editable) {
+    return (
+      <label className="flex items-start gap-3 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="accent-accent w-4 h-4 mt-0.5"
+        />
+        <div className="flex-1">
+          <p className="text-sm text-foreground font-medium">I approve this loan / consignment record on behalf of the {label.toLowerCase().replace(" approval", "")}.</p>
+          {dateLabel && (
+            <p className="text-xs text-muted mt-0.5">Approved {dateLabel}</p>
+          )}
+        </div>
+      </label>
+    );
+  }
+  return (
+    <div className="flex items-start gap-3">
+      <span className={`inline-flex items-center justify-center w-4 h-4 mt-0.5 rounded-sm shrink-0 ${checked ? "bg-green-500 text-white" : "border border-border"}`}>
+        {checked && (
+          <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+        )}
+      </span>
+      <div className="flex-1">
+        <p className="text-sm text-foreground">
+          {checked ? `${label.replace(" approval", "")} has approved this record.` : unapprovedText}
+        </p>
+        {checked && dateLabel && (
+          <p className="text-xs text-muted mt-0.5">Approved {dateLabel}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function numOrNull(s: string): number | null {
   const t = s.trim();
   if (t === "") return null;
@@ -70,6 +125,7 @@ export default function PlacementLoanForm({ placementId, record, viewerRole, pla
     contractAttachmentUrl: record.contract_attachment_url || "",
     internalNotes: record.internal_notes || "",
     venueApproved: record.venue_approved ?? false,
+    artistApproved: record.artist_approved ?? false,
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -126,8 +182,9 @@ export default function PlacementLoanForm({ placementId, record, viewerRole, pla
         logisticsNotes: form.logisticsNotes,
         contractAttachmentUrl: form.contractAttachmentUrl,
         internalNotes: form.internalNotes,
-        // Only the venue role is allowed to submit this field; omit otherwise.
+        // Only the role that owns each approval field may submit it.
         ...(viewerRole === "venue" ? { venueApproved: form.venueApproved } : {}),
+        ...(viewerRole === "artist" ? { artistApproved: form.artistApproved } : {}),
       };
       const res = await authFetch(`/api/placements/${encodeURIComponent(placementId)}/record`, {
         method: "PUT",
@@ -170,6 +227,9 @@ export default function PlacementLoanForm({ placementId, record, viewerRole, pla
         internal_notes: payload.internalNotes,
         ...(viewerRole === "venue"
           ? { venue_approved: form.venueApproved, venue_approved_at: form.venueApproved ? new Date().toISOString() : null }
+          : {}),
+        ...(viewerRole === "artist"
+          ? { artist_approved: form.artistApproved, artist_approved_at: form.artistApproved ? new Date().toISOString() : null }
           : {}),
       });
       setSaved(true);
@@ -215,38 +275,52 @@ export default function PlacementLoanForm({ placementId, record, viewerRole, pla
         </div>
       </div>
 
-      {/* Venue approval — only shown/editable for the venue party */}
-      <div className="bg-background border border-border rounded-sm p-4">
-        {viewerRole === "venue" ? (
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.venueApproved}
-              onChange={(e) => update("venueApproved", e.target.checked)}
-              className="accent-accent w-4 h-4"
-            />
-            <span className="text-sm text-foreground font-medium">
-              I approve this loan / consignment record
-            </span>
-            {record.venue_approved_at && (
-              <span className="text-xs text-muted">
-                Approved {new Date(record.venue_approved_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-              </span>
-            )}
-          </label>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center justify-center w-4 h-4 rounded-sm ${record.venue_approved ? "bg-green-500 text-white" : "border border-border"}`}>
-              {record.venue_approved && (
-                <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+      {/* Bilateral approval — both parties have to sign off. Each row
+          is editable only for the matching role; the other party sees a
+          read-only status. A fully approved record shows a green summary
+          line; an unapproved record calls out who still owes a tick. */}
+      {(() => {
+        const artistTicked = viewerRole === "artist" ? form.artistApproved : !!record.artist_approved;
+        const venueTicked = viewerRole === "venue" ? form.venueApproved : !!record.venue_approved;
+        const bothApproved = artistTicked && venueTicked;
+        const waitingOn: string[] = [];
+        if (!artistTicked) waitingOn.push("artist");
+        if (!venueTicked) waitingOn.push("venue");
+        return (
+          <div className={`rounded-sm p-4 space-y-3 ${bothApproved ? "bg-green-50 border border-green-200" : "bg-background border border-border"}`}>
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <p className="text-xs font-medium text-foreground uppercase tracking-wider">
+                Record approval
+              </p>
+              {bothApproved ? (
+                <span className="text-xs font-medium text-green-700">Approved by both parties</span>
+              ) : (
+                <span className="text-xs text-muted">Waiting on {waitingOn.join(" and ")}</span>
               )}
-            </span>
-            <span className="text-sm text-foreground">
-              {record.venue_approved ? "Venue has approved this record" : "Awaiting venue approval"}
-            </span>
+            </div>
+
+            {/* Artist row */}
+            <ApprovalRow
+              label="Artist approval"
+              editable={viewerRole === "artist"}
+              checked={artistTicked}
+              approvedAt={record.artist_approved_at ?? null}
+              unapprovedText="Artist has not yet approved this record."
+              onChange={(v) => update("artistApproved", v)}
+            />
+
+            {/* Venue row */}
+            <ApprovalRow
+              label="Venue approval"
+              editable={viewerRole === "venue"}
+              checked={venueTicked}
+              approvedAt={record.venue_approved_at ?? null}
+              unapprovedText="Venue has not yet approved this record."
+              onChange={(v) => update("venueApproved", v)}
+            />
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       {/* Dates */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

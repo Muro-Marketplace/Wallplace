@@ -341,7 +341,11 @@ export default function PlacementsPage() {
       id: `p-${Date.now()}-${headIdx}`,
       workTitle: headWork.title,
       workImage: headWork.image,
+      // Keep workSize on the local object for the optimistic UI update,
+      // and send it as requestedDimensions so it flows through the zod
+      // schema and lands in placements.work_size on the server.
       workSize: workSizes[headIdx] || undefined,
+      requestedDimensions: workSizes[headIdx] || undefined,
       venueSlug,
       // QR and paid-loan are independent now. If there's a monthly fee
       // this is a paid loan (optionally also QR-enabled); otherwise it's
@@ -1149,6 +1153,24 @@ export default function PlacementsPage() {
                           {p.status === "Pending" && !p.canRespond && p.direction === "sent" && (
                             <span className="px-3 py-1.5 text-[11px] font-medium text-amber-700 border border-amber-200 rounded-sm">
                               Awaiting their response
+                            </span>
+                          )}
+                          {/* Decline isn't the end of the deal — the
+                              original offerer can revise terms from here
+                              without having to open the full placement
+                              page or the message thread. */}
+                          {p.status === "Declined" && p.direction === "sent" && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setCounteringId(p.id); }}
+                              className="px-3.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-sm transition-colors"
+                            >
+                              Counter with new terms
+                            </button>
+                          )}
+                          {p.status === "Declined" && p.direction === "received" && (
+                            <span className="px-3 py-1.5 text-[11px] font-medium text-muted border border-border rounded-sm">
+                              Waiting on them to come back
                             </span>
                           )}
                         </div>

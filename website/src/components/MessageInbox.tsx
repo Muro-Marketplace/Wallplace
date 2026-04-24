@@ -846,11 +846,32 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                           );
                           if (hasResponse && responseMsg) {
                             const accepted = responseMsg.metadata?.status === "active";
+                            // Gate for the Counter-on-declined button: the
+                            // original offerer (requester) may revise terms;
+                            // the decliner waits for them.
+                            const metaRequesterId = (meta.requesterUserId as string | undefined) || undefined;
+                            const iAmOfferer = metaRequesterId
+                              ? metaRequesterId === user?.id
+                              : isMe;
                             return (
                               <div className={`px-3.5 py-2 border-t ${accepted ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
-                                <p className={`text-xs font-medium ${accepted ? "text-green-700" : "text-red-600"}`}>
-                                  {accepted ? "✓ Accepted" : "✗ Declined"}
-                                </p>
+                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                  <p className={`text-xs font-medium ${accepted ? "text-green-700" : "text-red-600"}`}>
+                                    {accepted ? "✓ Accepted" : "✗ Declined"}
+                                  </p>
+                                  {!accepted && iAmOfferer && typeof placementId === "string" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setCounteringId(placementId)}
+                                      className="px-2.5 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-full transition-colors"
+                                    >
+                                      Counter with new terms
+                                    </button>
+                                  )}
+                                </div>
+                                {!accepted && !iAmOfferer && (
+                                  <p className="text-[11px] text-muted mt-1">You declined — the other party can come back with revised terms.</p>
+                                )}
                               </div>
                             );
                           }

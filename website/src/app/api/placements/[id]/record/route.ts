@@ -40,6 +40,10 @@ const recordSchema = z.object({
   contractAttachmentUrl: z.string().max(2000).optional(),
   internalNotes: z.string().max(4000).optional(),
   venueApproved: z.boolean().optional(),
+  // Bilateral approval: both parties now tick to finalise the record.
+  // The API gates each field to the relevant role so artists can't
+  // tick the venue's box and vice versa.
+  artistApproved: z.boolean().optional(),
 });
 
 // Upsert placement_record. Only parties of the placement may write.
@@ -119,14 +123,22 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   if (d.logisticsNotes !== undefined) row.logistics_notes = d.logisticsNotes;
   if (d.contractAttachmentUrl !== undefined) row.contract_attachment_url = d.contractAttachmentUrl;
   if (d.internalNotes !== undefined) row.internal_notes = d.internalNotes;
-  // F43 — venue-approval tickbox. Only the venue party can set it; if they
-  // do, stamp the timestamp. Unchecking clears the timestamp.
+  // Bilateral approval tickboxes. Each party can only tick their own
+  // box; the other side must submit for themselves before the record
+  // counts as finalised.
   if (d.venueApproved !== undefined) {
     if (placement.venue_user_id !== auth.user!.id) {
-      return NextResponse.json({ error: "Only the venue can approve" }, { status: 403 });
+      return NextResponse.json({ error: "Only the venue can approve the record on the venue's behalf." }, { status: 403 });
     }
     row.venue_approved = d.venueApproved;
     row.venue_approved_at = d.venueApproved ? new Date().toISOString() : null;
+  }
+  if (d.artistApproved !== undefined) {
+    if (placement.artist_user_id !== auth.user!.id) {
+      return NextResponse.json({ error: "Only the artist can approve the record on the artist's behalf." }, { status: 403 });
+    }
+    row.artist_approved = d.artistApproved;
+    row.artist_approved_at = d.artistApproved ? new Date().toISOString() : null;
   }
 
   const { data: existing } = await db
@@ -135,18 +147,31 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     .eq("placement_id", id)
     .maybeSingle();
 
-  if (existing) {
-    const { error } = await db.from("placement_records").update(row).eq("placement_id", id);
-    if (error) {
-      console.error("placement_records update error:", error);
-      return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+  // Retry path: artist_approved / artist_approved_at may not exist yet in
+  // older environments (migration 031). Strip those columns and try again
+  // so the rest of the record still saves.
+  async function upsertWithRetry(rowToWrite: Record<string, unknown>) {
+    const target = existing
+      ? db.from("placement_records").update(rowToWrite).eq("placement_id", id)
+      : db.from("placement_records").insert(rowToWrite);
+    let res = await target;
+    if (res.error) {
+      const msg = String(res.error.message || "").toLowerCase();
+      if (msg.includes("artist_approved")) {
+        const { artist_approved, artist_approved_at, ...safe } = rowToWrite as Record<string, unknown>;
+        const retry = existing
+          ? await db.from("placement_records").update(safe).eq("placement_id", id)
+          : await db.from("placement_records").insert(safe);
+        res = retry;
+      }
     }
-  } else {
-    const { error } = await db.from("placement_records").insert(row);
-    if (error) {
-      console.error("placement_records insert error:", error);
-      return NextResponse.json({ error: "Failed to save" }, { status: 500 });
-    }
+    return res;
+  }
+
+  const { error } = await upsertWithRetry(row);
+  if (error) {
+    console.error("placement_records save error:", error);
+    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

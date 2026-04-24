@@ -328,6 +328,11 @@ export default function VenuePlacementsPage() {
   const [revenuePercent, setRevenuePercent] = useState<number | "">(0);
   const [qrEnabled, setQrEnabled] = useState(true);
   const [monthlyFee, setMonthlyFee] = useState<number | "">("");
+  // "Paid loan" toggle is now independent of the fee input so the user
+  // can clear the field and retype a new number without the checkbox
+  // toggling off. The form maps monthlyFee=0/"" → no fee only when the
+  // toggle itself is off on submit.
+  const [paidLoanEnabled, setPaidLoanEnabled] = useState(false);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -506,16 +511,20 @@ export default function VenuePlacementsPage() {
     });
     setSizePickerFor(null);
   }
-  // Clicking a card either selects it (default: Any size) and opens
-  // the picker, or — if already selected — just re-opens the picker
-  // so the user can change size / deselect. No half-state where the
-  // card is "open but unselected".
+  // Clicking a card toggles selection with "Any size" as the default.
+  // The picker no longer opens automatically — picking a size is an
+  // opt-in action, so a quick single click selects the work without
+  // forcing the user to also pick a size. Clicking again deselects.
   function handleCardClick(title: string) {
     setSelectedWorkSizes((prev) => {
-      if (title in prev) return prev; // already selected — keep current size
-      return { ...prev, [title]: "" }; // select with Any size as default
+      if (title in prev) {
+        const next = { ...prev };
+        delete next[title];
+        return next;
+      }
+      return { ...prev, [title]: "" }; // Any size by default
     });
-    setSizePickerFor((prev) => (prev === title ? null : title));
+    setSizePickerFor(null);
   }
 
   async function handleSubmitRequest() {
@@ -532,7 +541,12 @@ export default function VenuePlacementsPage() {
     setSubmitting(true);
 
     const rev = typeof revenuePercent === "number" ? revenuePercent : 0;
-    const fee = typeof monthlyFee === "number" ? monthlyFee : 0;
+    // Paid loan is on when the toggle is on, regardless of whether the
+    // user has filled in the fee box yet. Empty fee + enabled = £0 paid
+    // loan (still counts as a paid-loan arrangement). Toggle off = no
+    // monthly fee, even if the input retains a leftover number.
+    const fee = paidLoanEnabled && typeof monthlyFee === "number" ? monthlyFee : 0;
+    const paidLoan = paidLoanEnabled;
     // Compose the outbound message. Each work now carries its own
     // requested size so the artist sees exactly what was asked for
     // per piece, not a single lumped "preferred size".
@@ -569,12 +583,13 @@ export default function VenuePlacementsPage() {
       workTitle: primaryTitle,
       workImage: primaryWork?.image || "",
       venueSlug: "", // API resolves from auth
-      // With QR + Paid loan now independent: if a fee is set it's a paid
-      // loan (and may also be QR-enabled); otherwise it's a revenue share.
-      type: fee > 0 ? "free_loan" as const : "revenue_share" as const,
+      // Paid loan is on when the toggle is on (may also be QR-enabled);
+      // otherwise it's a QR revenue share. "free_loan" here is our
+      // historical label for the paid-loan variant.
+      type: paidLoan ? "free_loan" as const : "revenue_share" as const,
       revenueSharePercent: qrEnabled && rev > 0 ? rev : undefined,
       qrEnabled,
-      monthlyFeeGbp: fee > 0 ? fee : undefined,
+      monthlyFeeGbp: paidLoan ? fee : undefined,
       message: composed || undefined,
       requestedDimensions: primarySize || undefined,
       extraWorks: extraWorks.length > 0 ? extraWorks : undefined,
@@ -607,7 +622,7 @@ export default function VenuePlacementsPage() {
         artistSlug,
         workTitle: p.workTitle,
         workImage: p.workImage,
-        type: fee > 0 ? "Paid Loan" as ArrangementType : "Revenue Share" as ArrangementType,
+        type: paidLoan ? "Paid Loan" as ArrangementType : "Revenue Share" as ArrangementType,
         revenueSharePercent: p.revenueSharePercent,
         status: "Pending",
         date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
@@ -617,6 +632,7 @@ export default function VenuePlacementsPage() {
       setShowForm(false);
       setQrEnabled(true);
       setMonthlyFee("");
+      setPaidLoanEnabled(false);
       setSelectedWorkSizes({});
       setSizePickerFor(null);
       setMessage("");
@@ -864,11 +880,22 @@ export default function VenuePlacementsPage() {
                     <p className="text-xs text-muted">Display the work with a QR code linking to the artist&rsquo;s shop. You split QR sales via the share below.</p>
                   </div>
                 </label>
-                <label className={`flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${typeof monthlyFee === "number" && monthlyFee > 0 ? "border-accent bg-accent/5" : "border-border hover:border-foreground/30"}`}>
+                <label className={`flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors ${paidLoanEnabled ? "border-accent bg-accent/5" : "border-border hover:border-foreground/30"}`}>
                   <input
                     type="checkbox"
-                    checked={typeof monthlyFee === "number" && monthlyFee > 0}
-                    onChange={(e) => setMonthlyFee(e.target.checked ? 50 : "")}
+                    checked={paidLoanEnabled}
+                    onChange={(e) => {
+                      const on = e.target.checked;
+                      setPaidLoanEnabled(on);
+                      // Seed a sensible default the first time the user
+                      // turns paid loan on. Don't overwrite an existing
+                      // value; don't zero them out when turning it off
+                      // either — keeps the field state predictable while
+                      // they toggle back and forth.
+                      if (on && (monthlyFee === "" || monthlyFee === 0)) {
+                        setMonthlyFee(50);
+                      }
+                    }}
                     className="mt-0.5 accent-accent"
                   />
                   <div>
@@ -877,7 +904,7 @@ export default function VenuePlacementsPage() {
                   </div>
                 </label>
               </div>
-              {typeof monthlyFee === "number" && monthlyFee > 0 && (
+              {paidLoanEnabled && (
                 <div className="mt-3 pl-3">
                   <label className="block text-xs font-medium text-muted mb-1.5">Monthly fee to artist</label>
                   <div className="flex items-center gap-2">
@@ -975,6 +1002,19 @@ export default function VenuePlacementsPage() {
                             </div>
                           )}
                         </button>
+                        {/* "Change size" affordance — visible only when
+                            the work is selected, so the card-click keeps
+                            its simple toggle behaviour and size selection
+                            is an explicit opt-in. */}
+                        {selected && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setSizePickerFor((prev) => (prev === work.title ? null : work.title)); }}
+                            className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-sm bg-white/90 text-foreground text-[10px] font-medium border border-border hover:border-foreground/30 z-10"
+                          >
+                            {chosenSize ? "Change size" : "Pick size"}
+                          </button>
+                        )}
                         {pickerOpen && (
                           <div
                             className="absolute left-0 right-0 mt-1 bg-background border border-border rounded-sm shadow-lg z-20 overflow-hidden"

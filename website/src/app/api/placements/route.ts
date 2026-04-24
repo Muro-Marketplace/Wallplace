@@ -339,6 +339,9 @@ export async function POST(request: Request) {
       venue_slug: venueProfile!.slug,
       work_title: p.workTitle,
       work_image: p.workImage || null,
+      // Size requested for the primary work. Migration 032 adds the
+      // column; retry-strip handles older environments.
+      work_size: p.requestedDimensions || null,
       // Additional works sharing the same placement row. Saved into
       // extra_works (migration 027); if the column isn't applied yet
       // the retry logic below strips it gracefully.
@@ -372,7 +375,7 @@ export async function POST(request: Request) {
     // Pattern-match the error message and strip only the columns the DB
     // actually rejected, so we don't silently drop payment info.
     const stripped = new Set<string>();
-    const candidates = ["requester_user_id", "venue_slug", "artist_slug", "monthly_fee_gbp", "qr_enabled", "message", "extra_works"];
+    const candidates = ["requester_user_id", "venue_slug", "artist_slug", "monthly_fee_gbp", "qr_enabled", "message", "extra_works", "work_size"];
     while (error) {
       const msg = error.message || "";
       const newStrip = candidates.filter((c) => !stripped.has(c) && new RegExp(`\\b${c}\\b`).test(msg));
@@ -607,18 +610,37 @@ export async function PATCH(request: Request) {
     // most recent counter message carries the counterer's user_id in
     // metadata.requesterUserId. If that matches the current user, they
     // are effectively the current requester and must not accept/decline
-    // their own counter.
-    if (!isRequester && (status === "active" || status === "declined")) {
-      const { data: latestCounter } = await db
+    // their own counter. This also runs for `counter` requests now — the
+    // original offerer being unable to counter their own declined offer
+    // was because `isRequester` hadn't been resolved via the messages
+    // fallback when the column wasn't populated.
+    if (!isRequester) {
+      const { data: reqMsgs } = await db
         .from("messages")
-        .select("metadata")
+        .select("sender_id, metadata, created_at")
         .eq("message_type", "placement_request")
-        .contains("metadata", { placementId: id, counter: true })
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const latestRequesterFromCounter = (latestCounter?.metadata as Record<string, unknown> | null)?.requesterUserId as string | undefined;
-      if (latestRequesterFromCounter && latestRequesterFromCounter === auth.user!.id) {
+        .limit(50);
+      let foundFromCounter = false;
+      let fallbackSender: string | null = null;
+      for (const m of (reqMsgs || []) as Array<{ sender_id: string | null; metadata: Record<string, unknown> | null; created_at: string }>) {
+        if (m.metadata?.placementId !== id) continue;
+        if (!foundFromCounter && m.metadata?.counter === true) {
+          const s = (m.metadata?.requesterUserId as string | undefined) || m.sender_id;
+          if (s && s === auth.user!.id) {
+            isRequester = true;
+            foundFromCounter = true;
+            break;
+          }
+        }
+        // Track the oldest placement_request sender as the original
+        // requester — used when there's no counter and the column is
+        // NULL. This fixes "original offerer can't counter a declined
+        // offer" on legacy rows.
+        const s = (m.metadata?.requesterUserId as string | undefined) || m.sender_id;
+        if (s) fallbackSender = s; // list is newest-first so last wins = oldest
+      }
+      if (!isRequester && fallbackSender && fallbackSender === auth.user!.id) {
         isRequester = true;
       }
     }
@@ -917,14 +939,33 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Failed to update placement" }, { status: 500 });
     }
 
-    // On pending → active/declined, notify the requester (fire-and-forget)
+    // On pending → active/declined, notify the requester. If the column
+    // was NULL we try to infer from the first placement_request message —
+    // otherwise the decliner's decision never reaches the other party's
+    // bell icon, which was the "I didn't get notified when placement was
+    // declined" gap.
+    let notifyRequesterId: string | null = requesterId;
+    if (!notifyRequesterId) {
+      const { data: firstMsgs } = await db
+        .from("messages")
+        .select("sender_id, metadata, created_at")
+        .eq("message_type", "placement_request")
+        .order("created_at", { ascending: true })
+        .limit(20);
+      for (const m of (firstMsgs || []) as Array<{ sender_id: string | null; metadata: Record<string, unknown> | null }>) {
+        if (m.metadata?.placementId === id) {
+          const s = (m.metadata?.requesterUserId as string | undefined) || m.sender_id;
+          if (s && s !== auth.user!.id) { notifyRequesterId = s; break; }
+        }
+      }
+    }
     if (
-      requesterId &&
+      notifyRequesterId &&
       existing.status === "pending" &&
       (status === "active" || status === "declined")
     ) {
       try {
-        const { data: { user: requesterUser } } = await db.auth.admin.getUserById(requesterId);
+        const { data: { user: requesterUser } } = await db.auth.admin.getUserById(notifyRequesterId);
         const { data: artistProfile } = await db
           .from("artist_profiles")
           .select("name")
@@ -944,7 +985,7 @@ export async function PATCH(request: Request) {
         // specific placement page so clicking the notification lands
         // exactly on the deal that changed, not the full list.
         createNotification({
-          userId: requesterId,
+          userId: notifyRequesterId,
           kind: status === "active" ? "placement_accepted" : "placement_declined",
           title: status === "active" ? "Placement accepted" : "Placement declined",
           body: `${artistProfile?.name || "Artist"} · ${existing.venue || "Venue"}`,

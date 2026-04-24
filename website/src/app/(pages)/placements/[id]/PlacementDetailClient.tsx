@@ -19,6 +19,8 @@ interface PlacementRow {
   venue_slug?: string;
   work_title: string;
   work_image?: string;
+  /** Size the venue / artist picked for the primary work at request time. */
+  work_size?: string | null;
   /** Additional works covered by the same placement (#16). */
   extra_works?: Array<{ title: string; image?: string | null; size?: string | null }> | null;
   venue: string;
@@ -69,6 +71,8 @@ export interface PlacementRecord {
   internal_notes?: string;
   venue_approved?: boolean;
   venue_approved_at?: string | null;
+  artist_approved?: boolean;
+  artist_approved_at?: string | null;
 }
 
 interface PhotoRow {
@@ -688,6 +692,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
               </div>
               <div className="p-2.5">
                 <p className="text-xs font-medium text-foreground truncate">{placement.work_title}</p>
+                {placement.work_size && <p className="text-[10px] text-muted truncate">{placement.work_size}</p>}
               </div>
             </div>
             {placement.extra_works.map((w, i) => (

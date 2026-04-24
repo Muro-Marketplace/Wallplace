@@ -19,6 +19,8 @@ interface Placement {
   id: string;
   work_title: string;
   work_image?: string | null;
+  /** Size picked for the primary work at request time (migration 032). */
+  work_size?: string | null;
   artist_slug: string;
   venue?: string | null;
   status: string;
@@ -62,10 +64,15 @@ export default function VenueLabelsPage() {
 
         // If the caller passed ?placement=<id>, preselect that row so
         // deep links from the placement detail page land with the right
-        // work already ticked and ready for label printing.
+        // work already ticked and ready for label printing. Without the
+        // deep-link param, preselect every active placement — the user
+        // almost always wants labels for all of them, and they can
+        // deselect the odd one out.
         if (preselectPlacementId) {
           const idx = active.findIndex((p) => p.id === preselectPlacementId);
           if (idx >= 0) setSelected(new Set([idx]));
+        } else if (active.length > 0) {
+          setSelected(new Set(active.map((_, i) => i)));
         }
 
         // Best-effort lookup of artist display names
@@ -159,17 +166,22 @@ export default function VenueLabelsPage() {
       // on the label.
       const artist = artistsBySlug[p.artist_slug];
       const work = artist?.works?.find((w) => w.title === p.work_title);
+      // Prefer the size the venue / artist agreed on in the placement
+      // itself — that's what's actually on the wall — over the artist's
+      // generic published dimensions. Falls back cleanly if no specific
+      // size was picked.
+      const effectiveDimensions = p.work_size || work?.dimensions;
       return {
         artistName: formatArtistName(p.artist_slug),
         artistSlug: p.artist_slug,
         venueName: venueName || (p.venue ?? undefined),
         workTitle: p.work_title,
         workMedium: options.showMedium ? (work?.medium || undefined) : undefined,
-        workDimensions: options.showDimensions ? (work?.dimensions || undefined) : undefined,
+        workDimensions: options.showDimensions ? (effectiveDimensions || undefined) : undefined,
         workPrice: options.showPrice ? (work?.priceBand || undefined) : undefined,
         _sourceMedium: work?.medium,
         _sourcePrice: work?.priceBand,
-        _sourceDimensions: work?.dimensions,
+        _sourceDimensions: effectiveDimensions,
         quantity: getQty(i),
         labelSize,
         tagline: (labelSize === "large" || labelSize === "xlarge") ? tagline || undefined : undefined,
