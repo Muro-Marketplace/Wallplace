@@ -557,10 +557,23 @@ export default function Header() {
                         ) : (
                           notifications.map((n) => {
                             const isUnread = !n.readAt;
+                            // Derive a sensible href when the row's own link
+                            // is empty (legacy notifications written before
+                            // we started populating link, or platform
+                            // notifications with no specific destination).
+                            // Without this, clicking the row just closes
+                            // the dropdown without navigating anywhere.
+                            const fallbackHref =
+                              n.type === "message"
+                                ? `${portalBase}/messages`
+                                : n.type === "placement" || n.type === "placement_request" || n.type === "placement_accepted" || n.type === "placement_declined"
+                                  ? `${portalBase}/placements`
+                                  : portalBase;
+                            const href = n.link && n.link !== "#" ? n.link : fallbackHref;
                             return (
                             <Link
                               key={n.id}
-                              href={n.link || "#"}
+                              href={href}
                               onClick={() => {
                                 setNotifDropdownOpen(false);
                                 // Optimistically mark this one read so the

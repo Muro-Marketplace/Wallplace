@@ -63,12 +63,20 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       : Promise.resolve({ data: null }),
   ]);
 
-  // Override requester_user_id with the sender of the most recent
-  // counter message (if any). The counter flow writes this via
-  // metadata.requesterUserId; the placements row column can lag
-  // behind if the update hit an older schema, so the messages are
-  // the authoritative source for "who currently owes a response."
+  // Resolve who currently "owns" the request — i.e. who made the latest
+  // offer and is therefore awaiting a response. Precedence:
+  //   1. Latest counter message sender (most recent acts).
+  //   2. The placements.requester_user_id column.
+  //   3. The original placement_request message sender (used when the
+  //      column is NULL because the row was created before we started
+  //      writing requester_user_id, or because the column doesn't exist
+  //      in the env). Without this fallback, a brand-new pending row
+  //      with NULL requester_user_id reads as `null !== userId` true
+  //      for everyone — and the original sender sees their own
+  //      Accept/Decline buttons. That was the "first request you can
+  //      accept your own" bug.
   let effectiveRequesterId: string | null = placement.requester_user_id || null;
+  let firstRequester: string | null = null;
   try {
     const { data: reqMsgs } = await db
       .from("messages")
@@ -76,17 +84,25 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       .eq("message_type", "placement_request")
       .order("created_at", { ascending: false })
       .limit(50);
+    let counterFound = false;
     for (const m of (reqMsgs || []) as Array<{ sender_id: string | null; metadata: Record<string, unknown> | null; created_at: string }>) {
       if (m.metadata?.placementId !== id) continue;
-      if (m.metadata?.counter === true) {
+      if (!counterFound && m.metadata?.counter === true) {
         const sender = (m.metadata?.requesterUserId as string | undefined) || m.sender_id;
         if (sender) {
           effectiveRequesterId = sender;
-          break; // newest first
+          counterFound = true;
         }
       }
+      // The list is newest-first; track every match so the last seen
+      // (oldest) becomes the original requester for the fallback path.
+      const senderForFallback = (m.metadata?.requesterUserId as string | undefined) || m.sender_id;
+      if (senderForFallback) firstRequester = senderForFallback;
     }
   } catch { /* non-fatal */ }
+  if (!effectiveRequesterId && firstRequester) {
+    effectiveRequesterId = firstRequester;
+  }
 
   return NextResponse.json({
     placement: {

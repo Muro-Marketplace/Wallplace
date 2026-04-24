@@ -321,49 +321,64 @@ export default function PlacementsPage() {
 
     const rev = typeof revenuePercent === "number" ? revenuePercent : 0;
     const fee = typeof monthlyFee === "number" ? monthlyFee : 0;
-    const newPlacements = Array.from(selectedWorks).map((workIndex) => {
-      const work = works[workIndex];
+    // Bundle every selected work into a SINGLE placement: first selection
+    // becomes the headline work, the rest ride along in extraWorks. This
+    // matches the venue-side flow and keeps the multi-work selection from
+    // exploding into N separate placements that share nothing but a venue.
+    const orderedIndices = Array.from(selectedWorks);
+    const headIdx = orderedIndices[0];
+    const restIndices = orderedIndices.slice(1);
+    const headWork = works[headIdx];
+    const extraWorks = restIndices.map((i) => {
+      const w = works[i];
       return {
-        id: `p-${Date.now()}-${workIndex}`,
-        workTitle: work.title,
-        workImage: work.image,
-        workSize: workSizes[workIndex] || undefined,
-        venueSlug,
-        // QR and paid-loan are independent now. If there's a monthly fee
-        // this is a paid loan (optionally also QR-enabled); otherwise it's
-        // a revenue share. Monthly fee always flows through when set.
-        type: fee > 0 ? "free_loan" as const : "revenue_share" as const,
-        revenueSharePercent: qrEnabled && rev > 0 ? rev : undefined,
-        notes: notes || undefined,
-        message: message || undefined,
-        qrEnabled,
-        monthlyFeeGbp: fee > 0 ? fee : undefined,
+        title: w.title,
+        image: w.image || null,
+        size: workSizes[i] || null,
       };
     });
+    const newPlacement = {
+      id: `p-${Date.now()}-${headIdx}`,
+      workTitle: headWork.title,
+      workImage: headWork.image,
+      workSize: workSizes[headIdx] || undefined,
+      venueSlug,
+      // QR and paid-loan are independent now. If there's a monthly fee
+      // this is a paid loan (optionally also QR-enabled); otherwise it's
+      // a revenue share. Monthly fee always flows through when set.
+      type: fee > 0 ? "free_loan" as const : "revenue_share" as const,
+      revenueSharePercent: qrEnabled && rev > 0 ? rev : undefined,
+      notes: notes || undefined,
+      message: message || undefined,
+      qrEnabled,
+      monthlyFeeGbp: fee > 0 ? fee : undefined,
+      extraWorks: extraWorks.length > 0 ? extraWorks : undefined,
+    };
 
     try {
       const res = await authFetch("/api/placements", {
         method: "POST",
-        body: JSON.stringify({ placements: newPlacements }),
+        body: JSON.stringify({ placements: [newPlacement] }),
       });
       if (res.ok) {
         const selectedVenue = venues.find((v) => v.slug === venueSlug);
-        const mapped: Placement[] = newPlacements.map((p) => ({
-          id: p.id,
-          workTitle: p.workTitle,
-          workImage: p.workImage,
-          workSize: p.workSize,
+        const mapped: Placement = {
+          id: newPlacement.id,
+          workTitle: newPlacement.workTitle,
+          workImage: newPlacement.workImage,
+          workSize: newPlacement.workSize,
           venue: selectedVenue?.name || venueSlug,
-          venueSlug: p.venueSlug,
+          venueSlug: newPlacement.venueSlug,
           type: rev > 0 ? "Revenue Share" as ArrangementType : "Paid Loan" as ArrangementType,
-          revenueSharePercent: p.revenueSharePercent,
+          revenueSharePercent: newPlacement.revenueSharePercent,
           status: "Pending",
           date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
           revenue: null,
-          notes: p.notes,
-          message: p.message,
-        }));
-        setPlacements([...mapped, ...placements]);
+          notes: newPlacement.notes,
+          message: newPlacement.message,
+          extraWorks: newPlacement.extraWorks,
+        };
+        setPlacements([mapped, ...placements]);
         setShowForm(false);
         setVenueSlug("");
         setSelectedWorks(new Set());
@@ -757,7 +772,11 @@ export default function PlacementsPage() {
                 disabled={!venueSlug || selectedWorks.size === 0 || submitting}
                 className="px-6 py-2.5 text-sm font-medium text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {submitting ? "Sending..." : `Request ${selectedWorks.size} Placement${selectedWorks.size !== 1 ? "s" : ""}`}
+                {submitting
+                  ? "Sending..."
+                  : selectedWorks.size > 1
+                    ? `Request placement (${selectedWorks.size} works)`
+                    : "Request placement"}
               </button>
               <button onClick={() => setShowForm(false)} className="px-6 py-2.5 text-sm text-muted border border-border rounded-sm hover:text-foreground transition-colors">
                 Cancel

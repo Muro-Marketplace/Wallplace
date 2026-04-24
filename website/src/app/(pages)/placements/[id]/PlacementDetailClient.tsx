@@ -343,7 +343,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
             <span className="text-[11px] text-muted">Awaiting response</span>
           )}
           {placement.status === "declined" && (
-            <span className="text-[11px] text-red-600">Declined — progress stops here</span>
+            <span className="text-[11px] text-red-600">Declined — counter with new terms to keep negotiating</span>
           )}
         </div>
         {(() => {
@@ -426,8 +426,12 @@ export default function PlacementDetailClient({ placementId }: Props) {
       {/* Accept / Counter / Decline — shown on the detail page for any
           pending placement the viewer can respond to. Mirrors the
           controls on the list rows so the venue/artist can act from the
-          full page without going back. */}
-      {placement.status === "pending" && viewerRole && placement.requester_user_id !== user?.id && (
+          full page without going back.
+          Safety rule: only show when we KNOW the requester and it is
+          someone other than the viewer. If requester_user_id is unknown
+          we keep the controls hidden — better to ask the user to refresh
+          than risk letting the original sender accept their own request. */}
+      {placement.status === "pending" && viewerRole && !!placement.requester_user_id && placement.requester_user_id !== user?.id && (
         <div className="bg-surface border border-border rounded-sm p-4 sm:p-5 mb-6">
           <h2 className="text-sm font-medium mb-3">Respond to this request</h2>
           <div className="flex flex-wrap items-center gap-2">
@@ -456,12 +460,41 @@ export default function PlacementDetailClient({ placementId }: Props) {
           {respondError && <p className="mt-2 text-xs text-red-600">{respondError}</p>}
         </div>
       )}
-      {placement.status === "pending" && placement.requester_user_id === user?.id && (
+      {placement.status === "pending" && (placement.requester_user_id === user?.id || !placement.requester_user_id) && (
         <div className="bg-surface border border-border rounded-sm p-4 sm:p-5 mb-6 flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-sm">
             Awaiting their response
           </span>
-          <p className="text-xs text-muted">You sent this request — the other party will accept, counter, or decline.</p>
+          <p className="text-xs text-muted">
+            {placement.requester_user_id === user?.id
+              ? "You sent this request — the other party will accept, counter, or decline."
+              : "Waiting on the other party. You can't act on this until they respond."}
+          </p>
+        </div>
+      )}
+
+      {/* Decline state — instead of dead-ending the deal, give the
+          original offerer a way back in. The decliner is the
+          non-requester at decline time, so requester_user_id still
+          points at whoever made the offer that was knocked back; that's
+          the person we want to surface a Counter button to here. */}
+      {placement.status === "declined" && viewerRole && (
+        <div className="bg-red-50 border border-red-200 rounded-sm p-4 sm:p-5 mb-6">
+          {placement.requester_user_id === user?.id ? (
+            <>
+              <p className="text-sm font-medium text-red-700 mb-1">Your offer was declined</p>
+              <p className="text-xs text-muted mb-3">Send a revised offer to keep negotiating, or leave it here.</p>
+              <button
+                type="button"
+                onClick={() => setCounterOpen(true)}
+                className="px-3.5 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-sm transition-colors"
+              >
+                Counter with new terms
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-red-700">You declined this offer. The other party can come back with new terms if they want to keep negotiating.</p>
+          )}
         </div>
       )}
 
@@ -482,7 +515,8 @@ export default function PlacementDetailClient({ placementId }: Props) {
           onClose={() => setCounterOpen(false)}
           onSuccess={(result) => {
             // Optimistic update so the terms + role flip show instantly,
-            // even before the follow-up load() resolves.
+            // even before the follow-up load() resolves. Counter on a
+            // declined row reopens it back to pending — surface that too.
             setPlacement((prev) => prev ? {
               ...prev,
               monthly_fee_gbp: result.monthlyFeeGbp,
@@ -490,6 +524,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
               revenue_share_percent: result.revenueSharePercent,
               arrangement_type: result.arrangementType,
               requester_user_id: result.senderUserId ?? prev.requester_user_id,
+              status: prev.status === "declined" ? "pending" : prev.status,
             } : prev);
             setCounterOpen(false);
             load();

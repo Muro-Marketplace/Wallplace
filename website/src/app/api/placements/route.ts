@@ -642,17 +642,34 @@ export async function PATCH(request: Request) {
       // Otherwise: the other party may accept. Fall through.
     }
 
-    // Counter offer: revise terms on a still-pending row and hand the
-    // "needs to respond" role back to the original requester.
+    // Counter offer: revise terms and hand the "needs to respond" role
+    // back to the other party. Allowed when the row is pending OR was
+    // recently declined — a decline is now treated as "I'm not into
+    // these terms; bring me a better offer", not the end of the deal.
     if (counter) {
-      if (existing.status !== "pending") {
-        return NextResponse.json({ error: "Can only counter a pending request" }, { status: 400 });
+      if (existing.status === "active") {
+        return NextResponse.json({ error: "This placement has already been accepted" }, { status: 400 });
+      }
+      if (existing.status === "completed" || existing.status === "sold") {
+        return NextResponse.json({ error: "This placement is already complete" }, { status: 400 });
+      }
+      if (existing.status === "cancelled") {
+        return NextResponse.json({ error: "This placement was cancelled" }, { status: 400 });
       }
       if (isSelfPlacement) {
         return NextResponse.json({ error: "You cannot counter your own placement" }, { status: 400 });
       }
-      if (isRequester) {
+      // On a pending row the requester can't counter their own outstanding offer.
+      // On a declined row the OPPOSITE applies — the decliner is the non-requester
+      // and must wait for the other party to come back with better terms.
+      if (existing.status === "pending" && isRequester) {
         return NextResponse.json({ error: "You cannot counter your own request" }, { status: 400 });
+      }
+      if (existing.status === "declined" && !isRequester) {
+        return NextResponse.json(
+          { error: "You declined this offer — wait for the other party to come back with new terms." },
+          { status: 400 },
+        );
       }
       if (!isArtist && !isVenue) {
         return NextResponse.json({ error: "Not authorised" }, { status: 403 });
@@ -667,6 +684,12 @@ export async function PATCH(request: Request) {
       if (counter.qrEnabled !== undefined) termsUpdates.qr_enabled = counter.qrEnabled;
       if (counter.monthlyFeeGbp !== undefined) termsUpdates.monthly_fee_gbp = counter.monthlyFeeGbp;
       if (counter.arrangementType !== undefined) termsUpdates.arrangement_type = counter.arrangementType;
+      // If the row was previously declined, the counter re-opens it so
+      // the negotiation continues. The role flip below will hand the
+      // ball to the other party.
+      if (existing.status === "declined") {
+        termsUpdates.status = "pending";
+      }
 
       let termsSaved = false;
       {

@@ -36,6 +36,8 @@ interface Message {
   created_at: string;
   message_type?: string;
   metadata?: Record<string, unknown>;
+  pinned_at?: string | null;
+  deleted_at?: string | null;
 }
 
 interface MessageInboxProps {
@@ -307,9 +309,52 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
           setSelectedConv(null);
           setMessages([]);
         }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Could not delete conversation. Please try again.");
       }
     } catch (err) {
       console.error("Delete failed:", err);
+      alert("Network error while deleting. Please try again.");
+    }
+  }
+
+  // Per-message pin / unpin. Optimistic so the pin banner updates
+  // instantly; the server PATCH catches up in the background.
+  async function handleTogglePin(msg: Message) {
+    const willPin = !msg.pinned_at;
+    setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, pinned_at: willPin ? new Date().toISOString() : null } : m));
+    try {
+      const res = await authFetch(`/api/messages/item/${msg.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ action: willPin ? "pin" : "unpin" }),
+      });
+      if (!res.ok) {
+        // Revert on failure so the UI doesn't lie about server state.
+        setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, pinned_at: msg.pinned_at || null } : m));
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Could not pin message.");
+      }
+    } catch {
+      setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, pinned_at: msg.pinned_at || null } : m));
+    }
+  }
+
+  // Soft-delete an own message. Optimistic; server handles the
+  // permission gate (only the sender can delete).
+  async function handleDeleteMessage(msg: Message) {
+    if (!confirm("Delete this message? The other party will see 'Message deleted' in its place.")) return;
+    const snapshot = msg;
+    setMessages((prev) => prev.map((m) => m.id === msg.id ? { ...m, deleted_at: new Date().toISOString(), content: "" } : m));
+    try {
+      const res = await authFetch(`/api/messages/item/${msg.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setMessages((prev) => prev.map((m) => m.id === snapshot.id ? snapshot : m));
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Could not delete message.");
+      }
+    } catch {
+      setMessages((prev) => prev.map((m) => m.id === snapshot.id ? snapshot : m));
     }
   }
 
@@ -669,11 +714,50 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
               )}
             </div>
 
+            {/* Pinned bar — shows the most recent pinned message at the top of
+                the thread for quick reference. Click to scroll. */}
+            {(() => {
+              const pins = messages.filter((m) => m.pinned_at && !m.deleted_at);
+              if (pins.length === 0) return null;
+              const latest = pins.sort((a, b) => (b.pinned_at || "").localeCompare(a.pinned_at || ""))[0];
+              return (
+                <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 flex items-start gap-2 text-xs">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#92400E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+                    <line x1="12" y1="17" x2="12" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z" />
+                  </svg>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-medium text-amber-700 uppercase tracking-wider">Pinned{pins.length > 1 ? ` · ${pins.length}` : ""}</p>
+                    <p className="text-amber-900 truncate">{latest.content}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleTogglePin(latest)}
+                    className="text-amber-700 hover:text-amber-900 shrink-0"
+                    title="Unpin"
+                  >
+                    <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+                  </button>
+                </div>
+              );
+            })()}
+
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
               {messages.map((msg) => {
                 const isMe = (msg.sender_id != null && msg.sender_id === user?.id) || (msg.sender_id == null && msg.sender_name === userSlug);
                 const meta = (msg.metadata || {}) as Record<string, unknown>;
+                // Deleted message: render a small placeholder so the
+                // thread doesn't look like it skipped a beat. Pin / delete
+                // controls are hidden because there's nothing to act on.
+                if (msg.deleted_at) {
+                  return (
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div className="text-xs text-muted italic px-3 py-1.5 rounded-full bg-[#FAF8F5] border border-border">
+                        Message deleted
+                      </div>
+                    </div>
+                  );
+                }
 
                 // Placement request / counter card. Counter offers come
                 // through the same message_type but with metadata.counter === true
@@ -827,20 +911,59 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                   );
                 }
 
-                // Regular text message
+                // Regular text message — with hover affordance for pin /
+                // delete. Pin is available to either party (it's a shared
+                // bookmark on the thread); delete only on own messages.
+                const isPinned = !!msg.pinned_at;
                 return (
-                  <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} gap-2`}>
+                  <div key={msg.id} className={`group flex ${isMe ? "justify-end" : "justify-start"} gap-2 items-end`}>
                     {!isMe && <Avatar src={selectedConvData?.otherPartyImage} name={selectedConvData?.otherPartyDisplayName || ""} size={24} />}
+                    {/* Action cluster on the inside-edge of the bubble. */}
+                    {isMe && (
+                      <div className="flex flex-col items-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePin(msg)}
+                          className={`p-1 ${isPinned ? "text-amber-600" : "text-muted hover:text-amber-600"}`}
+                          title={isPinned ? "Unpin" : "Pin"}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="17" x2="12" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z" /></svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMessage(msg)}
+                          className="p-1 text-muted hover:text-red-500"
+                          title="Delete message"
+                        >
+                          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+                        </button>
+                      </div>
+                    )}
                     <div className={`max-w-[75%] px-3.5 py-2.5 rounded-lg text-sm ${
                       isMe
                         ? "bg-accent text-white rounded-br-none"
                         : "bg-[#FAF8F5] border border-border text-foreground rounded-bl-none"
-                    }`}>
+                    } ${isPinned ? "ring-1 ring-amber-300" : ""}`}>
                       <p className="leading-relaxed">{msg.content}</p>
-                      <p className={`text-[9px] mt-1 ${isMe ? "text-white/50" : "text-muted"}`}>
+                      <p className={`text-[9px] mt-1 ${isMe ? "text-white/50" : "text-muted"} flex items-center gap-1`}>
+                        {isPinned && (
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="17" x2="12" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z" /></svg>
+                        )}
                         {timeAgo(msg.created_at)}
                       </p>
                     </div>
+                    {!isMe && (
+                      <div className="flex flex-col items-start gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePin(msg)}
+                          className={`p-1 ${isPinned ? "text-amber-600" : "text-muted hover:text-amber-600"}`}
+                          title={isPinned ? "Unpin" : "Pin"}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="17" x2="12" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z" /></svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
