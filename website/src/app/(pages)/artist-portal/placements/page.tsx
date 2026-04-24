@@ -159,6 +159,7 @@ export default function PlacementsPage() {
   const [notes, setNotes] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Interacted venues for dropdown
   const [venues, setVenues] = useState<InteractedVenue[]>([]);
@@ -318,6 +319,7 @@ export default function PlacementsPage() {
   async function handleSubmit() {
     if (!venueSlug || selectedWorks.size === 0) return;
     setSubmitting(true);
+    setSubmitError(null);
 
     const rev = typeof revenuePercent === "number" ? revenuePercent : 0;
     const fee = typeof monthlyFee === "number" ? monthlyFee : 0;
@@ -333,14 +335,18 @@ export default function PlacementsPage() {
       const w = works[i];
       return {
         title: w.title,
-        image: w.image || null,
-        size: workSizes[i] || null,
+        // Zod's optionalString accepts string / "" / undefined (and now
+        // null via coercion) — keep undefined on the client side so the
+        // payload is cleanly typed when "Any size" or no image is the
+        // intended value.
+        image: w.image || undefined,
+        size: workSizes[i] || undefined,
       };
     });
     const newPlacement = {
       id: `p-${Date.now()}-${headIdx}`,
       workTitle: headWork.title,
-      workImage: headWork.image,
+      workImage: headWork.image || undefined,
       // Keep workSize on the local object for the optimistic UI update,
       // and send it as requestedDimensions so it flows through the zod
       // schema and lands in placements.work_size on the server.
@@ -364,12 +370,18 @@ export default function PlacementsPage() {
         method: "POST",
         body: JSON.stringify({ placements: [newPlacement] }),
       });
-      if (res.ok) {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setSubmitError(body?.error || `Could not send request (HTTP ${res.status}).`);
+        setSubmitting(false);
+        return;
+      }
+      {
         const selectedVenue = venues.find((v) => v.slug === venueSlug);
         const mapped: Placement = {
           id: newPlacement.id,
           workTitle: newPlacement.workTitle,
-          workImage: newPlacement.workImage,
+          workImage: newPlacement.workImage || "",
           workSize: newPlacement.workSize,
           venue: selectedVenue?.name || venueSlug,
           venueSlug: newPlacement.venueSlug,
@@ -380,7 +392,11 @@ export default function PlacementsPage() {
           revenue: null,
           notes: newPlacement.notes,
           message: newPlacement.message,
-          extraWorks: newPlacement.extraWorks,
+          extraWorks: newPlacement.extraWorks?.map((w) => ({
+            title: w.title,
+            image: w.image || null,
+            size: w.size || null,
+          })),
         };
         setPlacements([mapped, ...placements]);
         setShowForm(false);
@@ -774,6 +790,15 @@ export default function PlacementsPage() {
             </div>
 
             {/* Submit */}
+            {submitError && (
+              <div className="flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-red-500 shrink-0 mt-0.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                <p className="text-xs text-red-700 flex-1">{submitError}</p>
+                <button onClick={() => setSubmitError(null)} className="text-red-400 hover:text-red-600">
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+                </button>
+              </div>
+            )}
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleSubmit}
@@ -1078,8 +1103,14 @@ export default function PlacementsPage() {
                         )}
                         <div>
                           <p className="text-muted mb-0.5">Arrangement</p>
-                          <p className="text-foreground font-medium">{p.type}{p.revenueSharePercent ? ` (${p.revenueSharePercent}%)` : ""}</p>
+                          <p className="text-foreground font-medium">{p.type}</p>
                         </div>
+                        {typeof p.revenueSharePercent === "number" && p.revenueSharePercent > 0 && (
+                          <div>
+                            <p className="text-muted mb-0.5">Revenue share</p>
+                            <p className="text-foreground font-medium">{p.revenueSharePercent}% to artist</p>
+                          </div>
+                        )}
                         {typeof p.monthlyFeeGbp === "number" && p.monthlyFeeGbp > 0 && (
                           <div>
                             <p className="text-muted mb-0.5">Monthly fee</p>

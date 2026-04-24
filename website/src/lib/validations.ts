@@ -3,7 +3,14 @@ import { z } from "zod";
 // Shared helpers
 const safeString = (max = 500) => z.string().trim().min(1).max(max);
 const email = z.string().trim().email().max(254);
-const optionalString = (max = 500) => z.string().trim().max(max).optional().or(z.literal(""));
+// Accepts string / "" / undefined / null. Null is coerced to "" so callers
+// can safely serialise missing values as `null` (common when loading from
+// Postgres) without tripping the validator.
+const optionalString = (max = 500) =>
+  z.preprocess(
+    (v) => (v === null ? "" : v),
+    z.string().trim().max(max).optional().or(z.literal("")),
+  );
 
 // Public forms
 export const waitlistSchema = z.object({
