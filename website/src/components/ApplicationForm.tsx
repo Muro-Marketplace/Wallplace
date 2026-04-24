@@ -107,7 +107,6 @@ interface FormState {
   email: string;
   location: string;
   instagram: string;
-  website: string;
   traderStatus: TraderStatus;
   businessName: string;
   vatNumber: string;
@@ -136,7 +135,6 @@ const initialState: FormState = {
   email: "",
   location: "",
   instagram: "",
-  website: "",
   traderStatus: "",
   businessName: "",
   vatNumber: "",
@@ -165,6 +163,10 @@ export default function ApplicationForm() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // Field-level validation errors keyed by form field name. Populated from
+  // the API's zod issue map, plus a client-side pre-check on submit so the
+  // user gets immediate feedback instead of waiting for the round trip.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [agreedToTos, setAgreedToTos] = useState(false);
   const [agreedToArtistTerms, setAgreedToArtistTerms] = useState(false);
   const [acknowledgedInsurance, setAcknowledgedInsurance] = useState(false);
@@ -198,9 +200,37 @@ export default function ApplicationForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
     setError("");
+    setFieldErrors({});
 
+    // Client-side pre-check: catch missing fields before hitting the API
+    // so the user gets immediate feedback. Mirrors the zod schema so we
+    // never disagree with the server about what's required.
+    const localErrors: Record<string, string> = {};
+    if (!form.name.trim()) localErrors.name = "Tell us your name.";
+    if (!form.email.trim()) localErrors.email = "We need an email to reach you.";
+    if (!form.location.trim()) localErrors.location = "Where are you based?";
+    if (!form.traderStatus) localErrors.traderStatus = "Pick whether you're applying as an individual or a business.";
+    if (!form.discipline) localErrors.discipline = "Pick the discipline that best matches your work.";
+    if (!form.primaryMedium) localErrors.primaryMedium = "Pick your primary medium.";
+    if (!form.deliveryRadius) localErrors.deliveryRadius = "How far can you deliver?";
+    const offersAny = form.offersOriginals || form.offersPrints || form.offersFramed || form.offersCommissions;
+    if (!offersAny) localErrors.offers = "Pick at least one type of work you can supply.";
+    const openAny = form.openToFreeLoan || form.openToRevenueShare || form.openToPurchase;
+    if (!openAny) localErrors.openTo = "Pick at least one arrangement you're open to.";
+    if (Object.keys(localErrors).length > 0) {
+      setFieldErrors(localErrors);
+      const first = Object.keys(localErrors)[0];
+      setError(`Please complete the highlighted fields before submitting.`);
+      // Scroll to the first error so the user can act on it.
+      setTimeout(() => {
+        const el = document.getElementById(first) || document.querySelector(`[name="${first}"]`);
+        (el as HTMLElement | null)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
+      return;
+    }
+
+    setSubmitting(true);
     try {
       const res = await fetch("/api/apply", {
         method: "POST",
@@ -214,6 +244,9 @@ export default function ApplicationForm() {
 
       if (!res.ok) {
         setError(data.error || "Something went wrong");
+        if (data.fieldErrors && typeof data.fieldErrors === "object") {
+          setFieldErrors(data.fieldErrors as Record<string, string>);
+        }
         setSubmitting(false);
         return;
       }
@@ -304,6 +337,12 @@ export default function ApplicationForm() {
 
   const inputClass =
     "w-full bg-background border border-border rounded-sm px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent/60 transition-colors duration-200";
+  const inputClassFor = (field: string) =>
+    `${inputClass} ${fieldErrors[field] ? "border-red-400 focus:border-red-500" : ""}`;
+  const fieldError = (field: string) =>
+    fieldErrors[field] ? (
+      <p className="mt-1.5 text-xs text-red-600">{fieldErrors[field]}</p>
+    ) : null;
   const labelClass = "block text-sm font-medium text-foreground mb-2";
   const checkboxLabelClass =
     "flex items-center gap-3 cursor-pointer group select-none";
@@ -330,8 +369,9 @@ export default function ApplicationForm() {
               onChange={handleChange}
               required
               placeholder="Your full name"
-              className={inputClass}
+              className={inputClassFor("name")}
             />
+            {fieldError("name")}
           </div>
           <div>
             <label htmlFor="email" className={labelClass}>
@@ -345,8 +385,9 @@ export default function ApplicationForm() {
               onChange={handleChange}
               required
               placeholder="your@email.com"
-              className={inputClass}
+              className={inputClassFor("email")}
             />
+            {fieldError("email")}
           </div>
           <div>
             <label htmlFor="location" className={labelClass}>
@@ -360,8 +401,9 @@ export default function ApplicationForm() {
               onChange={handleChange}
               required
               placeholder="e.g. Hackney, London"
-              className={inputClass}
+              className={inputClassFor("location")}
             />
+            {fieldError("location")}
           </div>
           <div>
             <label htmlFor="instagram" className={labelClass}>
@@ -378,18 +420,22 @@ export default function ApplicationForm() {
             />
           </div>
           <div className="md:col-span-2">
-            <label htmlFor="website" className={labelClass}>
-              Website
+            <label htmlFor="portfolioLink" className={labelClass}>
+              Website / Portfolio
             </label>
             <input
               type="text"
-              id="website"
-              name="website"
-              value={form.website}
+              id="portfolioLink"
+              name="portfolioLink"
+              value={form.portfolioLink}
               onChange={handleChange}
-              placeholder="https://yourwebsite.com"
-              className={inputClass}
+              placeholder="Link to your website, Instagram, Behance, or similar"
+              className={inputClassFor("portfolioLink")}
             />
+            <p className="mt-1.5 text-xs text-muted">
+              Any public link that shows your work. Share what you have — you can add more later when you build your profile on Wallplace.
+            </p>
+            {fieldError("portfolioLink")}
           </div>
           <div className="md:col-span-2">
             <label htmlFor="traderStatus" className={labelClass}>
@@ -402,7 +448,7 @@ export default function ApplicationForm() {
               value={form.traderStatus}
               onChange={handleChange}
               required
-              className={inputClass}
+              className={inputClassFor("traderStatus")}
             >
               <option value="">Select one</option>
               <option value="consumer">
@@ -412,6 +458,7 @@ export default function ApplicationForm() {
                 Business, limited company, or partnership / sole trader acting in the course of business
               </option>
             </select>
+            {fieldError("traderStatus")}
             <p className="mt-2 text-xs text-muted">
               This determines which UK consumer-protection rules apply to your Wallplace membership subscription. You can change this later if your status changes.
             </p>
@@ -460,13 +507,14 @@ export default function ApplicationForm() {
           {/* Discipline comes first — it's the primary taxonomy venues
               filter by, and picking it narrows the Primary Medium options
               conceptually. */}
-          <div>
+          <div id="discipline">
             <p className={labelClass}>
               Discipline <span className="text-accent">*</span>
             </p>
             <p className="text-xs text-muted mb-3">
               Pick the single top-level discipline your work sits in.
             </p>
+            {fieldError("discipline")}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {DISCIPLINES.map((d) => {
                 const selected = form.discipline === d.id;
@@ -512,7 +560,7 @@ export default function ApplicationForm() {
               value={form.primaryMedium}
               onChange={handleChange}
               required
-              className={inputClass}
+              className={inputClassFor("primaryMedium")}
             >
               <option value="">Select your primary medium</option>
               {primaryMediums.map((medium) => (
@@ -521,6 +569,7 @@ export default function ApplicationForm() {
                 </option>
               ))}
             </select>
+            {fieldError("primaryMedium")}
           </div>
 
           {form.discipline && (
@@ -559,27 +608,8 @@ export default function ApplicationForm() {
           )}
 
           <div>
-            <label htmlFor="portfolioLink" className={labelClass}>
-              Website / Portfolio <span className="text-muted font-normal">(optional)</span>
-            </label>
-            <input
-              type="text"
-              id="portfolioLink"
-              name="portfolioLink"
-              value={form.portfolioLink}
-              onChange={handleChange}
-              placeholder="Link to your website, Instagram, Behance, or similar"
-              className={inputClass}
-            />
-            <p className="mt-2 text-xs text-muted">
-              Any public link that shows your work. Share what you have — you
-              can add more later when you build your profile on Wallplace.
-            </p>
-          </div>
-
-          <div>
             <label htmlFor="artistStatement" className={labelClass}>
-              Artist Statement <span className="text-muted font-normal">(optional)</span>
+              Artist Statement
             </label>
             <textarea
               id="artistStatement"
@@ -610,6 +640,7 @@ export default function ApplicationForm() {
               I can supply (select all that apply){" "}
               <span className="text-accent">*</span>
             </p>
+            {fieldError("offers")}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
               {[
                 { name: "offersOriginals", label: "Original works" },
@@ -638,6 +669,7 @@ export default function ApplicationForm() {
               I am open to (select all that apply){" "}
               <span className="text-accent">*</span>
             </p>
+            {fieldError("openTo")}
             <p className="text-xs text-muted mb-3">
               Three ways your work can reach venues. Revenue share means your
               art is displayed free in a venue and you split QR-code sales
@@ -677,7 +709,7 @@ export default function ApplicationForm() {
               value={form.deliveryRadius}
               onChange={handleChange}
               required
-              className={inputClass}
+              className={inputClassFor("deliveryRadius")}
             >
               <option value="">How far can you deliver artwork?</option>
               {deliveryRadiusOptions.map((option) => (
@@ -686,6 +718,7 @@ export default function ApplicationForm() {
                 </option>
               ))}
             </select>
+            {fieldError("deliveryRadius")}
           </div>
         </div>
       </div>
@@ -744,10 +777,10 @@ export default function ApplicationForm() {
         </select>
       </div>
 
-      {/* Referral code (optional) */}
+      {/* Referral code */}
       <div>
         <label htmlFor="referralCode" className={labelClass}>
-          Referral code <span className="text-muted font-normal">(optional)</span>
+          Referral code
         </label>
         <input
           id="referralCode"

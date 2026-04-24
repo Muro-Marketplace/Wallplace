@@ -20,6 +20,11 @@ export interface Venue {
   image: string;
   /** Optional gallery of venue photos uploaded by the venue owner. */
   images?: string[];
+  /** Display Needs — written when the venue fills them in. Empty by default. */
+  displayWallSpace?: string;
+  displayLighting?: string;
+  displayInstallNotes?: string;
+  displayRotationFrequency?: string;
 }
 
 export const venues: Venue[] = [

@@ -30,6 +30,11 @@ export interface DbVenueProfile {
   preferred_styles: string[];
   preferred_themes: string[];
   message_notifications_enabled?: boolean;
+  /** Display Needs — added in migration 028. All optional, nullable. */
+  display_wall_space?: string | null;
+  display_lighting?: string | null;
+  display_install_notes?: string | null;
+  display_rotation_frequency?: string | null;
 }
 
 export function dbVenueToVenue(v: DbVenueProfile): Venue {
@@ -54,6 +59,10 @@ export function dbVenueToVenue(v: DbVenueProfile): Venue {
     description: v.description,
     image: v.image || `https://picsum.photos/seed/${v.slug}/600/400`,
     images: Array.isArray(v.images) ? v.images : [],
+    displayWallSpace: v.display_wall_space || "",
+    displayLighting: v.display_lighting || "",
+    displayInstallNotes: v.display_install_notes || "",
+    displayRotationFrequency: v.display_rotation_frequency || "",
   };
 }
 
@@ -97,7 +106,17 @@ export async function upsertVenueProfile(
     // Retry without potentially missing columns if update fails. `images`
     // is added in migration 022 and may not exist in older environments.
     if (error) {
-      const { preferred_sizes, interested_in_local_artists, images, ...safeData } = data as Record<string, unknown>;
+      // Strip columns that may not exist in older schemas (added in migrations 022, 028).
+      const {
+        preferred_sizes,
+        interested_in_local_artists,
+        images,
+        display_wall_space,
+        display_lighting,
+        display_install_notes,
+        display_rotation_frequency,
+        ...safeData
+      } = data as Record<string, unknown>;
       const retry = await db
         .from("venue_profiles")
         .update({ ...safeData, updated_at: new Date().toISOString() })
@@ -106,7 +125,16 @@ export async function upsertVenueProfile(
     }
     return { error };
   } else {
-    const { preferred_sizes, interested_in_local_artists, images, ...safeData } = data as Record<string, unknown>;
+    const {
+      preferred_sizes,
+      interested_in_local_artists,
+      images,
+      display_wall_space,
+      display_lighting,
+      display_install_notes,
+      display_rotation_frequency,
+      ...safeData
+    } = data as Record<string, unknown>;
     const { error } = await db
       .from("venue_profiles")
       .insert({ ...safeData, user_id: userId });

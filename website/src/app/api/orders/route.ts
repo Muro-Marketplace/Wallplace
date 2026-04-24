@@ -39,8 +39,33 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
     }
 
+    // Defensive normalisation: any legacy row where status_history,
+    // items, or shipping was stored as a stringified JSON value (older
+    // orders from before we corrected the PATCH path) gets parsed back
+    // into an object/array so the client can render it without crashing.
+    const safeParseArray = (v: unknown) => {
+      if (Array.isArray(v)) return v;
+      if (typeof v === "string") {
+        try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch { return []; }
+      }
+      return [];
+    };
+    const safeParseObject = (v: unknown) => {
+      if (v && typeof v === "object" && !Array.isArray(v)) return v;
+      if (typeof v === "string") {
+        try { const p = JSON.parse(v); return p && typeof p === "object" ? p : {}; } catch { return {}; }
+      }
+      return {};
+    };
+    const orders = (data || []).map((o) => ({
+      ...o,
+      status_history: safeParseArray((o as { status_history?: unknown }).status_history),
+      items: safeParseArray((o as { items?: unknown }).items),
+      shipping: safeParseObject((o as { shipping?: unknown }).shipping),
+    }));
+
     return NextResponse.json({
-      orders: data || [],
+      orders,
       userType: artistProfile ? "artist" : venueProfile ? "venue" : "customer",
       userEmail: email,
       artistSlug: artistProfile?.slug || null,
@@ -98,11 +123,19 @@ export async function PATCH(request: Request) {
     }
     if (!authorised) return NextResponse.json({ error: "Not authorised" }, { status: 403 });
 
-    // Append to status history
-    const history = Array.isArray(order.status_history) ? order.status_history : [];
-    history.push({ status, timestamp: new Date().toISOString() });
+    // Append to status history. status_history is JSONB — pass the actual
+    // array, never JSON.stringify'd, otherwise the column stores a string
+    // and the client crashes when it tries to .find/.map on it. That was
+    // the source of the "something went wrong" page on order detail click.
+    const rawHistory = order.status_history;
+    const parsedHistory = Array.isArray(rawHistory)
+      ? rawHistory
+      : typeof rawHistory === "string"
+        ? (() => { try { const v = JSON.parse(rawHistory); return Array.isArray(v) ? v : []; } catch { return []; } })()
+        : [];
+    parsedHistory.push({ status, timestamp: new Date().toISOString() });
 
-    const updates: Record<string, unknown> = { status, status_history: JSON.stringify(history) };
+    const updates: Record<string, unknown> = { status, status_history: parsedHistory };
     if (trackingNumber) updates.tracking_number = trackingNumber;
 
     const { error } = await db.from("orders").update(updates).eq("id", orderId);

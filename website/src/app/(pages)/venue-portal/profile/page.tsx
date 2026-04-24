@@ -115,6 +115,13 @@ export default function VenueProfilePage() {
   const [detailWallSpace, setDetailWallSpace] = useState("");
   const [detailFootfall, setDetailFootfall] = useState("");
 
+  // Display needs — driven by the saved venue record. No fake placeholder
+  // values; new venues see "Not set" until they fill these in themselves.
+  const [displayWallSpace, setDisplayWallSpace] = useState("");
+  const [displayLighting, setDisplayLighting] = useState("");
+  const [displayInstall, setDisplayInstall] = useState("");
+  const [displayRotation, setDisplayRotation] = useState("");
+
   // Venue photos — gallery of the actual space.
   const [venueImages, setVenueImages] = useState<string[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -136,6 +143,10 @@ export default function VenueProfilePage() {
       setDetailWallSpace(venue.wallSpace || "");
       setDetailFootfall(venue.approximateFootfall || "");
       setVenueImages(Array.isArray(venue.images) ? venue.images : []);
+      setDisplayWallSpace(venue.displayWallSpace || "");
+      setDisplayLighting(venue.displayLighting || "");
+      setDisplayInstall(venue.displayInstallNotes || "");
+      setDisplayRotation(venue.displayRotationFrequency || "");
       setLoaded(true);
     }
   }, [venue, loaded]);
@@ -207,6 +218,10 @@ export default function VenueProfilePage() {
           interested_in_free_loan: freeLoan,
           interested_in_revenue_share: revenueShare,
           interested_in_direct_purchase: directPurchase,
+          display_wall_space: displayWallSpace || undefined,
+          display_lighting: displayLighting || undefined,
+          display_install_notes: displayInstall || undefined,
+          display_rotation_frequency: displayRotation || undefined,
         }),
       });
 
@@ -466,22 +481,24 @@ export default function VenueProfilePage() {
             </button>
           </div>
           <div className="p-5 space-y-4">
-            {[
-              { label: "Wall Space Available", value: "~12 linear metres across 3 walls" },
-              { label: "Lighting", value: "Natural light + spotlights, good north-facing light" },
-              { label: "Installation Notes", value: "White plaster walls, can hang up to 15kg per point" },
-              { label: "Rotation Frequency", value: "Every 3–6 months" },
-            ].map(({ label, value }) => (
+            {([
+              { label: "Wall Space Available", value: displayWallSpace, setter: setDisplayWallSpace, placeholder: "e.g. 12 linear metres across 3 walls" },
+              { label: "Lighting", value: displayLighting, setter: setDisplayLighting, placeholder: "e.g. Natural light + spotlights" },
+              { label: "Installation Notes", value: displayInstall, setter: setDisplayInstall, placeholder: "e.g. Plaster walls, up to 15kg per fixing" },
+              { label: "Rotation Frequency", value: displayRotation, setter: setDisplayRotation, placeholder: "e.g. Every 3 months" },
+            ] as const).map(({ label, value, setter, placeholder }) => (
               <div key={label}>
                 <p className="text-xs font-medium text-muted mb-1">{label}</p>
                 {editing === "display" ? (
                   <input
                     type="text"
-                    defaultValue={value}
+                    value={value}
+                    placeholder={placeholder}
+                    onChange={(e) => { setter(e.target.value); markDirty(); }}
                     className="w-full px-3 py-2 border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/50 bg-background"
                   />
                 ) : (
-                  <p className="text-sm text-foreground">{value}</p>
+                  <p className={`text-sm ${value ? "text-foreground" : "text-muted italic"}`}>{value || "Not set"}</p>
                 )}
               </div>
             ))}

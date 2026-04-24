@@ -504,6 +504,7 @@ export default function PortfolioPage() {
     // Clear dirty snapshot so the beforeunload guard drops after save
     initialFormJson.current = JSON.stringify(form);
     setShowForm(false);
+    showToast(editingIndex !== null ? "Artwork updated" : "Artwork added");
     setEditingIndex(null);
   }
 

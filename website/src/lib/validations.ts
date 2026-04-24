@@ -41,8 +41,11 @@ export const applySchema = z.object({
     .enum(["photography", "painting", "digital", "drawing", "sketching", "sculpture", "mixed"])
     .optional(),
   subStyles: z.array(z.string().max(50)).max(20).optional(),
-  portfolioLink: safeString(500),
-  artistStatement: safeString(2000),
+  // Portfolio link and statement are flagged as optional in the UI — must
+  // match here. Users were previously bouncing off the API silently because
+  // these were required server-side.
+  portfolioLink: optionalString(500),
+  artistStatement: optionalString(2000),
   offersOriginals: z.boolean().optional(),
   offersPrints: z.boolean().optional(),
   offersFramed: z.boolean().optional(),

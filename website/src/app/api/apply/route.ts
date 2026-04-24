@@ -12,8 +12,23 @@ export async function POST(request: Request) {
     const parsed = applySchema.safeParse(body);
 
     if (!parsed.success) {
+      // Map zod issues into a { field: message } object so the form can
+      // surface inline errors next to the offending input rather than a
+      // single generic banner. Top-level field name only; nested paths
+      // are joined with "." (e.g. "subStyles.0").
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const path = issue.path.join(".") || "_root";
+        if (!fieldErrors[path]) fieldErrors[path] = issue.message;
+      }
+      const missing = Object.keys(fieldErrors);
       return NextResponse.json(
-        { error: "Please fill in all required fields" },
+        {
+          error: missing.length === 1
+            ? `Please check the ${missing[0]} field.`
+            : `Please check ${missing.length} fields: ${missing.join(", ")}.`,
+          fieldErrors,
+        },
         { status: 400 }
       );
     }
