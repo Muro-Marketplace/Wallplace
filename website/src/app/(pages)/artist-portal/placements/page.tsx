@@ -48,6 +48,7 @@ interface Placement {
   liveFrom?: string | null;
   collectedAt?: string | null;
   createdAtTs?: number;
+  updatedAtTs?: number;
 }
 
 interface InteractedVenue {
@@ -236,8 +237,21 @@ export default function PlacementsPage() {
               liveFrom: (p.live_from as string | null) ?? null,
               collectedAt: (p.collected_at as string | null) ?? null,
               createdAtTs: p.created_at ? new Date(p.created_at as string).getTime() : 0,
+              // The latest timestamp on the row — used to sort the list
+              // so a just-accepted or just-declined placement bubbles to
+              // the top (matches "last updated" ordering).
+              updatedAtTs: Math.max(
+                p.created_at ? new Date(p.created_at as string).getTime() : 0,
+                p.responded_at ? new Date(p.responded_at as string).getTime() : 0,
+                p.accepted_at ? new Date(p.accepted_at as string).getTime() : 0,
+                p.scheduled_for ? new Date(p.scheduled_for as string).getTime() : 0,
+                p.installed_at ? new Date(p.installed_at as string).getTime() : 0,
+                p.live_from ? new Date(p.live_from as string).getTime() : 0,
+                p.collected_at ? new Date(p.collected_at as string).getTime() : 0,
+              ),
             };
           });
+          mapped.sort((a, b) => (b.updatedAtTs || 0) - (a.updatedAtTs || 0));
           setPlacements(mapped);
         } else {
           setPlacements([]);

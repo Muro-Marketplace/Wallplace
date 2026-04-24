@@ -53,6 +53,7 @@ interface PlacementRequest {
   venueUserId?: string | null;
   /** Raw ISO / timestamp used for sorting. Display `date` stays formatted. */
   createdAtTs?: number;
+  updatedAtTs?: number;
   qrScans?: number;
   monthlyFeeGbp?: number | null;
   qrEnabledOnPlacement?: boolean | null;
@@ -474,14 +475,25 @@ export default function VenuePlacementsPage() {
         artistUserId: (p.artist_user_id as string | null) ?? null,
         venueUserId: (p.venue_user_id as string | null) ?? null,
         createdAtTs: p.created_at ? new Date(p.created_at as string).getTime() : 0,
+        // Most-recent timestamp on the row — powers "last updated"
+        // ordering so a just-accepted or just-declined placement stays
+        // at the top instead of dropping back to its created_at slot.
+        updatedAtTs: Math.max(
+          p.created_at ? new Date(p.created_at as string).getTime() : 0,
+          p.responded_at ? new Date(p.responded_at as string).getTime() : 0,
+          p.accepted_at ? new Date(p.accepted_at as string).getTime() : 0,
+          p.scheduled_for ? new Date(p.scheduled_for as string).getTime() : 0,
+          p.installed_at ? new Date(p.installed_at as string).getTime() : 0,
+          p.live_from ? new Date(p.live_from as string).getTime() : 0,
+          p.collected_at ? new Date(p.collected_at as string).getTime() : 0,
+        ),
         qrScans: typeof p.qr_scans === "number" ? p.qr_scans : 0,
       }));
-      mapped.sort((a, b) => {
-        const aPending = a.status === "Pending" ? 1 : 0;
-        const bPending = b.status === "Pending" ? 1 : 0;
-        if (aPending !== bPending) return bPending - aPending;
-        return (b.createdAtTs || 0) - (a.createdAtTs || 0);
-      });
+      // Sort purely by last-updated, newest first. We used to put
+      // Pending above everything else so new requests jumped the queue
+      // — but that fought with the user's mental model when they'd
+      // just acted on a placement and it dropped back down the list.
+      mapped.sort((a, b) => (b.updatedAtTs || 0) - (a.updatedAtTs || 0));
       setPlacements(mapped);
     } catch { /* ignore */ } finally {
       setLoading(false);
