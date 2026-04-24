@@ -4,7 +4,7 @@ import { waitlistSchema } from "@/lib/validations";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
-  const limited = checkRateLimit(request, 5, 60000);
+  const limited = await checkRateLimit(request, 5, 60000);
   if (limited) return limited;
   try {
     const body = await request.json();

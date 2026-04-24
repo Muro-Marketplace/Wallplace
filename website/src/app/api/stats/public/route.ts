@@ -9,7 +9,7 @@ export const revalidate = 300; // Cache for 5 minutes
  * Unauthenticated — returns aggregate platform stats for the homepage trust bar.
  */
 export async function GET(request: Request) {
-  const limited = checkRateLimit(request, 60, 60000);
+  const limited = await checkRateLimit(request, 60, 60000);
   if (limited) return limited;
   try {
     const [artistsRes, worksRes, placementsRes, venuesRes] = await Promise.all([

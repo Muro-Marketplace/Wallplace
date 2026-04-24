@@ -11,7 +11,7 @@ export const revalidate = 300; // Cache 5 minutes
  * Merges static venues with database venue profiles.
  */
 export async function GET(request: Request) {
-  const limited = checkRateLimit(request, 30, 60000);
+  const limited = await checkRateLimit(request, 30, 60000);
   if (limited) return limited;
   try {
     const db = getSupabaseAdmin();

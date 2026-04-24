@@ -4,7 +4,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 // GET: return all artists (static + database) for the browse page
 export async function GET(request: Request) {
-  const limited = checkRateLimit(request, 60, 60000);
+  const limited = await checkRateLimit(request, 60, 60000);
   if (limited) return limited;
   try {
     const artists = await getAllArtists();

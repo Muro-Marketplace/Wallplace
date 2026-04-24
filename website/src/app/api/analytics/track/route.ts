@@ -14,7 +14,7 @@ const ALLOWED_EVENTS = new Set([
  * Accepts events from browser JS (venue views, artwork lightbox opens, etc.)
  */
 export async function POST(request: NextRequest) {
-  const limited = checkRateLimit(request, 30, 60000);
+  const limited = await checkRateLimit(request, 30, 60000);
   if (limited) return limited;
   try {
     const body = await request.json();

@@ -13,7 +13,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   // 5 signups per minute per IP.
-  const limited = checkRateLimit(request, 5, 60_000);
+  const limited = await checkRateLimit(request, 5, 60_000);
   if (limited) return limited;
 
   let body: unknown = {};

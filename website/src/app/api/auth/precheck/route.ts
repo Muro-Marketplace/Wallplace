@@ -17,8 +17,8 @@ export async function POST(request: Request) {
   // login: 8 per minute per IP.
   // forgot-password: 3 per 5 minutes per IP.
   const blocked = kind === "forgot-password"
-    ? checkRateLimit(request, 3, 5 * 60_000)
-    : checkRateLimit(request, 8, 60_000);
+    ? await checkRateLimit(request, 3, 5 * 60_000)
+    : await checkRateLimit(request, 8, 60_000);
 
   if (blocked) return blocked;
 
