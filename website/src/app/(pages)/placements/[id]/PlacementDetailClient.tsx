@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 import { uploadImage } from "@/lib/upload";
@@ -106,16 +106,23 @@ export default function PlacementDetailClient({ placementId }: Props) {
   // Loan record is collapsed by default but auto-expands once a record
   // exists so users land on the data instead of having to click open.
   const [loanRecordOpen, setLoanRecordOpen] = useState(false);
+  const loanRecordRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  const recordParam = searchParams?.get("record") || "";
+  // Flag ensures we only auto-open / auto-scroll once on first arrival,
+  // not every time the record state changes.
+  const deepLinkedRef = useRef(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true;
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const res = await authFetch(`/api/placements/${encodeURIComponent(placementId)}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setError(body.error || "Could not load placement");
-        setLoading(false);
+        if (!silent) setLoading(false);
         return;
       }
       const data = await res.json();
@@ -129,7 +136,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
       console.error(e);
       setError("Network error");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [placementId]);
 
@@ -142,18 +149,19 @@ export default function PlacementDetailClient({ placementId }: Props) {
   }, [user, authLoading, load, router]);
 
   // Keep the detail page in sync if the user accepts / counters / advances
-  // elsewhere (Messages, the placements list, etc.). We re-load on tab
-  // focus rather than polling on a timer because placements can sit on a
-  // user's screen for a long time while they read the terms.
+  // elsewhere (Messages, the placements list, etc.) — but do the refresh
+  // SILENTLY so switching to another tab and back doesn't blank the page
+  // out with a loading state (which used to read as a full reload). Scroll
+  // position and expanded sections stay put.
   useEffect(() => {
     if (!user) return;
-    const onFocus = () => { load(); };
+    const onFocus = () => { load({ silent: true }); };
+    const onVis = () => { if (document.visibilityState === "visible") load({ silent: true }); };
     window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") load();
-    });
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [user, load]);
 
@@ -168,6 +176,24 @@ export default function PlacementDetailClient({ placementId }: Props) {
     }
   }, [record, loanRecordAutoOpened]);
 
+  // Deep link handling: "?record=open" from the placements-list dropdown
+  // lands the user straight on the record section (expanded + scrolled
+  // to), so they don't have to scroll past the whole placement first.
+  useEffect(() => {
+    if (deepLinkedRef.current) return;
+    if (!placement) return;
+    if (recordParam !== "open") return;
+    deepLinkedRef.current = true;
+    setLoanRecordOpen(true);
+    // rAF-deferred so the section has actually rendered post-expand
+    // before we try to scroll it into view.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        loanRecordRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }, [placement, recordParam]);
+
   async function handleAdvance(stage: "scheduled" | "installed" | "live" | "collected") {
     if (!placement) return;
     try {
@@ -176,7 +202,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
         body: JSON.stringify({ id: placement.id, stage }),
       });
       if (!res.ok) return;
-      await load();
+      await load({ silent: true });
     } catch { /* ignore; next load will reconcile */ }
   }
 
@@ -193,7 +219,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
         alert(data.error || "Could not undo stage.");
         return;
       }
-      await load();
+      await load({ silent: true });
     } catch {
       alert("Network error. Please try again.");
     }
@@ -213,7 +239,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
         setRespondError(data.error || "Could not update placement");
         return;
       }
-      await load();
+      await load({ silent: true });
     } catch {
       setRespondError("Network error. Please try again.");
     } finally {
@@ -288,7 +314,15 @@ export default function PlacementDetailClient({ placementId }: Props) {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        await load();
+        await load({ silent: true });
+        // Keep the user in place on the record section instead of
+        // letting the re-render move scroll. A silent load + smooth
+        // scroll to the record anchor makes this feel like the record
+        // just "appeared" under the Add button.
+        setLoanRecordOpen(true);
+        requestAnimationFrame(() => {
+          loanRecordRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
       }
     } finally {
       setCreatingRecord(false);
@@ -740,7 +774,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
           Pre-fills new records with the agreed terms from the placement
           itself (revenue share %, monthly fee, QR enabled, type) so the
           user isn't re-typing data they already negotiated. */}
-      <div className="mb-6">
+      <div ref={loanRecordRef} className="mb-6 scroll-mt-20">
         <div className="flex items-center justify-between mb-3 gap-3">
           <button
             type="button"

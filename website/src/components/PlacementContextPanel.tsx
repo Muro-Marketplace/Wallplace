@@ -267,6 +267,29 @@ export default function PlacementContextPanel({
     }
   }
 
+  async function handleUndoStage(stage: "scheduled" | "installed" | "live" | "collected") {
+    if (!current) return;
+    if (!confirm(`Undo "${stage}"? You can restamp it later.`)) return;
+    setBusyAction(`undo-${stage}`);
+    setError(null);
+    try {
+      const res = await authFetch("/api/placements", {
+        method: "PATCH",
+        body: JSON.stringify({ id: (current as RemotePlacement).id, unsetStage: stage }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) setError(data.error || "Could not undo stage");
+      else {
+        await loadPlacements();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { placementId: (current as RemotePlacement).id, action: "undo", stage } }));
+        }
+      }
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   async function handleAdvance(stage: string) {
     if (!current || stage === "accepted") return;
     setBusyAction(`advance-${stage}`);
@@ -878,19 +901,46 @@ export default function PlacementContextPanel({
         {(() => {
           const nextStageKey = nextAct?.cta?.kind === "advance" ? nextAct.cta.stage : null;
           const nextLabel = nextStageKey ? `Mark ${nextStageKey === "live" ? "live on wall" : nextStageKey}` : null;
-          if (displayStatus === "Active" && nextStageKey && nextLabel) {
-            return (
-              <button
-                onClick={() => handleAdvance(nextStageKey)}
-                disabled={busyAction === `advance-${nextStageKey}`}
-                className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 lg:py-2.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60"
-              >
-                {busyAction === `advance-${nextStageKey}` ? "Updating…" : nextLabel}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-              </button>
-            );
-          }
-          return null;
+          // Find the most recent reached advanceable stage — that's what
+          // Undo should target. Only surface Undo when there's actually
+          // a stage to roll back; skips Requested / Accepted which aren't
+          // user-advanceable.
+          type StageKey = "scheduled" | "installed" | "live" | "collected";
+          const reachedMap: Record<StageKey, boolean> = {
+            scheduled: !!(current as RemotePlacement).scheduled_for,
+            installed: !!(current as RemotePlacement).installed_at,
+            live: !!(current as RemotePlacement).live_from,
+            collected: !!(current as RemotePlacement).collected_at,
+          };
+          const reverseOrder: StageKey[] = ["collected", "live", "installed", "scheduled"];
+          const lastReached = reverseOrder.find((k) => reachedMap[k]);
+          const showAdvance = displayStatus === "Active" && nextStageKey && nextLabel;
+          const showUndo = !!lastReached && (displayStatus === "Active" || displayStatus === "Completed");
+          if (!showAdvance && !showUndo) return null;
+          return (
+            <>
+              {showAdvance && nextStageKey && (
+                <button
+                  onClick={() => handleAdvance(nextStageKey)}
+                  disabled={busyAction === `advance-${nextStageKey}`}
+                  className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 lg:py-2.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60"
+                >
+                  {busyAction === `advance-${nextStageKey}` ? "Updating…" : nextLabel}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                </button>
+              )}
+              {showUndo && lastReached && (
+                <button
+                  type="button"
+                  onClick={() => handleUndoStage(lastReached)}
+                  disabled={busyAction === `undo-${lastReached}`}
+                  className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 lg:py-2.5 text-xs font-medium text-muted bg-background border border-border hover:text-foreground hover:border-foreground/30 rounded-full transition-colors disabled:opacity-60"
+                >
+                  {busyAction === `undo-${lastReached}` ? "Undoing…" : `Undo ${lastReached}`}
+                </button>
+              )}
+            </>
+          );
         })()}
         <Link
           href={`/placements/${encodeURIComponent(p.id)}`}

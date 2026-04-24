@@ -70,6 +70,7 @@ export default function SpacesLookingForArtPage() {
 
   const { user, userType, loading: authLoading, subscriptionStatus, subscriptionPlan } = useAuth();
   const router = useRouter();
+  const [ownVenueSlug, setOwnVenueSlug] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/venues/demand")
@@ -78,6 +79,21 @@ export default function SpacesLookingForArtPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Venues shouldn't browse other venues — this page is for artists.
+  // We fetch the venue's own slug so we can point them at their own
+  // public profile rather than exposing the discovery UI to them.
+  useEffect(() => {
+    if (userType !== "venue" || !user) return;
+    (async () => {
+      try {
+        const { authFetch } = await import("@/lib/api-client");
+        const res = await authFetch("/api/venue-profile");
+        const data = await res.json();
+        if (data.profile?.slug) setOwnVenueSlug(data.profile.slug);
+      } catch { /* ignore */ }
+    })();
+  }, [user, userType]);
 
   const isSubscribed = subscriptionStatus === "active" || subscriptionStatus === "trialing";
   // Venues are locked out of viewing other venues — this page is for artists/customers
@@ -247,7 +263,28 @@ export default function SpacesLookingForArtPage() {
       {/* Venue cards */}
       <section className="py-10 lg:py-14">
         <div className="max-w-[1200px] mx-auto px-6">
-          {loading || authLoading ? (
+          {/* Venue users: block the discovery grid entirely. They can
+              preview their OWN public venue page (so they know what
+              artists see) but shouldn't be browsing other venues. */}
+          {userType === "venue" && !authLoading && (
+            <div className="max-w-xl mx-auto bg-surface border border-border rounded-sm p-8 text-center">
+              <p className="text-sm font-medium text-foreground mb-1">Spaces is for artists</p>
+              <p className="text-xs text-muted mb-5">
+                This is where artists discover venues to place their work. To keep browsing fair, venues don&rsquo;t see other venues here — but you can preview how artists see YOUR space.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                {ownVenueSlug && (
+                  <Link href={`/venues/${ownVenueSlug}`} className="inline-flex items-center justify-center px-5 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors">
+                    Preview my venue page
+                  </Link>
+                )}
+                <Link href="/venue-portal/profile" className="inline-flex items-center justify-center px-5 py-2.5 text-sm text-muted border border-border rounded-sm hover:text-foreground hover:border-foreground/30 transition-colors">
+                  Edit my profile
+                </Link>
+              </div>
+            </div>
+          )}
+          {userType !== "venue" && (loading || authLoading ? (
             <p className="text-muted text-sm text-center py-16">Loading venues...</p>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16">
@@ -258,23 +295,11 @@ export default function SpacesLookingForArtPage() {
             <>
             {!canSeeDetails && filtered.length >= 1 && (
               <div className="bg-accent/5 border border-accent/20 rounded-sm p-6 mb-8 text-center">
-                {userType === "venue" ? (
-                  <>
-                    <p className="text-sm font-medium text-foreground mb-1">This page is for artists discovering venue demand</p>
-                    <p className="text-xs text-muted mb-4">Manage your own venue profile and view leads from your dashboard.</p>
-                    <Link href="/venue-portal" className="inline-flex items-center justify-center px-6 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors">
-                      Go to Venue Portal
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-medium text-foreground mb-1">Subscribe to see full venue details</p>
-                    <p className="text-xs text-muted mb-4">Get venue names, contact details, and connect directly. Plans from £9.99/month.</p>
-                    <Link href="/pricing" className="inline-flex items-center justify-center px-6 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors">
-                      View Plans
-                    </Link>
-                  </>
-                )}
+                <p className="text-sm font-medium text-foreground mb-1">Subscribe to see full venue details</p>
+                <p className="text-xs text-muted mb-4">Get venue names, contact details, and connect directly. Plans from £9.99/month.</p>
+                <Link href="/pricing" className="inline-flex items-center justify-center px-6 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors">
+                  View Plans
+                </Link>
               </div>
             )}
 
@@ -384,7 +409,7 @@ export default function SpacesLookingForArtPage() {
 
                     {/* Message button for subscribers / Lock for non-subscribers */}
                     {canSeeDetails && canMessageVenues ? (
-                      <div className="mt-3 pt-3 border-t border-border">
+                      <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-3 flex-wrap">
                         <button
                           onClick={() => {
                             const portalBase = userType === "artist" ? "/artist-portal" : "/venue-portal";
@@ -394,12 +419,18 @@ export default function SpacesLookingForArtPage() {
                         >
                           Message this venue &rarr;
                         </button>
+                        <Link href={`/venues/${venue.slug}`} className="text-xs text-muted hover:text-foreground transition-colors">
+                          View full profile
+                        </Link>
                       </div>
                     ) : canSeeDetails && !canMessageVenues ? (
-                      <div className="mt-3 pt-3 border-t border-border">
+                      <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-3 flex-wrap">
                         <Link href="/artist-portal/billing" className="flex items-center gap-1.5 text-xs text-muted hover:text-accent transition-colors">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                           Upgrade to Premium to message venues
+                        </Link>
+                        <Link href={`/venues/${venue.slug}`} className="text-xs text-muted hover:text-foreground transition-colors">
+                          View full profile
                         </Link>
                       </div>
                     ) : (
@@ -415,15 +446,18 @@ export default function SpacesLookingForArtPage() {
               ))}
             </div>
             </>
-          )}
+          ))}
 
-          {/* CTA */}
-          <div className="mt-12 text-center">
-            <p className="text-muted mb-4">Ready to connect with these venues?</p>
-            <Link href="/apply" className="inline-flex items-center justify-center px-8 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
-              Apply to Join Wallplace
-            </Link>
-          </div>
+          {/* CTA — artists only; venues already see the dedicated
+              "Spaces is for artists" block above. */}
+          {userType !== "venue" && (
+            <div className="mt-12 text-center">
+              <p className="text-muted mb-4">Ready to connect with these venues?</p>
+              <Link href="/apply" className="inline-flex items-center justify-center px-8 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
+                Apply to Join Wallplace
+              </Link>
+            </div>
+          )}
         </div>
       </section>
     </div>

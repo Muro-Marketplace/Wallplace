@@ -255,7 +255,7 @@ export default function VenueProfilePage() {
           </p>
           {venue?.slug && (
             <a
-              href={`/spaces-looking-for-art#venue-${venue.slug}`}
+              href={`/venues/${venue.slug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 mt-2 text-xs text-accent hover:text-accent-hover transition-colors"

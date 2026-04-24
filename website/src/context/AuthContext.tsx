@@ -58,12 +58,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       fetchSubscription(s?.user ?? null);
     });
 
-    // Listen for auth state changes
+    // Listen for auth state changes. Supabase fires TOKEN_REFRESHED on tab
+    // focus when the session is nearing expiry — if we update user/session
+    // state every time, every consumer hook re-runs and it looks like the
+    // whole page is reloading on tab switch. Compare IDs and only update
+    // when it's actually a different user (sign-in / sign-out), not a
+    // silent refresh. The session object itself still gets updated for the
+    // next Supabase request to use.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, s) => {
         setSession(s);
-        setUser(s?.user ?? null);
-        fetchSubscription(s?.user ?? null);
+        setUser((prev) => {
+          const prevId = prev?.id || null;
+          const nextId = s?.user?.id || null;
+          if (prevId === nextId) return prev;
+          fetchSubscription(s?.user ?? null);
+          return s?.user ?? null;
+        });
       }
     );
 

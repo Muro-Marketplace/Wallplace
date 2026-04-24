@@ -1526,7 +1526,7 @@ export default function VenuePlacementsPage() {
                                 Message artist
                               </Link>
                               <Link
-                                href={`/placements/${encodeURIComponent(p.id)}`}
+                                href={`/placements/${encodeURIComponent(p.id)}?record=open`}
                                 onClick={(e) => e.stopPropagation()}
                                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-accent border border-accent/30 hover:bg-accent/5 rounded-sm transition-colors"
                               >
