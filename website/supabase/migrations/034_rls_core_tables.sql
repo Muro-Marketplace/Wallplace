@@ -66,22 +66,28 @@ CREATE POLICY "venue_profiles_select_own" ON venue_profiles
 -- ---------- artist_works ----------
 ALTER TABLE artist_works ENABLE ROW LEVEL SECURITY;
 
--- Public works show on /browse. Private works (belonging to a pending
--- artist or soft-deleted) are gated via the artist_profiles join in the
--- API, but the policy can still surface them to authenticated owners.
+-- Public works show on /browse. artist_works.artist_id is the FK to
+-- artist_profiles.id (NOT a user id), so policies join through
+-- artist_profiles to reach review_status and user ownership.
 DROP POLICY IF EXISTS "artist_works_select_public" ON artist_works;
 CREATE POLICY "artist_works_select_public" ON artist_works
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM artist_profiles ap
-      WHERE ap.user_id = artist_works.artist_user_id
+      WHERE ap.id = artist_works.artist_id
         AND ap.review_status = 'approved'
     )
   );
 
 DROP POLICY IF EXISTS "artist_works_select_own" ON artist_works;
 CREATE POLICY "artist_works_select_own" ON artist_works
-  FOR SELECT USING (auth.uid() = artist_user_id);
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM artist_profiles ap
+      WHERE ap.id = artist_works.artist_id
+        AND ap.user_id = auth.uid()
+    )
+  );
 
 -- ---------- placements ----------
 ALTER TABLE placements ENABLE ROW LEVEL SECURITY;
