@@ -34,6 +34,11 @@ export const applySchema = z.object({
   location: safeString(200),
   instagram: optionalString(200),
   website: optionalString(500),
+  // Consumer / business distinction — drives which UK consumer-protection
+  // rules apply to the membership subscription.
+  traderStatus: z.enum(["consumer", "business"]).optional().or(z.literal("")),
+  businessName: optionalString(200),
+  vatNumber: optionalString(40),
   primaryMedium: safeString(100),
   // Phase 3 taxonomy. Optional to keep back-compat with any in-flight forms.
   // "digital" accepted for legacy payloads — it maps onto drawing on read.

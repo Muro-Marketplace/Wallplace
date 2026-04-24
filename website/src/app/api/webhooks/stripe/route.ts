@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { scheduleTransfer } from "@/lib/stripe-connect";
 import { notifyArtistNewOrder, notifyVenueOrderFromPlacement, notifyCurationCustomerPaid } from "@/lib/email";
+import { createNotification } from "@/lib/notifications";
 import { platformFeePercentForArtist, DEFAULT_PLAN_FEE_PERCENT } from "@/lib/platform-fee";
 import type Stripe from "stripe";
 
@@ -256,26 +257,42 @@ export async function POST(request: Request) {
             console.warn("Quantity decrement skipped:", err);
           }
 
-          // Notify artist (fire-and-forget)
+          const cartItemsForNotify = session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [];
+          const firstItemTitle = cartItemsForNotify[0]?.title || "Artwork";
+
+          // Notify artist — email + in-app bell notification.
           if (artistUserId) {
             const { data: { user: artistUser } } = await db.auth.admin.getUserById(artistUserId);
             const { data: artistProfile } = await db.from("artist_profiles").select("name").eq("user_id", artistUserId).single();
             if (artistUser?.email && artistProfile) {
-              const cartItems = session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [];
-              const firstItem = cartItems[0]?.title || "Artwork";
-              notifyArtistNewOrder({ email: artistUser.email, artistName: artistProfile.name, orderId, itemTitle: firstItem, total, artistRevenue }).catch((err) => { if (err) console.error("Fire-and-forget error:", err); });
+              notifyArtistNewOrder({ email: artistUser.email, artistName: artistProfile.name, orderId, itemTitle: firstItemTitle, total, artistRevenue }).catch((err) => { if (err) console.error("Fire-and-forget error:", err); });
             }
+            // In-app sale notification, deep-linked to the artist orders
+            // page so they can acknowledge the sale and start fulfilment.
+            createNotification({
+              userId: artistUserId,
+              kind: "sale",
+              title: "Your artwork sold",
+              body: `${firstItemTitle} — £${artistRevenue.toFixed(2)} to you (${orderId})`,
+              link: "/artist-portal/orders",
+            }).catch(() => {});
           }
-          // Notify venue if revenue share exists
+          // Notify venue if revenue share exists — email + in-app bell.
           if (venueSlug && venueRevenue > 0) {
             const { data: vp } = await db.from("venue_profiles").select("user_id, name").eq("slug", venueSlug).single();
             if (vp?.user_id) {
               const { data: { user: venueUser } } = await db.auth.admin.getUserById(vp.user_id);
               const { data: ap } = await db.from("artist_profiles").select("name").eq("slug", firstArtistSlug).single();
               if (venueUser?.email) {
-                const cartItems = session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [];
-                notifyVenueOrderFromPlacement({ email: venueUser.email, venueName: vp.name, artistName: ap?.name || firstArtistSlug, itemTitle: cartItems[0]?.title || "Artwork", total, venueRevenue }).catch((err) => { if (err) console.error("Fire-and-forget error:", err); });
+                notifyVenueOrderFromPlacement({ email: venueUser.email, venueName: vp.name, artistName: ap?.name || firstArtistSlug, itemTitle: firstItemTitle, total, venueRevenue }).catch((err) => { if (err) console.error("Fire-and-forget error:", err); });
               }
+              createNotification({
+                userId: vp.user_id,
+                kind: "sale",
+                title: "Placement sale",
+                body: `${firstItemTitle} sold — £${venueRevenue.toFixed(2)} to your venue (${orderId})`,
+                link: "/venue-portal/orders",
+              }).catch(() => {});
             }
           }
 

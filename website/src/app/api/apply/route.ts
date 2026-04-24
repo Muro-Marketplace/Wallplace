@@ -35,7 +35,10 @@ export async function POST(request: Request) {
 
     const d = parsed.data;
 
-    const { error } = await supabase.from("artist_applications").insert({
+    // Build the row up-front so we can retry-without-new-columns if the
+    // schema lags. Drops trader_status / business_name / vat_number on
+    // the retry path so older envs still accept the application.
+    const fullRow: Record<string, unknown> = {
       name: d.name,
       email: d.email,
       location: d.location,
@@ -46,6 +49,9 @@ export async function POST(request: Request) {
       sub_styles: d.subStyles || [],
       portfolio_link: d.portfolioLink,
       artist_statement: d.artistStatement,
+      trader_status: d.traderStatus || null,
+      business_name: d.businessName || null,
+      vat_number: d.vatNumber || null,
       offers_originals: d.offersOriginals || false,
       offers_prints: d.offersPrints || false,
       offers_framed: d.offersFramed || false,
@@ -63,7 +69,25 @@ export async function POST(request: Request) {
         : null,
       status: "pending",
       created_at: new Date().toISOString(),
-    });
+    };
+
+    let { error } = await supabase.from("artist_applications").insert(fullRow);
+    if (error) {
+      const msg = String(error.message || "").toLowerCase();
+      const dropOnLegacy: string[] = [];
+      if (msg.includes("trader_status")) dropOnLegacy.push("trader_status");
+      if (msg.includes("business_name")) dropOnLegacy.push("business_name");
+      if (msg.includes("vat_number")) dropOnLegacy.push("vat_number");
+      if (msg.includes("discipline")) dropOnLegacy.push("discipline");
+      if (msg.includes("sub_styles")) dropOnLegacy.push("sub_styles");
+      if (msg.includes("referred_by_code")) dropOnLegacy.push("referred_by_code");
+      if (dropOnLegacy.length > 0) {
+        const safeRow = { ...fullRow };
+        for (const k of dropOnLegacy) delete safeRow[k];
+        const retry = await supabase.from("artist_applications").insert(safeRow);
+        error = retry.error;
+      }
+    }
 
     if (error) {
       if (error.code === "23505") {

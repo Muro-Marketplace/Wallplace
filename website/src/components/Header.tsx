@@ -566,9 +566,11 @@ export default function Header() {
                             const fallbackHref =
                               n.type === "message"
                                 ? `${portalBase}/messages`
-                                : n.type === "placement" || n.type === "placement_request" || n.type === "placement_accepted" || n.type === "placement_declined"
-                                  ? `${portalBase}/placements`
-                                  : portalBase;
+                                : n.type === "sale"
+                                  ? `${portalBase}/orders`
+                                  : n.type === "placement" || n.type === "placement_request" || n.type === "placement_accepted" || n.type === "placement_declined"
+                                    ? `${portalBase}/placements`
+                                    : portalBase;
                             const href = n.link && n.link !== "#" ? n.link : fallbackHref;
                             return (
                             <Link

@@ -12,8 +12,13 @@ interface Application {
   instagram: string;
   website: string;
   primary_medium: string;
+  discipline?: string | null;
+  sub_styles?: string[] | null;
   portfolio_link: string;
   artist_statement: string;
+  trader_status?: "consumer" | "business" | null;
+  business_name?: string | null;
+  vat_number?: string | null;
   offers_originals: boolean;
   offers_prints: boolean;
   offers_framed: boolean;
@@ -26,6 +31,7 @@ interface Application {
   themes: string[];
   hear_about: string;
   selected_plan: string;
+  referred_by_code?: string | null;
   status: string;
   reviewed_at: string | null;
   created_at: string;
@@ -208,6 +214,17 @@ export default function AdminApplicationsPage() {
                           {app.artist_statement || "Not provided"}
                         </p>
                       </div>
+
+                      {/* Trader status — important for which UK consumer
+                          rules apply to the membership subscription. */}
+                      <div>
+                        <p className="text-xs text-muted uppercase tracking-wider mb-1">Trader Status</p>
+                        <p className="text-sm text-foreground capitalize">
+                          {app.trader_status || "Not specified"}
+                          {app.trader_status === "business" && app.business_name && ` · ${app.business_name}`}
+                          {app.vat_number && ` · VAT: ${app.vat_number}`}
+                        </p>
+                      </div>
                     </div>
 
                     {/* Right column */}
@@ -260,10 +277,33 @@ export default function AdminApplicationsPage() {
                         </div>
                       )}
 
+                      {/* Discipline + sub-styles — primary taxonomy used
+                          by venues to filter and the team to triage. */}
+                      {app.discipline && (
+                        <div>
+                          <p className="text-xs text-muted uppercase tracking-wider mb-1">Discipline</p>
+                          <p className="text-sm text-foreground capitalize">{app.discipline}</p>
+                          {(app.sub_styles || []).length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {(app.sub_styles || []).map((s) => (
+                                <span key={s} className="px-2 py-0.5 text-[10px] bg-surface text-muted border border-border rounded-sm">{s}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div>
                         <p className="text-xs text-muted uppercase tracking-wider mb-1">Selected Plan</p>
                         <p className="text-sm text-foreground capitalize">{app.selected_plan || "core"}</p>
                       </div>
+
+                      {app.referred_by_code && (
+                        <div>
+                          <p className="text-xs text-muted uppercase tracking-wider mb-1">Referral Code</p>
+                          <p className="text-sm text-foreground font-mono tracking-wider">{app.referred_by_code}</p>
+                        </div>
+                      )}
 
                       {app.hear_about && (
                         <div>

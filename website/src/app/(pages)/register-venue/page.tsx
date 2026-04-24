@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { slugify } from "@/lib/slugify";
 import TermsCheckbox from "@/components/TermsCheckbox";
+import Dropdown from "@/components/Dropdown";
 
 const venueTypes = [
   "Café / Coffee Shop",
@@ -302,10 +303,14 @@ export default function RegisterVenuePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Venue Type <span className="text-accent">*</span></label>
-                    <select value={form.venueType} onChange={(e) => updateField("venueType", e.target.value)} required className={inputClass}>
-                      <option value="">Select type</option>
-                      {venueTypes.map((t) => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                    <Dropdown
+                      value={form.venueType}
+                      onChange={(v) => updateField("venueType", v)}
+                      options={venueTypes.map((t) => ({ value: t, label: t }))}
+                      placeholder="Select type"
+                      required
+                      ariaLabel="Venue type"
+                    />
                     {form.venueType === "Other" && (
                       <input
                         type="text"
@@ -365,10 +370,14 @@ export default function RegisterVenuePage() {
                 <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium mb-2">Approximate wall space <span className="text-accent">*</span></label>
-                    <select value={form.wallSpace} onChange={(e) => updateField("wallSpace", e.target.value)} required className={inputClass}>
-                      <option value="">Select</option>
-                      {wallSpaceOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
+                    <Dropdown
+                      value={form.wallSpace}
+                      onChange={(v) => updateField("wallSpace", v)}
+                      options={wallSpaceOptions.map((o) => ({ value: o, label: o }))}
+                      placeholder="Select"
+                      required
+                      ariaLabel="Approximate wall space"
+                    />
                   </div>
                   <div>
                     <p className="text-sm font-medium mb-3">What kind of art interests you?</p>
@@ -399,10 +408,13 @@ export default function RegisterVenuePage() {
               {/* How did you hear */}
               <div>
                 <label className="block text-sm font-medium mb-2">How did you hear about Wallplace?</label>
-                <select value={form.hearAbout} onChange={(e) => updateField("hearAbout", e.target.value)} className={inputClass}>
-                  <option value="">Select</option>
-                  {hearOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
+                <Dropdown
+                  value={form.hearAbout}
+                  onChange={(v) => updateField("hearAbout", v)}
+                  options={hearOptions.map((o) => ({ value: o, label: o }))}
+                  placeholder="Select"
+                  ariaLabel="How did you hear about Wallplace"
+                />
               </div>
 
               {/* Error */}

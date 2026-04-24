@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import SaveButton from "@/components/SaveButton";
 import { useToast } from "@/context/ToastContext";
 import WallVisualiser from "@/components/WallVisualiser";
+import Dropdown from "@/components/Dropdown";
 import { resolveShippingCost, tierLabel, SIGNATURE_THRESHOLD_GBP } from "@/lib/shipping-calculator";
 
 interface ArtworkPageClientProps {
@@ -130,29 +131,22 @@ export default function ArtworkPageClient({
             </div>
           ) : (
             <>
-              <select
-                value={selectedSizeIdx}
-                onChange={(e) => setSelectedSizeIdx(Number(e.target.value))}
-                className="w-full px-3.5 py-3 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-foreground/50 cursor-pointer transition-colors"
-              >
-                {work.pricing.map((sp, i) => {
-                  // Append the per-size stock count when the artist
-                  // has set one. 0 flags the size as sold out.
+              <Dropdown
+                value={String(selectedSizeIdx)}
+                onChange={(v) => setSelectedSizeIdx(Number(v))}
+                options={work.pricing.map((sp, i) => {
                   const stock = sp.quantityAvailable;
-                  const stockSuffix = typeof stock === "number"
-                    ? (stock <= 0 ? " — Sold out" : ` — ${stock} available`)
-                    : "";
-                  return (
-                    <option
-                      key={sp.label}
-                      value={i}
-                      disabled={typeof stock === "number" && stock <= 0}
-                    >
-                      {sp.label} — £{sp.price}{stockSuffix}
-                    </option>
-                  );
+                  return {
+                    value: String(i),
+                    label: `${sp.label} — £${sp.price}`,
+                    description: typeof stock === "number"
+                      ? (stock <= 0 ? "Sold out" : `${stock} available`)
+                      : undefined,
+                    disabled: typeof stock === "number" && stock <= 0,
+                  };
                 })}
-              </select>
+                ariaLabel="Choose size"
+              />
               {/* Per-size availability list — only shown when the
                   artist has split stock by size, so the default
                   "one number fits all" flow stays uncluttered. */}
@@ -185,18 +179,19 @@ export default function ArtworkPageClient({
       {work.available && frameOptions.length > 0 && (
         <div className="mb-5">
           <p className="text-[10px] text-muted uppercase tracking-[0.18em] mb-2.5">Frame</p>
-          <select
-            value={selectedFrameIdx}
-            onChange={(e) => setSelectedFrameIdx(Number(e.target.value))}
-            className="w-full px-3.5 py-3 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-foreground/50 cursor-pointer transition-colors"
-          >
-            <option value={-1}>No frame</option>
-            {frameOptions.map((f, i) => (
-              <option key={f.label} value={i}>
-                {f.label}{f.priceUplift > 0 ? ` — +£${f.priceUplift}` : ""}
-              </option>
-            ))}
-          </select>
+          <Dropdown
+            value={String(selectedFrameIdx)}
+            onChange={(v) => setSelectedFrameIdx(Number(v))}
+            options={[
+              { value: "-1", label: "No frame" },
+              ...frameOptions.map((f, i) => ({
+                value: String(i),
+                label: f.label,
+                description: f.priceUplift > 0 ? `+£${f.priceUplift}` : undefined,
+              })),
+            ]}
+            ariaLabel="Choose frame"
+          />
           {selectedFrame?.imageUrl && (
             <div className="mt-3 relative aspect-video rounded-sm overflow-hidden border border-border/60 bg-surface select-none" onContextMenu={(e) => e.preventDefault()}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
