@@ -185,6 +185,24 @@ function BrowsePortfoliosPageInner() {
   }, [viewParam]);
   const [artistSort, setArtistSort] = useState<"featured" | "name" | "revenue_share" | "distance">("featured");
   const [gallerySort, setGallerySort] = useState<"featured" | "az" | "price_low" | "price_high" | "revenue_share" | "distance">("featured");
+  // Gallery grid uses a JS-distributed masonry so images of varying heights
+  // slot together with no row-whitespace, while reading order stays left-to-
+  // right, top-to-bottom (CSS `columns-*` alone gives the masonry look but
+  // fills top-to-bottom per column, which breaks the sort). We track the
+  // viewport-based column count in state and recompute on resize.
+  const [galleryColCount, setGalleryColCount] = useState(4);
+  useEffect(() => {
+    function compute() {
+      const w = window.innerWidth;
+      if (w >= 1280) setGalleryColCount(4);
+      else if (w >= 1024) setGalleryColCount(3);
+      else if (w >= 640) setGalleryColCount(2);
+      else setGalleryColCount(1);
+    }
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
+  }, []);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [artists, setArtists] = useState<Artist[]>(staticArtists);
   const [collections, setCollections] = useState<ArtistCollection[]>(staticCollections);
@@ -1668,9 +1686,18 @@ function BrowsePortfoliosPageInner() {
                     <p className="text-muted text-lg mb-4">No works match these filters.</p>
                     <button type="button" onClick={clearGalleryFilters} className="text-sm text-accent hover:text-accent-hover transition-colors cursor-pointer">Clear all filters</button>
                   </div>
-                ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                  {filteredGalleryWorks.slice(0, loadedWorks).map((work) => {
+                ) : (() => {
+                  // Distribute row-major into N columns so the visual reading
+                  // order matches the sort. Each column is a flex stack with
+                  // no fixed row height — shorter cards don't leave whitespace.
+                  const visibleWorks = filteredGalleryWorks.slice(0, loadedWorks);
+                  const masonryCols: typeof visibleWorks[] = Array.from({ length: galleryColCount }, () => []);
+                  visibleWorks.forEach((w, i) => masonryCols[i % galleryColCount].push(w));
+                  return (
+                    <div className="flex gap-5 items-start">
+                      {masonryCols.map((colItems, ci) => (
+                        <div key={ci} className="flex-1 min-w-0 flex flex-col gap-5">
+                          {colItems.map((work) => {
                     const workSlug = slugify(work.title);
                     // ArtistProfileClient opens the lightbox when ?work= is present,
                     // so we route quick-look through the query param rather than a
@@ -1769,8 +1796,11 @@ function BrowsePortfoliosPageInner() {
                       </div>
                     );
                   })}
-                </div>
-                )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
                 {filteredGalleryWorks.length > loadedWorks && (
                   <div className="mt-10 text-center">
                     <button
