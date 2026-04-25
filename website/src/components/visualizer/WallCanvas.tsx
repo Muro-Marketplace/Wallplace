@@ -291,19 +291,24 @@ function CanvasItem({
   const groupRef = useRef<Konva.Group>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
 
-  // Attach transformer when selected.
-  useEffect(() => {
-    if (selected && transformerRef.current && groupRef.current) {
-      transformerRef.current.nodes([groupRef.current]);
-      transformerRef.current.getLayer()?.batchDraw();
-    }
-  }, [selected]);
-
   // Pixel position + size derived from cm.
   const pxX = wallOriginX + item.x_cm * pxPerCm;
   const pxY = wallOriginY + item.y_cm * pxPerCm;
   const pxW = item.width_cm * pxPerCm;
   const pxH = item.height_cm * pxPerCm;
+
+  // Attach the transformer when the item is selected — and re-attach
+  // (force a re-measure) whenever the item's dimensions change so the
+  // outline stays glued to the visible content. Without this, picking a
+  // new size from the toolbar dropdown would leave the Transformer
+  // outline at the previous size until the user clicked away and back.
+  useEffect(() => {
+    if (selected && transformerRef.current && groupRef.current) {
+      transformerRef.current.nodes([groupRef.current]);
+      transformerRef.current.forceUpdate?.();
+      transformerRef.current.getLayer()?.batchDraw();
+    }
+  }, [selected, pxW, pxH, item.rotation_deg]);
 
   // Frame geometry (artwork inset + border colour).
   const frameGeo = computeFrameGeometry(pxW, pxH, item.frame);
@@ -420,6 +425,23 @@ function CanvasItem({
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       >
+        {/*
+         * Bounding-box "ghost". Konva's Transformer measures the union
+         * of children's clientRects (including their shadow extents),
+         * which is why the outline used to drift past the visible image
+         * during resize. This invisible Rect anchors the bounding box
+         * to the item's true outer dimensions — and since shadows on
+         * other children only matter when this Rect doesn't dominate,
+         * we also disable shadows on every visible child while
+         * selected.
+         */}
+        <Rect
+          width={pxW}
+          height={pxH}
+          fill="transparent"
+          listening={false}
+        />
+
         {/* Frame border — gradient rectangle behind artwork (preview;
             the Render output uses the much richer SVG-generated frame). */}
         {item.frame.style !== "none" && (
@@ -428,9 +450,10 @@ function CanvasItem({
             height={pxH}
             {...getKonvaFrameProps(item.frame, pxW, pxH)}
             shadowColor="rgba(0,0,0,0.35)"
-            shadowBlur={frameGeo.hasShadow ? 14 : 0}
-            shadowOpacity={frameGeo.hasShadow ? 0.4 : 0}
-            shadowOffsetY={frameGeo.hasShadow ? 6 : 0}
+            shadowEnabled={!selected && frameGeo.hasShadow}
+            shadowBlur={14}
+            shadowOpacity={0.4}
+            shadowOffsetY={6}
           />
         )}
         {/* Artwork — inset by border thickness */}
@@ -442,9 +465,10 @@ function CanvasItem({
             width={frameGeo.artwork.width}
             height={frameGeo.artwork.height}
             shadowColor="rgba(0,0,0,0.25)"
-            shadowBlur={item.frame.style === "none" ? 12 : 0}
-            shadowOpacity={item.frame.style === "none" ? 0.35 : 0}
-            shadowOffsetY={item.frame.style === "none" ? 5 : 0}
+            shadowEnabled={!selected && item.frame.style === "none"}
+            shadowBlur={12}
+            shadowOpacity={0.35}
+            shadowOffsetY={5}
           />
         ) : (
           <Rect

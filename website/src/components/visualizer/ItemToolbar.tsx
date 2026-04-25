@@ -9,15 +9,15 @@
  * itself once the editor has multi-row layouts.
  *
  * Capabilities:
- *   - Cycle through listed sizes (when the work has size variants)
+ *   - Pick a size from the dropdown (when the work has size variants)
  *   - Pick frame style (5 options)
  *   - Pick frame finish (filtered to current style's finishes)
  *   - Bring forward / send back
  *   - Duplicate / delete
  */
 
-import { useMemo } from "react";
-import { cycleSize, type SizeVariant } from "@/lib/visualizer/dimensions";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { SizeVariant } from "@/lib/visualizer/dimensions";
 import {
   FRAME_STYLES,
   defaultFrameConfig,
@@ -55,67 +55,28 @@ export default function ItemToolbar({
     onChange({ frame: { ...item.frame, finish: finishId } });
   };
 
-  const handleSizeCycle = (direction: 1 | -1) => {
-    if (!sizes || sizes.length === 0) return;
-    const next = cycleSize(sizes, item.size_label ?? null, direction);
-    if (!next) return;
-    onChange({
-      width_cm: next.widthCm,
-      height_cm: next.heightCm,
-      size_label: next.label,
-    });
-  };
-
-  // Compact label: "12×16\" (A3)" → "A3" if parens present, else first 12 chars.
-  const sizeLabelShort = useMemo(() => {
-    if (item.size_label) {
-      const parens = /\(([^)]+)\)/.exec(item.size_label);
-      if (parens) return parens[1];
-      return item.size_label.length > 14
-        ? item.size_label.slice(0, 12) + "…"
-        : item.size_label;
-    }
-    return `${Math.round(item.width_cm)}×${Math.round(item.height_cm)} cm`;
-  }, [item.size_label, item.width_cm, item.height_cm]);
-
-  const hasMultipleSizes = (sizes?.length ?? 0) > 1;
-
   return (
     <div
       role="toolbar"
       aria-label="Selected artwork"
       className="flex items-center gap-2 px-2 py-1.5 rounded-full bg-white/95 backdrop-blur border border-black/10 shadow-md text-stone-700"
     >
-      {/* Size cycle — only when the work has multiple listed sizes */}
-      {hasMultipleSizes && (
+      {/* Size dropdown — only when the work has multiple listed sizes */}
+      {sizes && sizes.length > 1 && (
         <>
-          <div className="flex items-center gap-0.5 px-1">
-            <button
-              type="button"
-              title="Smaller size"
-              onClick={() => handleSizeCycle(-1)}
-              className="px-1.5 py-0.5 text-[11px] rounded hover:bg-stone-100"
-            >
-              −
-            </button>
-            <span
-              className="text-[11px] tabular-nums px-1.5 text-stone-700 min-w-[3.5rem] text-center"
-              title={
-                item.size_label ??
-                `${Math.round(item.width_cm)}×${Math.round(item.height_cm)} cm`
-              }
-            >
-              {sizeLabelShort}
-            </span>
-            <button
-              type="button"
-              title="Larger size"
-              onClick={() => handleSizeCycle(1)}
-              className="px-1.5 py-0.5 text-[11px] rounded hover:bg-stone-100"
-            >
-              +
-            </button>
-          </div>
+          <SizeDropdown
+            sizes={sizes}
+            currentLabel={item.size_label ?? null}
+            currentWidthCm={item.width_cm}
+            currentHeightCm={item.height_cm}
+            onPick={(v) =>
+              onChange({
+                width_cm: v.widthCm,
+                height_cm: v.heightCm,
+                size_label: v.label,
+              })
+            }
+          />
           <span className="h-4 w-px bg-black/10" />
         </>
       )}
@@ -200,6 +161,145 @@ export default function ItemToolbar({
       >
         Delete
       </button>
+    </div>
+  );
+}
+
+// ── Size dropdown ───────────────────────────────────────────────────────
+
+interface SizeDropdownProps {
+  sizes: SizeVariant[];
+  currentLabel: string | null;
+  currentWidthCm: number;
+  currentHeightCm: number;
+  onPick: (v: SizeVariant) => void;
+}
+
+/**
+ * Click-to-open size menu. Sorts variants by area so the order is
+ * monotonic (smallest → largest), which feels right for "step up a
+ * size" mental model.
+ *
+ * We render a custom dropdown rather than a native <select> because:
+ *   - Native selects can't show secondary metadata (cm hint + price).
+ *   - Their styling differs across browsers and clashes with the
+ *     toolbar pill aesthetic.
+ *   - We need the trigger to display a compact label while the menu
+ *     shows the full label.
+ */
+function SizeDropdown({
+  sizes,
+  currentLabel,
+  currentWidthCm,
+  currentHeightCm,
+  onPick,
+}: SizeDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const sorted = useMemo(
+    () =>
+      [...sizes].sort(
+        (a, b) => a.widthCm * a.heightCm - b.widthCm * b.heightCm,
+      ),
+    [sizes],
+  );
+
+  // Close on outside click + Esc.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!wrapperRef.current) return;
+      if (!wrapperRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  // Trigger label: prefer the parenthesised hint when it's short
+  // (e.g. "12×16\" (A3)" → "A3"); otherwise show cm.
+  const triggerLabel = useMemo(() => {
+    if (currentLabel) {
+      const parens = /\(([^)]+)\)/.exec(currentLabel);
+      if (parens) return parens[1];
+      return currentLabel.length > 14
+        ? currentLabel.slice(0, 12) + "…"
+        : currentLabel;
+    }
+    return `${Math.round(currentWidthCm)}×${Math.round(currentHeightCm)} cm`;
+  }, [currentLabel, currentWidthCm, currentHeightCm]);
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <button
+        type="button"
+        title="Pick a listed size"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 px-2 py-1 text-[11px] rounded hover:bg-stone-100"
+      >
+        <span className="tabular-nums">{triggerLabel}</span>
+        <svg
+          width="9"
+          height="9"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className="opacity-60"
+        >
+          <path d="M3 5l3 3 3-3" />
+        </svg>
+      </button>
+
+      {open && (
+        <ul
+          role="listbox"
+          aria-label="Available sizes"
+          className="absolute z-10 mt-1 left-0 min-w-[200px] rounded-lg bg-white border border-black/10 shadow-lg overflow-hidden"
+        >
+          {sorted.map((v) => {
+            const active = currentLabel === v.label;
+            return (
+              <li key={v.label}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => {
+                    onPick(v);
+                    setOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-1.5 text-[11px] flex items-center justify-between gap-3 transition ${
+                    active
+                      ? "bg-stone-900 text-white"
+                      : "text-stone-700 hover:bg-stone-50"
+                  }`}
+                >
+                  <span className="font-medium truncate">{v.label}</span>
+                  <span
+                    className={`tabular-nums shrink-0 text-[10px] ${
+                      active ? "text-white/70" : "text-stone-400"
+                    }`}
+                  >
+                    {Math.round(v.widthCm)}×{Math.round(v.heightCm)} cm
+                    {typeof v.priceGbp === "number" &&
+                      ` · £${v.priceGbp}`}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
