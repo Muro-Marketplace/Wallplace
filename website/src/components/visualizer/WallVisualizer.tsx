@@ -31,7 +31,7 @@
  *     handles stale-while-saving so a fast typist can't outrun it.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { isFlagOn } from "@/lib/feature-flags";
 import {
@@ -316,6 +316,49 @@ function WallVisualizerInner(props: ExtendedProps) {
     [items, selectedItemId],
   );
 
+  // ── Customer flow: auto-place the locked work on first paint ─────
+  // Runs once when in `customer_artwork_page` mode with a lockedWork
+  // that hasn't been placed yet. The work is dropped at the wall's
+  // centre at its natural listed dimensions (or a sensible default).
+  // Without this, customers see an empty wall — they shouldn't have to
+  // drag the artwork they already chose.
+  const autoSpawnedRef = useRef(false);
+  useEffect(() => {
+    if (autoSpawnedRef.current) return;
+    if (props.mode !== "customer_artwork_page") return;
+    if (!props.lockedWork) return;
+    if (items.length > 0) return;
+
+    autoSpawnedRef.current = true;
+
+    const work = props.lockedWork;
+    const picked = pickDefaultSize({
+      dimensions: work.dimensions ?? null,
+      variants: work.sizes ?? [],
+    });
+
+    let itemW = picked?.widthCm ?? Math.min(DEFAULT_ITEM_WIDTH_CM, widthCm * 0.4);
+    let itemH = picked?.heightCm ?? Math.min(DEFAULT_ITEM_HEIGHT_CM, heightCm * 0.5);
+    // Defensive cap so the natural size doesn't overflow the preset wall.
+    itemW = Math.min(itemW, widthCm * 0.8);
+    itemH = Math.min(itemH, heightCm * 0.8);
+
+    const newItem: WallItem = {
+      id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      work_id: work.id,
+      x_cm: (widthCm - itemW) / 2,
+      y_cm: (heightCm - itemH) / 2,
+      width_cm: itemW,
+      height_cm: itemH,
+      rotation_deg: 0,
+      z_index: 0,
+      frame: defaultFrameConfig("none"),
+      size_label: picked?.sizeLabel,
+    };
+    setItems([newItem]);
+    setSelectedItemId(newItem.id);
+  }, [props.mode, props.lockedWork, items.length, widthCm, heightCm]);
+
   // ── Wall config handlers ──────────────────────────────────────────
   const handlePickPreset = useCallback((presetId: string) => {
     const preset = getPresetWall(presetId);
@@ -455,21 +498,58 @@ function WallVisualizerInner(props: ExtendedProps) {
   }, [selectedItemId]);
 
   // ── Render flow ───────────────────────────────────────────────────
+  // Two paths:
+  //   1. Saved-wall path: POST to /api/walls/[id]/layouts/[lid]/render
+  //      with the items array — auto-saves the layout in the same
+  //      pipeline.
+  //   2. Quick path (customer artwork-page sheet): POST to
+  //      /api/walls/render-quick with preset_id + dims + work_id +
+  //      placement override. No DB rows for wall or layout.
   const handleRender = useCallback(async () => {
-    if (!props.wall || !props.initialLayout) {
-      setRenderError("Save the wall first to render.");
-      return;
-    }
     if (renderInFlight) return;
     if (items.length === 0) {
       setRenderError("Drag at least one artwork onto the wall.");
       return;
     }
 
+    const useQuick = !props.wall || !props.initialLayout;
+
     setRenderInFlight(true);
     setRenderError(null);
     try {
-      const url = `/api/walls/${props.wall.id}/layouts/${props.initialLayout.id}/render`;
+      let url: string;
+      let payload: Record<string, unknown>;
+
+      if (useQuick) {
+        // Customer / unsaved flow — single artwork to a preset wall.
+        const firstItem = items[0];
+        if (background.kind !== "preset") {
+          // Quick endpoint requires preset background (uploaded photos
+          // need a saved wall). Surface a helpful message.
+          setRenderError("Save the wall first to render uploaded photos.");
+          return;
+        }
+        url = "/api/walls/render-quick";
+        payload = {
+          preset_id: background.preset_id,
+          width_cm: widthCm,
+          height_cm: heightCm,
+          wall_color_hex: background.color_hex,
+          work_id: firstItem.work_id,
+          placement: {
+            x_cm: firstItem.x_cm,
+            y_cm: firstItem.y_cm,
+            width_cm: firstItem.width_cm,
+            height_cm: firstItem.height_cm,
+            frame: firstItem.frame,
+          },
+          kind: "standard",
+        };
+      } else {
+        url = `/api/walls/${props.wall!.id}/layouts/${props.initialLayout!.id}/render`;
+        payload = { kind: "standard", items };
+      }
+
       const res = await fetch(url, {
         method: "POST",
         headers: {
@@ -478,7 +558,7 @@ function WallVisualizerInner(props: ExtendedProps) {
             ? { Authorization: `Bearer ${props.authToken}` }
             : {}),
         },
-        body: JSON.stringify({ kind: "standard", items }),
+        body: JSON.stringify(payload),
       });
 
       // Always bump the chip — we may have spent units even on failure
@@ -530,7 +610,16 @@ function WallVisualizerInner(props: ExtendedProps) {
     } finally {
       setRenderInFlight(false);
     }
-  }, [props.wall, props.initialLayout, props.authToken, items, renderInFlight]);
+  }, [
+    props.wall,
+    props.initialLayout,
+    props.authToken,
+    items,
+    renderInFlight,
+    background,
+    widthCm,
+    heightCm,
+  ]);
 
   // Auto-clear render errors after a few seconds.
   useEffect(() => {
@@ -617,8 +706,12 @@ function WallVisualizerInner(props: ExtendedProps) {
           />
         </div>
 
-        {/* Bottom-right floating render button (only when persisting) */}
-        {canPersist && (
+        {/* Bottom-right floating render button.
+            Visible whenever there's something to render — either a
+            saved wall+layout (venue/artist editor) OR a customer-flow
+            sheet with a locked work auto-placed. */}
+        {(canPersist ||
+          (props.mode === "customer_artwork_page" && items.length > 0)) && (
           <div className="absolute bottom-3 right-3 flex flex-col items-end gap-2">
             {renderError && (
               <div className="px-3 py-1.5 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs max-w-[260px] text-right">

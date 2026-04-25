@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { ArtistWork } from "@/data/artists";
 import { useCart } from "@/context/CartContext";
@@ -8,7 +8,14 @@ import { useAuth } from "@/context/AuthContext";
 import SaveButton from "@/components/SaveButton";
 import { useToast } from "@/context/ToastContext";
 import WallVisualiser from "@/components/WallVisualiser";
+import CustomerWallSheet from "@/components/visualizer/CustomerWallSheet";
+import type { PanelWork } from "@/components/visualizer/WorksPanel";
 import Dropdown from "@/components/Dropdown";
+import { isFlagOn } from "@/lib/feature-flags";
+import {
+  buildSizeVariants,
+  parseDimensions,
+} from "@/lib/visualizer/dimensions";
 import { resolveShippingCost, tierLabel, SIGNATURE_THRESHOLD_GBP } from "@/lib/shipping-calculator";
 
 interface ArtworkPageClientProps {
@@ -39,6 +46,26 @@ export default function ArtworkPageClient({
   const selectedFrame = selectedFrameIdx >= 0 ? frameOptions[selectedFrameIdx] : undefined;
   const frameUplift = selectedFrame?.priceUplift || 0;
   const [wallVizOpen, setWallVizOpen] = useState(false);
+
+  // ── Wall visualiser swap ──────────────────────────────────────────
+  // When the WALL_VISUALIZER_V1 flag is on we use the new react-konva
+  // editor; otherwise the legacy CSS-overlay component continues to
+  // ship. Decoupled here so flipping the flag is a one-line change.
+  const useNewVisualizer = isFlagOn("WALL_VISUALIZER_V1");
+  const panelWorkForVisualizer = useMemo<PanelWork>(() => {
+    const parsed = parseDimensions(work.dimensions);
+    const sizes = buildSizeVariants(work.pricing ?? []);
+    return {
+      id: work.id,
+      title: work.title,
+      imageUrl: work.image,
+      artistName,
+      dimensions: work.dimensions,
+      widthCm: parsed?.widthCm,
+      heightCm: parsed?.heightCm,
+      sizes: sizes.length > 0 ? sizes : undefined,
+    };
+  }, [work, artistName]);
 
   // The "View on your wall" button now lives on the image itself; it
   // dispatches a window event that this component listens for so the
@@ -392,8 +419,17 @@ export default function ArtworkPageClient({
       </div>
 
       {/* Wall visualiser — opens as a modal from the "View on your wall"
-          CTA so the main page layout stays tight. */}
-      {wallVizOpen && (
+          CTA. The new react-konva visualizer takes over when the
+          WALL_VISUALIZER_V1 flag is on; otherwise the legacy CSS-overlay
+          fallback ships unchanged. */}
+      {wallVizOpen && useNewVisualizer && (
+        <CustomerWallSheet
+          open={wallVizOpen}
+          onClose={() => setWallVizOpen(false)}
+          work={panelWorkForVisualizer}
+        />
+      )}
+      {wallVizOpen && !useNewVisualizer && (
         <div className="fixed inset-0 z-[120] bg-black/50 flex items-center justify-center p-4" onClick={() => setWallVizOpen(false)}>
           <div className="bg-background rounded-sm max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-border">
