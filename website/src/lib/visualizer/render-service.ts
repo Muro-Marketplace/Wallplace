@@ -1,0 +1,313 @@
+/**
+ * Wall Visualizer — server-side render service.
+ *
+ * Pipeline (Phase 1, no AI):
+ *   1. Build a base canvas (output 1600×1200 webp).
+ *   2. Draw the wall — solid colour from `wall_color_hex` (or background
+ *      photo when uploaded — Phase 2).
+ *   3. For each item:
+ *        a. Fetch the artwork image (parallel, with timeout).
+ *        b. Resize to inner-artwork dimensions (cm × pxPerCm).
+ *        c. Wrap in a frame border (solid colour for MVP — same colour
+ *           the canvas shows, so the render matches the on-screen look).
+ *        d. Composite a soft drop-shadow underneath.
+ *        e. Apply small rotation if any (capped at ±15° by the schema).
+ *   4. Output webp at quality 85.
+ *
+ * Costs: ~50–200ms per item (network + sharp). A 5-item layout typically
+ * completes in under 3s. We log timing in the route for observability.
+ *
+ * Provider abstraction:
+ *   This file is the only "Phase 1" provider. PR #7 introduces the
+ *   `VisualizerProvider` interface and a `MockProvider` that wraps this
+ *   exact code; later providers (Replicate, Stability) implement the
+ *   same interface, swapped via env config.
+ */
+
+import sharp from "sharp";
+import { computeFrameGeometry } from "./frames";
+import type { LayoutBackground, WallItem } from "./types";
+
+// ── Tuning ──────────────────────────────────────────────────────────────
+
+export const OUTPUT_WIDTH_PX = 1600;
+export const OUTPUT_HEIGHT_PX = 1200;
+const PADDING_PX = 80;
+
+/** Outer canvas colour around the wall. Warm off-white = "studio". */
+const STAGE_BG = "#F2EFEA";
+
+/** Drop-shadow tuning. Subtle but noticeable. */
+const SHADOW_BLUR_PX = 14;
+const SHADOW_OFFSET_PX = 6;
+const SHADOW_OPACITY = 0.30;
+
+const FETCH_TIMEOUT_MS = 10_000;
+
+// ── Public types ────────────────────────────────────────────────────────
+
+export interface RenderInput {
+  background: LayoutBackground;
+  /** Wall dimensions in cm. */
+  wallWidthCm: number;
+  wallHeightCm: number;
+  items: WallItem[];
+  /** work_id → { imageUrl } lookup. Items referencing missing ids are skipped. */
+  workById: Record<string, { imageUrl: string }>;
+}
+
+export interface RenderResult {
+  /** Final webp bytes. */
+  buffer: Buffer;
+  /** Meta-information for logging + DB row. */
+  meta: {
+    width: number;
+    height: number;
+    itemCount: number;
+    skippedItems: number;
+    durationMs: number;
+  };
+}
+
+// ── Public entry point ──────────────────────────────────────────────────
+
+export async function renderLayout(input: RenderInput): Promise<RenderResult> {
+  const startedAt = Date.now();
+
+  // 1. Compute layout geometry in pixels.
+  const availW = OUTPUT_WIDTH_PX - PADDING_PX * 2;
+  const availH = OUTPUT_HEIGHT_PX - PADDING_PX * 2;
+  const pxPerCm = Math.min(
+    availW / input.wallWidthCm,
+    availH / input.wallHeightCm,
+  );
+  const wallPxW = input.wallWidthCm * pxPerCm;
+  const wallPxH = input.wallHeightCm * pxPerCm;
+  const wallX = (OUTPUT_WIDTH_PX - wallPxW) / 2;
+  const wallY = (OUTPUT_HEIGHT_PX - wallPxH) / 2;
+
+  // 2. Build wall layer (solid colour for now — Phase 2 layers a photo
+  //    on top when `background.kind === "uploaded"` and `image_path` set).
+  const wallColor =
+    input.background.kind === "preset"
+      ? `#${input.background.color_hex}`
+      : "#FFFFFF";
+  const wallBuffer = await sharp({
+    create: {
+      width: Math.round(wallPxW),
+      height: Math.round(wallPxH),
+      channels: 4,
+      background: hexToRgb(wallColor, 1),
+    },
+  })
+    .png()
+    .toBuffer();
+
+  // 3. Build composite list. Order matters — z-index.
+  const composites: sharp.OverlayOptions[] = [
+    {
+      input: wallBuffer,
+      left: Math.round(wallX),
+      top: Math.round(wallY),
+    },
+  ];
+
+  // 4. Render each item in parallel (network fetch dominates).
+  const sortedItems = [...input.items].sort((a, b) => a.z_index - b.z_index);
+  const itemResults = await Promise.all(
+    sortedItems.map((item) =>
+      renderItem(item, pxPerCm, wallX, wallY, input.workById),
+    ),
+  );
+
+  let skipped = 0;
+  for (const r of itemResults) {
+    if (r === null) {
+      skipped++;
+      continue;
+    }
+    composites.push(...r);
+  }
+
+  // 5. Final composite.
+  const finalBuffer = await sharp({
+    create: {
+      width: OUTPUT_WIDTH_PX,
+      height: OUTPUT_HEIGHT_PX,
+      channels: 4,
+      background: hexToRgb(STAGE_BG, 1),
+    },
+  })
+    .composite(composites)
+    .webp({ quality: 85 })
+    .toBuffer();
+
+  return {
+    buffer: finalBuffer,
+    meta: {
+      width: OUTPUT_WIDTH_PX,
+      height: OUTPUT_HEIGHT_PX,
+      itemCount: sortedItems.length - skipped,
+      skippedItems: skipped,
+      durationMs: Date.now() - startedAt,
+    },
+  };
+}
+
+// ── Item rendering ──────────────────────────────────────────────────────
+
+/**
+ * Build the (shadow + frame + artwork) overlay set for one item.
+ * Returns null if the work image can't be fetched.
+ */
+async function renderItem(
+  item: WallItem,
+  pxPerCm: number,
+  wallOriginX: number,
+  wallOriginY: number,
+  workById: Record<string, { imageUrl: string }>,
+): Promise<sharp.OverlayOptions[] | null> {
+  const work = workById[item.work_id];
+  if (!work?.imageUrl) {
+    console.warn(`[render] no image for work ${item.work_id}; skipping item`);
+    return null;
+  }
+
+  const itemPxW = Math.max(1, Math.round(item.width_cm * pxPerCm));
+  const itemPxH = Math.max(1, Math.round(item.height_cm * pxPerCm));
+  const itemX = Math.round(wallOriginX + item.x_cm * pxPerCm);
+  const itemY = Math.round(wallOriginY + item.y_cm * pxPerCm);
+
+  // Fetch artwork.
+  let artworkBuffer: Buffer;
+  try {
+    artworkBuffer = await fetchImage(work.imageUrl);
+  } catch (err) {
+    console.warn(`[render] image fetch failed for ${item.work_id}:`, err);
+    return null;
+  }
+
+  const frameGeo = computeFrameGeometry(itemPxW, itemPxH, item.frame);
+
+  // Resize artwork to inner dimensions.
+  const innerW = Math.max(1, Math.round(frameGeo.artwork.width));
+  const innerH = Math.max(1, Math.round(frameGeo.artwork.height));
+  const artworkResized = await sharp(artworkBuffer)
+    .resize({ width: innerW, height: innerH, fit: "fill" })
+    .png()
+    .toBuffer();
+
+  // Build the framed item itself.
+  let itemImage: Buffer;
+  if (item.frame.style === "none" || !frameGeo.borderColor) {
+    itemImage = artworkResized;
+  } else {
+    const frameBg = await sharp({
+      create: {
+        width: itemPxW,
+        height: itemPxH,
+        channels: 4,
+        background: hexToRgb(frameGeo.borderColor, 1),
+      },
+    })
+      .png()
+      .toBuffer();
+    itemImage = await sharp(frameBg)
+      .composite([
+        {
+          input: artworkResized,
+          left: Math.round(frameGeo.artwork.x),
+          top: Math.round(frameGeo.artwork.y),
+        },
+      ])
+      .png()
+      .toBuffer();
+  }
+
+  // Apply rotation if any (only ±15° by schema).
+  if (Math.abs(item.rotation_deg) > 0.05) {
+    itemImage = await sharp(itemImage)
+      .rotate(item.rotation_deg, {
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+  }
+
+  // Build a soft drop-shadow underneath (only when the frame style wants
+  // one OR the artwork is unframed — every piece on a wall casts shadow).
+  const shadowOverlay: sharp.OverlayOptions[] = [];
+  if (frameGeo.hasShadow || item.frame.style === "none") {
+    // Mask a semi-transparent black layer to the item's silhouette. Sharp's
+    // "in" blend keeps source pixels only where the destination is opaque,
+    // giving us a soft-blurred shadow that hugs the item shape (including
+    // any rotated frame corners).
+    const shadowSilhouette = await sharp(itemImage)
+      .composite([
+        {
+          input: Buffer.from(
+            `<svg width="${itemPxW + 100}" height="${itemPxH + 100}">` +
+              `<rect width="100%" height="100%" fill="black" opacity="${SHADOW_OPACITY}"/>` +
+              `</svg>`,
+          ),
+          blend: "in",
+        },
+      ])
+      .blur(SHADOW_BLUR_PX)
+      .toBuffer();
+    shadowOverlay.push({
+      input: shadowSilhouette,
+      left: itemX + SHADOW_OFFSET_PX,
+      top: itemY + SHADOW_OFFSET_PX,
+    });
+  }
+
+  return [
+    ...shadowOverlay,
+    {
+      input: itemImage,
+      left: itemX,
+      top: itemY,
+    },
+  ];
+}
+
+// ── Image fetching ──────────────────────────────────────────────────────
+
+/**
+ * Fetch an image URL into a Buffer with a timeout. Caller catches errors.
+ */
+async function fetchImage(url: string): Promise<Buffer> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} from ${url}`);
+    }
+    const arr = await res.arrayBuffer();
+    return Buffer.from(arr);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ── Colour helpers ──────────────────────────────────────────────────────
+
+function hexToRgb(hex: string, alpha = 1): {
+  r: number;
+  g: number;
+  b: number;
+  alpha: number;
+} {
+  const clean = hex.replace(/^#/, "");
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return {
+    r: Number.isNaN(r) ? 255 : r,
+    g: Number.isNaN(g) ? 255 : g,
+    b: Number.isNaN(b) ? 255 : b,
+    alpha,
+  };
+}

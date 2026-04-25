@@ -22,13 +22,17 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
     "date-fns": "^4.1.0",
+    "konva": "^10.2.5",
     "next": "16.2.1",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-day-picker": "^9.14.0",
     "react-dom": "19.2.4",
+    "react-konva": "^19.2.3",
     "resend": "^6.10.0",
+    "sharp": "^0.34.5",
     "stripe": "^22.0.1",
+    "use-image": "^1.1.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {
