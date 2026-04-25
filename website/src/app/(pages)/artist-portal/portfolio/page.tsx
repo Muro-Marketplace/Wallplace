@@ -128,6 +128,15 @@ export default function PortfolioPage() {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [form, setForm] = useState<WorkFormState>(emptyWork);
   const [hoveredWork, setHoveredWork] = useState<number | null>(null);
+  // Drag-reorder state. We track the source index (work being dragged)
+  // and the current target hovered. Visual cues: the source card fades,
+  // the target card gets a left-edge accent line so the artist sees
+  // exactly where their drop will land. Reorder fires on drop; the
+  // existing saveWorks() syncs each row's new sort_order to the DB.
+  const [reorderDrag, setReorderDrag] = useState<{
+    fromIndex: number;
+    overIndex: number | null;
+  } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingExtra, setUploadingExtra] = useState(false);
   const [initialised, setInitialised] = useState(false);
@@ -250,12 +259,76 @@ export default function PortfolioPage() {
     saveWorks(works.filter((_, i) => i !== index));
   }
 
-  function openAdd() {
-    const fresh = { ...emptyWork, sizes: [...defaultSizes] };
+  /**
+   * Reorder works by dropping one card onto another. The dropped-on
+   * card becomes the new neighbour: dropping later in the grid moves
+   * the source to that position; dropping earlier moves it before.
+   * saveWorks pushes each work's new sort_order=index to the API.
+   */
+  function reorderWorks(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex || toIndex < 0 || toIndex >= works.length) return;
+    const next = works.slice();
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    saveWorks(next);
+  }
+
+  function openAdd(seed?: Partial<WorkFormState>) {
+    // `seed` lets the Duplicate flow preload everything except the
+    // title + image — those should be unique per work so the artist
+    // doesn't accidentally publish two artworks with the same headline.
+    const fresh: WorkFormState = {
+      ...emptyWork,
+      sizes: [...defaultSizes],
+      ...seed,
+      title: "",
+      imagePreview: "",
+      additionalImages: [],
+    };
     setForm(fresh);
     initialFormJson.current = JSON.stringify(fresh);
     setEditingIndex(null);
     setShowForm(true);
+  }
+
+  /**
+   * "Duplicate from this work" — opens the new-work form with sizes,
+   * prices, medium, dimensions, orientation, shipping, frames, etc.
+   * pre-populated from the source work. Title and images stay blank
+   * so the artist replaces them. Implements user ask:
+   * "auto-fill details from previous artwork".
+   */
+  function duplicateFrom(index: number) {
+    const w = works[index] as ArtistWork & {
+      shippingPrice?: number | null;
+      inStorePrice?: number | null;
+      quantityAvailable?: number | null;
+    };
+    openAdd({
+      medium: w.medium,
+      dimensions: w.dimensions,
+      description: w.description ?? "",
+      available: true,
+      orientation: w.orientation || "landscape",
+      sizes: w.pricing.map((p) => ({ label: p.label, price: p.price })),
+      shippingPrice: w.shippingPrice != null ? String(w.shippingPrice) : "",
+      inStorePrice: w.inStorePrice != null ? String(w.inStorePrice) : "",
+      inStoreEnabled:
+        Array.isArray(w.inStorePricing) &&
+        w.inStorePricing.some((p) => p.price > 0),
+      inStorePricing: w.inStorePricing
+        ? w.inStorePricing.map((p) => String(p.price))
+        : [],
+      quantityAvailable:
+        w.quantityAvailable != null ? String(w.quantityAvailable) : "",
+      frameOptions: ((w as ArtistWork & {
+        frameOptions?: { label: string; priceUplift: number; imageUrl?: string }[];
+      }).frameOptions ?? []).map((f) => ({
+        label: f.label,
+        priceUplift: String(f.priceUplift),
+        imageUrl: f.imageUrl,
+      })),
+    });
   }
 
   function openEdit(index: number) {
@@ -535,7 +608,7 @@ export default function PortfolioPage() {
             ) : (
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted">{works.length}/{limit} works</span>
-                <button onClick={openAdd} className="px-4 py-1.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors">
+                <button onClick={() => openAdd()} className="px-4 py-1.5 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors">
                   + Add New Work
                 </button>
               </div>
@@ -1431,55 +1504,104 @@ export default function PortfolioPage() {
         {works.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-muted mb-4">No works yet. Add your first piece to get started.</p>
-            <button onClick={openAdd} className="text-sm text-accent hover:text-accent-hover transition-colors">
+            <button onClick={() => openAdd()} className="text-sm text-accent hover:text-accent-hover transition-colors">
               + Add your first work
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {works.map((work, index) => (
-              <div
-                key={work.id}
-                className="relative group rounded-sm overflow-hidden border border-border"
-                onMouseEnter={() => setHoveredWork(index)}
-                onMouseLeave={() => setHoveredWork(null)}
-              >
-                <div className="aspect-[4/3] relative bg-border/20">
-                  <Image src={work.image} alt={work.title} fill className="object-cover" sizes="(max-width: 768px) 50vw, 33vw" />
-                </div>
+          <>
+            <p className="text-[11px] text-muted mb-3">
+              Drag cards to reorder &mdash; the order here is what
+              venues see on your public profile.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {works.map((work, index) => {
+                const isDraggingSource =
+                  reorderDrag?.fromIndex === index;
+                const isDropTarget =
+                  reorderDrag !== null &&
+                  reorderDrag.overIndex === index &&
+                  reorderDrag.fromIndex !== index;
+                return (
+                  <div
+                    key={work.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = "move";
+                      // Some browsers require a payload to start a drag.
+                      e.dataTransfer.setData("text/plain", work.id);
+                      setReorderDrag({ fromIndex: index, overIndex: null });
+                    }}
+                    onDragOver={(e) => {
+                      if (!reorderDrag) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (reorderDrag.overIndex !== index) {
+                        setReorderDrag({ ...reorderDrag, overIndex: index });
+                      }
+                    }}
+                    onDragEnd={() => setReorderDrag(null)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (!reorderDrag) return;
+                      reorderWorks(reorderDrag.fromIndex, index);
+                      setReorderDrag(null);
+                    }}
+                    className={`relative group rounded-sm overflow-hidden border transition-all cursor-grab active:cursor-grabbing ${
+                      isDraggingSource
+                        ? "border-border opacity-40"
+                        : isDropTarget
+                          ? "border-accent ring-2 ring-accent/40"
+                          : "border-border"
+                    }`}
+                    onMouseEnter={() => setHoveredWork(index)}
+                    onMouseLeave={() => setHoveredWork(null)}
+                  >
+                    <div className="aspect-[4/3] relative bg-border/20">
+                      <Image src={work.image} alt={work.title} fill className="object-cover" sizes="(max-width: 768px) 50vw, 33vw" />
+                    </div>
 
-                {hoveredWork === index && (
-                  <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 transition-opacity">
-                    <button
-                      onClick={() => openEdit(index)}
-                      className="text-xs font-medium bg-white text-foreground px-4 py-1.5 rounded-sm hover:bg-background transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => { if (confirm("Remove this work?")) deleteWork(index); }}
-                      className="text-xs text-white/60 hover:text-red-400 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                )}
+                    {hoveredWork === index && reorderDrag === null && (
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-2 transition-opacity">
+                        <button
+                          onClick={() => openEdit(index)}
+                          className="text-xs font-medium bg-white text-foreground px-4 py-1.5 rounded-sm hover:bg-background transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => duplicateFrom(index)}
+                          className="text-xs font-medium bg-white/10 text-white border border-white/30 px-4 py-1.5 rounded-sm hover:bg-white/20 transition-colors"
+                          title="Create a new artwork pre-filled with these size/price/medium details"
+                        >
+                          Duplicate
+                        </button>
+                        <button
+                          onClick={() => { if (confirm("Remove this work?")) deleteWork(index); }}
+                          className="text-xs text-white/60 hover:text-red-400 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )}
 
-                <div className="p-3 border-t border-border">
-                  <p className="text-xs font-medium text-foreground leading-snug truncate mb-1">{work.title}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted">{work.medium}</span>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                      work.available ? statusColors.Available : statusColors.Sold
-                    }`}>
-                      {work.available ? "Available" : "Sold"}
-                    </span>
+                    <div className="p-3 border-t border-border">
+                      <p className="text-xs font-medium text-foreground leading-snug truncate mb-1">{work.title}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted">{work.medium}</span>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                          work.available ? statusColors.Available : statusColors.Sold
+                        }`}>
+                          {work.available ? "Available" : "Sold"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted mt-1">{work.pricing.length} size{work.pricing.length !== 1 ? "s" : ""} from {work.priceBand.replace("From ", "")}</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-muted mt-1">{work.pricing.length} size{work.pricing.length !== 1 ? "s" : ""} from {work.priceBand.replace("From ", "")}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </ArtistPortalLayout>
