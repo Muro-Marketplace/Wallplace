@@ -7,6 +7,15 @@
  * it easy for the parent to keep its own `workById` map for image
  * lookups inside the canvas.
  *
+ * Sections (venue_my_walls mode only):
+ *   - My Works   — works currently on display at the venue (auto from
+ *                  active placements).
+ *   - Saved      — works the venue has bookmarked (saved_items).
+ *   - All        — gallery feed (everything else).
+ *
+ * For non-venue modes (artist_*, customer_artwork_page) the panel
+ * shows a single flat list.
+ *
  * The panel emits two interactions:
  *   - onSelect(work)            user clicked a thumbnail (parent decides
  *                               whether to add to the wall)
@@ -15,7 +24,8 @@
  *     can place at drop coordinates.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { SizeVariant } from "@/lib/visualizer/dimensions";
 import type { VisualizerMode } from "@/lib/visualizer/types";
 
 export interface PanelWork {
@@ -23,13 +33,27 @@ export interface PanelWork {
   title: string;
   imageUrl: string;
   artistName?: string;
-  /** "60 x 80 cm" if known. Helps users place at realistic scale. */
+  /** Original dimension label as listed on the site (e.g. "70 x 50 cm"). */
   dimensions?: string;
+  /** Parsed cm for the natural size, if `dimensions` could be parsed. */
+  widthCm?: number;
+  heightCm?: number;
+  /** All listed size variants (parsed from the work's pricing array). */
+  sizes?: SizeVariant[];
 }
+
+type Tab = "my" | "saved" | "all";
 
 interface Props {
   mode: VisualizerMode;
-  works: PanelWork[];
+  /** For non-venue modes — single flat list. */
+  works?: PanelWork[];
+
+  /** Venue mode — three sections. */
+  myWorks?: PanelWork[];
+  savedWorks?: PanelWork[];
+  allWorks?: PanelWork[];
+
   loading?: boolean;
   error?: string | null;
   onSelect?: (work: PanelWork) => void;
@@ -38,36 +62,81 @@ interface Props {
 export default function WorksPanel({
   mode,
   works,
+  myWorks,
+  savedWorks,
+  allWorks,
   loading,
   error,
   onSelect,
 }: Props) {
   const [filter, setFilter] = useState("");
+  const [activeTab, setActiveTab] = useState<Tab>("my");
+
+  const isVenueMode = mode === "venue_my_walls";
+
+  // Resolve which list to show based on mode + tab.
+  const list = useMemo<PanelWork[]>(() => {
+    if (!isVenueMode) return works ?? [];
+    if (activeTab === "my") return myWorks ?? [];
+    if (activeTab === "saved") return savedWorks ?? [];
+    return allWorks ?? [];
+  }, [isVenueMode, works, myWorks, savedWorks, allWorks, activeTab]);
 
   const filtered = filter.trim()
-    ? works.filter((w) =>
+    ? list.filter((w) =>
         (w.title + " " + (w.artistName ?? ""))
           .toLowerCase()
           .includes(filter.toLowerCase()),
       )
-    : works;
+    : list;
 
   return (
     <aside className="h-full w-60 shrink-0 border-r border-black/5 bg-white/60 backdrop-blur flex flex-col">
       <div className="px-3 py-3 border-b border-black/5">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-stone-500 mb-1">
-          {mode === "venue_my_walls"
-            ? "Hosted works"
+        <p className="text-[10px] uppercase tracking-[0.18em] text-stone-500 mb-2">
+          {isVenueMode
+            ? "Works"
             : mode === "customer_artwork_page"
               ? "This artwork"
               : "Your works"}
         </p>
+
+        {isVenueMode && (
+          <div
+            role="tablist"
+            aria-label="Works source"
+            className="flex items-center gap-0.5 mb-2 -mx-0.5"
+          >
+            <TabButton
+              active={activeTab === "my"}
+              onClick={() => setActiveTab("my")}
+              label="My"
+              count={myWorks?.length ?? 0}
+              hint="Currently on display"
+            />
+            <TabButton
+              active={activeTab === "saved"}
+              onClick={() => setActiveTab("saved")}
+              label="Saved"
+              count={savedWorks?.length ?? 0}
+              hint="Bookmarked artworks"
+            />
+            <TabButton
+              active={activeTab === "all"}
+              onClick={() => setActiveTab("all")}
+              label="All"
+              count={allWorks?.length ?? 0}
+              hint="Gallery feed"
+            />
+          </div>
+        )}
+
         <input
           type="search"
           placeholder="Search…"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          disabled={works.length <= 1}
+          disabled={list.length <= 1}
           className="w-full text-xs px-2 py-1.5 rounded border border-black/10 focus:border-black/30 focus:outline-none bg-white disabled:bg-stone-50 disabled:text-stone-400"
         />
       </div>
@@ -80,11 +149,7 @@ export default function WorksPanel({
           </p>
         )}
         {!loading && !error && filtered.length === 0 && (
-          <p className="text-xs text-stone-500 px-2 py-3">
-            {mode === "venue_my_walls"
-              ? "No hosted works yet."
-              : "No works match."}
-          </p>
+          <EmptyTab tab={isVenueMode ? activeTab : null} mode={mode} />
         )}
 
         <ul className="grid grid-cols-2 gap-2">
@@ -99,6 +164,7 @@ export default function WorksPanel({
                   e.dataTransfer.effectAllowed = "copy";
                 }}
                 className="group block w-full text-left rounded overflow-hidden border border-black/5 bg-white hover:border-black/20 transition cursor-grab active:cursor-grabbing"
+                title={dragHint(w)}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -114,6 +180,11 @@ export default function WorksPanel({
                   {w.dimensions && (
                     <p className="text-[10px] text-stone-500 truncate">
                       {w.dimensions}
+                      {w.sizes && w.sizes.length > 1 && (
+                        <span className="ml-1 text-stone-400">
+                          · {w.sizes.length} sizes
+                        </span>
+                      )}
                     </p>
                   )}
                 </div>
@@ -124,4 +195,93 @@ export default function WorksPanel({
       </div>
     </aside>
   );
+}
+
+// ── Tab button ──────────────────────────────────────────────────────────
+
+function TabButton({
+  active,
+  onClick,
+  label,
+  count,
+  hint,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+  hint: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      title={hint}
+      className={`flex-1 px-1.5 py-1 rounded text-[10px] font-medium transition ${
+        active
+          ? "bg-stone-900 text-white"
+          : "text-stone-600 hover:bg-stone-100"
+      }`}
+    >
+      {label}
+      <span className="ml-1 text-[9px] opacity-70 tabular-nums">{count}</span>
+    </button>
+  );
+}
+
+// ── Empty-state copy by tab ─────────────────────────────────────────────
+
+function EmptyTab({ tab, mode }: { tab: Tab | null; mode: VisualizerMode }) {
+  if (tab === null) {
+    if (mode === "customer_artwork_page") {
+      return (
+        <p className="text-xs text-stone-500 px-2 py-3">
+          Drag the artwork onto the wall to preview it.
+        </p>
+      );
+    }
+    return (
+      <p className="text-xs text-stone-500 px-2 py-3">No works match.</p>
+    );
+  }
+  if (tab === "my") {
+    return (
+      <div className="px-2 py-3 space-y-1.5">
+        <p className="text-xs text-stone-600">
+          No artworks on display yet.
+        </p>
+        <p className="text-[11px] text-stone-500 leading-snug">
+          Once a placement is accepted, the artwork shows up here automatically.
+        </p>
+      </div>
+    );
+  }
+  if (tab === "saved") {
+    return (
+      <div className="px-2 py-3 space-y-1.5">
+        <p className="text-xs text-stone-600">
+          No saved works yet.
+        </p>
+        <p className="text-[11px] text-stone-500 leading-snug">
+          Tap the heart on any artwork while browsing — it&apos;ll appear here.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <p className="text-xs text-stone-500 px-2 py-3">
+      Browse the gallery loading…
+    </p>
+  );
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────────
+
+function dragHint(w: PanelWork): string {
+  if (w.widthCm && w.heightCm) {
+    return `${w.title} — drops at ${Math.round(w.widthCm)}×${Math.round(w.heightCm)} cm`;
+  }
+  return w.title;
 }

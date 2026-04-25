@@ -64,6 +64,8 @@ export const wallItemSchema = z.object({
   rotation_deg: z.number().min(-15).max(15).default(0),
   z_index: z.number().int().min(0).max(1000).default(0),
   frame: frameConfigSchema,
+  /** The size variant the user picked, e.g. '16×24" (A2)'. Optional. */
+  size_label: z.string().trim().min(1).max(80).optional(),
 });
 
 // ── Wall (create) ───────────────────────────────────────────────────────

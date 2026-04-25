@@ -46,7 +46,7 @@ import {
   snapAndGuide,
   type PxRect,
 } from "@/lib/visualizer/alignment";
-import { computeFrameGeometry } from "@/lib/visualizer/frames";
+import { computeFrameGeometry, getKonvaFrameProps } from "@/lib/visualizer/frames";
 import type {
   LayoutBackground,
   WallItem,
@@ -420,12 +420,13 @@ function CanvasItem({
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       >
-        {/* Frame border — solid rectangle behind artwork */}
-        {item.frame.style !== "none" && frameGeo.borderColor && (
+        {/* Frame border — gradient rectangle behind artwork (preview;
+            the Render output uses the much richer SVG-generated frame). */}
+        {item.frame.style !== "none" && (
           <Rect
             width={pxW}
             height={pxH}
-            fill={frameGeo.borderColor}
+            {...getKonvaFrameProps(item.frame, pxW, pxH)}
             shadowColor="rgba(0,0,0,0.35)"
             shadowBlur={frameGeo.hasShadow ? 14 : 0}
             shadowOpacity={frameGeo.hasShadow ? 0.4 : 0}

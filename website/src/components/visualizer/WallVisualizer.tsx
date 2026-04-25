@@ -34,6 +34,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { isFlagOn } from "@/lib/feature-flags";
+import {
+  buildSizeVariants,
+  parseDimensions,
+  pickDefaultSize,
+  type SizeVariant,
+} from "@/lib/visualizer/dimensions";
 import { defaultFrameConfig } from "@/lib/visualizer/frames";
 import { PRESET_WALLS, getPresetWall } from "@/lib/visualizer/preset-walls";
 import { useAutoSave } from "@/lib/visualizer/use-auto-save";
@@ -169,7 +175,13 @@ function WallVisualizerInner(props: ExtendedProps) {
   );
 
   // ── Works data (lifted from WorksPanel) ───────────────────────────
+  // Single flat list (artist + customer modes).
   const [works, setWorks] = useState<PanelWork[]>([]);
+  // Three sections (venue mode).
+  const [myWorks, setMyWorks] = useState<PanelWork[]>([]);
+  const [savedWorks, setSavedWorks] = useState<PanelWork[]>([]);
+  const [allWorks, setAllWorks] = useState<PanelWork[]>([]);
+
   const [worksLoading, setWorksLoading] = useState(false);
   const [worksError, setWorksError] = useState<string | null>(null);
 
@@ -178,35 +190,75 @@ function WallVisualizerInner(props: ExtendedProps) {
       setWorks([props.lockedWork]);
       return;
     }
+
     if (props.mode === "venue_my_walls") {
-      // Venues need to pick from artworks they've saved or seen — for the
-      // MVP we surface a curated browse fetch (top featured) to give them
-      // something to drag in. Future: hook into saved_items + recent
-      // placements.
+      // Three parallel fetches — fail soft if any individual one breaks.
       let cancelled = false;
       setWorksLoading(true);
       setWorksError(null);
-      fetch("/api/browse-artists?limit=24", {
-        headers: props.authToken
-          ? { Authorization: `Bearer ${props.authToken}` }
-          : {},
-        cache: "no-store",
-      })
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-        .then((data: { artists?: Array<{ works?: Array<Record<string, unknown>> }> }) => {
+
+      const headers = props.authToken
+        ? { Authorization: `Bearer ${props.authToken}` }
+        : undefined;
+
+      Promise.allSettled([
+        fetch("/api/walls/my-works", { headers, cache: "no-store" }).then(
+          (r) => (r.ok ? r.json() : { works: [] }),
+        ),
+        fetch("/api/walls/saved-works", { headers, cache: "no-store" }).then(
+          (r) => (r.ok ? r.json() : { works: [] }),
+        ),
+        fetch("/api/browse-artists?limit=48", { headers, cache: "no-store" }).then(
+          (r) => (r.ok ? r.json() : { artists: [] }),
+        ),
+      ])
+        .then((results) => {
           if (cancelled) return;
-          const flattened = (data.artists ?? [])
-            .flatMap((a) => a.works ?? [])
-            .map(normaliseWork)
-            .filter((w): w is PanelWork => w !== null);
-          setWorks(flattened);
+          const [myRes, savedRes, browseRes] = results;
+
+          const myList: PanelWork[] =
+            myRes.status === "fulfilled"
+              ? ((myRes.value.works ?? []) as Array<Record<string, unknown>>)
+                  .map(normaliseWork)
+                  .filter((w): w is PanelWork => w !== null)
+              : [];
+          setMyWorks(myList);
+
+          const savedList: PanelWork[] =
+            savedRes.status === "fulfilled"
+              ? ((savedRes.value.works ?? []) as Array<Record<string, unknown>>)
+                  .map(normaliseWork)
+                  .filter((w): w is PanelWork => w !== null)
+              : [];
+          setSavedWorks(savedList);
+
+          const allList: PanelWork[] =
+            browseRes.status === "fulfilled"
+              ? (
+                  (browseRes.value.artists ?? []) as Array<{
+                    works?: Array<Record<string, unknown>>;
+                    name?: string;
+                  }>
+                )
+                  .flatMap((a) =>
+                    (a.works ?? []).map((w) => ({
+                      ...w,
+                      _artistName: a.name,
+                    })),
+                  )
+                  .map(normaliseWork)
+                  .filter((w): w is PanelWork => w !== null)
+              : [];
+          setAllWorks(allList);
         })
         .catch((e) => !cancelled && setWorksError(String(e)))
         .finally(() => !cancelled && setWorksLoading(false));
+
       return () => {
         cancelled = true;
       };
     }
+
     if (props.mode === "artist_mockup" || props.mode === "artist_showroom") {
       let cancelled = false;
       setWorksLoading(true);
@@ -236,11 +288,22 @@ function WallVisualizerInner(props: ExtendedProps) {
     }
   }, [props.mode, props.authToken, props.lockedWork]);
 
-  /** id → work lookup; canvas uses this to load images per item. */
-  const workById = useMemo<Record<string, PanelWork>>(
-    () => Object.fromEntries(works.map((w) => [w.id, w])),
-    [works],
-  );
+  /** id → work lookup; canvas uses this to load images per item, and
+   *  the toolbar uses this to find size variants for the selected item. */
+  const workById = useMemo<Record<string, PanelWork>>(() => {
+    const all = [
+      ...(props.lockedWork ? [props.lockedWork] : []),
+      ...works,
+      ...myWorks,
+      ...savedWorks,
+      ...allWorks,
+    ];
+    const out: Record<string, PanelWork> = {};
+    for (const w of all) {
+      if (!out[w.id]) out[w.id] = w; // first wins (most authoritative source first)
+    }
+    return out;
+  }, [props.lockedWork, works, myWorks, savedWorks, allWorks]);
 
   const selectedItem = useMemo(
     () => items.find((i) => i.id === selectedItemId) ?? null,
@@ -269,26 +332,63 @@ function WallVisualizerInner(props: ExtendedProps) {
   }, []);
 
   // ── Item mutations ────────────────────────────────────────────────
+  /**
+   * Add an item at (xCm, yCm). Resolves the size in this order:
+   *   1. Explicit w/h passed in (drop handler with manual sizing)
+   *   2. The work's natural `widthCm/heightCm` (parsed from dimensions string)
+   *   3. The smallest size variant from pricing[]
+   *   4. Default 60×80 cm clamp to the wall
+   */
   const addItemAt = useCallback(
     (workId: string, xCm: number, yCm: number, w?: number, h?: number) => {
-      // Centre the item on the drop point.
-      const itemW = w ?? Math.min(DEFAULT_ITEM_WIDTH_CM, widthCm * 0.4);
-      const itemH = h ?? Math.min(DEFAULT_ITEM_HEIGHT_CM, heightCm * 0.5);
+      const work = workById[workId];
+
+      let itemW: number;
+      let itemH: number;
+      let sizeLabel: string | undefined;
+
+      if (w && h) {
+        itemW = w;
+        itemH = h;
+      } else if (work) {
+        const picked = pickDefaultSize({
+          dimensions: work.dimensions ?? null,
+          variants: work.sizes ?? [],
+        });
+        if (picked) {
+          itemW = picked.widthCm;
+          itemH = picked.heightCm;
+          sizeLabel = picked.sizeLabel;
+        } else {
+          itemW = Math.min(DEFAULT_ITEM_WIDTH_CM, widthCm * 0.4);
+          itemH = Math.min(DEFAULT_ITEM_HEIGHT_CM, heightCm * 0.5);
+        }
+      } else {
+        itemW = Math.min(DEFAULT_ITEM_WIDTH_CM, widthCm * 0.4);
+        itemH = Math.min(DEFAULT_ITEM_HEIGHT_CM, heightCm * 0.5);
+      }
+
+      // Defensive clamp so a giant artwork can't be placed at a size
+      // that bursts the wall and confuses the canvas. Cap to wall bounds.
+      const cappedW = Math.min(itemW, widthCm * 0.95);
+      const cappedH = Math.min(itemH, heightCm * 0.95);
+
       const newItem: WallItem = {
         id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         work_id: workId,
-        x_cm: xCm - itemW / 2,
-        y_cm: yCm - itemH / 2,
-        width_cm: itemW,
-        height_cm: itemH,
+        x_cm: xCm - cappedW / 2,
+        y_cm: yCm - cappedH / 2,
+        width_cm: cappedW,
+        height_cm: cappedH,
         rotation_deg: 0,
         z_index: items.length,
         frame: defaultFrameConfig("none"),
+        size_label: sizeLabel,
       };
       setItems((prev) => [...prev, newItem]);
       setSelectedItemId(newItem.id);
     },
-    [widthCm, heightCm, items.length],
+    [widthCm, heightCm, items.length, workById],
   );
 
   const handleSelectFromPanel = useCallback(
@@ -439,6 +539,9 @@ function WallVisualizerInner(props: ExtendedProps) {
       <WorksPanel
         mode={props.mode}
         works={works}
+        myWorks={myWorks}
+        savedWorks={savedWorks}
+        allWorks={allWorks}
         loading={worksLoading}
         error={worksError}
         onSelect={handleSelectFromPanel}
@@ -478,6 +581,7 @@ function WallVisualizerInner(props: ExtendedProps) {
           <div className="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-auto">
             <ItemToolbar
               item={selectedItem}
+              sizes={workById[selectedItem.work_id]?.sizes}
               onChange={(partial) => handleItemChange(selectedItem.id, partial)}
               onBringForward={handleBringForward}
               onSendBack={handleSendBack}
@@ -733,11 +837,41 @@ function normaliseWork(raw: Record<string, unknown>): PanelWork | null {
   const title = typeof raw.title === "string" ? raw.title : null;
   const image = typeof raw.image === "string" ? raw.image : null;
   if (!id || !title || !image) return null;
+
+  const dimensions =
+    typeof raw.dimensions === "string" ? raw.dimensions : undefined;
+  const parsedNatural = dimensions ? parseDimensions(dimensions) : null;
+
+  // `pricing` may be an array of {label, price, ...} from artist_works,
+  // or absent on placement-derived rows. Fall back to undefined.
+  const pricingArr = Array.isArray(raw.pricing)
+    ? (raw.pricing as Array<Record<string, unknown>>)
+        .map((p) => ({
+          label: typeof p.label === "string" ? p.label : "",
+          price: typeof p.price === "number" ? p.price : undefined,
+        }))
+        .filter((p) => !!p.label)
+    : null;
+  const sizes = pricingArr ? buildSizeVariants(pricingArr) : [];
+
+  // Additional aliases — the venue panel feed annotates each work with
+  // its parent artist's name; pick that up.
+  const artistName =
+    typeof raw.artistName === "string"
+      ? raw.artistName
+      : typeof (raw as { _artistName?: unknown })._artistName === "string"
+        ? ((raw as { _artistName: string })._artistName)
+        : undefined;
+
   return {
     id,
     title,
     imageUrl: image,
-    dimensions: typeof raw.dimensions === "string" ? raw.dimensions : undefined,
+    artistName,
+    dimensions,
+    widthCm: parsedNatural?.widthCm,
+    heightCm: parsedNatural?.heightCm,
+    sizes: sizes.length > 0 ? sizes : undefined,
   };
 }
 

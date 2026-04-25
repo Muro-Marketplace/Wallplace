@@ -26,6 +26,7 @@
 
 import sharp from "sharp";
 import { computeFrameGeometry } from "./frames";
+import { generateFrameSvg } from "./frame-svg";
 import type { LayoutBackground, WallItem } from "./types";
 
 // ── Tuning ──────────────────────────────────────────────────────────────
@@ -197,27 +198,68 @@ async function renderItem(
     .png()
     .toBuffer();
 
-  // Build the framed item itself.
+  // Build the framed item itself. Order matters:
+  //   1. Start with a transparent canvas at the item size.
+  //   2. Lay down the artwork at the inner offset.
+  //   3. Composite the SVG-generated frame ring on top — its even-odd
+  //      cut-out keeps the artwork visible inside the frame opening.
+  // For style='none' we just return the resized artwork.
   let itemImage: Buffer;
-  if (item.frame.style === "none" || !frameGeo.borderColor) {
+  if (item.frame.style === "none") {
     itemImage = artworkResized;
   } else {
-    const frameBg = await sharp({
+    // Transparent base canvas.
+    const base = await sharp({
       create: {
         width: itemPxW,
         height: itemPxH,
         channels: 4,
-        background: hexToRgb(frameGeo.borderColor, 1),
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
       },
     })
       .png()
       .toBuffer();
-    itemImage = await sharp(frameBg)
+
+    // Generate the SVG frame. May return null if the border is too
+    // thin to draw (e.g. a 1px wallpaper border on a tiny item) — fall
+    // back to the solid-colour rect for that case.
+    const frameSvg = generateFrameSvg({
+      outerWidthPx: itemPxW,
+      outerHeightPx: itemPxH,
+      borderPx: frameGeo.borderPx,
+      frame: item.frame,
+    });
+    let frameLayer: Buffer;
+    if (frameSvg) {
+      frameLayer = await sharp(Buffer.from(frameSvg)).png().toBuffer();
+    } else {
+      // Fallback: solid colour ring (legacy behaviour).
+      frameLayer = await sharp({
+        create: {
+          width: itemPxW,
+          height: itemPxH,
+          channels: 4,
+          background: hexToRgb(frameGeo.borderColor ?? "#222222", 1),
+        },
+      })
+        .png()
+        .toBuffer();
+    }
+
+    itemImage = await sharp(base)
       .composite([
+        // Artwork inset under the frame.
         {
           input: artworkResized,
           left: Math.round(frameGeo.artwork.x),
           top: Math.round(frameGeo.artwork.y),
+        },
+        // Frame ring on top — its inner area is transparent so the
+        // artwork shows through cleanly.
+        {
+          input: frameLayer,
+          left: 0,
+          top: 0,
         },
       ])
       .png()

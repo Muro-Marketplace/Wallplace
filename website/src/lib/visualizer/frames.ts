@@ -152,6 +152,93 @@ export interface FrameGeometry {
   hasShadow: boolean;
 }
 
+// ── Konva preview gradients ────────────────────────────────────────────
+//
+// The server-side render uses SVG-generated frames (see frame-svg.ts) for
+// rich materials (wood grain, gold shimmer). Konva's editor preview
+// can't directly take an SVG fill, but it does support linear gradients.
+// These tables give us a "close enough" preview so the user knows what
+// they're going to get when they hit Render.
+
+export interface KonvaGradientProps {
+  fill?: string;
+  fillLinearGradientStartPoint?: { x: number; y: number };
+  fillLinearGradientEndPoint?: { x: number; y: number };
+  fillLinearGradientColorStops?: Array<number | string>;
+}
+
+/**
+ * Per-finish Konva gradient stop arrays. `[offset, color, ...]`.
+ * Diagonal direction conventions:
+ *   - wood + gold: top-left → bottom-right (matches the SVG version)
+ *   - black: top → bottom (subtle vertical highlight)
+ *   - floater: left → right (one-tone, just a hint of depth)
+ */
+const KONVA_GRADIENT_STOPS: Record<FrameStyle, Record<string, Array<number | string>>> = {
+  none: {},
+  thin_black: {
+    matte: [0, "#2A2A2A", 0.5, "#1A1A1A", 1, "#2A2A2A"],
+    gloss: [0, "#1A1A1A", 0.3, "#000000", 1, "#1A1A1A"],
+    white: [0, "#F5F1EB", 0.5, "#E8E2D6", 1, "#F5F1EB"],
+  },
+  classic_wood: {
+    natural: [0, "#D9B989", 0.48, "#9C7A4F", 1, "#7C5E3A"],
+    walnut: [0, "#8C5A35", 0.48, "#5C3A24", 1, "#3D2818"],
+    ebony: [0, "#3A2C24", 0.48, "#1F1714", 1, "#0F0A08"],
+  },
+  ornate_gold: {
+    antique: [0, "#5A3D08", 0.2, "#A07726", 0.5, "#D9B043", 0.78, "#A07726", 1, "#7A5510"],
+    polished: [0, "#7A5505", 0.2, "#D4AF37", 0.5, "#FFEB91", 0.78, "#D4AF37", 1, "#9C6F0E"],
+    champagne: [0, "#7A6A40", 0.2, "#C9B481", 0.5, "#EFE2B5", 0.78, "#C9B481", 1, "#9A8855"],
+  },
+  floater: {
+    natural: [0, "#A1856A", 1, "#7C6347"],
+    white: [0, "#F5F1EB", 1, "#E8E2D6"],
+    black: [0, "#1A1A1A", 1, "#0E0E0E"],
+  },
+};
+
+/**
+ * Get Konva gradient props for the given frame at the given pixel size.
+ * Returns `{ fill }` (solid) when no gradient is configured.
+ */
+export function getKonvaFrameProps(
+  frame: FrameConfig,
+  outerWidthPx: number,
+  outerHeightPx: number,
+): KonvaGradientProps {
+  if (frame.style === "none") return {};
+
+  const stops = KONVA_GRADIENT_STOPS[frame.style]?.[frame.finish];
+  if (!stops) {
+    // Fall back to the legacy solid colour from FRAME_STYLES.
+    const finish = getFrameFinish(frame.style, frame.finish);
+    return finish ? { fill: finish.borderColor } : {};
+  }
+
+  // Direction: black is vertical, everything else diagonal-or-horizontal.
+  if (frame.style === "thin_black") {
+    return {
+      fillLinearGradientStartPoint: { x: 0, y: 0 },
+      fillLinearGradientEndPoint: { x: 0, y: outerHeightPx },
+      fillLinearGradientColorStops: stops,
+    };
+  }
+  if (frame.style === "floater") {
+    return {
+      fillLinearGradientStartPoint: { x: 0, y: 0 },
+      fillLinearGradientEndPoint: { x: outerWidthPx, y: 0 },
+      fillLinearGradientColorStops: stops,
+    };
+  }
+  // wood + gold: diagonal
+  return {
+    fillLinearGradientStartPoint: { x: 0, y: 0 },
+    fillLinearGradientEndPoint: { x: outerWidthPx, y: outerHeightPx },
+    fillLinearGradientColorStops: stops,
+  };
+}
+
 /**
  * Compute the inner artwork rectangle (in pixel coords inside the item)
  * for the given outer pixel size and frame config.

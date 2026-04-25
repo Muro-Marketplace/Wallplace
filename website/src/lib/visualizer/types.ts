@@ -117,6 +117,14 @@ export interface WallItem {
   z_index: number;
 
   frame: FrameConfig;
+
+  /**
+   * The size variant the user picked, e.g. "16×24\" (A2)". Optional —
+   * absent for items that were dragged in at "natural" size or sized
+   * by hand. When present, the toolbar shows it next to the size cycle
+   * button. Persisted in the layout JSON so reloading reflects intent.
+   */
+  size_label?: string;
 }
 
 // ── Layout background ───────────────────────────────────────────────────
