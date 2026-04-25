@@ -103,6 +103,10 @@ export default function WallCanvas({
     vx: [],
     hy: [],
   });
+  // Hover state — drives a "preview" Transformer so users can grab a
+  // resize handle without first having to click. Selection takes
+  // priority: if anything is clicked-selected, hover does nothing.
+  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
 
   // Observe container size.
   useEffect(() => {
@@ -195,7 +199,10 @@ export default function WallCanvas({
           }}
         >
           <Layer>
-            {/* Wall colour underlay */}
+            {/* Wall — preset walls get a directional-light + vignette
+                gradient stack to read as 3D-feeling. Uploaded photos
+                already carry their own lighting and just sit on a
+                neutral underlay. */}
             <Rect
               x={wallOriginX}
               y={wallOriginY}
@@ -206,6 +213,70 @@ export default function WallCanvas({
               shadowOpacity={0.08}
               shadowOffsetY={6}
             />
+            {background.kind === "preset" && (
+              <>
+                {/* Horizontal light gradient: bright left, dark right. */}
+                <Rect
+                  x={wallOriginX}
+                  y={wallOriginY}
+                  width={wallPxW}
+                  height={wallPxH}
+                  listening={false}
+                  fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                  fillLinearGradientEndPoint={{ x: wallPxW, y: 0 }}
+                  fillLinearGradientColorStops={[
+                    0,
+                    "rgba(255,255,255,0.10)",
+                    0.5,
+                    "rgba(255,255,255,0.02)",
+                    1,
+                    "rgba(0,0,0,0.10)",
+                  ]}
+                />
+                {/* Vertical fall-off: brighter at the top, shadowed at the bottom. */}
+                <Rect
+                  x={wallOriginX}
+                  y={wallOriginY}
+                  width={wallPxW}
+                  height={wallPxH}
+                  listening={false}
+                  fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                  fillLinearGradientEndPoint={{ x: 0, y: wallPxH }}
+                  fillLinearGradientColorStops={[
+                    0,
+                    "rgba(255,255,255,0.05)",
+                    0.6,
+                    "rgba(0,0,0,0)",
+                    1,
+                    "rgba(0,0,0,0.12)",
+                  ]}
+                />
+                {/* Radial vignette pushing the corners back. */}
+                <Rect
+                  x={wallOriginX}
+                  y={wallOriginY}
+                  width={wallPxW}
+                  height={wallPxH}
+                  listening={false}
+                  fillRadialGradientStartPoint={{
+                    x: wallPxW / 2,
+                    y: wallPxH * 0.55,
+                  }}
+                  fillRadialGradientStartRadius={0}
+                  fillRadialGradientEndPoint={{
+                    x: wallPxW / 2,
+                    y: wallPxH * 0.55,
+                  }}
+                  fillRadialGradientEndRadius={Math.max(wallPxW, wallPxH) * 0.7}
+                  fillRadialGradientColorStops={[
+                    0.6,
+                    "rgba(0,0,0,0)",
+                    1,
+                    "rgba(0,0,0,0.18)",
+                  ]}
+                />
+              </>
+            )}
             {bgImage && (
               <KonvaImage
                 image={bgImage}
@@ -230,8 +301,17 @@ export default function WallCanvas({
                   wallPxW={wallPxW}
                   wallPxH={wallPxH}
                   selected={item.id === selectedItemId}
+                  hovered={
+                    selectedItemId === null && item.id === hoveredItemId
+                  }
                   otherItems={items.filter((i) => i.id !== item.id)}
                   onSelect={() => onSelectItem(item.id)}
+                  onHoverEnter={() => setHoveredItemId(item.id)}
+                  onHoverLeave={() =>
+                    setHoveredItemId((prev) =>
+                      prev === item.id ? null : prev,
+                    )
+                  }
                   onDragGuides={setGuides}
                   onClearGuides={() => setGuides({ vx: [], hy: [] })}
                   onChange={(partial) => onItemChange(item.id, partial)}
@@ -279,8 +359,14 @@ interface CanvasItemProps {
   wallPxW: number;
   wallPxH: number;
   selected: boolean;
+  /** True when the cursor is hovering this item AND nothing is selected.
+   *  Used to render a "preview" Transformer so the user knows they can
+   *  resize without first having to click. */
+  hovered: boolean;
   otherItems: WallItem[];
   onSelect: () => void;
+  onHoverEnter: () => void;
+  onHoverLeave: () => void;
   onChange: (partial: Partial<WallItem>) => void;
   onDragGuides: (guides: { vx: number[]; hy: number[] }) => void;
   onClearGuides: () => void;
@@ -295,8 +381,11 @@ function CanvasItem({
   wallPxW,
   wallPxH,
   selected,
+  hovered,
   otherItems,
   onSelect,
+  onHoverEnter,
+  onHoverLeave,
   onChange,
   onDragGuides,
   onClearGuides,
@@ -310,18 +399,19 @@ function CanvasItem({
   const pxW = item.width_cm * pxPerCm;
   const pxH = item.height_cm * pxPerCm;
 
-  // Attach the transformer when the item is selected — and re-attach
-  // (force a re-measure) whenever the item's dimensions change so the
-  // outline stays glued to the visible content. Without this, picking a
-  // new size from the toolbar dropdown would leave the Transformer
-  // outline at the previous size until the user clicked away and back.
+  // Attach the transformer when the item is selected OR hovered (when
+  // nothing else is selected). Re-attach whenever the item's
+  // dimensions change so the outline stays glued to the visible
+  // content — without this, picking a new size from the toolbar
+  // dropdown would leave the Transformer outline at the previous size
+  // until the user clicked away and back.
   useEffect(() => {
-    if (selected && transformerRef.current && groupRef.current) {
+    if ((selected || hovered) && transformerRef.current && groupRef.current) {
       transformerRef.current.nodes([groupRef.current]);
       transformerRef.current.forceUpdate?.();
       transformerRef.current.getLayer()?.batchDraw();
     }
-  }, [selected, pxW, pxH, item.rotation_deg]);
+  }, [selected, hovered, pxW, pxH, item.rotation_deg]);
 
   // Frame geometry (artwork inset + border colour).
   const frameGeo = computeFrameGeometry(pxW, pxH, item.frame);
@@ -393,18 +483,19 @@ function CanvasItem({
   );
 
   // ── Resize handling ─────────────────────────────────────────────────
+  // Read the new dimensions from `width × scaleX` and `height × scaleY`
+  // independently — Konva's `keepRatio` constrains scaleX === scaleY
+  // when the Group has explicit width and height set (which it does in
+  // the JSX below). Earlier we averaged scaleX+scaleY which silently
+  // landed at the wrong aspect when the Group's bounding box didn't
+  // match its children, producing the "always portrait" output.
   const handleTransformEnd = useCallback(() => {
     const node = groupRef.current;
     if (!node) return;
-    // Konva applies scale during resize; bake it into width/height and
-    // reset scale to 1 so future drags don't drift.
-    const scaleX = node.scaleX();
-    const scaleY = node.scaleY();
-    // Proportional only — average the two scales so a Shift-less drag still
-    // produces a uniform shape.
-    const uniformScale = (scaleX + scaleY) / 2;
-    const newWPx = pxW * uniformScale;
-    const newHPx = pxH * uniformScale;
+
+    const newWPx = node.width() * node.scaleX();
+    const newHPx = node.height() * node.scaleY();
+    // Reset scale so future drags compute against width/height directly.
     node.scaleX(1);
     node.scaleY(1);
 
@@ -421,7 +512,7 @@ function CanvasItem({
       height_cm: newHCm,
       rotation_deg: rotationDeg,
     });
-  }, [pxW, pxH, pxPerCm, wallOriginX, wallOriginY, onChange]);
+  }, [pxPerCm, wallOriginX, wallOriginY, onChange]);
 
   return (
     <>
@@ -429,10 +520,20 @@ function CanvasItem({
         ref={groupRef}
         x={pxX}
         y={pxY}
+        // Explicit width/height anchor the Group's bounding box to the
+        // item's true outer dimensions. Without this, Konva derives
+        // bounds from the union of children's clientRects (which include
+        // shadow extents and can disagree on aspect ratio), making
+        // keepRatio guess wrong and producing portrait output for
+        // landscape input.
+        width={pxW}
+        height={pxH}
         draggable
         rotation={item.rotation_deg}
         onClick={onSelect}
         onTap={onSelect}
+        onMouseEnter={onHoverEnter}
+        onMouseLeave={onHoverLeave}
         onDragStart={onSelect}
         onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
@@ -493,10 +594,12 @@ function CanvasItem({
           />
         )}
       </Group>
-      {selected && (
+      {(selected || hovered) && (
         <Transformer
           ref={transformerRef}
-          rotateEnabled={true}
+          // Rotation only on click-to-select; hover preview shows resize
+          // handles only so people can grab a corner without committing.
+          rotateEnabled={selected}
           // Proportional resize: lock aspect ratio; show only corner anchors.
           enabledAnchors={[
             "top-left",
@@ -507,12 +610,14 @@ function CanvasItem({
           keepRatio={true}
           // Bigger anchors for touch.
           anchorSize={12}
-          // Visual style.
+          // Visual style — slightly muted on hover-only to differentiate
+          // from a clicked selection.
           borderStroke="#0F0F0F"
           borderStrokeWidth={1}
           anchorStroke="#0F0F0F"
-          anchorFill="#FFFFFF"
+          anchorFill={selected ? "#FFFFFF" : "#F5F1EB"}
           anchorCornerRadius={2}
+          opacity={selected ? 1 : 0.7}
           rotateAnchorOffset={28}
           rotationSnaps={[0]}
           rotationSnapTolerance={5}

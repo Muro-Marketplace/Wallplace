@@ -27,7 +27,7 @@
 import sharp from "sharp";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { computeFrameGeometry } from "./frames";
-import { generateFrameSvg } from "./frame-svg";
+import { generateFrameSvg, generateWallSvg } from "./frame-svg";
 import type { LayoutBackground, WallItem } from "./types";
 
 const PHOTOS_BUCKET = "wall-photos";
@@ -125,20 +125,18 @@ export async function renderLayout(input: RenderInput): Promise<RenderResult> {
         .toBuffer();
     }
   } else {
-    const wallColor =
+    // Preset wall — render as an SVG with directional light + vignette
+    // so the result reads as a 3D-feeling wall, not a flat fill.
+    const colorHex =
       input.background.kind === "preset"
-        ? `#${input.background.color_hex}`
-        : "#FFFFFF";
-    wallBuffer = await sharp({
-      create: {
-        width: wallW,
-        height: wallH,
-        channels: 4,
-        background: hexToRgb(wallColor, 1),
-      },
-    })
-      .png()
-      .toBuffer();
+        ? input.background.color_hex
+        : "FFFFFF";
+    const wallSvg = generateWallSvg({
+      widthPx: wallW,
+      heightPx: wallH,
+      colorHex,
+    });
+    wallBuffer = await sharp(Buffer.from(wallSvg)).png().toBuffer();
   }
 
   // 3. Build composite list. Order matters — z-index.

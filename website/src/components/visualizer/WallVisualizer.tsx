@@ -174,11 +174,11 @@ function WallVisualizerInner(props: ExtendedProps) {
     [props.wall, props.initialLayout, props.authToken],
   );
 
-  const { status: saveStatus, errorMessage: saveError } = useAutoSave(
-    layoutSnapshot,
-    saveLayout,
-    { enabled: canPersist },
-  );
+  const {
+    status: saveStatus,
+    errorMessage: saveError,
+    saveNow,
+  } = useAutoSave(layoutSnapshot, saveLayout, { enabled: canPersist });
 
   // ── Works data (lifted from WorksPanel) ───────────────────────────
   // Single flat list (artist + customer modes).
@@ -658,7 +658,15 @@ function WallVisualizerInner(props: ExtendedProps) {
 
         {/* Top bar — quota chip + (when persisting) save status */}
         <div className="absolute top-3 right-3 flex items-center gap-2">
-          {canPersist && <SaveStatus status={saveStatus} error={saveError} />}
+          {canPersist && (
+            <SaveStatus
+              status={saveStatus}
+              error={saveError}
+              onSaveNow={() => {
+                void saveNow();
+              }}
+            />
+          )}
           <QuotaChip
             ownerTypeHint={ownerTypeFromMode(props.mode)}
             authToken={props.authToken ?? null}
@@ -767,9 +775,11 @@ function WallVisualizerInner(props: ExtendedProps) {
 function SaveStatus({
   status,
   error,
+  onSaveNow,
 }: {
   status: ReturnType<typeof useAutoSave>["status"];
   error: string | null;
+  onSaveNow?: () => void;
 }) {
   let label = "";
   let dotColour = "bg-stone-300";
@@ -777,7 +787,7 @@ function SaveStatus({
   if (status === "idle") {
     label = "All saved";
   } else if (status === "dirty") {
-    label = "Unsaved changes";
+    label = "Unsaved";
     dotColour = "bg-amber-400";
     textColour = "text-amber-700";
   } else if (status === "saving") {
@@ -788,18 +798,36 @@ function SaveStatus({
     dotColour = "bg-emerald-500";
     textColour = "text-stone-600";
   } else if (status === "error") {
-    label = error ? "Save failed" : "Save failed";
+    label = "Save failed";
     dotColour = "bg-red-500";
     textColour = "text-red-700";
   }
 
+  // Show an explicit "Save" button when there's something to save —
+  // either the user has unsaved edits, or the last save failed and
+  // they want to retry. While saving (debounced auto-save in flight)
+  // we hide the button so users can't double-fire.
+  const showSaveBtn =
+    onSaveNow && (status === "dirty" || status === "error");
+
   return (
-    <div
-      title={error ?? undefined}
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur border border-black/5 text-xs"
-    >
-      <span className={`h-2 w-2 rounded-full ${dotColour}`} />
-      <span className={textColour}>{label}</span>
+    <div className="inline-flex items-center gap-1">
+      <div
+        title={error ?? undefined}
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur border border-black/5 text-xs"
+      >
+        <span className={`h-2 w-2 rounded-full ${dotColour}`} />
+        <span className={textColour}>{label}</span>
+      </div>
+      {showSaveBtn && (
+        <button
+          type="button"
+          onClick={onSaveNow}
+          className="px-3 py-1.5 rounded-full bg-stone-900 text-white text-xs font-medium hover:bg-stone-800"
+        >
+          {status === "error" ? "Retry save" : "Save now"}
+        </button>
+      )}
     </div>
   );
 }

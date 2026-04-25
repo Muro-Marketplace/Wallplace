@@ -44,6 +44,60 @@ interface FrameSvgInput {
 }
 
 /**
+ * Generate an SVG that lights a flat wall colour from one side, adds a
+ * subtle vignette around the edges, and lays down a soft floor shadow
+ * along the bottom. The result reads more like a real wall than a flat
+ * fill — without committing to a 3D engine.
+ *
+ * Used for preset walls only; uploaded photos already carry their own
+ * lighting and don't need (or want) this treatment on top.
+ */
+export function generateWallSvg(input: {
+  widthPx: number;
+  heightPx: number;
+  /** Hex with or without leading '#'. */
+  colorHex: string;
+}): string {
+  const w = Math.max(1, Math.round(input.widthPx));
+  const h = Math.max(1, Math.round(input.heightPx));
+  const clean = input.colorHex.replace(/^#/, "").toUpperCase();
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+    <defs>
+      <!-- Wall colour with a horizontal gradient so the lit side reads
+           brighter than the shadowed side — the cue most readings of
+           "wall photographed in a room" implicitly carry. -->
+      <linearGradient id="wallLit" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%"   stop-color="#${clean}" stop-opacity="1" />
+        <stop offset="100%" stop-color="#${clean}" stop-opacity="1" />
+      </linearGradient>
+      <!-- Light overlay: brighter on the left, fading right. -->
+      <linearGradient id="wallLight" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%"   stop-color="white" stop-opacity="0.10" />
+        <stop offset="50%"  stop-color="white" stop-opacity="0.02" />
+        <stop offset="100%" stop-color="black" stop-opacity="0.10" />
+      </linearGradient>
+      <!-- Vertical fall-off: the top of the wall catches a touch more
+           light than the bottom (real ceiling/floor lighting). -->
+      <linearGradient id="wallVertical" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="white" stop-opacity="0.05" />
+        <stop offset="60%"  stop-color="black" stop-opacity="0" />
+        <stop offset="100%" stop-color="black" stop-opacity="0.12" />
+      </linearGradient>
+      <!-- Soft inner vignette pushing the corners darker so the wall
+           recedes slightly. -->
+      <radialGradient id="wallVignette" cx="50%" cy="55%" r="80%">
+        <stop offset="60%"  stop-color="black" stop-opacity="0" />
+        <stop offset="100%" stop-color="black" stop-opacity="0.18" />
+      </radialGradient>
+    </defs>
+    <rect width="${w}" height="${h}" fill="url(#wallLit)" />
+    <rect width="${w}" height="${h}" fill="url(#wallLight)" />
+    <rect width="${w}" height="${h}" fill="url(#wallVertical)" />
+    <rect width="${w}" height="${h}" fill="url(#wallVignette)" />
+  </svg>`;
+}
+
+/**
  * Generate the SVG string for a frame. Returns null when the style is
  * "none" (no frame to draw) or when the border has no thickness.
  */
@@ -101,51 +155,147 @@ function classicWoodSvg(
   b: number,
   finish: string,
 ): string {
-  // Per-finish colour palette.
-  const finishMap: Record<string, { c1: string; c2: string; c3: string; grain: string }> = {
-    natural: { c1: "#D9B989", c2: "#9C7A4F", c3: "#7C5E3A", grain: "#5A3F22" },
-    walnut: { c1: "#8C5A35", c2: "#5C3A24", c3: "#3D2818", grain: "#1F1208" },
-    ebony: { c1: "#3A2C24", c2: "#1F1714", c3: "#0F0A08", grain: "#000000" },
+  // Four-stop palette per finish — light/mid/dark/very-dark gives the
+  // depth of a real piece of wood lit from one side. Tuned by eye
+  // against reference photos.
+  const finishMap: Record<
+    string,
+    {
+      c1: string; // brightest highlight
+      c2: string; // mid tone
+      c3: string; // shadow
+      c4: string; // deepest shadow
+      grain: string; // grain colour (multiply blend)
+      rabbet: string; // dark line at the artwork edge
+    }
+  > = {
+    natural: {
+      c1: "#E5C7A0",
+      c2: "#B58E60",
+      c3: "#8A6638",
+      c4: "#5C3F1A",
+      grain: "#4A2E14",
+      rabbet: "#3A2510",
+    },
+    walnut: {
+      c1: "#9C6B40",
+      c2: "#6E4525",
+      c3: "#4A2D17",
+      c4: "#2A180B",
+      grain: "#15090A",
+      rabbet: "#100706",
+    },
+    ebony: {
+      c1: "#3A2D26",
+      c2: "#22191A",
+      c3: "#13100F",
+      c4: "#070506",
+      grain: "#000000",
+      rabbet: "#000000",
+    },
   };
   const c = finishMap[finish] ?? finishMap.natural;
 
-  // Choose a grain frequency that scales with the smaller dimension —
-  // bigger frame, finer grain (looks consistent across sizes).
-  const grainScale = Math.max(0.005, 0.012 - Math.min(w, h) / 80000);
+  // Two grain layers:
+  //   Layer A — long horizontal streaks (low X freq, high Y freq).
+  //   Layer B — finer micro-grain for surface texture.
+  // Frequencies scale subtly with frame size so a tiny chip and a 4K
+  // render look proportionally similar.
+  const minDim = Math.min(w, h);
+  const longGrainY = Math.max(0.25, 0.5 - minDim / 4000);
+  const longGrainX = 0.005;
+  const microGrain = Math.max(0.04, 0.08 - minDim / 8000);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
     <defs>
-      <linearGradient id="woodBase" x1="0" y1="0" x2="1" y2="1">
+      <!-- 4-stop wood gradient with diagonal direction -->
+      <linearGradient id="woodBase" x1="0" y1="0" x2="0.85" y2="1">
         <stop offset="0%"   stop-color="${c.c1}" />
-        <stop offset="48%"  stop-color="${c.c2}" />
-        <stop offset="100%" stop-color="${c.c3}" />
+        <stop offset="35%"  stop-color="${c.c2}" />
+        <stop offset="65%"  stop-color="${c.c3}" />
+        <stop offset="100%" stop-color="${c.c4}" />
       </linearGradient>
-      <filter id="grainFilter" x="0" y="0" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency="${grainScale} ${grainScale * 14}"
-                      numOctaves="2" seed="3" result="noise" />
-        <feColorMatrix in="noise" type="matrix"
+
+      <!-- Long horizontal grain — stretched turbulence. -->
+      <filter id="longGrain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise"
+                      baseFrequency="${longGrainX} ${longGrainY}"
+                      numOctaves="3" seed="7" result="ln" />
+        <feColorMatrix in="ln" type="matrix"
           values="0 0 0 0 0
                   0 0 0 0 0
                   0 0 0 0 0
-                  0 0 0 0.5 0" result="grain" />
-        <feComposite in="grain" in2="SourceGraphic" operator="in" result="grainMasked" />
-        <feBlend in="SourceGraphic" in2="grainMasked" mode="multiply" />
+                  0 0 0 0.7 0" result="grain" />
+        <feComposite in="grain" in2="SourceGraphic" operator="in" result="m" />
+        <feBlend in="SourceGraphic" in2="m" mode="multiply" />
       </filter>
+
+      <!-- Fine micro-grain for surface. -->
+      <filter id="microGrain" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise"
+                      baseFrequency="${microGrain}"
+                      numOctaves="2" seed="11" result="mn" />
+        <feColorMatrix in="mn" type="matrix"
+          values="0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0 0
+                  0 0 0 0.25 0" result="grain" />
+        <feComposite in="grain" in2="SourceGraphic" operator="in" result="m" />
+        <feBlend in="SourceGraphic" in2="m" mode="multiply" />
+      </filter>
+
+      <!-- Bevel highlight (top) → shadow (bottom). -->
       <linearGradient id="woodHighlight" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%"  stop-color="white" stop-opacity="0.18" />
-        <stop offset="40%" stop-color="white" stop-opacity="0" />
-        <stop offset="60%" stop-color="black" stop-opacity="0" />
-        <stop offset="100%" stop-color="black" stop-opacity="0.15" />
+        <stop offset="0%"   stop-color="white" stop-opacity="0.30" />
+        <stop offset="22%"  stop-color="white" stop-opacity="0.05" />
+        <stop offset="50%"  stop-color="white" stop-opacity="0" />
+        <stop offset="78%"  stop-color="black" stop-opacity="0.05" />
+        <stop offset="100%" stop-color="black" stop-opacity="0.30" />
       </linearGradient>
+
+      <!-- Side highlight (left lit, right shadowed) for cylindrical
+           "round profile" feel — most picture frames have a small
+           vertical curvature at the moulding. -->
+      <linearGradient id="woodSideShade" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%"   stop-color="white" stop-opacity="0.10" />
+        <stop offset="40%"  stop-color="white" stop-opacity="0" />
+        <stop offset="100%" stop-color="black" stop-opacity="0.20" />
+      </linearGradient>
+
+      <!-- Soft inner shadow that hugs the artwork window — gives the
+           rabbet visible depth instead of a flat dark line. -->
+      <radialGradient id="rabbetShadow" cx="50%" cy="50%"
+                      fx="50%" fy="50%" r="50%">
+        <stop offset="50%" stop-color="black" stop-opacity="0" />
+        <stop offset="92%" stop-color="black" stop-opacity="0" />
+        <stop offset="100%" stop-color="black" stop-opacity="0.5" />
+      </radialGradient>
     </defs>
-    <!-- Frame ring with wood gradient + grain filter -->
-    <path d="${frameRingPath(w, h, b)}" fill="url(#woodBase)" fill-rule="evenodd"
-          filter="url(#grainFilter)" />
-    <!-- Bevel highlight on top + shadow on bottom (frame-shaped) -->
-    <path d="${frameRingPath(w, h, b)}" fill="url(#woodHighlight)" fill-rule="evenodd" />
-    <!-- Inner edge dark line (rabbet) -->
-    <rect x="${b - 1}" y="${b - 1}" width="${w - 2 * (b - 1)}" height="${h - 2 * (b - 1)}"
-          fill="none" stroke="${c.grain}" stroke-width="1.5" stroke-opacity="0.8" />
+
+    <!-- 1. Base wood with long-grain streaks. -->
+    <path d="${frameRingPath(w, h, b)}"
+          fill="url(#woodBase)" fill-rule="evenodd"
+          filter="url(#longGrain)" />
+    <!-- 2. Micro-grain surface texture. -->
+    <path d="${frameRingPath(w, h, b)}"
+          fill="url(#woodBase)" fill-rule="evenodd"
+          filter="url(#microGrain)" opacity="0.35" />
+    <!-- 3. Top → bottom bevel. -->
+    <path d="${frameRingPath(w, h, b)}"
+          fill="url(#woodHighlight)" fill-rule="evenodd" />
+    <!-- 4. Left → right cylindrical shading. -->
+    <path d="${frameRingPath(w, h, b)}"
+          fill="url(#woodSideShade)" fill-rule="evenodd" />
+    <!-- 5. Inner rabbet line — slightly darker, thicker, casts depth. -->
+    <rect x="${b - 1}" y="${b - 1}"
+          width="${w - 2 * (b - 1)}" height="${h - 2 * (b - 1)}"
+          fill="none" stroke="${c.rabbet}" stroke-width="2"
+          stroke-opacity="0.95" />
+    <!-- 6. Outer thin shadow line so the frame doesn't blend with light walls. -->
+    <rect x="0.5" y="0.5"
+          width="${w - 1}" height="${h - 1}"
+          fill="none" stroke="${c.c4}" stroke-width="0.75"
+          stroke-opacity="0.6" />
   </svg>`;
 }
 
