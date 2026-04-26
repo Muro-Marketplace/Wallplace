@@ -49,6 +49,11 @@ export interface Wall {
   preset_id: string | null;
   /** When kind = 'uploaded': Supabase Storage path to the original photo. */
   source_image_path: string | null;
+  /** Server-minted short-lived signed URL for `source_image_path`. Only
+      populated by GET /api/walls so list cards can show the actual
+      photo as a thumbnail without each client minting URLs themselves.
+      Not stored — recomputed on each list call (1h expiry). */
+  source_image_url?: string;
   width_cm: number;
   height_cm: number;
   /** Hex without leading '#' (e.g. 'F5F1EB'). Only meaningful for presets. */

@@ -131,6 +131,11 @@ function WallCard({ wall }: { wall: Wall }) {
   const aspect = wall.width_cm / wall.height_cm;
   const cardHeight = aspect >= 1 ? 140 : 200;
   const cardWidth = cardHeight * aspect;
+  // Uploaded walls: show the actual photo as the thumbnail (signed
+  // URL minted server-side by GET /api/walls). Preset walls: show
+  // the colour swatch — there's no image asset for a preset, the
+  // wall is just a colour.
+  const photoUrl = wall.kind === "uploaded" ? wall.source_image_url : null;
 
   return (
     <Link
@@ -138,15 +143,29 @@ function WallCard({ wall }: { wall: Wall }) {
       className="group block rounded-xl border border-border bg-white overflow-hidden hover:border-stone-300 hover:shadow-md transition"
     >
       <div className="bg-stone-100 grid place-items-center p-6" style={{ minHeight: 160 }}>
-        <div
-          className="rounded shadow-inner"
-          style={{
-            backgroundColor: `#${wall.wall_color_hex}`,
-            width: cardWidth,
-            height: cardHeight,
-            maxWidth: "100%",
-          }}
-        />
+        {photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photoUrl}
+            alt={wall.name}
+            className="rounded shadow-inner object-cover"
+            style={{
+              width: cardWidth,
+              height: cardHeight,
+              maxWidth: "100%",
+            }}
+          />
+        ) : (
+          <div
+            className="rounded shadow-inner"
+            style={{
+              backgroundColor: `#${wall.wall_color_hex}`,
+              width: cardWidth,
+              height: cardHeight,
+              maxWidth: "100%",
+            }}
+          />
+        )}
       </div>
       <div className="px-4 py-3">
         <p className="font-medium text-sm text-foreground truncate group-hover:text-accent transition-colors">

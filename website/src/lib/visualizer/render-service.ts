@@ -325,10 +325,17 @@ async function renderItem(
       .toBuffer();
   }
 
-  // Build a soft drop-shadow underneath (only when the frame style wants
-  // one OR the artwork is unframed — every piece on a wall casts shadow).
+  // Build a soft drop-shadow underneath. Disabled by default for 2D
+  // renders — artists asked to ship the rendered image without
+  // shadows because the 2D preset walls already render with their
+  // own SVG-based lighting + vignette, and the per-item shadow on
+  // top read as a duplicate "fake 3D" effect. The 3D preview in the
+  // editor still shades naturally because that uses three.js
+  // materials, not sharp composites. Flip SHADOWS_ENABLED back on if
+  // a future preset wants a flat-colour wall + drop-shadow combo.
+  const SHADOWS_ENABLED = false;
   const shadowOverlay: sharp.OverlayOptions[] = [];
-  if (frameGeo.hasShadow || item.frame.style === "none") {
+  if (SHADOWS_ENABLED && (frameGeo.hasShadow || item.frame.style === "none")) {
     // Mask a semi-transparent black layer to the item's silhouette. Sharp's
     // "in" blend keeps source pixels only where the destination is opaque,
     // giving us a soft-blurred shadow that hugs the item shape (including

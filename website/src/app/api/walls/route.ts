@@ -14,6 +14,7 @@
 import { NextResponse } from "next/server";
 import { isFlagOn } from "@/lib/feature-flags";
 import { getAuthenticatedUser } from "@/lib/api-auth";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { createWallSchema } from "@/lib/visualizer/validations";
 import { resolveTier } from "@/lib/visualizer/tier-resolver";
 import { getTierLimits } from "@/lib/visualizer/tier-limits";
@@ -23,6 +24,8 @@ import {
   createUploadedWall,
   listWallsByUser,
 } from "@/lib/visualizer/walls-db";
+
+const PHOTOS_BUCKET = "wall-photos";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +37,31 @@ export async function GET(request: Request) {
   if (auth.error) return auth.error;
 
   const walls = await listWallsByUser(auth.user!.id);
-  return NextResponse.json({ walls });
+
+  // Enrich uploaded walls with a short-lived signed URL so the
+  // showroom / walls list cards can show the actual photo as the
+  // thumbnail rather than a flat colour swatch. The wall-photos
+  // bucket is private, so we mint signed URLs server-side via the
+  // admin client. 1h expiry matches what /api/walls/upload-photo
+  // returns at create time.
+  const db = getSupabaseAdmin();
+  const enriched = await Promise.all(
+    walls.map(async (w) => {
+      if (w.kind !== "uploaded" || !w.source_image_path) return w;
+      try {
+        const { data } = await db.storage
+          .from(PHOTOS_BUCKET)
+          .createSignedUrl(w.source_image_path, 60 * 60);
+        return data?.signedUrl
+          ? { ...w, source_image_url: data.signedUrl }
+          : w;
+      } catch {
+        return w;
+      }
+    }),
+  );
+
+  return NextResponse.json({ walls: enriched });
 }
 
 export async function POST(request: Request) {
