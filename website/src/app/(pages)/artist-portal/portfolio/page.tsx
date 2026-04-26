@@ -12,7 +12,7 @@ import { useToast } from "@/context/ToastContext";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import { estimateShipping, tierLabel } from "@/lib/shipping-calculator";
 import Combobox from "@/components/Combobox";
-import { WORK_MEDIUM_OPTIONS } from "@/app/(pages)/artist-portal/profile/page";
+import { WORK_MEDIUM_OPTIONS } from "@/data/work-medium-options";
 
 interface SizeEntry {
   label: string;

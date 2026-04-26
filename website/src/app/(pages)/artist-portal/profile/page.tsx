@@ -20,40 +20,12 @@ import { useSearchParams } from "next/navigation";
 // list is intentionally permissive — artists almost always have edge
 // cases ("oil + gold leaf", "cyanotype on cotton") so the combobox
 // allows custom entries while still suggesting the standards.
-export const WORK_MEDIUM_OPTIONS = [
-  "Oil on canvas",
-  "Oil on board",
-  "Oil on linen",
-  "Acrylic on canvas",
-  "Acrylic on board",
-  "Watercolour on paper",
-  "Gouache on paper",
-  "Ink on paper",
-  "Pencil on paper",
-  "Graphite on paper",
-  "Charcoal on paper",
-  "Pastel on paper",
-  "Mixed media on paper",
-  "Mixed media on canvas",
-  "Mixed media on board",
-  "Collage",
-  "Linocut print",
-  "Screen print",
-  "Etching",
-  "Lithograph",
-  "Woodcut print",
-  "Giclée print",
-  "C-type print",
-  "Archival pigment print",
-  "Silver gelatin print",
-  "Digital print",
-  "Photograph",
-  "Digital art",
-  "Sculpture",
-  "Ceramic",
-  "Textile",
-  "Other",
-];
+// Canonical list lives in /src/data so the portfolio editor can also
+// import it without cross-importing this page module (cross-importing
+// route page.tsx files breaks rendering in some Next.js versions —
+// don't do it). Re-exported for any legacy callers.
+import { WORK_MEDIUM_OPTIONS } from "@/data/work-medium-options";
+export { WORK_MEDIUM_OPTIONS };
 
 // ── Work image dropzone ────────────────────────────────────────────────
 
