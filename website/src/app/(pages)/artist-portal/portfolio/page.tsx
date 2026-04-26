@@ -266,6 +266,58 @@ export default function PortfolioPage() {
       .catch(() => {});
   }, [artist, initialised]);
 
+  // ──────────────────────────────────────────────────────────────────
+  // ALL HOOKS MUST LIVE ABOVE THE `if (!artist) return ...` EARLY-RETURN
+  // BELOW. React enforces a stable hook count between renders — adding
+  // a hook after a conditional return triggers
+  //   "Rendered more hooks than during the previous render"
+  // which the Next.js error boundary surfaces as
+  //   "Something went wrong"
+  // Don't move these effects below the early-return.
+  // ──────────────────────────────────────────────────────────────────
+
+  // Whenever the bulk-prices modal opens or the row list changes shape,
+  // clear the spreadsheet-style row selection so it doesn't reference
+  // stale indexes (a removed row would leave a phantom highlight).
+  useEffect(() => {
+    if (!bulkPricesOpen) {
+      setBulkPriceSelected(new Set());
+      bulkPriceAnchorRef.current = null;
+      setBulkPriceFillValue("");
+    }
+  }, [bulkPricesOpen]);
+
+  // Cmd/Ctrl + C / V keyboard shortcuts when the bulk-prices modal is
+  // open. Only fires when the focused element isn't a real input —
+  // otherwise the user copying inside an input field would get hijacked.
+  useEffect(() => {
+    if (!bulkPricesOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const tag = (document.activeElement?.tagName || "").toLowerCase();
+      const isField =
+        tag === "input" || tag === "textarea" || tag === "select";
+      if (isField) return;
+      if (e.key === "c" || e.key === "C") {
+        if (bulkPriceSelected.size === 0) return;
+        e.preventDefault();
+        bulkPriceCopySelected();
+      } else if (e.key === "v" || e.key === "V") {
+        if (bulkPriceSelected.size === 0) return;
+        e.preventDefault();
+        bulkPricePasteIntoSelected();
+      } else if (e.key === "a" || e.key === "A") {
+        e.preventDefault();
+        const all = new Set<number>();
+        for (let i = 0; i < bulkPriceRows.length; i++) all.add(i);
+        setBulkPriceSelected(all);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkPricesOpen, bulkPriceSelected, bulkPriceRows.length]);
+
   if (artistLoading || !artist) {
     return (
       <ArtistPortalLayout activePath="/artist-portal/portfolio">
@@ -426,47 +478,6 @@ export default function PortfolioPage() {
    * because they want to scan _everything_ — making them tick boxes
    * first is friction.
    */
-  // Whenever the modal opens or the row list changes shape, clear the
-  // spreadsheet-style row selection so it doesn't reference stale
-  // indexes (a removed row would leave a phantom highlight).
-  useEffect(() => {
-    if (!bulkPricesOpen) {
-      setBulkPriceSelected(new Set());
-      bulkPriceAnchorRef.current = null;
-      setBulkPriceFillValue("");
-    }
-  }, [bulkPricesOpen]);
-
-  // Cmd/Ctrl + C / V keyboard shortcuts when the modal is open. Only
-  // fires when the focused element isn't a real input — otherwise the
-  // user copying inside an input field would get hijacked.
-  useEffect(() => {
-    if (!bulkPricesOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey)) return;
-      const tag = (document.activeElement?.tagName || "").toLowerCase();
-      const isField =
-        tag === "input" || tag === "textarea" || tag === "select";
-      if (isField) return;
-      if (e.key === "c" || e.key === "C") {
-        if (bulkPriceSelected.size === 0) return;
-        e.preventDefault();
-        bulkPriceCopySelected();
-      } else if (e.key === "v" || e.key === "V") {
-        if (bulkPriceSelected.size === 0) return;
-        e.preventDefault();
-        bulkPricePasteIntoSelected();
-      } else if (e.key === "a" || e.key === "A") {
-        e.preventDefault();
-        const all = new Set<number>();
-        for (let i = 0; i < bulkPriceRows.length; i++) all.add(i);
-        setBulkPriceSelected(all);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bulkPricesOpen, bulkPriceSelected, bulkPriceRows.length]);
 
   /**
    * Toggle/range-extend row selection. Plain click sets the anchor +

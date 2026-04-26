@@ -154,8 +154,10 @@ export default async function ArtistProfilePage({
           </Link>
 
           <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-10 lg:gap-14 items-start">
-            {/* LEFT — square photo + Instagram */}
-            <div>
+            {/* LEFT — square photo + Instagram + facts + Sells/Terms.
+                All the meta-data lives here so the right column stays
+                short and the Portfolio header pushes up. */}
+            <div className="space-y-5">
               <div className="relative aspect-square w-full max-w-[280px] rounded-sm overflow-hidden bg-stone-100 border border-border">
                 <Image
                   src={artist.image || `https://picsum.photos/seed/${artist.slug}/600/600`}
@@ -179,15 +181,87 @@ export default async function ArtistProfilePage({
                   href={`https://instagram.com/${artist.instagram.replace("@", "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground transition-colors mt-3"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground transition-colors"
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="5" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>
                   {artist.instagram}
                 </a>
               )}
+
+              {/* Facts — Location / Delivery / Suited for. Stacked
+                  vertically because the column is narrow (280px). */}
+              <div className="grid grid-cols-1 gap-y-3 pt-5 border-t border-border max-w-[280px]">
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Location</p>
+                  <p className="text-sm font-medium text-foreground">{artist.location || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Delivery</p>
+                  <p className="text-sm font-medium text-foreground">{artist.deliveryRadius || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Suited for</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {artist.venueTypesSuitedFor.length > 0
+                      ? artist.venueTypesSuitedFor.slice(0, 3).join(", ")
+                      : "Any venue"}
+                  </p>
+                </div>
+              </div>
+
+              {hasStats && (
+                <div className="flex items-center gap-5 pt-4 border-t border-border max-w-[280px]">
+                  {(artist.totalPlacements ?? 0) > 0 && (
+                    <div>
+                      <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalPlacements}</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mt-1">Venue{artist.totalPlacements !== 1 ? "s" : ""}</p>
+                    </div>
+                  )}
+                  {(artist.totalSales ?? 0) > 0 && (
+                    <div>
+                      <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalSales}</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mt-1">Sold</p>
+                    </div>
+                  )}
+                  {(artist.totalViews ?? 0) > 0 && (
+                    <div>
+                      <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalViews}</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mt-1">Views</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sells + Terms — pushed into the side column so the
+                  right side stays focused on the artist's voice. Sells
+                  uses the marketplace card's neutral chip (no tick);
+                  Terms keeps the accent-tinted tick pill — Terms are
+                  commitments, Sells are inventory categories. */}
+              {offerings.length > 0 && (
+                <div className="pt-4 border-t border-border max-w-[280px]">
+                  <p className="text-[10px] text-muted uppercase tracking-wider mb-2">Sells</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {offerings.map((o) => (
+                      <SellsPill key={o.label} label={o.label} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {terms.length > 0 && (
+                <div className="pt-4 border-t border-border max-w-[280px]">
+                  <p className="text-[10px] text-muted uppercase tracking-wider mb-2">Terms</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {terms.map((t) => (
+                      <TermPill key={t.label} label={t.label} yes={t.yes} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* RIGHT — identity */}
+            {/* RIGHT — identity + bio + tags + CTAs. Nothing else. The
+                shorter the right column gets, the higher the Portfolio
+                header sits below the hero. */}
             <div className="min-w-0">
               <p className="text-[11px] text-muted uppercase tracking-[0.18em] mb-3">
                 {disciplineLabel(artist.primaryMedium, artist.discipline)}
@@ -227,84 +301,10 @@ export default async function ArtistProfilePage({
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2 mb-8">
+              <div className="flex flex-wrap gap-2">
                 <MessageArtistButton artistSlug={artist.slug} artistName={artist.name} variant="accent" size="md" />
                 <PlacementButton artistSlug={artist.slug} artistName={artist.name} />
               </div>
-
-              {/* Facts row — inline, no card chrome. Hairline border
-                  separates this from the bio above. */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 pt-6 border-t border-border max-w-2xl">
-                <div>
-                  <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Location</p>
-                  <p className="text-sm font-medium text-foreground">{artist.location || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Delivery</p>
-                  <p className="text-sm font-medium text-foreground">{artist.deliveryRadius || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Suited for</p>
-                  <p className="text-sm font-medium text-foreground">
-                    {artist.venueTypesSuitedFor.length > 0
-                      ? artist.venueTypesSuitedFor.slice(0, 3).join(", ")
-                      : "Any venue"}
-                  </p>
-                </div>
-              </div>
-
-              {hasStats && (
-                <div className="flex items-center gap-6 pt-4 mt-4 border-t border-border max-w-2xl">
-                  {(artist.totalPlacements ?? 0) > 0 && (
-                    <div>
-                      <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalPlacements}</p>
-                      <p className="text-[10px] text-muted uppercase tracking-wider mt-1">Venue{artist.totalPlacements !== 1 ? "s" : ""}</p>
-                    </div>
-                  )}
-                  {(artist.totalSales ?? 0) > 0 && (
-                    <div>
-                      <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalSales}</p>
-                      <p className="text-[10px] text-muted uppercase tracking-wider mt-1">Sold</p>
-                    </div>
-                  )}
-                  {(artist.totalViews ?? 0) > 0 && (
-                    <div>
-                      <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalViews}</p>
-                      <p className="text-[10px] text-muted uppercase tracking-wider mt-1">Views</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Sells + Terms — visually distinct so the page doesn't
-                  read as one undifferentiated bag of pills. Sells uses
-                  the marketplace card's neutral chip (no tick); Terms
-                  keeps the accent-tinted tick pill — Terms are
-                  commitments, Sells are inventory categories. */}
-              {(offerings.length > 0 || terms.length > 0) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 mt-6 border-t border-border max-w-2xl">
-                  {offerings.length > 0 && (
-                    <div>
-                      <p className="text-[10px] text-muted uppercase tracking-wider mb-2">Sells</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {offerings.map((o) => (
-                          <SellsPill key={o.label} label={o.label} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {terms.length > 0 && (
-                    <div>
-                      <p className="text-[10px] text-muted uppercase tracking-wider mb-2">Terms</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {terms.map((t) => (
-                          <TermPill key={t.label} label={t.label} yes={t.yes} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
