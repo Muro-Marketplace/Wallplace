@@ -286,9 +286,15 @@ export async function POST(request: Request) {
       meta: result.meta,
     });
   } catch (err) {
-    console.error("[render-quick] crashed:", err);
+    const message =
+      err instanceof Error ? err.message : "Unknown render error";
+    console.error(
+      "[render-quick] crashed:",
+      message,
+      err instanceof Error ? err.stack : err,
+    );
     return await failAndRefund(500, {
-      error: "Render failed",
+      error: `Render failed: ${message}`,
       reason: "exception",
     });
   }

@@ -228,9 +228,20 @@ export async function POST(request: Request, ctx: RouteContext) {
       meta: result.meta,
     });
   } catch (err) {
-    console.error("[render route] crashed:", err);
+    // Log the full error server-side AND surface the message back to
+    // the client. The artist needs to know whether the failure was
+    // "image fetch timed out" vs "your work image is gone" vs
+    // "sharp choked on the input" — opaque "Render failed" leaves
+    // them stuck. Stack trace is logged, message is sent back.
+    const message =
+      err instanceof Error ? err.message : "Unknown render error";
+    console.error(
+      "[render route] crashed:",
+      message,
+      err instanceof Error ? err.stack : err,
+    );
     return await failAndRefund(500, {
-      error: "Render failed",
+      error: `Render failed: ${message}`,
       reason: "exception",
     });
   }
