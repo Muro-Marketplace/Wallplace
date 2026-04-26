@@ -547,8 +547,14 @@ export default async function ArtistProfilePage({
 
 /**
  * Async section that fetches the artist's collections from Supabase
- * server-side and renders the grid. Returns null if there's nothing
- * to show so the divider line above doesn't appear over empty space.
+ * server-side and renders the grid. Filters out collections that
+ * have no usable image so CollectionCard's <Image src=""> doesn't
+ * crash the whole profile page render.
+ *
+ * Wrapped in a try so any DOM-level throw inside the grid (e.g. a
+ * rogue prop on CollectionCard) becomes a logged warning + an
+ * unrendered section, not a server-component crash that takes the
+ * whole page down to the error boundary.
  */
 async function CollectionsSection({
   artistSlug,
@@ -557,18 +563,38 @@ async function CollectionsSection({
   artistSlug: string;
   artistName: string;
 }) {
-  const collections = await getCollectionsByArtistSlug(artistSlug, artistName);
-  if (collections.length === 0) return null;
-  return (
-    <section className="py-10 lg:py-14 border-t border-border">
-      <div className="max-w-[1200px] mx-auto px-6">
-        <h2 className="text-2xl mb-6">Collections</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {collections.map((col) => (
-            <CollectionCard key={col.id} collection={col} />
-          ))}
+  try {
+    const collections = await getCollectionsByArtistSlug(
+      artistSlug,
+      artistName,
+    );
+    // Drop collections with no usable image source — Next.js Image
+    // throws on src="" / undefined, and the artist_collections
+    // schema doesn't guarantee any of these three columns are set
+    // (cover_image isn't even a real column on the table). One
+    // image-less collection used to take the whole profile page
+    // down to the global error boundary.
+    const renderable = collections.filter(
+      (c) => !!(c.thumbnail || c.bannerImage || c.coverImage),
+    );
+    if (renderable.length === 0) return null;
+    return (
+      <section className="py-10 lg:py-14 border-t border-border">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <h2 className="text-2xl mb-6">Collections</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {renderable.map((col) => (
+              <CollectionCard key={col.id} collection={col} />
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
-  );
+      </section>
+    );
+  } catch (err) {
+    console.warn(
+      "[CollectionsSection] render failed:",
+      err instanceof Error ? err.message : String(err),
+    );
+    return null;
+  }
 }

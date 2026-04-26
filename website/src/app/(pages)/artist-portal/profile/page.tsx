@@ -299,7 +299,7 @@ interface ProfileState {
   discipline: DisciplineId | "";
   /**
    * Short bio — the elevator pitch that shows on cards, search hits,
-   * and the top of the artist's public profile. Hard-capped at 500
+   * and the top of the artist's public profile. Hard-capped at 300
    * characters at save time.
    */
   bio: string;
@@ -384,10 +384,10 @@ function emptyProfile(nameSeed: string): ProfileState {
 
 function initProfile(a: Artist): ProfileState {
   // Merge the legacy short/extended bios into a single field. Prefer
-  // Bio is now two separate fields again — short (≤500 for cards) and
+  // Bio is now two separate fields again — short (≤300 for cards) and
   // optional extended (≤1000 for the bottom of the public page).
   // Legacy rows that only filled the extended field flow into short.
-  const shortBio = (a.shortBio?.trim() || a.extendedBio?.trim() || "").slice(0, 500);
+  const shortBio = (a.shortBio?.trim() || a.extendedBio?.trim() || "").slice(0, 300);
   const longBio = (a.extendedBio?.trim() || "").slice(0, 1000);
   // Merge the legacy trio (sub-styles, style tags, themes) into a
   // single de-duped tags array — that's what the new UI works with.
@@ -620,9 +620,9 @@ export default function ProfileEditorPage() {
     // a freshly-claimed account" (no existing row yet) and "update
     // existing profile", so we don't need a separate path for new users.
     try {
-      // Bio: short (≤500, shown on cards + profile hero) + extended
+      // Bio: short (≤300, shown on cards + profile hero) + extended
       // (≤1000, optional, shown at the bottom of the public page).
-      const shortBio = profile.bio.trim().slice(0, 500);
+      const shortBio = profile.bio.trim().slice(0, 300);
       const extendedBio = profile.extendedBio.trim().slice(0, 1000);
 
       // Tags: split unified list into the three legacy columns so
@@ -825,7 +825,7 @@ export default function ProfileEditorPage() {
               </div>
             </div>
             {/*
-             * Bio is now two fields again. The short bio (≤500) is the
+             * Bio is now two fields again. The short bio (≤300) is the
              * elevator pitch — appears on cards, search hits, and the
              * top of the public profile. The extended bio (≤1000,
              * optional) sits at the bottom of the public profile so
@@ -840,14 +840,14 @@ export default function ProfileEditorPage() {
               </label>
               <textarea
                 value={profile.bio}
-                onChange={(e) => update("bio", e.target.value.slice(0, 500))}
-                rows={5}
-                maxLength={500}
+                onChange={(e) => update("bio", e.target.value.slice(0, 300))}
+                rows={4}
+                maxLength={300}
                 placeholder="A two- or three-sentence opener — who you are, what you make, what to look out for."
                 className={`${inputClass} resize-none`}
               />
-              <p className={`text-[10px] mt-1 text-right ${profile.bio.length >= 480 ? "text-amber-600" : "text-muted"}`}>
-                {profile.bio.length} / 500
+              <p className={`text-[10px] mt-1 text-right ${profile.bio.length >= 280 ? "text-amber-600" : "text-muted"}`}>
+                {profile.bio.length} / 300
               </p>
             </div>
             <div>

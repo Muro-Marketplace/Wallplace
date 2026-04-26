@@ -18,8 +18,18 @@ export default function CollectionCard({ collection, distance }: CollectionCardP
         className="relative aspect-[16/9] bg-border/20 select-none"
         onContextMenu={(e) => e.preventDefault()}
       >
+        {/* Picsum fallback so a collection without any image source
+            still renders rather than crashing the page. Next.js
+            Image throws on src="" — and the artist_collections
+            schema doesn't guarantee any of thumbnail / bannerImage /
+            coverImage are populated. */}
         <Image
-          src={collection.thumbnail || collection.bannerImage || collection.coverImage}
+          src={
+            collection.thumbnail ||
+            collection.bannerImage ||
+            collection.coverImage ||
+            `https://picsum.photos/seed/${collection.id}/800/450`
+          }
           alt={collection.name}
           fill
           className="object-cover group-hover:scale-[1.02] transition-transform duration-500 pointer-events-none select-none"

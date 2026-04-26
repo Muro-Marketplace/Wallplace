@@ -209,8 +209,22 @@ async function renderItem(
     return null;
   }
 
-  const itemPxW = Math.max(1, Math.round(item.width_cm * pxPerCm));
-  const itemPxH = Math.max(1, Math.round(item.height_cm * pxPerCm));
+  // Clamp the item dimensions to fit within the output canvas. If
+  // an artist resized an artwork larger than the wall (or the wall
+  // is small relative to the canvas), the raw cm × pxPerCm could
+  // exceed OUTPUT_*_PX. sharp's composite then errors with
+  //   "Image to composite must have same dimensions or smaller"
+  // and we lose the entire render. Clamping caps the framed-item
+  // buffer at the canvas size — the artist sees their work rendered
+  // up to the wall edge instead of an opaque failure.
+  const itemPxW = Math.max(
+    1,
+    Math.min(OUTPUT_WIDTH_PX, Math.round(item.width_cm * pxPerCm)),
+  );
+  const itemPxH = Math.max(
+    1,
+    Math.min(OUTPUT_HEIGHT_PX, Math.round(item.height_cm * pxPerCm)),
+  );
   const itemX = Math.round(wallOriginX + item.x_cm * pxPerCm);
   const itemY = Math.round(wallOriginY + item.y_cm * pxPerCm);
 
