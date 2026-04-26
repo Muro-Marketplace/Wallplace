@@ -24,6 +24,20 @@ interface Placement {
   artist_slug: string;
   venue?: string | null;
   status: string;
+  /** Additional works on this placement (migration 027). Each carries
+      its own title/image and the size agreed at placement creation. */
+  extra_works?: Array<{
+    title: string;
+    image?: string | null;
+    size?: string | null;
+  }> | null;
+  /** Computed locally — true for every entry that came from
+      extra_works, false for the primary work. Lets the UI show a
+      "+ extra" hint and group entries by placement if needed. */
+  _is_extra?: boolean;
+  /** Stable composite key for the React list — placement id + work
+      index — so flattening doesn't collide on placement.id. */
+  _key?: string;
 }
 
 interface ArtistLookup {
@@ -60,19 +74,44 @@ export default function VenueLabelsPage() {
         const data = await res.json();
         const all = (data.placements || []) as Placement[];
         const active = all.filter((p) => p.status === "active");
-        setPlacements(active);
+        // Flatten multi-work placements: each placement with
+        // `extra_works` contributes one entry per work. The primary
+        // entry uses the placement's existing work_title / work_size
+        // / work_image fields; extras come from the array. Each
+        // entry inherits the original placement.id so deep-link
+        // preselection still works for every work that belongs to
+        // that placement (which is what the user actually wants —
+        // "QR labels for placement X" should tick every work in X).
+        const expanded: Placement[] = [];
+        for (const p of active) {
+          expanded.push({ ...p, _is_extra: false, _key: `${p.id}#0` });
+          if (Array.isArray(p.extra_works)) {
+            p.extra_works.forEach((w, i) => {
+              expanded.push({
+                ...p,
+                work_title: w.title,
+                work_image: w.image ?? null,
+                work_size: w.size ?? null,
+                _is_extra: true,
+                _key: `${p.id}#${i + 1}`,
+              });
+            });
+          }
+        }
+        setPlacements(expanded);
 
-        // If the caller passed ?placement=<id>, preselect that row so
-        // deep links from the placement detail page land with the right
-        // work already ticked and ready for label printing. Without the
-        // deep-link param, preselect every active placement — the user
-        // almost always wants labels for all of them, and they can
-        // deselect the odd one out.
+        // Deep-link preselection — match by placement id so EVERY
+        // work belonging to that placement (primary + extras) lands
+        // ticked. Without ?placement we still preselect everything
+        // because the user almost always wants labels for the lot.
         if (preselectPlacementId) {
-          const idx = active.findIndex((p) => p.id === preselectPlacementId);
-          if (idx >= 0) setSelected(new Set([idx]));
-        } else if (active.length > 0) {
-          setSelected(new Set(active.map((_, i) => i)));
+          const matchIndices: number[] = [];
+          expanded.forEach((p, i) => {
+            if (p.id === preselectPlacementId) matchIndices.push(i);
+          });
+          if (matchIndices.length > 0) setSelected(new Set(matchIndices));
+        } else if (expanded.length > 0) {
+          setSelected(new Set(expanded.map((_, i) => i)));
         }
 
         // Best-effort lookup of artist display names
@@ -299,7 +338,11 @@ export default function VenueLabelsPage() {
                 const artistName = formatArtistName(p.artist_slug);
                 return (
                   <div
-                    key={p.id}
+                    // Composite key — multiple expanded entries share
+                    // p.id, so we use the per-entry _key to keep
+                    // React's reconciliation stable when flattened
+                    // multi-work placements re-render.
+                    key={p._key || `${p.id}-${index}`}
                     className={`group relative bg-surface border rounded-sm overflow-hidden transition-all ${
                       isSelected ? "ring-2 ring-accent border-accent/30 shadow-sm" : "border-border hover:border-border/80"
                     }`}

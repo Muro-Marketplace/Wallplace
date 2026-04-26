@@ -39,27 +39,40 @@ export default function LabelsPage() {
   const [labelSize, setLabelSize] = useState<LabelSize>("medium");
   const [tagline, setTagline] = useState("");
 
-  // Pre-select venue and works from query params (from placement QR button)
+  // Pre-select venue and works from query params (from placement QR
+  // button). Two flavours of size param:
+  //   - `sizes=` (comma-separated, parallel to works) for multi-work
+  //     placements where each work has its own agreed size
+  //   - `size=` (single) for legacy single-work links
   useEffect(() => {
     if (!artist || preselected) return;
     const paramVenue = searchParams.get("venue");
     const paramWorks = searchParams.get("works");
+    const paramSizes = searchParams.get("sizes");
     const paramSize = searchParams.get("size");
     if (paramVenue) setSelectedVenue(paramVenue);
     if (paramWorks && artist.works) {
       const workTitles = paramWorks.split(",").map((w) => w.trim());
+      const sizeList = paramSizes
+        ? paramSizes.split(",").map((s) => s.trim())
+        : null;
       const indices = new Set<number>();
+      const sizeMap: Record<number, string> = {};
       artist.works.forEach((w, i) => {
-        if (workTitles.includes(w.title)) indices.add(i);
+        const at = workTitles.indexOf(w.title);
+        if (at === -1) return;
+        indices.add(i);
+        // Per-work size from `sizes=` if available; otherwise fall
+        // back to the legacy single `size=` param applied to all.
+        const perWork = sizeList?.[at];
+        const chosen = perWork && perWork.length > 0
+          ? perWork
+          : (paramSize || "");
+        if (chosen) sizeMap[i] = chosen;
       });
       if (indices.size > 0) {
         setSelected(indices);
-        // Auto-set size from placement if provided
-        if (paramSize) {
-          const sizeMap: Record<number, string> = {};
-          indices.forEach((i) => { sizeMap[i] = paramSize; });
-          setSelectedSizes(sizeMap);
-        }
+        if (Object.keys(sizeMap).length > 0) setSelectedSizes(sizeMap);
       }
     }
     setPreselected(true);
