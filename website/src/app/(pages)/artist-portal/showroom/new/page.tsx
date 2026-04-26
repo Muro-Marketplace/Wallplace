@@ -40,6 +40,9 @@ export default function NewArtistShowroomPage() {
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // Drag-and-drop hover state — used to swap the dashed border to the
+  // accent ring while a file is being dragged over the drop zone.
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Shared state
   const [name, setName] = useState("");
@@ -71,6 +74,34 @@ export default function NewArtistShowroomPage() {
     setColorHex(preset.defaultColorHex);
     setWidthCm(preset.defaultWidthCm);
     setHeightCm(preset.defaultHeightCm);
+  }
+
+  // Drag-and-drop handlers. dragOver fires repeatedly while the cursor
+  // is inside the zone — we only flip state once. preventDefault on
+  // dragOver is mandatory: without it the browser cancels the drop and
+  // navigates to the file (the default behaviour for a dropped image).
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    if (uploading) return;
+    if (!isDragOver) setIsDragOver(true);
+  }
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    // dragleave fires when the cursor enters a child — guard against
+    // flicker by checking that we actually left the wrapper element.
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    setIsDragOver(false);
+  }
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (uploading) return;
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      setUploadError("Please drop a JPG, PNG, or WebP image.");
+      return;
+    }
+    handleFilePicked(file);
   }
 
   async function handleFilePicked(file: File) {
@@ -347,19 +378,36 @@ export default function NewArtistShowroomPage() {
           )}
 
           {mode === "upload" && (
-            <div>
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <label className="block text-xs font-medium text-foreground mb-2">
                 Reference photo
               </label>
 
               {photoPreviewUrl ? (
-                <div className="relative rounded-lg overflow-hidden border border-border bg-stone-100">
+                <div
+                  className={`relative rounded-lg overflow-hidden border bg-stone-100 transition ${
+                    isDragOver
+                      ? "border-accent ring-2 ring-accent/30"
+                      : "border-border"
+                  }`}
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={photoPreviewUrl}
                     alt="Your reference"
                     className="w-full max-h-72 object-contain"
                   />
+                  {isDragOver && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-accent/15 pointer-events-none">
+                      <span className="px-3 py-1 rounded-full text-[11px] font-medium bg-white/90 text-foreground">
+                        Drop to replace
+                      </span>
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -377,7 +425,11 @@ export default function NewArtistShowroomPage() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="w-full py-12 rounded-lg border-2 border-dashed border-border bg-stone-50 hover:border-stone-300 hover:bg-stone-100 transition flex flex-col items-center gap-2 disabled:opacity-60"
+                  className={`w-full py-12 rounded-lg border-2 border-dashed transition flex flex-col items-center gap-2 disabled:opacity-60 ${
+                    isDragOver
+                      ? "border-accent bg-accent/5"
+                      : "border-border bg-stone-50 hover:border-stone-300 hover:bg-stone-100"
+                  }`}
                 >
                   {uploading ? (
                     <>
@@ -393,7 +445,7 @@ export default function NewArtistShowroomPage() {
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="1.5"
-                        className="text-stone-400"
+                        className={isDragOver ? "text-accent" : "text-stone-400"}
                       >
                         <path
                           d="M12 4v12M6 10l6-6 6 6"
@@ -405,7 +457,9 @@ export default function NewArtistShowroomPage() {
                         />
                       </svg>
                       <span className="text-sm font-medium text-foreground">
-                        Click to choose a photo
+                        {isDragOver
+                          ? "Drop to upload"
+                          : "Drop a photo here, or click to choose"}
                       </span>
                       <span className="text-[11px] text-muted">
                         JPG, PNG, or WebP · up to 15&nbsp;MB

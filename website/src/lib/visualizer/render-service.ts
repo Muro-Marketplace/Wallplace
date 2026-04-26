@@ -333,11 +333,26 @@ async function renderItem(
     // "in" blend keeps source pixels only where the destination is opaque,
     // giving us a soft-blurred shadow that hugs the item shape (including
     // any rotated frame corners).
+    //
+    // Sharp's hard rule: the composite *input* must be ≤ the base in both
+    // dimensions. itemImage may be itemPxW × itemPxH, OR slightly larger
+    // after `.rotate()` expands the bounding box, so we read the actual
+    // size from metadata and size the SVG to match exactly. The previous
+    // version used `itemPxW + 100` × `itemPxH + 100` for the SVG, which
+    // was strictly larger than the base on every non-rotated item and
+    // crashed the entire render with "Image to composite must have same
+    // dimensions or smaller". The blur still produces a soft falloff at
+    // the silhouette edges within the canvas — the +100 padding was
+    // attempting to "give the blur room to spread" but it was on the
+    // wrong side of the composite operation.
+    const itemMeta = await sharp(itemImage).metadata();
+    const shadowW = itemMeta.width ?? itemPxW;
+    const shadowH = itemMeta.height ?? itemPxH;
     const shadowSilhouette = await sharp(itemImage)
       .composite([
         {
           input: Buffer.from(
-            `<svg width="${itemPxW + 100}" height="${itemPxH + 100}">` +
+            `<svg xmlns="http://www.w3.org/2000/svg" width="${shadowW}" height="${shadowH}">` +
               `<rect width="100%" height="100%" fill="black" opacity="${SHADOW_OPACITY}"/>` +
               `</svg>`,
           ),
@@ -351,6 +366,26 @@ async function renderItem(
       left: itemX + SHADOW_OFFSET_PX,
       top: itemY + SHADOW_OFFSET_PX,
     });
+  }
+
+  // Defensive clamp before the final composite. The final 1600×1200
+  // canvas requires every overlay to be ≤ canvas in both dimensions.
+  // sharp.rotate() expands its output bounding box to fit the rotated
+  // content, and the SVG-rendered frame ring can land 1–2px wider than
+  // requested when feTurbulence/radialGradient filter regions round up.
+  // Either case throws "Image to composite must have same dimensions
+  // or smaller" with no useful stack frame to point at — so we cap
+  // both itemImage and the shadow buffer here once, after all the
+  // per-item work is done.
+  itemImage = await fitToCanvas(itemImage);
+  for (let i = 0; i < shadowOverlay.length; i++) {
+    const buf = shadowOverlay[i].input;
+    if (buf instanceof Buffer) {
+      shadowOverlay[i] = {
+        ...shadowOverlay[i],
+        input: await fitToCanvas(buf),
+      };
+    }
   }
 
   return [
@@ -406,6 +441,38 @@ async function fetchImage(url: string): Promise<Buffer> {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+// ── Buffer fit helpers ──────────────────────────────────────────────────
+
+/**
+ * Guarantee a buffer's dimensions are within the output canvas. If
+ * either side exceeds the canvas, resize down using `fit: "inside"` so
+ * the content stays in proportion. No-op if it already fits.
+ *
+ * Why we need this: rotation expands the bounding box, sharp's SVG
+ * renderer can output 1–2px over the requested dimensions for
+ * filter-heavy frames (turbulence/radial gradient region rounding),
+ * and the final composite onto the 1600×1200 canvas refuses any
+ * overlay larger than the base. The original symptom was an opaque
+ * "Render failed: Image to composite must have same dimensions or
+ * smaller" with the failing line buried inside a renderItem path.
+ * Clamping every per-item buffer once at the end of renderItem makes
+ * the failure mode impossible by construction.
+ */
+async function fitToCanvas(buf: Buffer): Promise<Buffer> {
+  const meta = await sharp(buf).metadata();
+  const w = meta.width ?? 0;
+  const h = meta.height ?? 0;
+  if (w <= OUTPUT_WIDTH_PX && h <= OUTPUT_HEIGHT_PX) return buf;
+  return sharp(buf)
+    .resize({
+      width: OUTPUT_WIDTH_PX,
+      height: OUTPUT_HEIGHT_PX,
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .toBuffer();
 }
 
 // ── Colour helpers ──────────────────────────────────────────────────────
