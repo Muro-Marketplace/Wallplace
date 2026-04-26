@@ -11,6 +11,8 @@ import { authFetch } from "@/lib/api-client";
 import { useToast } from "@/context/ToastContext";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import { estimateShipping, tierLabel } from "@/lib/shipping-calculator";
+import Combobox from "@/components/Combobox";
+import { WORK_MEDIUM_OPTIONS } from "@/app/(pages)/artist-portal/profile/page";
 
 interface SizeEntry {
   label: string;
@@ -600,10 +602,6 @@ export default function PortfolioPage() {
       setFormError("Title must be under 200 characters");
       return;
     }
-    if (!form.medium.trim()) {
-      setFormError("Medium is required");
-      return;
-    }
 
     const validSizes = form.sizes.filter((s) => s.label && s.price > 0);
     if (validSizes.length === 0) {
@@ -824,34 +822,53 @@ export default function PortfolioPage() {
             {/* Image upload */}
             <div>
               <label className="block text-sm font-medium mb-2">Image <span className="text-accent">*</span></label>
-              <div className="flex items-start gap-4">
-                {form.imagePreview ? (
-                  <div className="w-36 h-28 relative rounded-sm overflow-hidden bg-border/20 shrink-0">
-                    <Image src={form.imagePreview} alt="Preview" fill className="object-cover" sizes="144px" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              {form.imagePreview ? (
+                <div className="space-y-3">
+                  {/*
+                   * Big preview: artists need to actually see the work
+                   * they're editing. Caps height so a tall portrait
+                   * doesn't push the rest of the form off-screen, and
+                   * uses object-contain so we never crop their image.
+                   */}
+                  <div className="relative w-full max-w-2xl rounded-sm overflow-hidden bg-stone-100 border border-border">
+                    <div className="relative w-full" style={{ aspectRatio: "4 / 3" }}>
+                      <Image
+                        src={form.imagePreview}
+                        alt="Preview"
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 768px) 100vw, 640px"
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <div className="w-36 h-28 rounded-sm border-2 border-dashed border-border flex items-center justify-center shrink-0">
-                    <span className="text-xs text-muted">No image</span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 text-sm font-medium border border-border rounded-sm hover:border-foreground/30 transition-colors"
+                    >
+                      {uploading ? "Uploading..." : "Replace Image"}
+                    </button>
+                    <p className="text-[10px] text-muted">JPG, PNG, or WebP. Recommended minimum 1200px wide.</p>
                   </div>
-                )}
-                <div className="flex-1">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2.5 text-sm font-medium border border-border rounded-sm hover:border-foreground/30 transition-colors"
-                  >
-                    {uploading ? "Uploading..." : form.imagePreview ? "Replace Image" : "Upload Image"}
-                  </button>
-                  <p className="text-[10px] text-muted mt-2">JPG, PNG, or WebP. Recommended minimum 1200px wide.</p>
                 </div>
-              </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full max-w-2xl rounded-sm border-2 border-dashed border-border hover:border-accent hover:bg-accent/5 transition-colors flex flex-col items-center justify-center gap-2 py-16"
+                >
+                  <span className="text-sm text-muted">{uploading ? "Uploading..." : "Upload Image"}</span>
+                  <span className="text-[10px] text-muted">JPG, PNG, or WebP. Recommended minimum 1200px wide.</span>
+                </button>
+              )}
             </div>
 
             {/* Additional images */}
@@ -961,12 +978,15 @@ export default function PortfolioPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Medium <span className="text-accent">*</span></label>
-                <input
-                  type="text"
+                <label className="block text-sm font-medium mb-2">
+                  Medium <span className="text-muted font-normal">(optional)</span>
+                </label>
+                <Combobox
                   value={form.medium}
-                  onChange={(e) => setForm((p) => ({ ...p, medium: e.target.value }))}
-                  placeholder="e.g. 35mm Film Print"
+                  onChange={(next) => setForm((p) => ({ ...p, medium: next }))}
+                  options={WORK_MEDIUM_OPTIONS}
+                  allowCustom
+                  placeholder="e.g. Oil on canvas"
                   className={inputClass}
                 />
               </div>
