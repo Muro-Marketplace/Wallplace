@@ -37,6 +37,10 @@ interface BulkPriceRow {
  * has dragged in but not yet saved. Mirrors the shape of WorkFormState
  * but trimmed to just the fields the bulk UI surfaces; the rest get
  * sensible defaults at save time.
+ *
+ * Per-size arrays (shipping, inStore) are kept parallel to `sizes`
+ * by index — same convention as the single-work edit form. Empty
+ * string means "no override at this size".
  */
 interface BulkAddDraft {
   /** Local-only key. Discarded on save. */
@@ -50,7 +54,19 @@ interface BulkAddDraft {
   dimensions: string;
   orientation: "landscape" | "portrait" | "square";
   sizes: SizeEntry[];
+  /** Per-size shipping price overrides. Parallel to `sizes`. */
+  shippingPrices: string[];
+  /** Per-size in-store pickup prices. Parallel to `sizes`. */
+  inStorePrices: string[];
+  /** Frame options offered for this work — applies across all sizes
+   *  (per-size frames not in the data model yet). Each frame option
+   *  is a free-text label + a £ price uplift. */
+  frameOptions: { label: string; priceUplift: string }[];
   available: boolean;
+  /** UI: which expandable sections are open on the draft card. */
+  showShipping: boolean;
+  showInStore: boolean;
+  showFrames: boolean;
 }
 
 interface WorkFormState {
@@ -209,7 +225,22 @@ export default function PortfolioPage() {
   const [bulkAddOpen, setBulkAddOpen] = useState(false);
   const [bulkAddDrafts, setBulkAddDrafts] = useState<BulkAddDraft[]>([]);
   const [bulkAddDragOver, setBulkAddDragOver] = useState(false);
-  const [bulkAddApplyOpen, setBulkAddApplyOpen] = useState(false);
+  // Two pickers — one for "Copy sizes from", one for "Copy prices
+  // from". They're separated because an artist often wants to clone
+  // size labels (the size table stays the same across a series) but
+  // set different prices per piece, or vice versa.
+  const [bulkAddApplyKind, setBulkAddApplyKind] = useState<
+    "sizes" | "prices" | null
+  >(null);
+  // After picking a source, we ask the artist which drafts to apply
+  // it to. This holds the source until the target is confirmed.
+  const [bulkAddPendingSource, setBulkAddPendingSource] = useState<{
+    label: string;
+    sizes: SizeEntry[];
+  } | null>(null);
+  const [bulkAddTargetIds, setBulkAddTargetIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [bulkAddSaving, setBulkAddSaving] = useState(false);
   const bulkAddInputRef = useRef<HTMLInputElement>(null);
   // Spreadsheet-style row selection for the bulk-price modal. Tracks
@@ -582,7 +613,9 @@ export default function PortfolioPage() {
   function openBulkAdd() {
     setBulkAddDrafts([]);
     setBulkAddOpen(true);
-    setBulkAddApplyOpen(false);
+    setBulkAddApplyKind(null);
+    setBulkAddPendingSource(null);
+    setBulkAddTargetIds(new Set());
   }
 
   /**
@@ -606,7 +639,13 @@ export default function PortfolioPage() {
       dimensions: "",
       orientation: "landscape",
       sizes: [{ label: '10×8" (25×20 cm)', price: 0 }],
+      shippingPrices: [""],
+      inStorePrices: [""],
+      frameOptions: [],
       available: true,
+      showShipping: false,
+      showInStore: false,
+      showFrames: false,
     }));
     setBulkAddDrafts((prev) => [...prev, ...seeded]);
 
@@ -647,6 +686,9 @@ export default function PortfolioPage() {
                     uploading: false,
                     orientation,
                     sizes: sizesToUse,
+                    // Re-pad parallel arrays to the new size count.
+                    shippingPrices: sizesToUse.map(() => ""),
+                    inStorePrices: sizesToUse.map(() => ""),
                     dimensions: `${img.naturalWidth} × ${img.naturalHeight} px`,
                   }
                 : d,
@@ -678,21 +720,77 @@ export default function PortfolioPage() {
   }
 
   /**
-   * Apply pricing (sizes + prices) from a chosen source onto every
-   * in-flight draft. Source can be either an existing ArtistWork or
-   * one of the drafts currently being edited — picking from another
-   * draft makes the "set the first one then clone" flow trivial.
+   * Two-step copy flow. Step 1: artist picks a source (existing work
+   * or another draft) from the toolbar dropdown — that fires
+   * `bulkAddPickSource`. Step 2: a target picker opens with checkboxes
+   * for which drafts to apply to (defaults to all). On confirm,
+   * `bulkAddApplyToTargets` does the merge.
    */
-  function bulkAddApplyFrom(source: { sizes: SizeEntry[] }) {
-    if (source.sizes.length === 0) return;
+  function bulkAddPickSource(label: string, sizes: SizeEntry[]) {
+    if (sizes.length === 0) return;
+    setBulkAddPendingSource({ label, sizes });
+    // Default-target every draft except the source itself when the
+    // source is a draft — applying to yourself is a no-op.
+    const allIds = bulkAddDrafts
+      .filter((d) => d.title !== label)
+      .map((d) => d.draftId);
+    setBulkAddTargetIds(new Set(allIds));
+  }
+
+  function bulkAddApplyToTargets() {
+    if (!bulkAddPendingSource || bulkAddApplyKind === null) return;
+    const { sizes: sourceSizes } = bulkAddPendingSource;
+    const kind = bulkAddApplyKind;
     setBulkAddDrafts((prev) =>
-      prev.map((d) => ({
-        ...d,
-        sizes: source.sizes.map((s) => ({ ...s })),
-      })),
+      prev.map((d) => {
+        if (!bulkAddTargetIds.has(d.draftId)) return d;
+        if (kind === "sizes") {
+          // Copy size LABELS but keep this draft's prices when label
+          // matches. New labels coming in get the source's price as a
+          // starting point.
+          const nextSizes = sourceSizes.map((s) => {
+            const existing = d.sizes.find(
+              (x) => x.label.toLowerCase() === s.label.toLowerCase(),
+            );
+            return {
+              label: s.label,
+              price: existing?.price ?? 0,
+            };
+          });
+          return {
+            ...d,
+            sizes: nextSizes,
+            shippingPrices: nextSizes.map(() => ""),
+            inStorePrices: nextSizes.map(() => ""),
+          };
+        }
+        // kind === "prices": copy prices to existing matching labels;
+        // labels not present in the source are left alone.
+        const lookup = new Map(
+          sourceSizes.map((s) => [s.label.toLowerCase(), s.price]),
+        );
+        const nextSizes = d.sizes.map((s) => ({
+          label: s.label,
+          price: lookup.get(s.label.toLowerCase()) ?? s.price,
+        }));
+        return { ...d, sizes: nextSizes };
+      }),
     );
-    setBulkAddApplyOpen(false);
-    showToast(`Applied sizes to ${bulkAddDrafts.length} draft${bulkAddDrafts.length === 1 ? "" : "s"}`);
+    showToast(
+      `Applied ${kind} to ${bulkAddTargetIds.size} draft${
+        bulkAddTargetIds.size === 1 ? "" : "s"
+      }`,
+    );
+    // Reset the picker.
+    setBulkAddApplyKind(null);
+    setBulkAddPendingSource(null);
+    setBulkAddTargetIds(new Set());
+  }
+
+  function bulkAddCancelApply() {
+    setBulkAddApplyKind(null);
+    setBulkAddPendingSource(null);
+    setBulkAddTargetIds(new Set());
   }
 
   /**
@@ -718,19 +816,59 @@ export default function PortfolioPage() {
 
     setBulkAddSaving(true);
     const newWorks: ArtistWork[] = valid.map((d, i) => {
-      const validSizes = d.sizes.filter((s) => s.label && s.price > 0);
-      const lowest = Math.min(...validSizes.map((s) => s.price));
+      // Build pricing rows from valid sizes; remember the index in
+      // the original sizes array so we can pull matching shipping +
+      // in-store entries by index even after invalid rows are
+      // filtered out.
+      const validWithIndex = d.sizes
+        .map((s, idx) => ({ size: s, idx }))
+        .filter(({ size }) => size.label && size.price > 0);
+      const lowest = Math.min(...validWithIndex.map((v) => v.size.price));
+      // Per-size shipping isn't in the data model yet, so we collapse
+      // to a single work-level shippingPrice using the LOWEST value
+      // the artist set across sizes (most generous to the buyer).
+      // TODO: extend SizePricing with shippingPrice when we want true
+      // per-size shipping.
+      const shippingNums = d.shippingPrices
+        .map((s) => (s && s.trim() ? parseFloat(s) : NaN))
+        .filter((n) => Number.isFinite(n) && n >= 0);
+      const shippingPrice =
+        shippingNums.length > 0 ? Math.min(...shippingNums) : undefined;
+      // In-store pricing: only emit when the artist set at least one
+      // non-empty value, otherwise it's a noisy empty array.
+      const inStorePricing = validWithIndex
+        .map(({ size, idx }) => {
+          const raw = d.inStorePrices[idx];
+          const num = raw && raw.trim() ? parseFloat(raw) : NaN;
+          return { label: size.label, price: Number.isFinite(num) ? num : 0 };
+        })
+        .filter((p) => p.price > 0);
+      // Frame options — work-level today; per-size frames isn't in
+      // the data model yet. Numeric coerce + drop blanks to match the
+      // single-add validation.
+      const frameOptions = d.frameOptions
+        .map((f) => ({
+          label: f.label.trim(),
+          priceUplift: Number(f.priceUplift) || 0,
+        }))
+        .filter((f) => f.label.length > 0);
       return {
         id: `${artist!.slug}-${Date.now()}-${i}`,
         title: d.title.trim(),
         medium: "",
         dimensions: d.dimensions,
         priceBand: `From £${lowest}`,
-        pricing: validSizes.map((s) => ({ label: s.label, price: s.price })),
+        pricing: validWithIndex.map(({ size }) => ({
+          label: size.label,
+          price: size.price,
+        })),
         available: d.available,
         color: "#C17C5A",
         image: d.imageUrl,
         orientation: d.orientation,
+        ...(shippingPrice !== undefined ? { shippingPrice } : {}),
+        ...(inStorePricing.length > 0 ? { inStorePricing } : {}),
+        ...(frameOptions.length > 0 ? { frameOptions } : {}),
       };
     });
 
@@ -2887,77 +3025,41 @@ export default function PortfolioPage() {
                   {bulkAddDrafts.length} draft{bulkAddDrafts.length === 1 ? "" : "s"}
                 </span>
                 <span className="text-border">·</span>
-                {/* Apply sizes & prices from… picker. Pulls from
-                    existing works AND the other drafts so once you set
-                    the first one you can clone it. */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setBulkAddApplyOpen((v) => !v)}
-                    className="px-3 py-1.5 rounded-sm border border-border hover:border-foreground/30 transition-colors"
-                  >
-                    Copy sizes &amp; prices from… ▾
-                  </button>
-                  {bulkAddApplyOpen && (
-                    <ul
-                      role="listbox"
-                      className="absolute top-full mt-1 left-0 max-h-72 w-80 overflow-y-auto rounded-sm bg-white text-foreground shadow-xl border border-border z-10"
-                    >
-                      {bulkAddDrafts
-                        .filter((d) => d.sizes.some((s) => s.label && s.price > 0))
-                        .map((d) => (
-                          <li key={d.draftId}>
-                            <button
-                              type="button"
-                              onClick={() => bulkAddApplyFrom({ sizes: d.sizes })}
-                              className="w-full text-left px-3 py-2 text-xs hover:bg-stone-50 flex items-center gap-2"
-                            >
-                              <span className="relative w-7 h-7 rounded-sm overflow-hidden bg-border/30 shrink-0">
-                                {d.imagePreview && (
-                                  <Image src={d.imagePreview} alt="" fill className="object-cover" sizes="28px" />
-                                )}
-                              </span>
-                              <span className="truncate font-medium flex-1">
-                                {d.title || "(untitled draft)"}
-                              </span>
-                              <span className="text-stone-400 shrink-0">
-                                {d.sizes.filter((s) => s.price > 0).length} size{d.sizes.filter((s) => s.price > 0).length === 1 ? "" : "s"}
-                              </span>
-                            </button>
-                          </li>
-                        ))}
-                      {works.map((source) => (
-                        <li key={source.id}>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              bulkAddApplyFrom({
-                                sizes: source.pricing.map((p) => ({
-                                  label: p.label,
-                                  price: p.price,
-                                })),
-                              })
-                            }
-                            className="w-full text-left px-3 py-2 text-xs hover:bg-stone-50 flex items-center gap-2 border-t border-border/50"
-                          >
-                            <span className="relative w-7 h-7 rounded-sm overflow-hidden bg-border/30 shrink-0">
-                              <Image src={source.image} alt="" fill className="object-cover" sizes="28px" />
-                            </span>
-                            <span className="truncate font-medium flex-1">{source.title}</span>
-                            <span className="text-stone-400 shrink-0">
-                              {source.pricing.length} size{source.pricing.length === 1 ? "" : "s"}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                      {bulkAddDrafts.filter((d) => d.sizes.some((s) => s.label && s.price > 0)).length === 0 && works.length === 0 && (
-                        <li className="px-3 py-2 text-xs text-stone-400">
-                          Set prices on a draft first, or save an existing work to copy from.
-                        </li>
-                      )}
-                    </ul>
-                  )}
-                </div>
+                {/*
+                 * Two pickers: Copy SIZES from / Copy PRICES from.
+                 * Both share the same source list (other drafts +
+                 * existing works) but apply differently — sizes
+                 * overwrites the size labels, prices fills in £
+                 * values for matching size labels. Whichever button
+                 * the artist clicks sets `bulkAddApplyKind`, then
+                 * picking a source opens the target-selector.
+                 */}
+                <CopyFromButton
+                  label="Copy sizes from…"
+                  open={bulkAddApplyKind === "sizes"}
+                  onOpen={() => {
+                    setBulkAddApplyKind(
+                      bulkAddApplyKind === "sizes" ? null : "sizes",
+                    );
+                    setBulkAddPendingSource(null);
+                  }}
+                  drafts={bulkAddDrafts}
+                  works={works}
+                  onPick={bulkAddPickSource}
+                />
+                <CopyFromButton
+                  label="Copy prices from…"
+                  open={bulkAddApplyKind === "prices"}
+                  onOpen={() => {
+                    setBulkAddApplyKind(
+                      bulkAddApplyKind === "prices" ? null : "prices",
+                    );
+                    setBulkAddPendingSource(null);
+                  }}
+                  drafts={bulkAddDrafts}
+                  works={works}
+                  onPick={bulkAddPickSource}
+                />
                 <span className="flex-1" />
                 <button
                   type="button"
@@ -2966,6 +3068,95 @@ export default function PortfolioPage() {
                 >
                   + Add more images
                 </button>
+              </div>
+            )}
+
+            {/* Target picker — appears once a source is chosen, asks
+                the artist which drafts to apply to. Defaults to all
+                drafts (excluding the source if it's a draft). */}
+            {bulkAddPendingSource && bulkAddApplyKind && (
+              <div className="px-5 py-3 border-b border-border bg-accent/5 text-xs">
+                <div className="flex flex-wrap items-center gap-3 mb-2">
+                  <span className="font-medium text-foreground">
+                    Apply {bulkAddApplyKind} from{" "}
+                    <em className="font-serif italic">
+                      {bulkAddPendingSource.label}
+                    </em>{" "}
+                    to:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setBulkAddTargetIds(
+                        new Set(bulkAddDrafts.map((d) => d.draftId)),
+                      )
+                    }
+                    className="text-accent hover:text-accent-hover"
+                  >
+                    Select all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBulkAddTargetIds(new Set())}
+                    className="text-muted hover:text-foreground"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {bulkAddDrafts.map((d) => {
+                    const checked = bulkAddTargetIds.has(d.draftId);
+                    return (
+                      <label
+                        key={d.draftId}
+                        className={`inline-flex items-center gap-2 px-2 py-1 rounded-sm border cursor-pointer ${
+                          checked
+                            ? "border-accent bg-white"
+                            : "border-border bg-stone-50 text-muted"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            setBulkAddTargetIds((prev) => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(d.draftId);
+                              else next.delete(d.draftId);
+                              return next;
+                            });
+                          }}
+                        />
+                        <span className="relative w-5 h-5 rounded-sm overflow-hidden bg-border/30 shrink-0">
+                          {d.imagePreview && (
+                            <Image src={d.imagePreview} alt="" fill className="object-cover" sizes="20px" />
+                          )}
+                        </span>
+                        <span className="truncate max-w-[10rem]">
+                          {d.title || "(untitled)"}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={bulkAddCancelApply}
+                    className="text-muted hover:text-foreground px-2 py-1"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={bulkAddApplyToTargets}
+                    disabled={bulkAddTargetIds.size === 0}
+                    className="px-3 py-1 rounded-sm bg-foreground text-white text-[11px] hover:bg-foreground/90 disabled:opacity-40"
+                  >
+                    Apply to {bulkAddTargetIds.size} draft
+                    {bulkAddTargetIds.size === 1 ? "" : "s"}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -3252,8 +3443,15 @@ function BulkAddDraftCard({
                   <button
                     type="button"
                     onClick={() => {
-                      const next = draft.sizes.filter((_, j) => j !== i);
-                      onChange({ sizes: next.length > 0 ? next : [{ label: "", price: 0 }] });
+                      // Keep all parallel arrays in sync when removing a row.
+                      const nextSizes = draft.sizes.filter((_, j) => j !== i);
+                      const nextShipping = draft.shippingPrices.filter((_, j) => j !== i);
+                      const nextInStore = draft.inStorePrices.filter((_, j) => j !== i);
+                      onChange({
+                        sizes: nextSizes.length > 0 ? nextSizes : [{ label: "", price: 0 }],
+                        shippingPrices: nextShipping.length > 0 ? nextShipping : [""],
+                        inStorePrices: nextInStore.length > 0 ? nextInStore : [""],
+                      });
                     }}
                     className="w-7 h-7 inline-flex items-center justify-center text-muted hover:text-red-500"
                     aria-label="Remove size"
@@ -3267,6 +3465,8 @@ function BulkAddDraftCard({
                 onClick={() =>
                   onChange({
                     sizes: [...draft.sizes, { label: "", price: 0 }],
+                    shippingPrices: [...draft.shippingPrices, ""],
+                    inStorePrices: [...draft.inStorePrices, ""],
                   })
                 }
                 className="text-[11px] text-accent hover:text-accent-hover"
@@ -3275,6 +3475,151 @@ function BulkAddDraftCard({
               </button>
             </div>
           </div>
+
+          {/* Per-size shipping (optional, collapsed by default) */}
+          <CollapsibleRow
+            label="Shipping per size"
+            open={draft.showShipping}
+            onToggle={() => onChange({ showShipping: !draft.showShipping })}
+          >
+            <div className="space-y-1.5">
+              {draft.sizes.map((s, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="flex-1 text-[11px] text-muted truncate">
+                    {s.label || `(size ${i + 1})`}
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-xs text-muted">£</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={draft.shippingPrices[i] ?? ""}
+                      onChange={(e) => {
+                        const next = [...draft.shippingPrices];
+                        // Pad to length if a row got out of sync.
+                        while (next.length < draft.sizes.length) next.push("");
+                        next[i] = e.target.value;
+                        onChange({ shippingPrices: next });
+                      }}
+                      placeholder="0"
+                      className="w-20 bg-background border border-border rounded-sm px-2 py-1.5 text-sm text-right tabular-nums focus:outline-none focus:border-accent/60"
+                    />
+                  </div>
+                </div>
+              ))}
+              <p className="text-[10px] text-muted leading-snug">
+                Per-size shipping is collapsed to a single work-level
+                price at save (lowest value used). True per-size
+                shipping needs a schema change.
+              </p>
+            </div>
+          </CollapsibleRow>
+
+          {/* Per-size in-store / pickup price (optional). */}
+          <CollapsibleRow
+            label="In-store / pickup prices"
+            open={draft.showInStore}
+            onToggle={() => onChange({ showInStore: !draft.showInStore })}
+          >
+            <div className="space-y-1.5">
+              {draft.sizes.map((s, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="flex-1 text-[11px] text-muted truncate">
+                    {s.label || `(size ${i + 1})`}
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-xs text-muted">£</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={draft.inStorePrices[i] ?? ""}
+                      onChange={(e) => {
+                        const next = [...draft.inStorePrices];
+                        while (next.length < draft.sizes.length) next.push("");
+                        next[i] = e.target.value;
+                        onChange({ inStorePrices: next });
+                      }}
+                      placeholder="0"
+                      className="w-20 bg-background border border-border rounded-sm px-2 py-1.5 text-sm text-right tabular-nums focus:outline-none focus:border-accent/60"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CollapsibleRow>
+
+          {/* Frame options (work-level — applies to all sizes). */}
+          <CollapsibleRow
+            label="Frame options"
+            open={draft.showFrames}
+            onToggle={() => onChange({ showFrames: !draft.showFrames })}
+          >
+            <div className="space-y-1.5">
+              {draft.frameOptions.map((f, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={f.label}
+                    onChange={(e) => {
+                      const next = [...draft.frameOptions];
+                      next[i] = { ...next[i], label: e.target.value };
+                      onChange({ frameOptions: next });
+                    }}
+                    placeholder="e.g. Black oak frame"
+                    className="flex-1 bg-background border border-border rounded-sm px-2 py-1.5 text-sm focus:outline-none focus:border-accent/60"
+                  />
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="text-xs text-muted">+£</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={f.priceUplift}
+                      onChange={(e) => {
+                        const next = [...draft.frameOptions];
+                        next[i] = { ...next[i], priceUplift: e.target.value };
+                        onChange({ frameOptions: next });
+                      }}
+                      placeholder="0"
+                      className="w-20 bg-background border border-border rounded-sm px-2 py-1.5 text-sm text-right tabular-nums focus:outline-none focus:border-accent/60"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        frameOptions: draft.frameOptions.filter((_, j) => j !== i),
+                      })
+                    }
+                    className="w-7 h-7 inline-flex items-center justify-center text-muted hover:text-red-500"
+                    aria-label="Remove frame option"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  onChange({
+                    frameOptions: [
+                      ...draft.frameOptions,
+                      { label: "", priceUplift: "" },
+                    ],
+                  })
+                }
+                className="text-[11px] text-accent hover:text-accent-hover"
+              >
+                + Add frame option
+              </button>
+              <p className="text-[10px] text-muted leading-snug">
+                Frames apply across all sizes — true per-size frames
+                aren&apos;t in the data model yet.
+              </p>
+            </div>
+          </CollapsibleRow>
 
           <div className="flex items-center gap-2 pt-1">
             <input
@@ -3289,6 +3634,153 @@ function BulkAddDraftCard({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Disclosure-style row for the bulk-add card. Header is the label +
+ * a chevron; click toggles. Keeps the card lean by default — most
+ * artists won't bother setting per-size shipping or frames in bulk
+ * add, so collapsing them keeps the form scannable.
+ */
+function CollapsibleRow({
+  label,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-t border-border/50 pt-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between text-left text-[11px] font-medium text-muted hover:text-foreground transition-colors"
+      >
+        <span>{label}</span>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M3 5l3 3 3-3" />
+        </svg>
+      </button>
+      {open && <div className="mt-2">{children}</div>}
+    </div>
+  );
+}
+
+/**
+ * "Copy <kind> from…" picker button used in the bulk-add toolbar.
+ * Lists in-flight drafts (above the divider) and existing saved
+ * works (below). Clicking an entry sets it as the pending source —
+ * the parent then opens the target-selector to pick which drafts
+ * to apply to.
+ */
+function CopyFromButton({
+  label,
+  open,
+  onOpen,
+  drafts,
+  works,
+  onPick,
+}: {
+  label: string;
+  open: boolean;
+  onOpen: () => void;
+  drafts: BulkAddDraft[];
+  works: ArtistWork[];
+  onPick: (label: string, sizes: SizeEntry[]) => void;
+}) {
+  const draftsWithSizes = drafts.filter((d) =>
+    d.sizes.some((s) => s.label && s.price > 0),
+  );
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onOpen}
+        className={`px-3 py-1.5 rounded-sm border transition-colors ${
+          open
+            ? "border-accent text-accent"
+            : "border-border hover:border-foreground/30"
+        }`}
+      >
+        {label} ▾
+      </button>
+      {open && (
+        <ul
+          role="listbox"
+          className="absolute top-full mt-1 left-0 max-h-72 w-80 overflow-y-auto rounded-sm bg-white text-foreground shadow-xl border border-border z-10"
+        >
+          {draftsWithSizes.map((d) => (
+            <li key={d.draftId}>
+              <button
+                type="button"
+                onClick={() =>
+                  onPick(d.title || "(untitled draft)", d.sizes)
+                }
+                className="w-full text-left px-3 py-2 text-xs hover:bg-stone-50 flex items-center gap-2"
+              >
+                <span className="relative w-7 h-7 rounded-sm overflow-hidden bg-border/30 shrink-0">
+                  {d.imagePreview && (
+                    <Image src={d.imagePreview} alt="" fill className="object-cover" sizes="28px" />
+                  )}
+                </span>
+                <span className="truncate font-medium flex-1">
+                  {d.title || "(untitled draft)"}
+                </span>
+                <span className="text-stone-400 shrink-0">
+                  {d.sizes.filter((s) => s.price > 0).length} size
+                  {d.sizes.filter((s) => s.price > 0).length === 1 ? "" : "s"}
+                </span>
+              </button>
+            </li>
+          ))}
+          {works.map((source) => (
+            <li key={source.id}>
+              <button
+                type="button"
+                onClick={() =>
+                  onPick(
+                    source.title,
+                    source.pricing.map((p) => ({
+                      label: p.label,
+                      price: p.price,
+                    })),
+                  )
+                }
+                className="w-full text-left px-3 py-2 text-xs hover:bg-stone-50 flex items-center gap-2 border-t border-border/50"
+              >
+                <span className="relative w-7 h-7 rounded-sm overflow-hidden bg-border/30 shrink-0">
+                  <Image src={source.image} alt="" fill className="object-cover" sizes="28px" />
+                </span>
+                <span className="truncate font-medium flex-1">{source.title}</span>
+                <span className="text-stone-400 shrink-0">
+                  {source.pricing.length} size
+                  {source.pricing.length === 1 ? "" : "s"}
+                </span>
+              </button>
+            </li>
+          ))}
+          {draftsWithSizes.length === 0 && works.length === 0 && (
+            <li className="px-3 py-2 text-xs text-stone-400">
+              Set prices on a draft first, or save an existing work to copy from.
+            </li>
+          )}
+        </ul>
+      )}
     </div>
   );
 }
