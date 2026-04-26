@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
 import Button from "@/components/Button";
 import { authFetch } from "@/lib/api-client";
@@ -76,31 +76,87 @@ export default function BillingPage() {
   const [connectLoading, setConnectLoading] = useState(true);
   const [connectRedirecting, setConnectRedirecting] = useState(false);
 
-  // Check for ?changed=true from plan switch
+  // Tracks "just came back from Stripe Checkout" — used to poll the
+  // profile until the webhook lands and the subscription_status flips
+  // from canceled/none → active. Without this poll, the page renders
+  // the stale pre-upgrade state and the user sees "Your subscription
+  // has been canceled" right after a successful upgrade.
+  const [confirmingUpgrade, setConfirmingUpgrade] = useState(false);
+
+  // Detect post-Stripe redirect URLs and clean them out of the bar.
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.search.includes("changed=true")) {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("changed") === "true") {
       setPlanChanged(true);
+      window.history.replaceState({}, "", "/artist-portal/billing");
+    }
+    if (params.get("subscribed") === "true") {
+      setConfirmingUpgrade(true);
       window.history.replaceState({}, "", "/artist-portal/billing");
     }
   }, []);
 
-  useEffect(() => {
-    authFetch("/api/artist-profile")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.profile) {
-          setSub({
-            subscription_status: data.profile.subscription_status || "none",
-            subscription_plan: data.profile.subscription_plan || "none",
-            subscription_period_end: data.profile.subscription_period_end || null,
-            trial_end: data.profile.trial_end || null,
-            is_founding_artist: data.profile.is_founding_artist || false,
-          });
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+  // Single source of truth for fetching subscription state. Wrapped
+  // so we can call it from both initial load and the post-upgrade
+  // poll without duplicating logic.
+  const fetchSub = useCallback(async () => {
+    try {
+      const res = await authFetch("/api/artist-profile");
+      const data = await res.json();
+      if (!data.profile) return null;
+      const next = {
+        subscription_status: data.profile.subscription_status || "none",
+        subscription_plan: data.profile.subscription_plan || "none",
+        subscription_period_end: data.profile.subscription_period_end || null,
+        trial_end: data.profile.trial_end || null,
+        is_founding_artist: data.profile.is_founding_artist || false,
+      };
+      setSub(next);
+      return next;
+    } catch {
+      return null;
+    }
   }, []);
+
+  useEffect(() => {
+    void fetchSub().finally(() => setLoading(false));
+  }, [fetchSub]);
+
+  // Poll after a successful Stripe checkout — the webhook usually
+  // lands within 1–3 seconds but can take longer. Poll every 2s for
+  // up to 30s, stopping early once the status reads active/trialing.
+  useEffect(() => {
+    if (!confirmingUpgrade) return;
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 15; // 15 × 2s = 30s window
+    const tick = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      const next = await fetchSub();
+      if (cancelled) return;
+      const isActive =
+        next?.subscription_status === "active" ||
+        next?.subscription_status === "trialing";
+      if (isActive) {
+        setConfirmingUpgrade(false);
+        setPlanChanged(true);
+        return;
+      }
+      if (attempts >= maxAttempts) {
+        // Give up gracefully — show the page with the latest state
+        // we have. The webhook may still arrive after this.
+        setConfirmingUpgrade(false);
+        return;
+      }
+      window.setTimeout(tick, 2000);
+    };
+    void tick();
+    return () => {
+      cancelled = true;
+    };
+  }, [confirmingUpgrade, fetchSub]);
 
   // Fetch Stripe Connect status
   useEffect(() => {
@@ -205,6 +261,18 @@ export default function BillingPage() {
         <h1 className="text-2xl lg:text-3xl">Billing</h1>
       </div>
 
+      {/* Just-back-from-Stripe confirming banner. Stripe webhooks
+          usually settle within 1–3s but can lag — without this
+          banner the page renders the stale pre-upgrade state and
+          looks like the upgrade failed. */}
+      {confirmingUpgrade && (
+        <div className="bg-blue-50 border border-blue-200 rounded-sm px-4 py-3 mb-5 flex items-center gap-3">
+          <span className="inline-block h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+          <p className="text-sm text-blue-700 font-medium">
+            Confirming your subscription with Stripe — this usually takes a few seconds.
+          </p>
+        </div>
+      )}
       {planChanged && (
         <div className="bg-green-50 border border-green-200 rounded-sm px-4 py-3 mb-5 flex items-center justify-between">
           <p className="text-sm text-green-700 font-medium">Your plan has been updated successfully.</p>
@@ -274,7 +342,7 @@ export default function BillingPage() {
               </button>
             </div>
           )}
-          {status === "canceled" && (
+          {status === "canceled" && !confirmingUpgrade && (
             <div className="bg-surface border border-border rounded-sm px-4 py-3 mb-5 text-sm text-muted">
               Your subscription has been canceled. Choose a plan below to reactivate.
             </div>
