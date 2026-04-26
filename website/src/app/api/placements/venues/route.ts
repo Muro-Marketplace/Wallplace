@@ -14,15 +14,27 @@ export async function GET(request: Request) {
   try {
     const db = getSupabaseAdmin();
 
-    // Get artist slug
+    // Get artist slug + review status. Pending applicants shouldn't
+    // see venues yet — sending placement requests before admin
+    // approval would let any signed-up account spam venues. We
+    // return a structured `pending: true` flag rather than just an
+    // empty list so the UI can show a "your application is being
+    // reviewed" notice instead of "no venues found".
     const { data: artistProfile } = await db
       .from("artist_profiles")
-      .select("slug")
+      .select("slug, review_status")
       .eq("user_id", auth.user!.id)
       .single();
 
     if (!artistProfile) {
-      return NextResponse.json({ venues: [] });
+      return NextResponse.json({ venues: [], pending: true });
+    }
+
+    if (
+      (artistProfile as { review_status?: string }).review_status ===
+        "pending"
+    ) {
+      return NextResponse.json({ venues: [], pending: true });
     }
 
     const artistSlug = artistProfile.slug;

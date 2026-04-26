@@ -311,9 +311,26 @@ export async function POST(request: Request) {
       };
       venueProfile = vp;
     } else {
-      // Artist-initiated request: look up venue from venueSlug
-      const { data: ap } = await db.from("artist_profiles").select("user_id, slug, name").eq("user_id", auth.user!.id).single();
+      // Artist-initiated request: look up venue from venueSlug.
+      // Pending applicants can't send placement requests — admin
+      // has to approve their profile first. Mirrors the venue list
+      // gate in /api/placements/venues + the accept-gate in PATCH.
+      const { data: ap } = await db
+        .from("artist_profiles")
+        .select("user_id, slug, name, review_status")
+        .eq("user_id", auth.user!.id)
+        .single();
       if (!ap) return NextResponse.json({ error: "Artist profile not found" }, { status: 400 });
+      if ((ap as { review_status?: string }).review_status === "pending") {
+        return NextResponse.json(
+          {
+            error:
+              "Your application is still under review. You'll be able to send placement requests once we've approved your profile.",
+            reason: "application_pending",
+          },
+          { status: 403 },
+        );
+      }
 
       const venueSlug = parsed.data[0].venueSlug;
       if (!venueSlug) return NextResponse.json({ error: "Venue selection required" }, { status: 400 });

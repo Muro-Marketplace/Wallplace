@@ -313,13 +313,22 @@ export default function PlacementsPage() {
     }
   }
 
+  // Tracks whether the API said "your application is still under
+  // review". Surfaced in the request form as a friendly notice so a
+  // pending applicant sees WHY the venue list is empty (rather than
+  // "you haven't messaged anyone yet").
+  const [applicationPending, setApplicationPending] = useState(false);
+
   // Load interacted venues when form opens
   useEffect(() => {
     if (!showForm || venues.length > 0) return;
     setVenuesLoading(true);
     authFetch("/api/placements/venues")
       .then((res) => res.json())
-      .then((data) => { if (data.venues) setVenues(data.venues); })
+      .then((data) => {
+        if (data.venues) setVenues(data.venues);
+        if (data.pending) setApplicationPending(true);
+      })
       .catch(() => {})
       .finally(() => setVenuesLoading(false));
   }, [showForm, venues.length]);
@@ -666,6 +675,19 @@ export default function PlacementsPage() {
               <label className="block text-sm font-medium mb-2">Venue <span className="text-accent">*</span></label>
               {venuesLoading ? (
                 <p className="text-sm text-muted">Loading venues...</p>
+              ) : applicationPending ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-sm p-4">
+                  <p className="text-sm font-medium text-amber-900 mb-1">
+                    Your application is still under review
+                  </p>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    Venue requests open up once we&rsquo;ve approved your
+                    profile — we aim to respond within 5 business days.
+                    In the meantime, set up your portfolio and profile so
+                    you&rsquo;re ready to go live as soon as you&rsquo;re
+                    approved.
+                  </p>
+                </div>
               ) : venues.length === 0 ? (
                 <div className="bg-background border border-border rounded-sm p-4">
                   <p className="text-sm text-muted">No venues available. You can only request placements with venues you&rsquo;ve interacted with via messages or enquiries.</p>

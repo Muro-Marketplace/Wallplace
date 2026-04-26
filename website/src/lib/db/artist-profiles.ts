@@ -240,9 +240,20 @@ export async function upsertArtistProfile(
       .eq("user_id", userId);
     return { error };
   } else {
-    const { error } = await db
-      .from("artist_profiles")
-      .insert({ ...data, user_id: userId });
+    // New row: force review_status='pending' on insert UNLESS the
+    // caller explicitly passed one (e.g. an admin claim flow that
+    // approves on creation). Migration 023 set the column default
+    // to 'approved', which meant any artist editing their profile
+    // before admin review showed up on the public marketplace
+    // immediately. Code-level default flips it the other way; the
+    // admin still has to flip it to 'approved' to publish.
+    const insertPayload = {
+      ...data,
+      user_id: userId,
+      review_status:
+        (data as { review_status?: string }).review_status ?? "pending",
+    };
+    const { error } = await db.from("artist_profiles").insert(insertPayload);
     return { error };
   }
 }
