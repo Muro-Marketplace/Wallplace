@@ -1154,23 +1154,11 @@ export default function PlacementsPage() {
                   </td>
                   <td className="px-6 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      {p.status === "Active" && (
-                        <Link
-                          href={`/artist-portal/labels?venue=${encodeURIComponent(p.venue)}&works=${encodeURIComponent(p.workTitle)}${p.workSize ? `&size=${encodeURIComponent(p.workSize)}` : ""}`}
-                          className="w-8 h-8 flex items-center justify-center rounded-sm border border-border hover:border-accent hover:bg-accent/5 transition-colors"
-                          title="Generate QR Label"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <rect x="2" y="2" width="8" height="8" rx="1" />
-                            <rect x="14" y="2" width="8" height="8" rx="1" />
-                            <rect x="2" y="14" width="8" height="8" rx="1" />
-                            <rect x="14" y="14" width="4" height="4" />
-                            <rect x="20" y="14" width="2" height="2" />
-                            <rect x="14" y="20" width="2" height="2" />
-                            <rect x="20" y="20" width="2" height="2" />
-                          </svg>
-                        </Link>
-                      )}
+                      {/* QR Label icon used to live here in the un-expanded
+                          row; moved into the expanded actions below so the
+                          row chrome stays minimal and the QR flow lives
+                          alongside the other secondary actions
+                          (Message, Add Loan, Open full placement). */}
                       {(p.status === "Active" || p.status === "Pending") && (
                         <button
                           onClick={() => { if (confirm("Cancel this placement? The other party will see it as cancelled.")) cancelPlacement(p.id); }}
@@ -1337,6 +1325,31 @@ export default function PlacementsPage() {
                           >
                             Message venue
                           </Link>
+                          {/* QR labels — only relevant once the placement
+                              is active (artwork is up; venue can scan).
+                              Deep-links to the artist labels page with
+                              the venue + work + size pre-selected so
+                              the artist gets a printable sticker
+                              without re-entering anything. */}
+                          {p.status === "Active" && (
+                            <Link
+                              href={`/artist-portal/labels?venue=${encodeURIComponent(p.venue)}&works=${encodeURIComponent(p.workTitle)}${p.workSize ? `&size=${encodeURIComponent(p.workSize)}` : ""}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-foreground border border-border hover:bg-[#F5F3F0] rounded-sm transition-colors"
+                              title="Generate QR labels"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="7" height="7" rx="1" />
+                                <rect x="14" y="3" width="7" height="7" rx="1" />
+                                <rect x="3" y="14" width="7" height="7" rx="1" />
+                                <line x1="14" y1="14" x2="14" y2="17" />
+                                <line x1="17" y1="14" x2="21" y2="14" />
+                                <line x1="14" y1="20" x2="21" y2="20" />
+                                <line x1="21" y1="14" x2="21" y2="20" />
+                              </svg>
+                              QR labels
+                            </Link>
+                          )}
                           <Link
                             href={`/placements/${encodeURIComponent(p.id)}?record=open`}
                             onClick={(e) => e.stopPropagation()}
@@ -1562,6 +1575,24 @@ export default function PlacementsPage() {
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                       Loan record
                     </Link>
+                    {p.status === "Active" && (
+                      <Link
+                        href={`/artist-portal/labels?venue=${encodeURIComponent(p.venue)}&works=${encodeURIComponent(p.workTitle)}${p.workSize ? `&size=${encodeURIComponent(p.workSize)}` : ""}`}
+                        className="inline-flex items-center justify-center gap-1 flex-1 min-w-[140px] px-3 py-1.5 text-xs font-medium text-foreground border border-border hover:bg-[#F5F3F0] rounded-sm transition-colors"
+                        title="Generate QR labels"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="7" height="7" rx="1" />
+                          <rect x="14" y="3" width="7" height="7" rx="1" />
+                          <rect x="3" y="14" width="7" height="7" rx="1" />
+                          <line x1="14" y1="14" x2="14" y2="17" />
+                          <line x1="17" y1="14" x2="21" y2="14" />
+                          <line x1="14" y1="20" x2="21" y2="20" />
+                          <line x1="21" y1="14" x2="21" y2="20" />
+                        </svg>
+                        QR labels
+                      </Link>
+                    )}
                     <Link
                       href={`/artist-portal/messages?artist=${p.venueSlug}&artistName=${encodeURIComponent(p.venue)}`}
                       className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-muted hover:text-foreground transition-colors"

@@ -1534,6 +1534,33 @@ export default function VenuePlacementsPage() {
                               >
                                 Message artist
                               </Link>
+                              {/* QR labels — deep-link to the labels page
+                                  with this placement preselected. The
+                                  labels page reads ?placement=<id> and
+                                  ticks every work in the placement at
+                                  the agreed requested size, so for
+                                  multi-work placements the venue can
+                                  print every sticker in one go without
+                                  manual selection. Subtle outlined
+                                  button so it doesn't compete with the
+                                  primary Accept/Decline row above. */}
+                              <Link
+                                href={`/venue-portal/labels?placement=${encodeURIComponent(p.id)}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-foreground border border-border hover:bg-[#F5F3F0] rounded-sm transition-colors"
+                                title="Generate QR labels for this placement"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                                  <line x1="14" y1="14" x2="14" y2="17" />
+                                  <line x1="17" y1="14" x2="21" y2="14" />
+                                  <line x1="14" y1="20" x2="21" y2="20" />
+                                  <line x1="21" y1="14" x2="21" y2="20" />
+                                </svg>
+                                QR labels
+                              </Link>
                               <Link
                                 href={`/placements/${encodeURIComponent(p.id)}?record=open`}
                                 onClick={(e) => e.stopPropagation()}
@@ -1775,6 +1802,26 @@ export default function VenuePlacementsPage() {
                         >
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                           Loan record
+                        </Link>
+                        {/* QR labels — same deep-link as the desktop
+                            expanded action. Mobile flex-wrap means it
+                            falls to its own row below the primary
+                            actions on narrow screens. */}
+                        <Link
+                          href={`/venue-portal/labels?placement=${encodeURIComponent(p.id)}`}
+                          className="inline-flex items-center justify-center gap-1 flex-1 min-w-[140px] px-3 py-1.5 text-xs font-medium text-foreground border border-border hover:bg-[#F5F3F0] rounded-sm transition-colors"
+                          title="Generate QR labels for this placement"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" />
+                            <line x1="14" y1="14" x2="14" y2="17" />
+                            <line x1="17" y1="14" x2="21" y2="14" />
+                            <line x1="14" y1="20" x2="21" y2="20" />
+                            <line x1="21" y1="14" x2="21" y2="20" />
+                          </svg>
+                          QR labels
                         </Link>
                         <Link
                           href={`/venue-portal/messages?artist=${p.artistSlug}&artistName=${encodeURIComponent(p.artistName)}`}

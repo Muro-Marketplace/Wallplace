@@ -34,6 +34,23 @@ export default function ArtistProfileClient({
   const { showToast } = useToast();
   const [activeTheme, setActiveTheme] = useState("All");
   const [bioExpanded, setBioExpanded] = useState(false);
+  // Column count for the row-major masonry. CSS `columns` gave us a
+  // pretty layout but filled column-1 top-to-bottom before starting
+  // column-2 — visual reading order didn't match the works array.
+  // Same pattern the marketplace gallery uses: distribute by
+  // i % colCount so item order reads left-to-right, top-to-bottom.
+  const [colCount, setColCount] = useState(3);
+  useEffect(() => {
+    function syncCols() {
+      const w = typeof window !== "undefined" ? window.innerWidth : 0;
+      if (w >= 1024) setColCount(3);
+      else if (w >= 640) setColCount(2);
+      else setColCount(1);
+    }
+    syncCols();
+    window.addEventListener("resize", syncCols);
+    return () => window.removeEventListener("resize", syncCols);
+  }, []);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedSizeIdx, setSelectedSizeIdx] = useState(0);
@@ -220,13 +237,32 @@ export default function ArtistProfileClient({
             )}
           </div>
 
-          {/* Masonry grid */}
-          <div className="columns-1 sm:columns-2 lg:columns-3 gap-3 sm:gap-5 space-y-3 sm:space-y-5">
-            {filteredWorks.map((work, index) => (
+          {/* Masonry grid — row-major distribution so the artwork
+              order matches reading order (left-to-right,
+              top-to-bottom). The previous CSS `columns` layout filled
+              column 1 fully before starting column 2, which was
+              confusing when the artist had ordered works
+              deliberately. We split into N flex columns by index
+              modulo, so items still flow with variable heights but
+              the *order* in the rendered grid matches the works
+              array. Same pattern the marketplace gallery uses. */}
+          {(() => {
+            const cols: typeof filteredWorks[] = Array.from(
+              { length: colCount },
+              () => [],
+            );
+            filteredWorks.forEach((w, i) => cols[i % colCount].push(w));
+            return (
+          <div className="flex gap-3 sm:gap-5 items-start">
+          {cols.map((colItems, ci) => (
+          <div key={ci} className="flex-1 min-w-0 flex flex-col gap-3 sm:gap-5">
+          {colItems.map((work) => {
+            const index = filteredWorks.indexOf(work);
+            return (
               <div
                 key={work.id}
                 id={`work-${slugify(work.title)}`}
-                className="break-inside-avoid group relative overflow-hidden rounded-sm bg-border/20 scroll-mt-24 cursor-pointer"
+                className="group relative overflow-hidden rounded-sm bg-border/20 scroll-mt-24 cursor-pointer"
                 onClick={() => {
                   // Click on the card opens the full artwork page in a
                   // new tab. The hover "Quick look" icon still opens the
@@ -364,8 +400,13 @@ export default function ArtistProfileClient({
                   </div>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
+          ))}
+          </div>
+            );
+          })()}
         </div>
       </section>
 
