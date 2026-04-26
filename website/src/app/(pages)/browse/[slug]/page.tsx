@@ -55,12 +55,30 @@ export async function generateMetadata({
   };
 }
 
-function BoolCard({ label, yes }: { label: string; yes: boolean }) {
+/**
+ * Pill used for the "Terms" group — accent-tinted with a tick.
+ * Communicates "this is a commitment / an opt-in" in green-light style.
+ */
+function TermPill({ label, yes }: { label: string; yes: boolean }) {
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full ${
       yes ? "bg-accent/10 text-accent border border-accent/20" : "bg-surface text-muted border border-border"
     }`}>
       {yes && <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>}
+      {label}
+    </span>
+  );
+}
+
+/**
+ * Pill used for the "Sells" group — quieter neutral chip, no tick.
+ * Matches the format chips on the marketplace BrowseArtistCard so the
+ * card → profile transition feels consistent. Reads as a tag, not a
+ * checked-off commitment.
+ */
+function SellsPill({ label }: { label: string }) {
+  return (
+    <span className="inline-block text-[11px] text-muted/90 px-2 py-0.5 border border-border/70 rounded-sm bg-surface">
       {label}
     </span>
   );
@@ -89,13 +107,10 @@ export default async function ArtistProfilePage({
     source: ctx.referrer?.includes("qr") ? "qr" : "browse",
   }).catch(() => {});
 
-  // Banner falls back through saved → first work → profile pic so a
-  // legacy account without a banner still gets something landscape-y at
-  // the top, but a banner the artist sets in /artist-portal/profile
-  // always wins.
-  const bannerSrc =
-    artist.bannerImage || artist.works[0]?.image || artist.image;
-
+  // Variant A — no banner, so we don't need a bannerSrc fallback. The
+  // saved banner_image stays in the DB for future variants and for
+  // social-card fallback in generateMetadata.
+  //
   // Split offerings (what they sell) from terms (how they let venues
   // host) — the marketplace cards already do this, and merging them
   // into one row makes both feel like an undifferentiated bag of pills.
@@ -122,152 +137,172 @@ export default async function ArtistProfilePage({
 
   return (
     <div className="bg-background">
-      {/* Banner — sensible fixed height, not a 3:1 monster. Just a
-          tasteful strip behind the back-link and the start of the
-          identity block. */}
-      <section className="relative -mt-14 lg:-mt-16 h-52 lg:h-72 overflow-hidden">
-        <Image
-          src={bannerSrc}
-          alt={`${artist.name} banner`}
-          fill
-          className="object-cover"
-          sizes="100vw"
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
-        <div className="absolute top-20 lg:top-24 left-0 right-0 z-10">
-          <div className="max-w-[1200px] mx-auto px-6">
-            <Link
-              href="/browse"
-              className="inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors duration-200"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 11L5 7l4-4" />
-              </svg>
-              Back to Marketplace
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Profile header */}
-      <section className="relative -mt-16 pb-0">
+      {/* Variant A — no banner. Square profile photo on the left,
+          identity + bio + facts in a generous right column. The
+          gallery-website feel: the artist's first work shows up on
+          scroll instead of fighting a hero image. */}
+      <section className="pt-8 lg:pt-12 pb-2">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="relative w-28 h-28 lg:w-32 lg:h-32 rounded-full overflow-hidden shrink-0 bg-border/30 border-4 border-background shadow-lg mb-4">
-            <Image
-              src={artist.image || `https://picsum.photos/seed/${artist.slug}/400/400`}
-              alt={artist.name}
-              fill
-              className="object-cover"
-              sizes="128px"
-            />
-          </div>
+          <Link
+            href="/browse"
+            className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground mb-8"
+          >
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 11L5 7l4-4" />
+            </svg>
+            Back to Marketplace
+          </Link>
 
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 items-stretch">
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-2xl lg:text-3xl leading-none">{artist.name}</h1>
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-10 lg:gap-14 items-start">
+            {/* LEFT — square photo + Instagram */}
+            <div>
+              <div className="relative aspect-square w-full max-w-[280px] rounded-sm overflow-hidden bg-stone-100 border border-border">
+                <Image
+                  src={artist.image || `https://picsum.photos/seed/${artist.slug}/600/600`}
+                  alt={artist.name}
+                  fill
+                  className="object-cover"
+                  sizes="280px"
+                  priority
+                />
                 {artist.isFoundingArtist && (
-                  <span className="inline-block px-2 py-0.5 bg-accent/10 text-accent text-[10px] font-medium rounded-sm border border-accent/20 cursor-help" title="One of the founding artists on Wallplace">
+                  <span
+                    className="absolute top-3 left-3 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-[10px] font-medium text-foreground rounded-sm cursor-help"
+                    title="One of the founding artists on Wallplace"
+                  >
                     Founding Artist
                   </span>
                 )}
               </div>
-              <p className="text-muted text-sm">
-                {disciplineLabel(artist.primaryMedium, artist.discipline)} &middot; {artist.location}
+              {artist.instagram && (
+                <a
+                  href={`https://instagram.com/${artist.instagram.replace("@", "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground transition-colors mt-3"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="5" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>
+                  {artist.instagram}
+                </a>
+              )}
+            </div>
+
+            {/* RIGHT — identity */}
+            <div className="min-w-0">
+              <p className="text-[11px] text-muted uppercase tracking-[0.18em] mb-3">
+                {disciplineLabel(artist.primaryMedium, artist.discipline)}
               </p>
+              <h1 className="font-serif text-4xl lg:text-5xl text-foreground leading-tight tracking-tight mb-2">
+                {artist.name}
+              </h1>
+              <p className="text-muted text-sm mb-6">{artist.location}</p>
+
               {(artist.subStyles && artist.subStyles.length > 0) && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
+                <div className="flex flex-wrap gap-1.5 mb-6">
                   {artist.subStyles.slice(0, 6).map((s) => (
-                    <span key={s} className="inline-block px-2 py-0.5 text-[10px] text-muted bg-surface border border-border rounded-full">
+                    <span
+                      key={s}
+                      className="inline-block px-2.5 py-1 text-[11px] font-medium text-foreground/70 bg-surface border border-border rounded-full"
+                    >
                       {formatSubStyleLabel(s)}
                     </span>
                   ))}
                 </div>
               )}
-              <p className="text-foreground/80 leading-relaxed max-w-lg text-base mb-4 mt-3">
+
+              <p className="text-foreground/85 leading-relaxed text-[15px] max-w-2xl mb-6">
                 {artist.shortBio}
               </p>
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                {artist.styleTags.map((tag) => (
-                  <span key={tag} className="inline-block px-2.5 py-0.5 text-[11px] text-muted bg-surface border border-border rounded-sm">
-                    {formatSubStyleLabel(tag)}
-                  </span>
-                ))}
-                {artist.instagram && (
-                  <>
-                    <span className="text-border mx-1">|</span>
-                    <a href={`https://instagram.com/${artist.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground transition-colors">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="5" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>
-                      {artist.instagram}
-                    </a>
-                  </>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2 mt-3">
+
+              {artist.styleTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-6">
+                  {artist.styleTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-block px-2.5 py-1 text-[11px] font-medium text-foreground/65 bg-surface border border-border rounded-sm"
+                    >
+                      {formatSubStyleLabel(tag)}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 mb-8">
                 <MessageArtistButton artistSlug={artist.slug} artistName={artist.name} variant="accent" size="md" />
                 <PlacementButton artistSlug={artist.slug} artistName={artist.name} />
               </div>
-            </div>
 
-            <div className="w-full lg:w-[400px] shrink-0 lg:mt-16">
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3 mb-4">
-                {[
-                  { label: "Location", value: artist.location },
-                  { label: "Delivery", value: artist.deliveryRadius },
-                  { label: "Suited for", value: artist.venueTypesSuitedFor.slice(0, 3).join(", ") || "Any venue type" },
-                ].map((item) => (
-                  <div key={item.label}>
-                    <p className="text-[11px] text-muted uppercase tracking-wider mb-0.5">{item.label}</p>
-                    <p className="text-sm font-medium text-foreground">{item.value || "—"}</p>
-                  </div>
-                ))}
+              {/* Facts row — inline, no card chrome. Hairline border
+                  separates this from the bio above. */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 pt-6 border-t border-border max-w-2xl">
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Location</p>
+                  <p className="text-sm font-medium text-foreground">{artist.location || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Delivery</p>
+                  <p className="text-sm font-medium text-foreground">{artist.deliveryRadius || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted uppercase tracking-wider mb-1">Suited for</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {artist.venueTypesSuitedFor.length > 0
+                      ? artist.venueTypesSuitedFor.slice(0, 3).join(", ")
+                      : "Any venue"}
+                  </p>
+                </div>
               </div>
 
               {hasStats && (
-                <div className="flex items-center gap-4 mb-4 py-2.5 border-y border-border">
+                <div className="flex items-center gap-6 pt-4 mt-4 border-t border-border max-w-2xl">
                   {(artist.totalPlacements ?? 0) > 0 && (
-                    <div className="text-center">
+                    <div>
                       <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalPlacements}</p>
-                      <p className="text-[10px] text-muted uppercase tracking-wider mt-0.5">Venue{artist.totalPlacements !== 1 ? "s" : ""}</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mt-1">Venue{artist.totalPlacements !== 1 ? "s" : ""}</p>
                     </div>
                   )}
                   {(artist.totalSales ?? 0) > 0 && (
-                    <div className="text-center">
+                    <div>
                       <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalSales}</p>
-                      <p className="text-[10px] text-muted uppercase tracking-wider mt-0.5">Sold</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mt-1">Sold</p>
                     </div>
                   )}
                   {(artist.totalViews ?? 0) > 0 && (
-                    <div className="text-center">
+                    <div>
                       <p className="text-lg font-serif font-semibold text-foreground leading-none">{artist.totalViews}</p>
-                      <p className="text-[10px] text-muted uppercase tracking-wider mt-0.5">Views</p>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mt-1">Views</p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Sells (offerings) */}
-              {offerings.length > 0 && (
-                <div className="mb-2">
-                  <p className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Sells</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {offerings.map((o) => (
-                      <BoolCard key={o.label} label={o.label} yes={o.yes} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Terms (commercial) */}
-              {terms.length > 0 && (
-                <div>
-                  <p className="text-[10px] text-muted uppercase tracking-wider mb-1.5">Terms</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {terms.map((t) => (
-                      <BoolCard key={t.label} label={t.label} yes={t.yes} />
-                    ))}
-                  </div>
+              {/* Sells + Terms — visually distinct so the page doesn't
+                  read as one undifferentiated bag of pills. Sells uses
+                  the marketplace card's neutral chip (no tick); Terms
+                  keeps the accent-tinted tick pill — Terms are
+                  commitments, Sells are inventory categories. */}
+              {(offerings.length > 0 || terms.length > 0) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 mt-6 border-t border-border max-w-2xl">
+                  {offerings.length > 0 && (
+                    <div>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mb-2">Sells</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {offerings.map((o) => (
+                          <SellsPill key={o.label} label={o.label} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {terms.length > 0 && (
+                    <div>
+                      <p className="text-[10px] text-muted uppercase tracking-wider mb-2">Terms</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {terms.map((t) => (
+                          <TermPill key={t.label} label={t.label} yes={t.yes} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
