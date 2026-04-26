@@ -31,28 +31,60 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const artist = await getArtistBySlug(slug);
+  // Wrap the entire metadata build in try/catch — a throw here happens
+  // BEFORE the page component runs and crashes the entire route to the
+  // global error boundary ("Something went wrong"). Causes can be a
+  // missing field on the artist row, an invalid OG image URL, a DB
+  // connection blip — none of those should kill the page.
+  try {
+    const { slug } = await params;
+    const artist = await getArtistBySlug(slug);
 
-  if (!artist) {
-    return { title: "Artist Not Found – Wallplace" };
+    if (!artist) {
+      return { title: "Artist Not Found – Wallplace" };
+    }
+
+    // Defensive coercions — anything missing or malformed flows
+    // through as a sensible fallback rather than throwing.
+    const safeName = artist.name?.trim() || "Wallplace artist";
+    const safeBio =
+      typeof artist.shortBio === "string" && artist.shortBio.trim()
+        ? artist.shortBio.trim()
+        : `Browse ${safeName}'s work on Wallplace.`;
+    // Only include an OG image when it parses as an absolute URL —
+    // a relative or malformed string would throw downstream.
+    let ogImage: { url: string; width: number; height: number } | null = null;
+    if (artist.image) {
+      try {
+        new URL(artist.image);
+        ogImage = { url: artist.image, width: 400, height: 400 };
+      } catch {
+        ogImage = null;
+      }
+    }
+
+    return {
+      title: `${safeName} – Wallplace`,
+      description: safeBio,
+      openGraph: {
+        title: `${safeName} – Wallplace`,
+        description: safeBio,
+        images: ogImage ? [ogImage] : [],
+        type: "profile",
+      },
+      twitter: {
+        card: "summary",
+        title: `${safeName} – Wallplace`,
+        description: safeBio,
+      },
+    };
+  } catch (err) {
+    console.warn(
+      "[browse/[slug] metadata] crashed:",
+      err instanceof Error ? err.message : String(err),
+    );
+    return { title: "Wallplace artist" };
   }
-
-  return {
-    title: `${artist.name} – Wallplace`,
-    description: artist.shortBio,
-    openGraph: {
-      title: `${artist.name} – Wallplace`,
-      description: artist.shortBio,
-      images: artist.image ? [{ url: artist.image, width: 400, height: 400 }] : [],
-      type: "profile",
-    },
-    twitter: {
-      card: "summary",
-      title: `${artist.name} – Wallplace`,
-      description: artist.shortBio,
-    },
-  };
 }
 
 /**
@@ -506,13 +538,16 @@ export default async function ArtistProfilePage({
         </div>
       </section>
 
-      {/* Portfolio + Extended Bio (client) */}
+      {/* Portfolio + Extended Bio (client). Coerced to safe defaults
+          so a row with NULL extended_bio / themes doesn't crash the
+          client component on first render — the props are typed as
+          required strings/arrays. */}
       <ArtistProfileClient
-        artistName={artist.name}
-        artistSlug={artist.slug}
-        extendedBio={artist.extendedBio}
-        themes={artist.themes}
-        works={artist.works}
+        artistName={artist.name ?? ""}
+        artistSlug={artist.slug ?? ""}
+        extendedBio={artist.extendedBio ?? ""}
+        themes={Array.isArray(artist.themes) ? artist.themes : []}
+        works={Array.isArray(artist.works) ? artist.works : []}
       />
 
       {/* Collections — pulled from the DB by artist slug. The seed
