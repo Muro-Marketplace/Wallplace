@@ -256,9 +256,16 @@ export default function PortfolioPage() {
   >(null);
   // After picking a source, we ask the artist which drafts to apply
   // it to. This holds the source until the target is confirmed.
+  // `shipping` is an index-aligned array of per-size shipping
+  // numbers (or null where the source had none), so when the artist
+  // applies "prices" the per-size shipping comes along too. The
+  // source can be a draft (BulkAddDraft.shippingPrices: string[]) or
+  // an existing work (pricing[i].shippingPrice) — both are
+  // normalised to the same shape here.
   const [bulkAddPendingSource, setBulkAddPendingSource] = useState<{
     label: string;
     sizes: SizeEntry[];
+    shipping?: Array<number | null>;
   } | null>(null);
   const [bulkAddTargetIds, setBulkAddTargetIds] = useState<Set<string>>(
     new Set(),
@@ -753,9 +760,13 @@ export default function PortfolioPage() {
    * for which drafts to apply to (defaults to all). On confirm,
    * `bulkAddApplyToTargets` does the merge.
    */
-  function bulkAddPickSource(label: string, sizes: SizeEntry[]) {
+  function bulkAddPickSource(
+    label: string,
+    sizes: SizeEntry[],
+    shipping?: Array<number | null>,
+  ) {
     if (sizes.length === 0) return;
-    setBulkAddPendingSource({ label, sizes });
+    setBulkAddPendingSource({ label, sizes, shipping });
     // Default-target every draft except the source itself when the
     // source is a draft — applying to yourself is a no-op.
     const allIds = bulkAddDrafts
@@ -766,15 +777,19 @@ export default function PortfolioPage() {
 
   function bulkAddApplyToTargets() {
     if (!bulkAddPendingSource || bulkAddApplyKind === null) return;
-    const { sizes: sourceSizes } = bulkAddPendingSource;
+    const { sizes: sourceSizes, shipping: sourceShipping } =
+      bulkAddPendingSource;
     const kind = bulkAddApplyKind;
     setBulkAddDrafts((prev) =>
       prev.map((d) => {
         if (!bulkAddTargetIds.has(d.draftId)) return d;
         if (kind === "sizes") {
-          // Copy size LABELS but keep this draft's prices when label
-          // matches. New labels coming in get the source's price as a
-          // starting point.
+          // Copy the source's size labels onto the draft. Reset the
+          // parallel arrays (shipping/inStore) to match the new
+          // size count — the artist either re-types or runs the
+          // "Copy prices" flow next. Pre-seeds shipping from the
+          // source row when available so a single Copy-sizes step
+          // already brings the matching shipping bands.
           const nextSizes = sourceSizes.map((s) => {
             const existing = d.sizes.find(
               (x) => x.label.toLowerCase() === s.label.toLowerCase(),
@@ -787,20 +802,39 @@ export default function PortfolioPage() {
           return {
             ...d,
             sizes: nextSizes,
-            shippingPrices: nextSizes.map(() => ""),
+            shippingPrices: nextSizes.map((_, i) => {
+              const v = sourceShipping?.[i];
+              return typeof v === "number" ? String(v) : "";
+            }),
             inStorePrices: nextSizes.map(() => ""),
           };
         }
-        // kind === "prices": copy prices to existing matching labels;
-        // labels not present in the source are left alone.
-        const lookup = new Map(
-          sourceSizes.map((s) => [s.label.toLowerCase(), s.price]),
-        );
-        const nextSizes = d.sizes.map((s) => ({
+        // kind === "prices" — row-by-row (index aligned). Source
+        // row i's price → target row i's price; same for shipping.
+        // Target rows beyond the source's length keep their existing
+        // values so we never blank out work the artist did.
+        const nextSizes = d.sizes.map((s, i) => ({
           label: s.label,
-          price: lookup.get(s.label.toLowerCase()) ?? s.price,
+          price: sourceSizes[i]?.price ?? s.price,
         }));
-        return { ...d, sizes: nextSizes };
+        const nextShipping = d.shippingPrices.length === d.sizes.length
+          ? [...d.shippingPrices]
+          : d.sizes.map((_, i) => d.shippingPrices[i] ?? "");
+        if (Array.isArray(sourceShipping)) {
+          for (let i = 0; i < nextShipping.length; i++) {
+            const v = sourceShipping[i];
+            if (typeof v === "number") nextShipping[i] = String(v);
+          }
+        }
+        return {
+          ...d,
+          sizes: nextSizes,
+          shippingPrices: nextShipping,
+          // Show the shipping panel if we just populated any row so
+          // the artist actually sees what was copied.
+          showShipping:
+            d.showShipping || nextShipping.some((v) => v !== ""),
+        };
       }),
     );
     showToast(
@@ -851,14 +885,20 @@ export default function PortfolioPage() {
         .map((s, idx) => ({ size: s, idx }))
         .filter(({ size }) => size.label && size.price > 0);
       const lowest = Math.min(...validWithIndex.map((v) => v.size.price));
-      // Per-size shipping isn't in the data model yet, so we collapse
-      // to a single work-level shippingPrice using the LOWEST value
-      // the artist set across sizes (most generous to the buyer).
-      // TODO: extend SizePricing with shippingPrice when we want true
-      // per-size shipping.
-      const shippingNums = d.shippingPrices
-        .map((s) => (s && s.trim() ? parseFloat(s) : NaN))
-        .filter((n) => Number.isFinite(n) && n >= 0);
+      // Per-size shipping now persists per-row via the SizePricing.
+      // shippingPrice field added to the data model. We still collapse
+      // to a single work-level `shippingPrice` (using the lowest of
+      // the entered values) as a fallback for legacy code paths that
+      // read the work-level field — the cart prefers per-size when
+      // present. Empty rows are skipped.
+      const perSizeShipping = d.shippingPrices.map((s) => {
+        if (!s || !s.trim()) return undefined;
+        const n = parseFloat(s);
+        return Number.isFinite(n) && n >= 0 ? n : undefined;
+      });
+      const shippingNums = perSizeShipping.filter(
+        (n): n is number => typeof n === "number",
+      );
       const shippingPrice =
         shippingNums.length > 0 ? Math.min(...shippingNums) : undefined;
       // In-store pricing: only emit when the artist set at least one
@@ -885,10 +925,15 @@ export default function PortfolioPage() {
         medium: "",
         dimensions: d.dimensions,
         priceBand: `From £${lowest}`,
-        pricing: validWithIndex.map(({ size }) => ({
-          label: size.label,
-          price: size.price,
-        })),
+        pricing: validWithIndex.map(({ size, idx }) => {
+          const ship = perSizeShipping[idx];
+          const row: SizePricing = {
+            label: size.label,
+            price: size.price,
+          };
+          if (typeof ship === "number") row.shippingPrice = ship;
+          return row;
+        }),
         available: d.available,
         color: "#C17C5A",
         image: d.imageUrl,
@@ -1347,6 +1392,17 @@ export default function PortfolioPage() {
     setEditingIndex(index);
     setShowForm(true);
 
+    // Scroll the form into view so the artist lands at the top of
+    // the edit panel instead of the work grid they just clicked
+    // from. Without this, clicking Edit on a work three rows down
+    // mounts the form above and leaves the viewport at the row's
+    // y-position — the artist sees no visible change. Defer to the
+    // next frame so React has finished the showForm=true layout
+    // pass before we scroll.
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
     // Detect ratio from existing image for size suggestions
     if (w.image) {
       const img = new window.Image();
@@ -1571,8 +1627,31 @@ export default function PortfolioPage() {
       orientation: form.orientation,
       ...(shippingVal != null && !isNaN(shippingVal) ? { shippingPrice: shippingVal } : {}),
       ...(inStoreVal != null && !isNaN(inStoreVal) ? { inStorePrice: inStoreVal } : {}),
-      inStorePricing: form.inStorePricing.length > 0
-        ? validSizes.map((s, i) => ({ label: s.label, price: form.inStorePricing[i] ? parseFloat(form.inStorePricing[i]) : 0 })).filter((p) => p.price > 0)
+      // In-store pricing — walk form.sizes (NOT validSizes) so we
+      // line up with the parallel `form.inStorePricing[]` array. The
+      // previous code used `validSizes.map((s, i) => form.inStorePricing[i])`
+      // which silently mismatched whenever the artist had any
+      // empty-priced rows above a priced one: validSizes filtered
+      // those rows out so its index 0 was form.sizes[1], but the
+      // in-store array still held the form.sizes[0] value at index 0
+      // — the saved in-store price ended up bound to the wrong size.
+      // We also drop entries where the *online* price is 0 (matches
+      // the validSizes filter applied to `pricing` above) so the
+      // shapes stay aligned, and we gate on `inStoreEnabled` so a
+      // toggle-off truly clears the section.
+      inStorePricing: form.inStoreEnabled
+        ? form.sizes
+            .map((s, i) => {
+              if (!s.label || !(s.price > 0)) return null;
+              const raw = form.inStorePricing[i];
+              const price = raw ? parseFloat(raw) : 0;
+              return Number.isFinite(price) && price > 0
+                ? { label: s.label, price }
+                : null;
+            })
+            .filter(
+              (p): p is { label: string; price: number } => p !== null,
+            )
         : undefined,
       quantityAvailable: qtyFinite ? qtyVal : null,
       frameOptions: cleanFrameOptions.length > 0 ? cleanFrameOptions : undefined,
@@ -1745,7 +1824,7 @@ export default function PortfolioPage() {
                 onClick={handleSubmit}
                 className="text-xs px-4 py-2 rounded-sm bg-foreground text-white hover:bg-foreground/90 transition-colors font-medium"
               >
-                {editingIndex !== null ? "Save Changes" : "Add Work"}
+                {editingIndex !== null ? "Save Changes" : "Save Work"}
               </button>
             </div>
           </div>
@@ -2627,7 +2706,7 @@ export default function PortfolioPage() {
                 disabled={!form.title || form.sizes.filter((s) => s.label && s.price > 0).length === 0}
                 className="px-6 py-2.5 text-sm font-medium text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {editingIndex !== null ? "Save Changes" : "Add Work"}
+                {editingIndex !== null ? "Save Changes" : "Save Work"}
               </button>
               <button onClick={() => setShowForm(false)} className="px-6 py-2.5 text-sm text-muted border border-border rounded-sm hover:text-foreground transition-colors">
                 Cancel
@@ -3029,7 +3108,11 @@ export default function PortfolioPage() {
             <CopyFromSourceButton
               label="Copy sizes from…"
               kind="sizes"
-              activeKind={bulkEditApplyKind}
+              // Treat the kind buttons as inactive while a source is
+              // pending — the target picker panel takes over the
+              // visual ownership at that point, and leaving the
+              // dropdown open hid the Apply confirm button under it.
+              activeKind={bulkEditPendingSource ? null : bulkEditApplyKind}
               works={works}
               excludeIds={
                 bulkEditPendingSource
@@ -3047,7 +3130,11 @@ export default function PortfolioPage() {
             <CopyFromSourceButton
               label="Copy prices from…"
               kind="prices"
-              activeKind={bulkEditApplyKind}
+              // Treat the kind buttons as inactive while a source is
+              // pending — the target picker panel takes over the
+              // visual ownership at that point, and leaving the
+              // dropdown open hid the Apply confirm button under it.
+              activeKind={bulkEditPendingSource ? null : bulkEditApplyKind}
               works={works}
               excludeIds={
                 bulkEditPendingSource
@@ -3461,7 +3548,14 @@ export default function PortfolioPage() {
                  */}
                 <CopyFromButton
                   label="Copy sizes from…"
-                  open={bulkAddApplyKind === "sizes"}
+                  // Hide the source list once a source has been
+                  // picked — the target picker that appears below
+                  // covers the same screen real estate, and leaving
+                  // the dropdown open hid the "Apply to N drafts"
+                  // confirm button under it.
+                  open={
+                    bulkAddApplyKind === "sizes" && !bulkAddPendingSource
+                  }
                   onOpen={() => {
                     setBulkAddApplyKind(
                       bulkAddApplyKind === "sizes" ? null : "sizes",
@@ -3474,7 +3568,9 @@ export default function PortfolioPage() {
                 />
                 <CopyFromButton
                   label="Copy prices from…"
-                  open={bulkAddApplyKind === "prices"}
+                  open={
+                    bulkAddApplyKind === "prices" && !bulkAddPendingSource
+                  }
                   onOpen={() => {
                     setBulkAddApplyKind(
                       bulkAddApplyKind === "prices" ? null : "prices",
@@ -3934,9 +4030,8 @@ function BulkAddDraftCard({
                 </div>
               ))}
               <p className="text-[10px] text-muted leading-snug">
-                Per-size shipping is collapsed to a single work-level
-                price at save (lowest value used). True per-size
-                shipping needs a schema change.
+                Each size persists its own shipping price. Leave a row
+                blank to fall back to the work-level shipping default.
               </p>
             </div>
           </CollapsibleRow>
@@ -4125,7 +4220,15 @@ function CopyFromButton({
   onOpen: () => void;
   drafts: BulkAddDraft[];
   works: ArtistWork[];
-  onPick: (label: string, sizes: SizeEntry[]) => void;
+  // Optional `shipping` array is index-aligned with `sizes`. Each
+  // entry is the source row's shipping price as a number, or null
+  // where the source had none. Lets the parent's "Copy prices"
+  // path bring per-size shipping along too.
+  onPick: (
+    label: string,
+    sizes: SizeEntry[],
+    shipping?: Array<number | null>,
+  ) => void;
 }) {
   const draftsWithSizes = drafts.filter((d) =>
     d.sizes.some((s) => s.label && s.price > 0),
@@ -4154,7 +4257,16 @@ function CopyFromButton({
               <button
                 type="button"
                 onClick={() =>
-                  onPick(d.title || "(untitled draft)", d.sizes)
+                  onPick(
+                    d.title || "(untitled draft)",
+                    d.sizes,
+                    d.sizes.map((_, i) => {
+                      const v = d.shippingPrices[i];
+                      if (!v || !v.trim()) return null;
+                      const n = parseFloat(v);
+                      return Number.isFinite(n) && n >= 0 ? n : null;
+                    }),
+                  )
                 }
                 className="w-full text-left px-3 py-2 text-xs hover:bg-stone-50 flex items-center gap-2"
               >
@@ -4184,6 +4296,11 @@ function CopyFromButton({
                       label: p.label,
                       price: p.price,
                     })),
+                    source.pricing.map((p) =>
+                      typeof p.shippingPrice === "number"
+                        ? p.shippingPrice
+                        : null,
+                    ),
                   )
                 }
                 className="w-full text-left px-3 py-2 text-xs hover:bg-stone-50 flex items-center gap-2 border-t border-border/50"

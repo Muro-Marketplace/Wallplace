@@ -83,6 +83,33 @@ export default function ArtworkPageClient({
   const displayPrice = selectedPricing
     ? Math.round((selectedPricing.price + frameUplift) * 100) / 100
     : null;
+  // Effective per-size shipping. When the artist set a row-level
+  // shippingPrice on the selected size we use it; otherwise we fall
+  // back to the work-level shippingPrice. The cart already knows how
+  // to read the per-size value but the artwork page was passing
+  // work.shippingPrice unconditionally, which silently overrode any
+  // size-specific values the artist had configured.
+  const effectiveShippingPrice =
+    typeof selectedPricing?.shippingPrice === "number"
+      ? selectedPricing.shippingPrice
+      : (work.shippingPrice ?? undefined);
+  // In-store / pickup price for the selected size. We prefer the
+  // per-size `inStorePricing[]` array (current model) and fall back
+  // to the legacy work-level `inStorePrice` (single number) so older
+  // works without per-size data still surface a pickup CTA.
+  const selectedInStorePrice: number | null = (() => {
+    if (Array.isArray(work.inStorePricing) && selectedPricing) {
+      const match = work.inStorePricing.find(
+        (p) =>
+          p.label.toLowerCase() === selectedPricing.label.toLowerCase(),
+      );
+      if (match && match.price > 0) return match.price;
+    }
+    if (typeof work.inStorePrice === "number" && work.inStorePrice > 0) {
+      return work.inStorePrice;
+    }
+    return null;
+  })();
   // Per-size stock cap, falling back to the work-level quantity for
   // legacy artworks that don't track stock per size yet.
   const sizeStock: number | null = (() => {
@@ -330,7 +357,7 @@ export default function ArtworkPageClient({
                     price: totalPrice,
                     quantity: 1,
                     quantityAvailable: sizeStock ?? null,
-                    shippingPrice: work.shippingPrice ?? undefined,
+                    shippingPrice: effectiveShippingPrice,
                     internationalShippingPrice: shipsInternationally && internationalShippingPrice != null ? internationalShippingPrice : undefined,
                     dimensions: selectedPricing.label || work.dimensions,
                     framed: !!selectedFrame,
@@ -358,7 +385,7 @@ export default function ArtworkPageClient({
                     price: totalPrice,
                     quantity: 1,
                     quantityAvailable: sizeStock ?? null,
-                    shippingPrice: work.shippingPrice ?? undefined,
+                    shippingPrice: effectiveShippingPrice,
                     internationalShippingPrice: shipsInternationally && internationalShippingPrice != null ? internationalShippingPrice : undefined,
                     dimensions: selectedPricing.label || work.dimensions,
                     framed: !!selectedFrame,
@@ -378,18 +405,37 @@ export default function ArtworkPageClient({
             </>
           );
         })()}
-        {work.available && work.inStorePrice != null && work.inStorePrice > 0 && (
+        {/* In-store / collect-from-venue option. Renders for the
+            selected size when the artist set an in-store price for it
+            (per-size `inStorePricing[]`), or for the legacy
+            work-level `inStorePrice` if that's all that's set. The
+            label distinguishes the two so buyers know what they're
+            buying — for per-size in-store the label includes the
+            size; for the legacy original-only flow it stays
+            "Original". Shipping is £0 because the buyer collects in
+            person — that's the entire point of the pickup option. */}
+        {work.available && selectedInStorePrice != null && (
           <button
             onClick={() => {
+              const isPerSize =
+                Array.isArray(work.inStorePricing) &&
+                work.inStorePricing.some(
+                  (p) =>
+                    p.label.toLowerCase() ===
+                    (selectedPricing?.label.toLowerCase() ?? ""),
+                );
               addItem({
                 type: "work",
                 workId: work.id,
                 artistSlug,
                 artistName,
-                title: `${work.title} (Original)`,
+                title:
+                  isPerSize && selectedPricing
+                    ? `${work.title} (Collect — ${selectedPricing.label})`
+                    : `${work.title} (Original)`,
                 image: work.image,
-                size: "Original",
-                price: work.inStorePrice!,
+                size: isPerSize && selectedPricing ? selectedPricing.label : "Original",
+                price: selectedInStorePrice,
                 quantity: 1,
                 shippingPrice: 0,
               });
@@ -397,7 +443,14 @@ export default function ArtworkPageClient({
             }}
             className="w-full px-5 py-3 text-sm font-medium text-accent border border-accent/60 hover:bg-accent/5 rounded-sm transition-colors"
           >
-            Buy Original — £{work.inStorePrice}
+            {Array.isArray(work.inStorePricing) &&
+            work.inStorePricing.some(
+              (p) =>
+                p.label.toLowerCase() ===
+                (selectedPricing?.label.toLowerCase() ?? ""),
+            )
+              ? `Collect from venue — £${selectedInStorePrice}`
+              : `Buy Original — £${selectedInStorePrice}`}
           </button>
         )}
         <button
