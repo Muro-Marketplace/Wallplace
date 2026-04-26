@@ -104,6 +104,9 @@ interface ExtendedProps extends VisualizerEditorProps {
 }
 
 interface LastRender {
+  /** wall_renders.id — needed when promoting this render to an artwork
+   *  mockup. Optional because legacy server responses didn't include it. */
+  renderId?: string;
   publicUrl: string;
   cached: boolean;
   costUnits: number;
@@ -152,6 +155,15 @@ function WallVisualizerInner(props: ExtendedProps) {
   const [upgradeReason, setUpgradeReason] = useState<UpgradeReason | undefined>(undefined);
   const [upgradeTier, setUpgradeTier] = useState<VisualizerTier | null>(null);
   const [upgradeResetsAt, setUpgradeResetsAt] = useState<string | null>(null);
+
+  // Mockup-save state — only relevant in artist modes. Tracked here
+  // (rather than inside RenderPreview) so it survives previews opening
+  // and closing, and so we can reset it on a fresh render.
+  const [mockupSaving, setMockupSaving] = useState(false);
+  const [mockupSavedWorkId, setMockupSavedWorkId] = useState<string | null>(
+    null,
+  );
+  const [mockupError, setMockupError] = useState<string | null>(null);
 
   const canPersist = Boolean(props.wall && props.initialLayout);
 
@@ -609,13 +621,19 @@ function WallVisualizerInner(props: ExtendedProps) {
         cached: boolean;
         cost_units: number;
         meta?: LastRender["meta"];
+        render?: { id?: string };
       };
       setLastRender({
+        renderId: json.render?.id,
         publicUrl: json.publicUrl,
         cached: Boolean(json.cached),
         costUnits: Number(json.cost_units ?? 0),
         meta: json.meta,
       });
+      // Fresh render → fresh mockup save state. The artist might want
+      // to attach this new render to a different work than last time.
+      setMockupSavedWorkId(null);
+      setMockupError(null);
       setPreviewOpen(true);
     } catch (err) {
       setRenderError(
@@ -641,6 +659,55 @@ function WallVisualizerInner(props: ExtendedProps) {
     const t = setTimeout(() => setRenderError(null), 5000);
     return () => clearTimeout(t);
   }, [renderError]);
+
+  /**
+   * Promote the most recent render to a mockup on the chosen artwork.
+   * The render id is captured from the render-quick / layout-render
+   * response and stored on `lastRender.renderId`. Each successful save
+   * sets `mockupSavedWorkId` so the button label flips to "Saved ✓".
+   */
+  const saveAsMockup = useCallback(
+    async (workId: string) => {
+      if (!lastRender?.renderId) {
+        setMockupError("Nothing to save — render the scene first.");
+        return;
+      }
+      setMockupSaving(true);
+      setMockupError(null);
+      try {
+        const res = await fetch(`/api/works/${workId}/mockups`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            ...(props.authToken
+              ? { Authorization: `Bearer ${props.authToken}` }
+              : {}),
+          },
+          body: JSON.stringify({ render_id: lastRender.renderId }),
+        });
+        if (res.status === 401) {
+          // Expired session — bounce out so AuthContext picks up the
+          // logout and re-redirects on the next render.
+          setMockupError("Session expired. Please sign in again.");
+          return;
+        }
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(body.error ?? `Save failed (${res.status})`);
+        }
+        setMockupSavedWorkId(workId);
+      } catch (err) {
+        setMockupError(
+          err instanceof Error ? err.message : "Save failed unexpectedly.",
+        );
+      } finally {
+        setMockupSaving(false);
+      }
+    },
+    [lastRender?.renderId, props.authToken],
+  );
 
   // ── Render ──────────────────────────────────────────────────────────
   return (
@@ -796,6 +863,25 @@ function WallVisualizerInner(props: ExtendedProps) {
         cached={lastRender?.cached ?? false}
         costUnits={lastRender?.costUnits ?? 0}
         meta={lastRender?.meta}
+        saveToArtwork={
+          (props.mode === "artist_mockup" ||
+            props.mode === "artist_showroom") &&
+          lastRender?.renderId &&
+          works.length > 0
+            ? {
+                works: works.map((w) => ({
+                  id: w.id,
+                  title: w.title,
+                  image: w.imageUrl,
+                })),
+                preferredWorkId: props.lockedWork?.id ?? null,
+                onSave: saveAsMockup,
+                saving: mockupSaving,
+                savedWorkId: mockupSavedWorkId,
+                error: mockupError,
+              }
+            : undefined
+        }
       />
     </div>
   );
