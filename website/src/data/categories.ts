@@ -84,11 +84,26 @@ export function getSubStylesForDiscipline(id: string): readonly string[] {
   return getDisciplineById(id)?.subStyles ?? [];
 }
 
-/** Human-readable label for a sub-style slug ("black-and-white" -> "Black and white"). */
+/**
+ * Human-readable label for a sub-style or theme slug.
+ *   - "black-and-white"       -> "Black & White"
+ *   - "colour-&-atmosphere"   -> "Colour & Atmosphere"
+ *   - "still-life-&-objects"  -> "Still Life & Objects"
+ *   - "travel-&-place"        -> "Travel & Place"
+ *
+ * Title-cases every word so tag pills read like editorial captions
+ * rather than raw URL slugs.
+ */
 export function formatSubStyleLabel(slug: string): string {
   if (!slug) return "";
-  const spaced = slug.replace(/-/g, " ");
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  return slug
+    // Hyphen-encoded ampersands take precedence over the generic
+    // dash-to-space rule so we don't end up with "Colour - Atmosphere".
+    .replace(/-?&-?/g, " & ")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b([a-z])/g, (_m, c: string) => c.toUpperCase());
 }
 
 /**

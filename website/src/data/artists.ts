@@ -63,6 +63,8 @@ export interface Artist {
   postcode?: string;
   coordinates: { lat: number; lng: number } | null;
   image: string;
+  /** Wide hero image shown at the top of the public profile page. */
+  bannerImage?: string;
   works: ArtistWork[];
   // Stats (populated from cache columns on artist_profiles)
   totalViews?: number;

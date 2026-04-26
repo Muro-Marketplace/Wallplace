@@ -326,13 +326,17 @@ interface ProfileState {
   primaryMedium: string;
   discipline: DisciplineId | "";
   /**
-   * Single bio field. The first 300 characters become the public short
-   * bio (shown on cards / search hits); the full text is the extended
-   * bio (shown on the artist's full page). Two separate fields used to
-   * exist — they were redundant and forced artists to write the same
-   * thing twice.
+   * Short bio — the elevator pitch that shows on cards, search hits,
+   * and the top of the artist's public profile. Hard-capped at 500
+   * characters at save time.
    */
   bio: string;
+  /**
+   * Extended bio — optional long-form story shown at the bottom of the
+   * artist's public profile. Up to 1000 characters. Empty for artists
+   * who don't want to write a second blob.
+   */
+  extendedBio: string;
   instagram: string;
   /**
    * Unified tags array — replaces the previous trio of `subStyles`,
@@ -386,6 +390,7 @@ function emptyProfile(nameSeed: string): ProfileState {
     primaryMedium: "",
     discipline: "",
     bio: "",
+    extendedBio: "",
     instagram: "",
     tags: [],
     bannerImage: "",
@@ -407,10 +412,11 @@ function emptyProfile(nameSeed: string): ProfileState {
 
 function initProfile(a: Artist): ProfileState {
   // Merge the legacy short/extended bios into a single field. Prefer
-  // the longer "extended" bio when both exist; otherwise fall back to
-  // the short one. New saves write to both columns to keep older
-  // consumers happy.
-  const mergedBio = a.extendedBio?.trim() || a.shortBio?.trim() || "";
+  // Bio is now two separate fields again — short (≤500 for cards) and
+  // optional extended (≤1000 for the bottom of the public page).
+  // Legacy rows that only filled the extended field flow into short.
+  const shortBio = (a.shortBio?.trim() || a.extendedBio?.trim() || "").slice(0, 500);
+  const longBio = (a.extendedBio?.trim() || "").slice(0, 1000);
   // Merge the legacy trio (sub-styles, style tags, themes) into a
   // single de-duped tags array — that's what the new UI works with.
   const mergedTags = Array.from(
@@ -426,10 +432,13 @@ function initProfile(a: Artist): ProfileState {
     postcode: a.postcode || "",
     primaryMedium: a.primaryMedium,
     discipline: a.discipline || "",
-    bio: mergedBio,
+    bio: shortBio,
+    extendedBio: longBio,
     instagram: a.instagram,
     tags: mergedTags,
-    bannerImage: a.works[0]?.image || "",
+    // Saved banner takes precedence; fall back to the first work image
+    // only when the artist hasn't set a banner yet (legacy accounts).
+    bannerImage: a.bannerImage || a.works[0]?.image || "",
     profileImage: a.image,
     offersOriginals: a.offersOriginals,
     offersPrints: a.offersPrints,
@@ -640,10 +649,10 @@ export default function ProfileEditorPage() {
     // a freshly-claimed account" (no existing row yet) and "update
     // existing profile", so we don't need a separate path for new users.
     try {
-      // Bio: split single field back into short (≤300 chars for cards)
-      // and extended (full text). New rows get both columns populated.
-      const shortBio = profile.bio.slice(0, 300).trim();
-      const extendedBio = profile.bio.trim();
+      // Bio: short (≤500, shown on cards + profile hero) + extended
+      // (≤1000, optional, shown at the bottom of the public page).
+      const shortBio = profile.bio.trim().slice(0, 500);
+      const extendedBio = profile.extendedBio.trim().slice(0, 1000);
 
       // Tags: split unified list into the three legacy columns so
       // older readers (browse filters, public pages) keep matching.
@@ -883,28 +892,49 @@ export default function ProfileEditorPage() {
               </div>
             </div>
             {/*
-             * Primary Medium removed — Discipline (in the section
-             * below) is the canonical taxonomy field and was duplicated.
-             *
-             * Bio: single field. The first 300 characters become the
-             * card-level "short" bio at save time; the full text becomes
-             * the extended bio.
+             * Bio is now two fields again. The short bio (≤500) is the
+             * elevator pitch — appears on cards, search hits, and the
+             * top of the public profile. The extended bio (≤1000,
+             * optional) sits at the bottom of the public profile so
+             * artists who want to write longer can.
              */}
             <div>
               <label className={labelClass}>
-                Bio
+                Short Bio
                 <span className="text-muted font-normal ml-2 text-xs">
-                  First 300 characters used as your short bio on cards
-                  &mdash; the rest shows on your full profile.
+                  Shown on cards and the top of your profile.
                 </span>
               </label>
               <textarea
                 value={profile.bio}
-                onChange={(e) => update("bio", e.target.value)}
-                rows={6}
-                placeholder="Tell your story — background, practice, exhibitions, influences. The opening lines should grip."
+                onChange={(e) => update("bio", e.target.value.slice(0, 500))}
+                rows={5}
+                maxLength={500}
+                placeholder="A two- or three-sentence opener — who you are, what you make, what to look out for."
                 className={`${inputClass} resize-none`}
               />
+              <p className={`text-[10px] mt-1 text-right ${profile.bio.length >= 480 ? "text-amber-600" : "text-muted"}`}>
+                {profile.bio.length} / 500
+              </p>
+            </div>
+            <div>
+              <label className={labelClass}>
+                Extended Bio <span className="text-muted font-normal text-xs">(optional)</span>
+                <span className="text-muted font-normal ml-2 text-xs">
+                  Long-form story shown at the bottom of your profile.
+                </span>
+              </label>
+              <textarea
+                value={profile.extendedBio}
+                onChange={(e) => update("extendedBio", e.target.value.slice(0, 1000))}
+                rows={6}
+                maxLength={1000}
+                placeholder="Background, practice, exhibitions, influences — the longer story for buyers who scroll all the way down."
+                className={`${inputClass} resize-none`}
+              />
+              <p className={`text-[10px] mt-1 text-right ${profile.extendedBio.length >= 980 ? "text-amber-600" : "text-muted"}`}>
+                {profile.extendedBio.length} / 1000
+              </p>
             </div>
           </div>
         </div>

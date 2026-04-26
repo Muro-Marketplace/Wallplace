@@ -115,6 +115,7 @@ export function dbProfileToArtist(profile: DbArtistProfile, works: DbArtistWork[
         ? { lat: profile.lat, lng: profile.lng }
         : null,
     image: profile.profile_image || `https://picsum.photos/seed/${profile.slug}/400/400`,
+    bannerImage: profile.banner_image || undefined,
     totalViews: profile.total_views || 0,
     totalPlacements: profile.total_placements || 0,
     totalSales: profile.total_sales || 0,
