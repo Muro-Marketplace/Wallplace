@@ -212,14 +212,7 @@ export default async function ArtistProfilePage({
                   sizes="128px"
                   priority
                 />
-                {artist.isFoundingArtist && (
-                  <span
-                    className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-white/90 backdrop-blur-sm text-[9px] font-medium text-foreground rounded-sm"
-                    title="Founding Artist"
-                  >
-                    Founding
-                  </span>
-                )}
+                {/* Founding Artist badge removed per product decision. */}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] text-muted uppercase tracking-[0.18em] mb-1.5">
@@ -371,14 +364,7 @@ export default async function ArtistProfilePage({
                   sizes="220px"
                   priority
                 />
-                {artist.isFoundingArtist && (
-                  <span
-                    className="absolute top-3 left-3 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-[10px] font-medium text-foreground rounded-sm cursor-help"
-                    title="One of the founding artists on Wallplace"
-                  >
-                    Founding Artist
-                  </span>
-                )}
+                {/* Founding Artist badge removed per product decision. */}
               </div>
               {/* CTAs sit just below the photo with a generous gap so
                   the pair reads as two distinct actions, not a stacked
@@ -541,13 +527,22 @@ export default async function ArtistProfilePage({
       {/* Portfolio + Extended Bio (client). Coerced to safe defaults
           so a row with NULL extended_bio / themes doesn't crash the
           client component on first render — the props are typed as
-          required strings/arrays. */}
+          required strings/arrays. Works with no image are filtered
+          out: <Image src=""> throws during the initial server HTML
+          render for client components and takes the whole route to
+          the error boundary. */}
       <ArtistProfileClient
         artistName={artist.name ?? ""}
         artistSlug={artist.slug ?? ""}
         extendedBio={artist.extendedBio ?? ""}
         themes={Array.isArray(artist.themes) ? artist.themes : []}
-        works={Array.isArray(artist.works) ? artist.works : []}
+        works={
+          Array.isArray(artist.works)
+            ? artist.works.filter(
+                (w) => typeof w.image === "string" && w.image.trim().length > 0,
+              )
+            : []
+        }
       />
 
       {/* Collections — pulled from the DB by artist slug. The seed

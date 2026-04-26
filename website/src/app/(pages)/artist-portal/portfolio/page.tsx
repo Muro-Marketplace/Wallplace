@@ -1542,6 +1542,7 @@ export default function PortfolioPage() {
                       {uploading ? "Uploading..." : "Replace Image"}
                     </button>
                     <p className="text-[10px] text-muted">JPG, PNG, or WebP — drag-and-drop supported. Recommended minimum 1200px wide.</p>
+                    <p className="text-[10px] text-muted/80 italic">Public versions are capped to a smaller resolution to discourage image theft — your full-resolution original is kept on file for fulfilment.</p>
                   </div>
                 </div>
               ) : (
@@ -1572,6 +1573,7 @@ export default function PortfolioPage() {
                     {uploading ? "Uploading..." : dragMain ? "Drop to upload" : "Click or drag an image here"}
                   </span>
                   <span className="text-[10px] text-muted">JPG, PNG, or WebP. Recommended minimum 1200px wide.</span>
+                  <span className="text-[10px] text-muted/80 italic">Public images are downsized to discourage theft — the original is kept for fulfilment.</span>
                 </button>
               )}
             </div>

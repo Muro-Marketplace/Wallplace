@@ -70,12 +70,8 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
           {/* Subtle gradient at bottom for legibility */}
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 to-transparent" />
 
-          {/* Founding Artist badge — only important badge */}
-          {artist.isFoundingArtist && (
-            <span className="absolute top-3 left-3 z-10 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-[10px] font-medium text-foreground rounded-sm">
-              Founding Artist
-            </span>
-          )}
+          {/* Founding Artist badge removed per product decision —
+              the marketing benefit didn't outweigh the visual noise. */}
 
           {/* Nav arrows — desktop hover only */}
           {images.length > 1 && (
