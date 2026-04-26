@@ -67,30 +67,41 @@ export async function getCollectionsByArtistSlug(
   artistName: string,
 ): Promise<ArtistCollection[]> {
   if (!slug) return [];
-  const db = getSupabaseAdmin();
+  // Top-level try/catch so a missing service-role env var, network
+  // blip, or schema mismatch doesn't take down the entire profile
+  // page. We just render zero collections and log it.
+  try {
+    const db = getSupabaseAdmin();
 
-  // Resolve the profile id from the slug — collections store
-  // artist_id, not slug, as their owner pointer.
-  const { data: profile, error: profileErr } = await db
-    .from("artist_profiles")
-    .select("id")
-    .eq("slug", slug)
-    .maybeSingle();
-  if (profileErr) {
-    console.warn("[artist-collections] profile lookup failed:", profileErr.message);
+    // Resolve the profile id from the slug — collections store
+    // artist_id, not slug, as their owner pointer.
+    const { data: profile, error: profileErr } = await db
+      .from("artist_profiles")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (profileErr) {
+      console.warn("[artist-collections] profile lookup failed:", profileErr.message);
+      return [];
+    }
+    if (!profile) return [];
+
+    const { data, error } = await db
+      .from("artist_collections")
+      .select("*")
+      .eq("artist_id", (profile as { id: string }).id)
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.warn("[artist-collections] list query failed:", error.message);
+      return [];
+    }
+    const rows = (data ?? []) as DbCollectionRow[];
+    return rows.map((r) => rowToCollection(r, artistName));
+  } catch (err) {
+    console.warn(
+      "[artist-collections] crashed:",
+      err instanceof Error ? err.message : String(err),
+    );
     return [];
   }
-  if (!profile) return [];
-
-  const { data, error } = await db
-    .from("artist_collections")
-    .select("*")
-    .eq("artist_id", (profile as { id: string }).id)
-    .order("created_at", { ascending: false });
-  if (error) {
-    console.warn("[artist-collections] list query failed:", error.message);
-    return [];
-  }
-  const rows = (data ?? []) as DbCollectionRow[];
-  return rows.map((r) => rowToCollection(r, artistName));
 }

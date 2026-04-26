@@ -55,7 +55,11 @@ const DEFAULTS: Record<VisualizerTier, TierLimits> = {
     monthly: 50,
     wall_uploads_daily: 1,
     saved_walls: 2,
-    saved_layouts_per_wall: 0,
+    // Bumped 0 → 1 so the showroom is actually usable on the free
+    // tier — saving the layout is a basic expectation when you've
+    // composed a scene. Multiple competing layouts per wall is the
+    // upsell that pushes artists to artist_premium (10) / pro (∞).
+    saved_layouts_per_wall: 1,
     can_publish_showroom: false,
   },
   artist_premium: {

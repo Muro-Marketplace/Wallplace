@@ -188,7 +188,23 @@ export default function NewArtistShowroomPage() {
         },
       );
       if (!layoutRes.ok) {
-        router.replace("/artist-portal/showroom");
+        // Surface the actual server error rather than silently
+        // bailing — a 402 plan-cap response used to redirect away
+        // and the user just saw "something went wrong". Show the
+        // message inline so they know to upgrade or what to try.
+        const body = (await layoutRes.json().catch(() => ({}))) as {
+          error?: string;
+          reason?: string;
+        };
+        if (layoutRes.status === 402) {
+          setCapError(
+            body.error ?? "Saving scenes isn't included on your plan.",
+          );
+        } else {
+          setError(
+            body.error ?? `Couldn't create the scene (${layoutRes.status}).`,
+          );
+        }
         return;
       }
       const layoutJson = (await layoutRes.json()) as { layout: WallLayout };
