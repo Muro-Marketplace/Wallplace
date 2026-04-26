@@ -194,8 +194,29 @@ export default function WallCanvas({
           width={size.w}
           height={size.h}
           onMouseDown={(e) => {
-            // Empty-stage click → deselect.
-            if (e.target === e.target.getStage()) onSelectItem(null);
+            // Deselect when the click hits anything that isn't part
+            // of an artwork item — bare stage, the wall background
+            // Rect, lighting overlays, the photo image, etc. Items
+            // sit inside Groups with their own onMouseDown handlers
+            // (which stopPropagation), so this only fires for
+            // background hits.
+            const target = e.target;
+            const stage = target.getStage();
+            if (target === stage) {
+              onSelectItem(null);
+              return;
+            }
+            // Walk up to see if any ancestor is an "item" Group.
+            // We tag those with a `name` attr so we can detect them
+            // here without a parent ref. If none, treat as empty
+            // background and deselect. Typed as Konva Node so
+            // getParent()'s Container return type fits.
+            let node: import("konva/lib/Node").Node | null = target;
+            while (node && node !== stage) {
+              if (node.attrs?.name === "wall-item") return;
+              node = node.getParent();
+            }
+            onSelectItem(null);
           }}
         >
           <Layer>
@@ -522,6 +543,10 @@ function CanvasItem({
     <>
       <Group
         ref={groupRef}
+        // `name` lets the Stage's onMouseDown handler walk the
+        // ancestor chain and recognise an item-Group hit so it
+        // doesn't deselect when the user clicks an artwork.
+        name="wall-item"
         x={pxX}
         y={pxY}
         // Explicit width/height anchor the Group's bounding box to the

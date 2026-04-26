@@ -19,13 +19,9 @@ export default function MessageArtistButton({ artistSlug, artistName, variant = 
 
   const widthStyles = fullWidth ? "w-full" : "min-w-[140px]";
   const baseStyles = `inline-flex items-center justify-center font-medium rounded-sm transition-colors ${widthStyles}`;
-  // Bump vertical padding when stretched full-width — column CTAs
-  // need more chunk to read as primary actions, not stacked chips.
   const sizeStyles = size === "lg"
     ? `px-8 py-3.5 text-sm font-semibold ${fullWidth ? "" : "min-w-[200px]"}`
-    : fullWidth
-      ? "px-5 py-3 text-sm"
-      : "px-5 py-2.5 text-sm";
+    : "px-5 py-2 text-sm";
   const variantStyles = variant === "primary"
     ? "bg-foreground text-white hover:bg-foreground/90"
     : "bg-accent text-white hover:bg-accent-hover";

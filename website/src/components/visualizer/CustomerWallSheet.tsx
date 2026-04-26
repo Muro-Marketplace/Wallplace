@@ -69,11 +69,14 @@ export default function CustomerWallSheet({ open, onClose, work }: Props) {
       role="dialog"
       aria-modal="true"
       aria-label={`View ${work.title} on a wall`}
-      className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-stretch sm:items-center justify-center sm:p-6"
+      // pt-14/lg:pt-20 keeps the modal header clear of the global
+      // nav bar (which is sticky at h-14 lg:h-16). Without this the
+      // sheet's "View on a wall" title gets clipped by the nav.
+      className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-stretch sm:items-start justify-center pt-14 sm:pt-20 sm:px-6 sm:pb-6"
       onClick={onClose}
     >
       <div
-        className="relative w-full sm:max-w-6xl bg-stone-50 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full sm:h-[90vh]"
+        className="relative w-full sm:max-w-6xl bg-stone-50 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col h-full sm:h-[calc(100vh-100px)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

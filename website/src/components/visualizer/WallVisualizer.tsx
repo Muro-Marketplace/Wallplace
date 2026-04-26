@@ -752,9 +752,11 @@ function WallVisualizerInner(props: ExtendedProps) {
           />
         )}
 
-        {/* Top bar — view-mode toggle + quota chip + save status */}
+        {/* Top-right — quota chip + save status. The 2D/3D toggle
+            used to live here too but the centred ItemToolbar (top
+            centre) gets wide enough to overlap, so the toggle moved
+            to its own bottom-left perch. */}
         <div className="absolute top-3 right-3 flex items-center gap-2">
-          <ViewModeToggle value={viewMode} onChange={setViewMode} />
           {canPersist && (
             <SaveStatus
               status={saveStatus}
@@ -775,6 +777,13 @@ function WallVisualizerInner(props: ExtendedProps) {
               setUpgradeOpen(true);
             }}
           />
+        </div>
+
+        {/* Bottom-left — 2D / 3D toggle. Clear of the centred wall
+            config bar (bottom-centre) and the centred item toolbar
+            (top-centre). */}
+        <div className="absolute bottom-3 left-3 z-10">
+          <ViewModeToggle value={viewMode} onChange={setViewMode} />
         </div>
 
         {/* Per-item toolbar — top centre when an item is selected */}

@@ -137,14 +137,20 @@ export default function WorksPanel({
           </div>
         )}
 
-        <input
-          type="search"
-          placeholder="Search…"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          disabled={list.length <= 1}
-          className="w-full text-xs px-2 py-1.5 rounded border border-black/10 focus:border-black/30 focus:outline-none bg-white disabled:bg-stone-50 disabled:text-stone-400"
-        />
+        {/* Hide the search box entirely when there's nothing to
+            search through — the customer "view on a wall" mode locks
+            to a single artwork, so a search field is just dead UI
+            (was already disabled, but disabled empty inputs read as
+            broken). */}
+        {list.length > 1 && (
+          <input
+            type="search"
+            placeholder="Search…"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-full text-xs px-2 py-1.5 rounded border border-black/10 focus:border-black/30 focus:outline-none bg-white"
+          />
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">
