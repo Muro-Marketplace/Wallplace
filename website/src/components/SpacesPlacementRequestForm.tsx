@@ -32,7 +32,7 @@ interface ArtistWork {
   medium?: string | null;
 }
 
-export type Arrangement = "revenue_share" | "paid_loan" | "purchase";
+export type Arrangement = "revenue_share" | "free_loan" | "purchase";
 
 export interface SpacesVenueOption {
   slug: string;
@@ -63,7 +63,7 @@ export default function SpacesPlacementRequestForm({
   const supported: Arrangement[] = useMemo(() => {
     const arr: Arrangement[] = [];
     if (venue.interestedInRevenueShare) arr.push("revenue_share");
-    if (venue.interestedInFreeLoan) arr.push("paid_loan");
+    if (venue.interestedInFreeLoan) arr.push("free_loan");
     if (venue.interestedInDirectPurchase) arr.push("purchase");
     return arr;
   }, [venue]);
@@ -132,7 +132,7 @@ export default function SpacesPlacementRequestForm({
             type: arrangement,
             revenueSharePercent:
               arrangement === "revenue_share" ? revenueShare : null,
-            monthlyFeeGbp: arrangement === "paid_loan" ? monthlyFee : null,
+            monthlyFeeGbp: arrangement === "free_loan" ? monthlyFee : null,
             qrEnabled: true,
             message: message.trim(),
           },
@@ -272,7 +272,13 @@ export default function SpacesPlacementRequestForm({
                     src={w.image}
                     alt={w.title}
                     fill
-                    sizes="64px"
+                    // Thumbnails were rendering at the source's lowest
+                    // available size, looking blurry. Bumping the sizes
+                    // hint forces Next/Image to fetch a higher-DPI
+                    // variant; quality 90 lifts the artwork clarity to
+                    // match the cards on the marketplace grid.
+                    sizes="(max-width: 640px) 96px, 128px"
+                    quality={90}
                     className="object-cover"
                   />
                   {active && (
@@ -313,7 +319,7 @@ export default function SpacesPlacementRequestForm({
           {(
             [
               { id: "revenue_share", label: "Revenue Share" },
-              { id: "paid_loan", label: "Paid Loan" },
+              { id: "free_loan", label: "Paid Loan" },
               { id: "purchase", label: "Direct Purchase" },
             ] as const
           ).map((opt) => {
@@ -367,7 +373,7 @@ export default function SpacesPlacementRequestForm({
           </div>
         </div>
       )}
-      {arrangement === "paid_loan" && (
+      {arrangement === "free_loan" && (
         <div>
           <p className="text-[10px] text-muted uppercase tracking-wider mb-2">
             Monthly fee

@@ -182,6 +182,20 @@ async function defaultBurstCheck(userId: string): Promise<Response | null> {
  * burst limits for `userId` performing `action`. If allowed, insert a
  * ledger row and return ok with remaining counts. If blocked, return the
  * reason without recording usage.
+ *
+ * Quota model:
+ *   - For render actions, the daily limit means "distinct artworks
+ *     rendered today". When metadata carries `work_id` (single) or
+ *     `work_ids` (array), we charge 1 unit per *new* artwork — repeat
+ *     renders of an already-rendered-today work cost 0. This lets
+ *     artists iterate freely on the same piece (different walls,
+ *     frames, sizes) without burning quota; only different artworks
+ *     consume the daily allowance.
+ *   - When metadata carries no work ids (legacy callers), or for non-
+ *     render actions, we fall back to the flat `ACTION_COSTS[action]`
+ *     value as before — preserves backward compatibility.
+ *   - A tier limit of `-1` means unlimited: we skip the cap entirely.
+ *     (artist_pro and venue_premium use this.)
  */
 export async function consumeQuota(
   input: ConsumeQuotaInput,
@@ -189,13 +203,6 @@ export async function consumeQuota(
 ): Promise<QuotaConsumeResult> {
   const db = deps.db ?? getSupabaseAdmin();
   const now = deps.now ? deps.now() : new Date();
-  const units = input.units ?? ACTION_COSTS[input.action] ?? 1;
-
-  if (units < 0) {
-    throw new Error(
-      "Use refundQuota() for negative units — consumeQuota only accepts positive costs.",
-    );
-  }
 
   const tier = await resolveTier(
     { userId: input.userId, ownerTypeHint: input.ownerTypeHint },
@@ -226,16 +233,55 @@ export async function consumeQuota(
   const dayBucket = dayBucketUTC(now);
   const monthBucket = monthBucketUTC(now);
 
+  // ── Cost determination ──────────────────────────────────────────────
+  // Per-artwork model for renders (when work ids are supplied);
+  // flat-cost fallback for everything else.
+  let units: number;
+  if (input.units !== undefined) {
+    units = input.units;
+  } else {
+    const isRender =
+      input.action === "render_standard" || input.action === "render_hd";
+    const meta = (input.metadata ?? {}) as Record<string, unknown>;
+    const requestedWorkIds = collectWorkIds(meta);
+
+    if (isRender && requestedWorkIds.length > 0) {
+      const renderedToday = await getWorkIdsRenderedToday(
+        db,
+        input.userId,
+        dayBucket,
+      );
+      let newCount = 0;
+      for (const id of requestedWorkIds) {
+        if (!renderedToday.has(id)) newCount += 1;
+      }
+      units = newCount;
+    } else {
+      units = ACTION_COSTS[input.action] ?? 1;
+    }
+  }
+
+  if (units < 0) {
+    throw new Error(
+      "Use refundQuota() for negative units — consumeQuota only accepts positive costs.",
+    );
+  }
+
+  // ── Limit checks ────────────────────────────────────────────────────
+  // 0-unit charges (e.g. re-render of an already-used artwork today)
+  // skip the cap check — they're effectively free.
   const [override, dailyUsed, monthlyUsed] = await Promise.all([
     readOverride(db, input.userId, now),
     sumUsage(db, input.userId, "day_bucket", dayBucket),
     sumUsage(db, input.userId, "month_bucket", monthBucket),
   ]);
 
-  const effectiveDaily = limits.daily + override.daily_extra;
-  const effectiveMonthly = limits.monthly + override.monthly_extra;
+  // Unlimited tiers (limit === -1) skip caps entirely. Override still
+  // adds to a finite cap; on top of unlimited it stays unlimited.
+  const effectiveDaily = limits.daily === -1 ? -1 : limits.daily + override.daily_extra;
+  const effectiveMonthly = limits.monthly === -1 ? -1 : limits.monthly + override.monthly_extra;
 
-  if (dailyUsed + units > effectiveDaily) {
+  if (units > 0 && effectiveDaily !== -1 && dailyUsed + units > effectiveDaily) {
     return {
       ok: false,
       reason: "daily",
@@ -243,7 +289,7 @@ export async function consumeQuota(
       tier,
     };
   }
-  if (monthlyUsed + units > effectiveMonthly) {
+  if (units > 0 && effectiveMonthly !== -1 && monthlyUsed + units > effectiveMonthly) {
     return {
       ok: false,
       reason: "monthly",
@@ -252,7 +298,8 @@ export async function consumeQuota(
     };
   }
 
-  // All clear — record consumption.
+  // All clear — record consumption (always, even when units === 0 so
+  // the audit trail captures the action).
   const { error } = await db.from("visualizer_usage").insert({
     user_id: input.userId,
     action: input.action,
@@ -278,9 +325,60 @@ export async function consumeQuota(
 
   return {
     ok: true,
-    remaining_daily: Math.max(0, effectiveDaily - dailyUsed - units),
-    remaining_monthly: Math.max(0, effectiveMonthly - monthlyUsed - units),
+    remaining_daily:
+      effectiveDaily === -1
+        ? Number.MAX_SAFE_INTEGER
+        : Math.max(0, effectiveDaily - dailyUsed - units),
+    remaining_monthly:
+      effectiveMonthly === -1
+        ? Number.MAX_SAFE_INTEGER
+        : Math.max(0, effectiveMonthly - monthlyUsed - units),
   };
+}
+
+// ── Per-artwork helpers ────────────────────────────────────────────────
+
+function collectWorkIds(meta: Record<string, unknown>): string[] {
+  const out: string[] = [];
+  const single = meta.work_id;
+  if (typeof single === "string" && single.length > 0) out.push(single);
+  const arr = meta.work_ids;
+  if (Array.isArray(arr)) {
+    for (const v of arr) {
+      if (typeof v === "string" && v.length > 0) out.push(v);
+    }
+  }
+  return out;
+}
+
+/**
+ * Returns the set of work ids the user has already rendered today.
+ * Reads metadata.work_id and metadata.work_ids out of every positive
+ * usage row and unions them. Soft-fails on errors — we'd rather risk
+ * a free re-render than block a legitimate one.
+ */
+async function getWorkIdsRenderedToday(
+  db: SupabaseClient,
+  userId: string,
+  dayBucket: string,
+): Promise<Set<string>> {
+  try {
+    const { data, error } = await db
+      .from("visualizer_usage")
+      .select("metadata")
+      .eq("user_id", userId)
+      .eq("day_bucket", dayBucket)
+      .gt("cost_units", 0);
+    if (error || !data) return new Set();
+    const out = new Set<string>();
+    for (const row of data as Array<{ metadata: unknown }>) {
+      const m = (row.metadata ?? {}) as Record<string, unknown>;
+      for (const id of collectWorkIds(m)) out.add(id);
+    }
+    return out;
+  } catch {
+    return new Set();
+  }
 }
 
 // ── Refund ──────────────────────────────────────────────────────────────
@@ -387,16 +485,24 @@ export async function getQuotaStatus(
     sumUsage(db, userId, "month_bucket", monthBucketUTC(now)),
   ]);
 
-  const effectiveDaily = limits.daily + override.daily_extra;
-  const effectiveMonthly = limits.monthly + override.monthly_extra;
+  // -1 sentinel = unlimited tier (artist_pro / venue_premium). Skip
+  // override addition — unlimited stays unlimited.
+  const effectiveDaily = limits.daily === -1 ? -1 : limits.daily + override.daily_extra;
+  const effectiveMonthly = limits.monthly === -1 ? -1 : limits.monthly + override.monthly_extra;
 
   return {
     tier,
     limits,
     daily_used: dailyUsed,
     monthly_used: monthlyUsed,
-    daily_remaining: Math.max(0, effectiveDaily - dailyUsed),
-    monthly_remaining: Math.max(0, effectiveMonthly - monthlyUsed),
+    daily_remaining:
+      effectiveDaily === -1
+        ? Number.MAX_SAFE_INTEGER
+        : Math.max(0, effectiveDaily - dailyUsed),
+    monthly_remaining:
+      effectiveMonthly === -1
+        ? Number.MAX_SAFE_INTEGER
+        : Math.max(0, effectiveMonthly - monthlyUsed),
     daily_resets_at: nextDailyResetUTC(now).toISOString(),
     monthly_resets_at: nextMonthlyResetUTC(now).toISOString(),
     override_active: override.active,

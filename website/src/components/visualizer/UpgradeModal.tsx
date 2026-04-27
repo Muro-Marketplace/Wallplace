@@ -100,8 +100,8 @@ export default function UpgradeModal({
       ? ` Resets at ${formatReset(resetsAt)}.`
       : "";
     return {
-      title: "Daily render limit hit",
-      body: `You've used today's renders on the ${tierLabel} plan.${resetCopy} Upgrade for more daily headroom — or come back tomorrow.`,
+      title: "Daily artwork limit hit",
+      body: `You've placed your daily artwork count on the ${tierLabel} plan — re-renders of works you've already used today are still free.${resetCopy} Upgrade for more daily artworks (or unlimited on Pro / Venue Premium).`,
       showUpgrade: true,
     };
   })();

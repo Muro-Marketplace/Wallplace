@@ -110,6 +110,25 @@ export default function QuotaChip({
 
   const used = status.daily_used;
   const limit = status.limits.daily;
+  const unlimited = limit === -1;
+
+  // Unlimited tier (artist_pro / venue_premium) — no count, just a
+  // calm "Unlimited" badge so the chip doesn't shout numbers that
+  // don't matter.
+  if (unlimited) {
+    return (
+      <div
+        aria-live="polite"
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/85 backdrop-blur border border-black/5 text-xs shadow-sm"
+      >
+        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+        <span className="text-stone-700">
+          Unlimited <span className="text-stone-500">artworks today</span>
+        </span>
+      </div>
+    );
+  }
+
   const remaining = status.daily_remaining;
   const ratio = limit > 0 ? used / limit : 1;
 
@@ -138,7 +157,7 @@ export default function QuotaChip({
       <span className={`h-2 w-2 rounded-full ${dotClass}`} />
       <span className={`tabular-nums ${textClass}`}>
         {used} <span className="text-stone-400">of</span> {limit}{" "}
-        <span className="text-stone-500">daily renders</span>
+        <span className="text-stone-500">artworks today</span>
       </span>
       {variant === "out" && onUpgradeClick && (
         <button

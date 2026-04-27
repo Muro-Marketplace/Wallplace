@@ -134,13 +134,25 @@ export async function POST(request: Request, ctx: RouteContext) {
   }
 
   // ── Consume quota ──────────────────────────────────────────────────
+  // Pass `work_ids` so consumeQuota can apply the per-artwork model:
+  // re-renders of works the user has already rendered today are free,
+  // and only NEW artworks count against the daily allowance.
+  const workIdsForQuota = Array.from(
+    new Set(items.map((i) => i.work_id).filter((id): id is string => !!id)),
+  );
   const consumed = await consumeQuota({
     userId,
     action,
-    units: costUnits,
+    // No `units` passed — consumeQuota will auto-calculate based on
+    // how many of `work_ids` are new today.
     ownerTypeHint: wall.owner_type,
     referenceId: layout.id,
-    metadata: { wall_id: wall.id, layout_id: layout.id, item_count: items.length },
+    metadata: {
+      wall_id: wall.id,
+      layout_id: layout.id,
+      item_count: items.length,
+      work_ids: workIdsForQuota,
+    },
   });
   if (!consumed.ok) {
     return NextResponse.json(

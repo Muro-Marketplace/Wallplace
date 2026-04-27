@@ -71,8 +71,10 @@ const DEFAULTS: Record<VisualizerTier, TierLimits> = {
     can_publish_showroom: false,
   },
   artist_pro: {
-    daily: 25,
-    monthly: 500,
+    // Pro tier — unlimited artworks rendered per day. -1 here is the
+    // sentinel quota.ts uses to skip the cap check entirely.
+    daily: -1,
+    monthly: -1,
     wall_uploads_daily: 5,
     saved_walls: -1,
     saved_layouts_per_wall: -1,
@@ -87,8 +89,9 @@ const DEFAULTS: Record<VisualizerTier, TierLimits> = {
     can_publish_showroom: false,
   },
   venue_premium: {
-    daily: 20,
-    monthly: 400,
+    // Venue Premium — unlimited artworks rendered per day.
+    daily: -1,
+    monthly: -1,
     wall_uploads_daily: 5,
     saved_walls: -1,
     saved_layouts_per_wall: -1,
