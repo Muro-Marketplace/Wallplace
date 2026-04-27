@@ -27,6 +27,12 @@ export interface GalleryWork {
   openToRevenueShare: boolean;
   revenueSharePercent?: number;
   openToOutrightPurchase: boolean;
+  /** Artist's subscription plan — used to put Pro / Premium works
+   *  first in the marketplace's "Featured" sort. Mirrors the Featured
+   *  chip on the artist card. */
+  artistSubscriptionPlan?: string;
+  /** Founding-artist flag — secondary tiebreaker for Featured sort. */
+  artistIsFounding?: boolean;
 }
 
 /** Build gallery works from static seed data (fallback) */
@@ -62,6 +68,8 @@ export function artistsToGalleryWorks(allArtists: Artist[]): GalleryWork[] {
       openToRevenueShare: artist.openToRevenueShare,
       revenueSharePercent: artist.revenueSharePercent,
       openToOutrightPurchase: artist.openToOutrightPurchase,
+      artistSubscriptionPlan: artist.subscriptionPlan,
+      artistIsFounding: artist.isFoundingArtist,
     }))
   );
 }

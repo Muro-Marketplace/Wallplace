@@ -425,7 +425,19 @@ function BrowsePortfoliosPageInner() {
         const db = b.coordinates ? calcDistance(userCoords.lat, userCoords.lng, b.coordinates.lat, b.coordinates.lng) : Infinity;
         return da - db;
       }
-      // "featured": founding artists first, then original order
+      // "featured": Pro-tier artists (the ones wearing the Featured chip)
+      // first, then Premium, then everyone else, with founding-artist
+      // status as the final tiebreaker. Previously sorted only by
+      // isFoundingArtist, which made the chip and the sort disagree.
+      const tierWeight = (plan?: string | null) => {
+        const p = (plan || "").toLowerCase();
+        if (p === "pro") return 0;
+        if (p === "premium") return 1;
+        return 2;
+      };
+      const wa = tierWeight(a.subscriptionPlan);
+      const wb = tierWeight(b.subscriptionPlan);
+      if (wa !== wb) return wa - wb;
       if (a.isFoundingArtist && !b.isFoundingArtist) return -1;
       if (!a.isFoundingArtist && b.isFoundingArtist) return 1;
       return 0;
@@ -500,7 +512,23 @@ function BrowsePortfoliosPageInner() {
         const db = b.artistCoordinates ? calcDistance(userCoords.lat, userCoords.lng, b.artistCoordinates.lat, b.artistCoordinates.lng) : Infinity;
         return da - db;
       }
-      return 0; // "featured": original order
+      // "featured": Pro-tier artists' works first, then Premium, then
+      // everyone else, with founding-artist status as the tiebreaker.
+      // Previously fell through to `return 0` which left the works in
+      // whatever order the underlying flatMap produced — i.e. no actual
+      // sort happened.
+      const tierWeight = (plan?: string | null) => {
+        const p = (plan || "").toLowerCase();
+        if (p === "pro") return 0;
+        if (p === "premium") return 1;
+        return 2;
+      };
+      const wa = tierWeight(a.artistSubscriptionPlan);
+      const wb = tierWeight(b.artistSubscriptionPlan);
+      if (wa !== wb) return wa - wb;
+      if (a.artistIsFounding && !b.artistIsFounding) return -1;
+      if (!a.artistIsFounding && b.artistIsFounding) return 1;
+      return 0;
     });
   }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, galleryLocationMode, userCoords, filters.maxDistance, activeDisciplineObj, activeSubStyles, gallerySort]);
 

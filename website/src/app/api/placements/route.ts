@@ -1239,6 +1239,19 @@ export async function PATCH(request: Request) {
         }
       }
     }
+    // Final fallback — if we still don't know the requester (legacy
+    // row, no message trail, etc.), use whichever party isn't us. The
+    // assumption: the responder is by definition not the requester, so
+    // the other side of the deal is the right notification target.
+    // This stops "no email + no bell" from silently happening on
+    // placements with a NULL requester_user_id.
+    if (!notifyRequesterId) {
+      if (auth.user!.id === existing.artist_user_id && existing.venue_user_id) {
+        notifyRequesterId = existing.venue_user_id;
+      } else if (auth.user!.id === existing.venue_user_id && existing.artist_user_id) {
+        notifyRequesterId = existing.artist_user_id;
+      }
+    }
     // Notify + post thread message on any pending → active/declined
     // transition. The notification half is gated on knowing who the
     // requester is (so we have someone to email/bell). The in-thread
@@ -1253,6 +1266,20 @@ export async function PATCH(request: Request) {
       existing.status === "pending" &&
       (status === "active" || status === "declined")
     ) {
+      // Always fire the in-app bell notification first — independent of
+      // email so a flaky email service / suppression / preferences gate
+      // can't take down the bell alert too. Previously this lived at
+      // the bottom of the try block below, meaning any pre-email
+      // exception (e.g. auth.admin.getUserById hiccup, render error in
+      // a template) silently lost the notification + the email together.
+      createNotification({
+        userId: notifyRequesterId,
+        kind: status === "active" ? "placement_accepted" : "placement_declined",
+        title: status === "active" ? "Placement accepted" : "Placement declined",
+        body: existing.venue || "Venue",
+        link: `/placements/${encodeURIComponent(id)}`,
+      }).catch((err) => console.warn("[placements] createNotification failed:", err));
+
       try {
         const { data: { user: requesterUser } } = await db.auth.admin.getUserById(notifyRequesterId);
         const { data: artistProfile } = await db
@@ -1357,18 +1384,10 @@ export async function PATCH(request: Request) {
           }
         }
 
-        // In-app notification to the requester. Deep-link to the
-        // specific placement page so clicking the notification lands
-        // exactly on the deal that changed, not the full list.
-        createNotification({
-          userId: notifyRequesterId,
-          kind: status === "active" ? "placement_accepted" : "placement_declined",
-          title: status === "active" ? "Placement accepted" : "Placement declined",
-          body: `${artistProfile?.name || "Artist"} · ${existing.venue || "Venue"}`,
-          link: `/placements/${encodeURIComponent(id)}`,
-        }).catch(() => {});
+        // (Bell notification was already fired above — moved out of
+        // this try so an email-side exception can't take it down.)
       } catch (err) {
-        console.warn("Response notification skipped:", err);
+        console.warn("Response email skipped:", err);
       }
     }
 
