@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import DemoBanner from "@/components/DemoBanner";
 
 export default function PagesLayout({
   children,
@@ -21,6 +22,11 @@ export default function PagesLayout({
         Skip to content
       </a>
       <Header />
+      {/* Demo-account banner — only renders when the signed-in user
+          matches NEXT_PUBLIC_DEMO_ARTIST_USER_ID / _VENUE_USER_ID.
+          Self-hides when those env vars aren't set, so this is safe
+          to leave mounted before Phase 2 demo accounts are wired. */}
+      <DemoBanner />
       <main id="main-content" className="flex-1 pt-14 lg:pt-16">{children}</main>
       {!isPortal && <Footer />}
     </div>

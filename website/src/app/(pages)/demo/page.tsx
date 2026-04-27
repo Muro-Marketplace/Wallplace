@@ -13,18 +13,40 @@ export const metadata: Metadata = {
 
 /**
  * /demo — secondary funnel for visitors who want to see the platform
- * before committing. Two cards, each pointing into the public profile
- * of a designated demo account (configured in `@/data/demo`).
+ * before committing. Two cards, each pointing into the relevant
+ * experience for the demo account.
  *
- * The framing is "this is what a finished, successful Wallplace
- * account looks like" — the public artist/venue page is the most
- * aspirational surface we have, and what marketplace visitors actually
- * use day-to-day. A future expansion adds a sandboxed read-only portal
- * tour for the management UI side; see `data/demo.ts` for notes.
+ * Two-stage routing:
+ *   1. Phase 2 (sandboxed portal tour configured): button links to
+ *      `/api/demo/login?role=...&next=...` which signs the visitor in
+ *      as the read-only demo user and redirects into the relevant
+ *      portal landing page.
+ *   2. Phase 1 fallback (no demo creds set): button links to the
+ *      public artist / venue profile page. The /api/demo/login
+ *      endpoint returns 503 in that mode so even a misconfigured
+ *      browser can't get stuck.
+ *
+ * Both buttons render the Phase 2 URL — the login endpoint
+ * gracefully degrades to the public profile if creds aren't set, via
+ * server-side guard. We can't conditionally render server-only logic
+ * here (this is an RSC), so the URL stays consistent.
  */
 export default function DemoLandingPage() {
   const demoArtist = artists.find((a) => a.slug === DEMO_ARTIST_SLUG) || artists[0];
   const demoVenue = venues.find((v) => v.slug === DEMO_VENUE_SLUG) || venues[0];
+
+  // Decide whether the Phase 2 portal-tour login is available. When
+  // it is, buttons hit the login endpoint; otherwise they fall back
+  // to the public profile pages (Phase 1 behaviour).
+  const portalTourEnabled = Boolean(
+    process.env.DEMO_ARTIST_EMAIL && process.env.DEMO_VENUE_EMAIL,
+  );
+  const artistHref = portalTourEnabled
+    ? `/api/demo/login?role=artist`
+    : `/browse/${demoArtist.slug}`;
+  const venueHref = portalTourEnabled
+    ? `/api/demo/login?role=venue`
+    : `/venues/${demoVenue.slug}`;
 
   return (
     <div className="bg-background min-h-screen">
@@ -50,7 +72,8 @@ export default function DemoLandingPage() {
         <div className="max-w-[1100px] mx-auto grid md:grid-cols-2 gap-5 sm:gap-7">
           {/* Demo artist */}
           <Link
-            href={`/browse/${demoArtist.slug}`}
+            href={artistHref}
+            prefetch={false}
             className="group block bg-surface border border-border rounded-sm overflow-hidden hover:border-accent/50 hover:shadow-sm transition-all"
           >
             <div className="aspect-[5/4] relative overflow-hidden bg-border/20">
@@ -99,7 +122,8 @@ export default function DemoLandingPage() {
 
           {/* Demo venue */}
           <Link
-            href={`/venues/${demoVenue.slug}`}
+            href={venueHref}
+            prefetch={false}
             className="group block bg-surface border border-border rounded-sm overflow-hidden hover:border-accent/50 hover:shadow-sm transition-all"
           >
             <div className="aspect-[5/4] relative overflow-hidden bg-border/20">
