@@ -70,8 +70,22 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
           {/* Subtle gradient at bottom for legibility */}
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/30 to-transparent" />
 
-          {/* Founding Artist badge removed per product decision —
-              the marketing benefit didn't outweigh the visual noise. */}
+          {/* Featured chip for Pro-tier artists. Subtle accent pill
+              in the top-left so it's visible at a glance in the
+              marketplace grid without competing with the heart at
+              top-right. Pro tier earns this automatically — there's
+              no manual curation step, the chip is purely a
+              subscription-tier signal. */}
+          {artist.subscriptionPlan === "pro" && (
+            <div className="absolute top-2 left-2 z-10 pointer-events-none">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/95 text-white text-[10px] font-medium tracking-wide shadow-sm">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+                Featured
+              </span>
+            </div>
+          )}
 
           {/* Nav arrows — desktop hover only */}
           {images.length > 1 && (

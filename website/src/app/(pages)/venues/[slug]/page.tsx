@@ -28,13 +28,70 @@ interface VenueShape {
   display_rotation_frequency?: string | null;
 }
 
-async function loadVenue(slug: string): Promise<VenueShape | null> {
+interface PublicWall {
+  id: string;
+  name: string;
+  width_cm: number;
+  height_cm: number;
+  kind: "preset" | "uploaded";
+  wall_color_hex: string;
+  source_image_url?: string;
+}
+
+async function loadPublicWalls(venueUserId: string): Promise<PublicWall[]> {
+  try {
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
+      .from("walls")
+      .select(
+        "id, name, width_cm, height_cm, kind, wall_color_hex, source_image_path, is_public_on_profile",
+      )
+      .eq("user_id", venueUserId)
+      .eq("is_public_on_profile", true)
+      .order("updated_at", { ascending: false });
+    if (error || !data) return [];
+    // Mint signed URLs for uploaded walls so the public page can show
+    // the actual photo. 1h expiry — the page is regenerated often
+    // enough that visitors won't see expired signatures in practice.
+    const out: PublicWall[] = [];
+    for (const w of data as Array<{
+      id: string;
+      name: string;
+      width_cm: number;
+      height_cm: number;
+      kind: "preset" | "uploaded";
+      wall_color_hex: string;
+      source_image_path: string | null;
+    }>) {
+      const base: PublicWall = {
+        id: w.id,
+        name: w.name,
+        width_cm: w.width_cm,
+        height_cm: w.height_cm,
+        kind: w.kind,
+        wall_color_hex: w.wall_color_hex,
+      };
+      if (w.kind === "uploaded" && w.source_image_path) {
+        const { data: signed } = await db.storage
+          .from("wall-photos")
+          .createSignedUrl(w.source_image_path, 60 * 60);
+        if (signed?.signedUrl) base.source_image_url = signed.signedUrl;
+      }
+      out.push(base);
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+async function loadVenue(slug: string): Promise<{ venue: VenueShape; userId: string | null } | null> {
   try {
     const db = getSupabaseAdmin();
     let { data } = await db
       .from("venue_profiles")
       .select(
-        "slug, name, type, location, city, postcode, wall_space, description, image, images, approximate_footfall, audience_type, interested_in_free_loan, interested_in_revenue_share, interested_in_direct_purchase, preferred_styles, preferred_themes, display_wall_space, display_lighting, display_install_notes, display_rotation_frequency",
+        "user_id, slug, name, type, location, city, postcode, wall_space, description, image, images, approximate_footfall, audience_type, interested_in_free_loan, interested_in_revenue_share, interested_in_direct_purchase, preferred_styles, preferred_themes, display_wall_space, display_lighting, display_install_notes, display_rotation_frequency",
       )
       .eq("slug", slug)
       .maybeSingle();
@@ -42,50 +99,61 @@ async function loadVenue(slug: string): Promise<VenueShape | null> {
       const fallback = await db
         .from("venue_profiles")
         .select(
-          "slug, name, type, location, city, postcode, wall_space, description, image, approximate_footfall, audience_type, interested_in_free_loan, interested_in_revenue_share, interested_in_direct_purchase, preferred_styles, preferred_themes",
+          "user_id, slug, name, type, location, city, postcode, wall_space, description, image, approximate_footfall, audience_type, interested_in_free_loan, interested_in_revenue_share, interested_in_direct_purchase, preferred_styles, preferred_themes",
         )
         .eq("slug", slug)
         .maybeSingle();
       data = (fallback.data as typeof data) || null;
     }
-    if (data) return data as unknown as VenueShape;
+    if (data) {
+      const row = data as unknown as VenueShape & { user_id?: string | null };
+      return { venue: row, userId: row.user_id ?? null };
+    }
   } catch {
     // Fall through to seed data
   }
   const seed = staticVenues.find((v) => v.slug === slug);
   if (!seed) return null;
   return {
-    slug: seed.slug,
-    name: seed.name,
-    type: seed.type,
-    location: seed.location,
-    city: seed.location,
-    postcode: null,
-    wall_space: seed.wallSpace,
-    description: seed.description,
-    image: seed.image,
-    images: Array.isArray(seed.images) ? seed.images : [],
-    approximate_footfall: seed.approximateFootfall,
-    audience_type: seed.audienceType,
-    interested_in_free_loan: seed.interestedInFreeLoan,
-    interested_in_revenue_share: seed.interestedInRevenueShare,
-    interested_in_direct_purchase: seed.interestedInDirectPurchase,
-    preferred_styles: seed.preferredStyles,
-    preferred_themes: seed.preferredThemes,
-    display_wall_space: seed.displayWallSpace || null,
-    display_lighting: seed.displayLighting || null,
-    display_install_notes: seed.displayInstallNotes || null,
-    display_rotation_frequency: seed.displayRotationFrequency || null,
+    venue: {
+      slug: seed.slug,
+      name: seed.name,
+      type: seed.type,
+      location: seed.location,
+      city: seed.location,
+      postcode: null,
+      wall_space: seed.wallSpace,
+      description: seed.description,
+      image: seed.image,
+      images: Array.isArray(seed.images) ? seed.images : [],
+      approximate_footfall: seed.approximateFootfall,
+      audience_type: seed.audienceType,
+      interested_in_free_loan: seed.interestedInFreeLoan,
+      interested_in_revenue_share: seed.interestedInRevenueShare,
+      interested_in_direct_purchase: seed.interestedInDirectPurchase,
+      preferred_styles: seed.preferredStyles,
+      preferred_themes: seed.preferredThemes,
+      display_wall_space: seed.displayWallSpace || null,
+      display_lighting: seed.displayLighting || null,
+      display_install_notes: seed.displayInstallNotes || null,
+      display_rotation_frequency: seed.displayRotationFrequency || null,
+    },
+    userId: null,
   };
 }
 
 export default async function VenueDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const venue = await loadVenue(slug);
-  if (!venue) notFound();
+  const loaded = await loadVenue(slug);
+  if (!loaded) notFound();
+  const { venue, userId } = loaded;
 
   const gallery = (venue.images || []).filter(Boolean);
   const hero = gallery[0] || venue.image || null;
+  // Public walls (My Walls saved + Show on public profile ticked).
+  // Pulled in parallel with the gallery render — empty array
+  // gracefully hides the section.
+  const publicWalls = userId ? await loadPublicWalls(userId) : [];
   const arrangements = [
     venue.interested_in_free_loan && "Paid loan",
     venue.interested_in_revenue_share && "Revenue share",
@@ -128,6 +196,66 @@ export default async function VenueDetailPage({ params }: { params: Promise<{ sl
             <section>
               <h2 className="font-serif text-lg text-foreground mb-3">About the space</h2>
               <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{venue.description}</p>
+            </section>
+          )}
+
+          {publicWalls.length > 0 && (
+            <section>
+              <h2 className="font-serif text-lg text-foreground mb-1">Available walls</h2>
+              <p className="text-xs text-muted mb-3">
+                Walls this venue has measured up. Tap a card to see the
+                exact dimensions and the wall colour at scale.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {publicWalls.map((w) => (
+                  <div
+                    key={w.id}
+                    className="rounded-sm overflow-hidden border border-border bg-white"
+                  >
+                    <div className="aspect-[5/3] bg-stone-100 relative">
+                      {w.kind === "uploaded" && w.source_image_url ? (
+                        // Uploaded photo. Quality 90 to match the
+                        // gallery; venue uploaded these to show the
+                        // wall, not for thumbnail-quality use.
+                        <Image
+                          src={w.source_image_url}
+                          alt={w.name}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, 50vw"
+                          quality={90}
+                        />
+                      ) : (
+                        // Preset — show the wall colour as a swatch
+                        // sized to the wall's actual aspect ratio so
+                        // the visual scale matches the dims label.
+                        <div
+                          className="absolute inset-0 grid place-items-center p-6"
+                          style={{ backgroundColor: "#F7F4EE" }}
+                        >
+                          <div
+                            className="rounded shadow-inner"
+                            style={{
+                              backgroundColor: `#${w.wall_color_hex}`,
+                              width: `${Math.min(100, (w.width_cm / w.height_cm) * 60)}%`,
+                              aspectRatio: `${w.width_cm} / ${w.height_cm}`,
+                              maxHeight: "100%",
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="px-3 py-2.5 flex items-center justify-between">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {w.name}
+                      </p>
+                      <p className="text-[11px] text-muted tabular-nums shrink-0 ml-3">
+                        {w.width_cm} × {w.height_cm} cm
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </section>
           )}
 
