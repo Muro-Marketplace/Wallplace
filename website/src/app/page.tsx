@@ -60,7 +60,7 @@ export default function Home() {
             the bottom of the section. Desktop unchanged. */}
         <div className="flex-1 flex items-center justify-center px-6 lg:px-10 pt-12 pb-0 sm:pt-0 sm:pb-32">
           <div className="max-w-[1400px] mx-auto w-full">
-            <div className="max-w-2xl mx-auto text-center">
+            <div className="max-w-2xl mx-auto text-center sm:relative">
               <h1 className="font-serif text-[2.6rem] sm:text-5xl md:text-[4.5rem] lg:text-[5.5rem] leading-[0.9] tracking-[-0.02em] text-white mt-6 sm:mt-10 mb-7 sm:mb-6">
                 WALLPLACE
               </h1>
@@ -87,12 +87,12 @@ export default function Home() {
               </div>
 
               {/* Demo-account funnel — secondary, low-pressure invitation
-                  for visitors who'd rather see the platform first. Lives
-                  here under the main hero CTAs so it doesn't compete
-                  with them visually but is impossible to miss. The
-                  /demo page funnels into a designated demo artist and
-                  demo venue profile — see src/data/demo.ts. */}
-              <p className="mt-7 sm:mt-6 text-sm text-white/60">
+                  for visitors who'd rather see the platform first. On
+                  desktop the line is absolutely positioned below the
+                  centered hero group so it never pushes the WALLPLACE
+                  logo + CTAs upward; on mobile it stays in normal flow
+                  where the user has dialled in the spacing already. */}
+              <p className="mt-7 sm:mt-6 sm:absolute sm:left-0 sm:right-0 sm:top-full text-sm text-white/60">
                 Just looking? See it as{" "}
                 <Link
                   href="/demo"
