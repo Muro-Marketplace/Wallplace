@@ -22,6 +22,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 interface ArtistWork {
   id: string;
@@ -99,11 +100,13 @@ export default function SpacesPlacementRequestForm({
     });
   }
 
-  const canSubmit =
-    !!primaryWork &&
-    !!arrangement &&
-    message.trim().length >= 20 &&
-    !submitting;
+  // Submit is allowed once the artist has picked a work and an
+  // arrangement type. The message field is a soft nudge — venues
+  // respond better to a real pitch — but we don't gate the submit
+  // on it, otherwise the button looks broken when the artist is
+  // ready to send. The send button stays disabled only while
+  // we're actually mid-submit.
+  const canSubmit = !!primaryWork && !!arrangement && !submitting;
 
   async function handleSubmit() {
     if (!canSubmit || !primaryWork) return;
@@ -433,7 +436,7 @@ export default function SpacesPlacementRequestForm({
           onClick={handleSubmit}
           disabled={!canSubmit}
           type="button"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-white text-xs font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-white text-xs font-semibold rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting && (
             <svg
@@ -449,8 +452,20 @@ export default function SpacesPlacementRequestForm({
               <path d="M21 12a9 9 0 1 1-6.2-8.55" />
             </svg>
           )}
-          {submitting ? "Sending…" : "Send Request"}
+          {submitting ? "Sending…" : "Send request"}
         </button>
+      </div>
+
+      {/* Optional handoff to the bigger form in the artist portal —
+          handy when the artist wants more options (work-level sizes,
+          notes, custom QR settings) than this inline form exposes. */}
+      <div className="text-center pt-1">
+        <Link
+          href={`/artist-portal/placements?venue=${encodeURIComponent(venue.slug)}`}
+          className="text-[11px] text-muted hover:text-foreground transition-colors"
+        >
+          Or open in My Placements for the full form &rarr;
+        </Link>
       </div>
     </div>
   );

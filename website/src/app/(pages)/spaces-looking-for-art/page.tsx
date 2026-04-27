@@ -525,13 +525,13 @@ export default function SpacesLookingForArtPage() {
                         ) : (
                           // Default action row for artists / customers viewing a
                           // venue card. Artists get the primary "Request a
-                          // placement" CTA + a secondary "Open in placements"
-                          // link that takes them to /artist-portal/placements
-                          // with this venue pre-selected (handy when they want
-                          // the bigger form rather than the inline one).
-                          <div className="mt-3 pt-3 border-t border-border flex flex-col gap-2.5">
-                            {canRequestPlacement && (
-                              <div className="flex items-center gap-2 flex-wrap">
+                          // placement" CTA — sentence-case, sleek, with a
+                          // subtle arrow. The handoff to the bigger
+                          // /artist-portal/placements form lives inside the
+                          // expanded inline form (footer link), not here.
+                          <div className="mt-3 pt-3 border-t border-border flex items-center justify-between gap-3 flex-wrap">
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {canRequestPlacement && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -539,20 +539,15 @@ export default function SpacesLookingForArtPage() {
                                     e.stopPropagation();
                                     setRequestOpenSlug(venue.slug);
                                   }}
-                                  className="inline-flex items-center justify-center px-3.5 py-2 rounded-sm bg-accent text-white text-xs font-semibold tracking-wider uppercase hover:bg-accent-hover transition-colors"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-white text-xs font-medium hover:bg-accent-hover transition-colors"
                                 >
                                   Request a placement
+                                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                    <polyline points="12 5 19 12 12 19" />
+                                  </svg>
                                 </button>
-                                <Link
-                                  href={`/artist-portal/placements?venue=${encodeURIComponent(venue.slug)}`}
-                                  className="text-[11px] text-muted hover:text-foreground transition-colors"
-                                  title="Open the full placement request form in your placements section"
-                                >
-                                  Open in My Placements &rarr;
-                                </Link>
-                              </div>
-                            )}
-                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                              )}
                               <button
                                 type="button"
                                 onClick={() => {
@@ -563,10 +558,10 @@ export default function SpacesLookingForArtPage() {
                               >
                                 Message
                               </button>
-                              <Link href={`/venues/${venue.slug}`} className="text-xs text-muted hover:text-foreground transition-colors">
-                                View full profile
-                              </Link>
                             </div>
+                            <Link href={`/venues/${venue.slug}`} className="text-xs text-muted hover:text-foreground transition-colors">
+                              View full profile
+                            </Link>
                           </div>
                         )}
                       </>
