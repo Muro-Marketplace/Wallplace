@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
 import PlacementStepper, { type PlacementStepperData } from "@/components/PlacementStepper";
+import PaidLoanPaymentChip from "@/components/PaidLoanPaymentChip";
 import PlacementActionItems from "@/components/PlacementActionItems";
 import { authFetch } from "@/lib/api-client";
 import { useAuth } from "@/context/AuthContext";
@@ -60,6 +61,9 @@ interface PlacementRequest {
   /** Bilateral-confirmation proposal fields for installed / collected. */
   proposedStage?: "installed" | "collected" | null;
   proposedByUserId?: string | null;
+  /** Stripe subscription state for paid-loan placements. Null until
+   *  the venue runs the Checkout flow at /placements/[id]/payment. */
+  subscriptionStatus?: string | null;
 }
 
 interface ArtistWork {
@@ -469,6 +473,7 @@ export default function VenuePlacementsPage() {
         scheduledFor: (p.scheduled_for as string | null) ?? null,
         installedAt: (p.installed_at as string | null) ?? null,
         liveFrom: (p.live_from as string | null) ?? null,
+        subscriptionStatus: (p.subscription_status as string | null) ?? null,
         collectedAt: (p.collected_at as string | null) ?? null,
         requesterUserId: (p.requester_user_id as string | null) ?? null,
         monthlyFeeGbp: (p.monthly_fee_gbp as number | null) ?? null,
@@ -1771,6 +1776,18 @@ export default function VenuePlacementsPage() {
                         liveFrom: next.liveFrom ?? x.liveFrom,
                         collectedAt: next.collectedAt ?? x.collectedAt,
                       } : x))}
+                    />
+                    {/* Paid-loan payment status — only shown once the
+                        work is actually live on the wall. Venues get
+                        an action chip linking to /placements/[id]/payment;
+                        artists see the info-only variant. */}
+                    <PaidLoanPaymentChip
+                      placementId={p.id}
+                      arrangementType={p.type as string}
+                      monthlyFeeGbp={p.monthlyFeeGbp}
+                      liveFrom={p.liveFrom}
+                      subscriptionStatus={p.subscriptionStatus}
+                      role="venue"
                     />
 
                     {/* Mobile actions — outline-only buttons, primary on

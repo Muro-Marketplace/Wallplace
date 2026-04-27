@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
 import PlacementActionItems from "@/components/PlacementActionItems";
 import PlacementStepper, { type PlacementStepperData } from "@/components/PlacementStepper";
+import PaidLoanPaymentChip from "@/components/PaidLoanPaymentChip";
 import { useCurrentArtist } from "@/hooks/useCurrentArtist";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
@@ -50,6 +51,9 @@ interface Placement {
   collectedAt?: string | null;
   createdAtTs?: number;
   updatedAtTs?: number;
+  /** Stripe subscription state for paid-loan placements. Null until
+   *  the venue runs the Checkout flow at /placements/[id]/payment. */
+  subscriptionStatus?: string | null;
 }
 
 interface InteractedVenue {
@@ -305,6 +309,7 @@ export default function PlacementsPage() {
               installedAt: (p.installed_at as string | null) ?? null,
               liveFrom: (p.live_from as string | null) ?? null,
               collectedAt: (p.collected_at as string | null) ?? null,
+              subscriptionStatus: (p.subscription_status as string | null) ?? null,
               createdAtTs: p.created_at ? new Date(p.created_at as string).getTime() : 0,
               // The latest timestamp on the row — used to sort the list
               // so a just-accepted or just-declined placement bubbles to
@@ -1657,6 +1662,18 @@ export default function PlacementsPage() {
                     liveFrom: next.liveFrom ?? x.liveFrom,
                     collectedAt: next.collectedAt ?? x.collectedAt,
                   } : x))}
+                />
+                {/* Paid-loan payment status — only shown once the work is
+                    actually live on the venue's wall. Self-hides for any
+                    placement that doesn't qualify (non-paid-loan, not yet
+                    live, subscription already healthy). */}
+                <PaidLoanPaymentChip
+                  placementId={p.id}
+                  arrangementType={p.type as string}
+                  monthlyFeeGbp={p.monthlyFeeGbp}
+                  liveFrom={p.liveFrom}
+                  subscriptionStatus={p.subscriptionStatus}
+                  role="artist"
                 />
 
                 {/* Mobile actions — outline-only buttons, split by a
