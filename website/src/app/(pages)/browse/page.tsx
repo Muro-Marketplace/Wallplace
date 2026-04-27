@@ -191,13 +191,12 @@ function BrowsePortfoliosPageInner() {
   // right, top-to-bottom (CSS `columns-*` alone gives the masonry look but
   // fills top-to-bottom per column, which breaks the sort). We track the
   // viewport-based column count in state and recompute on resize.
-  const [galleryColCount, setGalleryColCount] = useState(3);
+  const [galleryColCount, setGalleryColCount] = useState(2);
   useEffect(() => {
     function compute() {
       const w = window.innerWidth;
       if (w >= 1024) setGalleryColCount(3);
-      else if (w >= 640) setGalleryColCount(2);
-      else setGalleryColCount(1);
+      else setGalleryColCount(2);
     }
     compute();
     window.addEventListener("resize", compute);
