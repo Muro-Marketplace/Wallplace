@@ -1427,7 +1427,16 @@ export async function PATCH(request: Request) {
             recipient_slug: recipientSlug,
             recipient_user_id: recipientUserId || null,
             content,
-            is_read: false,
+            // Auto-system messages are pre-read for the recipient.
+            // They get a dedicated `placement_accepted` /
+            // `placement_declined` in-app notification AND a polished
+            // email; counting this message as unread on top causes
+            // the messages bell to bump in addition to the
+            // notifications bell — what users reported as "double
+            // notifications". The message still renders inline in
+            // the thread for context when the user actually opens
+            // the conversation.
+            is_read: true,
             created_at: new Date().toISOString(),
           };
           const extendedMsg = {
