@@ -118,6 +118,15 @@ export default function PlacementDetailClient({ placementId }: Props) {
   const [responding, setResponding] = useState<"accept" | "decline" | null>(null);
   const [respondError, setRespondError] = useState<string | null>(null);
   const [counterOpen, setCounterOpen] = useState(false);
+  // Schedule install: clicking "Mark scheduled" used to immediately
+  // stamp the timestamp with `now`. The user wants the same date-picker
+  // pattern as PlacementStepper (My Placements) so they can pick the
+  // actual install date.
+  const [schedulePickerOpen, setSchedulePickerOpen] = useState(false);
+  const [scheduleDraft, setScheduleDraft] = useState<string>("");
+  const [advanceBusy, setAdvanceBusy] = useState<
+    "scheduled" | "installed" | "live" | "collected" | null
+  >(null);
   // Loan record is collapsed by default but auto-expands once a record
   // exists so users land on the data instead of having to click open.
   const [loanRecordOpen, setLoanRecordOpen] = useState(false);
@@ -210,16 +219,59 @@ export default function PlacementDetailClient({ placementId }: Props) {
     });
   }, [placement, recordParam]);
 
-  async function handleAdvance(stage: "scheduled" | "installed" | "live" | "collected") {
+  async function handleAdvance(
+    stage: "scheduled" | "installed" | "live" | "collected",
+    explicitDate?: string,
+  ) {
     if (!placement) return;
+    setAdvanceBusy(stage);
     try {
+      const body: Record<string, unknown> = { id: placement.id, stage };
+      if (explicitDate) body.stageDate = explicitDate;
       const res = await authFetch("/api/placements", {
         method: "PATCH",
-        body: JSON.stringify({ id: placement.id, stage }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) return;
       await load({ silent: true });
+      setSchedulePickerOpen(false);
     } catch { /* ignore; next load will reconcile */ }
+    finally {
+      setAdvanceBusy(null);
+    }
+  }
+
+  /**
+   * Convert the picker's YYYY-MM-DD string into an ISO datetime at
+   * midday local time (so the saved timestamp lands on the intended
+   * calendar day regardless of viewer timezone), then PATCH.
+   */
+  async function confirmSchedule() {
+    if (!scheduleDraft) return;
+    const iso = new Date(`${scheduleDraft}T12:00:00`).toISOString();
+    await handleAdvance("scheduled", iso);
+  }
+
+  // Open the picker pre-seeded with the existing scheduledFor (if any),
+  // so revising a date doesn't require re-typing it.
+  function openSchedulePicker() {
+    if (placement?.scheduled_for) {
+      const d = new Date(placement.scheduled_for);
+      if (!Number.isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        setScheduleDraft(`${y}-${m}-${day}`);
+      }
+    } else {
+      // Default to today.
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      setScheduleDraft(`${y}-${m}-${day}`);
+    }
+    setSchedulePickerOpen(true);
   }
 
   async function handleUndoStage(stage: "scheduled" | "installed" | "live" | "collected") {
@@ -505,27 +557,102 @@ export default function PlacementDetailClient({ placementId }: Props) {
                 const showAdvanceBtn = placement.status === "active" && nextKey && nextLabel;
                 const showUndoBtn = !!lastReachedKey;
                 if (!showAdvanceBtn && !showUndoBtn) return null;
+                // Scheduled stage opens a date picker first (mirrors the
+                // PlacementStepper / My Placements flow). Other stages
+                // stamp `now` immediately.
+                const advanceIsSchedule = nextKey === "scheduled";
+                const canEditSchedule =
+                  placement.status === "active" &&
+                  !!placement.scheduled_for &&
+                  !placement.installed_at;
                 return (
-                  <div className="mt-4 pt-3 border-t border-border flex items-center gap-2 flex-wrap">
-                    {showAdvanceBtn && nextKey && nextLabel && (
-                      <button
-                        type="button"
-                        onClick={() => handleAdvance(nextKey)}
-                        className="px-3.5 py-1.5 text-xs font-medium text-accent bg-accent/5 border border-accent/30 hover:bg-accent/10 rounded-sm transition-colors"
-                      >
-                        Mark {nextLabel.toLowerCase()}
-                      </button>
+                  <>
+                    <div className="mt-4 pt-3 border-t border-border flex items-center gap-2 flex-wrap">
+                      {showAdvanceBtn && nextKey && nextLabel && advanceIsSchedule && !schedulePickerOpen && (
+                        <button
+                          type="button"
+                          onClick={openSchedulePicker}
+                          disabled={advanceBusy !== null}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-accent bg-accent/5 border border-accent/30 hover:bg-accent/10 rounded-sm transition-colors disabled:opacity-60"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                          </svg>
+                          Schedule install
+                        </button>
+                      )}
+                      {showAdvanceBtn && nextKey && nextLabel && !advanceIsSchedule && (
+                        <button
+                          type="button"
+                          onClick={() => handleAdvance(nextKey)}
+                          disabled={advanceBusy !== null}
+                          className="px-3.5 py-1.5 text-xs font-medium text-accent bg-accent/5 border border-accent/30 hover:bg-accent/10 rounded-sm transition-colors disabled:opacity-60"
+                        >
+                          {advanceBusy === nextKey ? `Marking ${nextLabel.toLowerCase()}…` : `Mark ${nextLabel.toLowerCase()}`}
+                        </button>
+                      )}
+                      {showUndoBtn && lastReachedKey && (
+                        <button
+                          type="button"
+                          onClick={() => handleUndoStage(lastReachedKey)}
+                          className="px-3 py-1.5 text-xs font-medium text-muted bg-background border border-border hover:text-foreground hover:border-foreground/30 rounded-sm transition-colors"
+                        >
+                          Undo {lastReachedKey}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Once a date is set but install hasn't happened, let
+                        the user revise it. Mirrors the "Change install
+                        date" link in PlacementStepper. */}
+                    {canEditSchedule && !schedulePickerOpen && (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={openSchedulePicker}
+                          className="text-[11px] text-muted hover:text-accent transition-colors"
+                        >
+                          Change install date
+                        </button>
+                      </div>
                     )}
-                    {showUndoBtn && lastReachedKey && (
-                      <button
-                        type="button"
-                        onClick={() => handleUndoStage(lastReachedKey)}
-                        className="px-3 py-1.5 text-xs font-medium text-muted bg-background border border-border hover:text-foreground hover:border-foreground/30 rounded-sm transition-colors"
-                      >
-                        Undo {lastReachedKey}
-                      </button>
+
+                    {/* Picker — same shape as PlacementStepper so the
+                        full placement page and the list rows feel
+                        consistent. */}
+                    {schedulePickerOpen && (
+                      <div className="mt-2 flex items-center gap-2 flex-wrap bg-surface border border-border rounded-sm px-3 py-2">
+                        <label className="text-xs text-muted">Install date</label>
+                        <input
+                          type="date"
+                          value={scheduleDraft}
+                          onChange={(e) => setScheduleDraft(e.target.value)}
+                          min={new Date().toISOString().slice(0, 10)}
+                          className="px-2 py-1 bg-background border border-border rounded-sm text-xs focus:outline-none focus:border-accent/60"
+                        />
+                        <button
+                          type="button"
+                          onClick={confirmSchedule}
+                          disabled={!scheduleDraft || advanceBusy !== null}
+                          className="px-3 py-1 text-xs font-medium text-accent bg-accent/5 border border-accent/30 hover:bg-accent/10 rounded-sm transition-colors disabled:opacity-60"
+                        >
+                          {advanceBusy === "scheduled"
+                            ? "Saving…"
+                            : placement.scheduled_for
+                              ? "Update date"
+                              : "Confirm"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSchedulePickerOpen(false)}
+                          disabled={advanceBusy !== null}
+                          className="px-2 py-1 text-xs text-muted hover:text-foreground transition-colors disabled:opacity-60"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     )}
-                  </div>
+                  </>
                 );
               })()}
             </>
