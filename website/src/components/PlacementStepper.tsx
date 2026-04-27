@@ -222,9 +222,17 @@ export default function PlacementStepper({ placement, canAdvance = false, onChan
                 type="button"
                 onClick={(e) => { e.stopPropagation(); advance(nextStage); }}
                 disabled={busy !== null}
-                className="px-3.5 py-1.5 text-xs font-medium text-accent bg-accent/5 border border-accent/30 hover:bg-accent/10 rounded-sm transition-colors disabled:opacity-60"
+                className="px-3.5 py-1.5 text-xs font-medium text-accent bg-accent/5 border border-accent/30 hover:bg-accent/10 rounded-sm transition-colors disabled:opacity-60 inline-flex items-center gap-1.5"
               >
-                {busy === nextStage ? "Updating…" : `Mark ${label}`}
+                {busy === nextStage ? (
+                  <>
+                    <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" opacity="0.4" />
+                      <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                    Marking {label.toLowerCase()}…
+                  </>
+                ) : `Mark ${label}`}
               </button>
             )}
             {showUndo && lastReachedStage && (
@@ -287,7 +295,15 @@ export default function PlacementStepper({ placement, canAdvance = false, onChan
             disabled={!scheduleDraft || busy !== null}
             className="px-3 py-1 text-xs font-medium text-accent bg-accent/5 border border-accent/30 hover:bg-accent/10 rounded-sm transition-colors disabled:opacity-60"
           >
-            {busy === "scheduled" ? "Saving…" : hasSchedule ? "Update date" : "Confirm"}
+            {busy === "scheduled" ? (
+              <>
+                <svg className="animate-spin inline-block mr-1.5" width="11" height="11" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" opacity="0.4" />
+                  <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                Saving…
+              </>
+            ) : hasSchedule ? "Update date" : "Confirm"}
           </button>
           <button
             type="button"
