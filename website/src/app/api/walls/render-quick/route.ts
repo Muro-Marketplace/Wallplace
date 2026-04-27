@@ -102,7 +102,15 @@ export async function POST(request: Request) {
   let background: LayoutBackground;
   let wallWidthCm: number;
   let wallHeightCm: number;
-  let ownerTypeHint: WallOwnerType = "customer";
+  // Undefined by default — the tier resolver will fall through artist →
+  // venue → customer using the user's actual profile. Hard-coding
+  // "customer" here meant a logged-in artist_premium (10/day) or
+  // venue_standard (5/day) using the quick-render flow without a
+  // saved wall (the customer artwork-page entry point) was capped at
+  // the customer 2/day tier — which is what produced the "5 vs 2"
+  // mismatch between My Walls and the artwork page. Real customers
+  // still resolve to customer tier via the fallthrough.
+  let ownerTypeHint: WallOwnerType | undefined = undefined;
 
   if (parsed.data.wall_id) {
     const wall = await getWallById(parsed.data.wall_id);

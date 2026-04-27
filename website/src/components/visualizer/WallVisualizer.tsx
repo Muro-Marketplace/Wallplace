@@ -1265,5 +1265,12 @@ function clampDimension(value: number): number {
 function ownerTypeFromMode(mode: VisualizerEditorProps["mode"]) {
   if (mode === "venue_my_walls") return "venue" as const;
   if (mode === "artist_mockup" || mode === "artist_showroom") return "artist" as const;
-  return "customer" as const;
+  // customer_artwork_page is reachable from /browse/[slug]/[work] for any
+  // signed-in user — including artists and venues. Returning a literal
+  // "customer" hint forces the resolver to short-circuit to customer
+  // (2/day) even when the actual user is an artist_premium (10/day) or
+  // venue_standard (5/day). Undefined lets the resolver fall through
+  // artist → venue → customer based on what the user actually is, which
+  // is what we want here. Real customers still resolve to customer tier.
+  return undefined;
 }
