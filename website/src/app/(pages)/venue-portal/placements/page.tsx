@@ -182,18 +182,21 @@ function ArtistPickerDropdown({ onPick }: { onPick: (slug: string, name: string)
         return slug.split("-").map((w) => (w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
       };
 
-      // Saved artists (works saved → owning artist, plus direct type='artist')
+      // Saved artists — ONLY entries the venue explicitly hearted at
+      // the artist level (saved_items with type='artist'). The
+      // earlier "saving a work counts as saving the artist" logic
+      // bled every artist whose work was hearted into the picker
+      // and the saved-artist count, which surprised venues
+      // (saving "this artwork I like" ≠ "I want to follow this
+      // artist"). Both signals are still useful — works saved
+      // surface as a separate "Saved works → these artists" hint
+      // elsewhere if needed — but they don't merge into the
+      // saved-artist count any more.
       try {
         const savedRes = await authFetch("/api/saved");
         const savedData = await savedRes.json();
         const items: { type: string; itemId: string }[] = savedData.savedItems || [];
-        const workIds = items.filter((i) => i.type === "work").map((i) => i.itemId);
         const artistSet = new Map<string, string>();
-        for (const a of artistsList) {
-          if (a.works?.some((w) => workIds.includes(w.id))) {
-            artistSet.set(a.slug, a.name);
-          }
-        }
         for (const i of items.filter((x) => x.type === "artist")) {
           artistSet.set(i.itemId, nameFor(i.itemId));
         }
@@ -1500,9 +1503,17 @@ export default function VenuePlacementsPage() {
                                   <button
                                     onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
                                     disabled={responding === p.id}
-                                    className="px-3.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-sm transition-colors disabled:opacity-50"
+                                    className="px-3.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-sm transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
                                   >
-                                    {responding === p.id ? "…" : "Accept"}
+                                    {responding === p.id ? (
+                                      <>
+                                        <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none">
+                                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" opacity="0.4" />
+                                          <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                                        </svg>
+                                        Accepting
+                                      </>
+                                    ) : "Accept"}
                                   </button>
                                   <button
                                     type="button"
@@ -1514,9 +1525,17 @@ export default function VenuePlacementsPage() {
                                   <button
                                     onClick={(e) => { e.stopPropagation(); respond(p.id, false); }}
                                     disabled={responding === p.id}
-                                    className="px-3.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-sm transition-colors disabled:opacity-50"
+                                    className="px-3.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-sm transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
                                   >
-                                    Decline
+                                    {responding === p.id ? (
+                                      <>
+                                        <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none">
+                                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" opacity="0.4" />
+                                          <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                                        </svg>
+                                        Declining
+                                      </>
+                                    ) : "Decline"}
                                   </button>
                                 </>
                               )}
@@ -1763,9 +1782,17 @@ export default function VenuePlacementsPage() {
                           <button
                             onClick={(e) => { e.stopPropagation(); respond(p.id, true); }}
                             disabled={responding === p.id}
-                            className="flex-1 px-3.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-sm transition-colors disabled:opacity-50"
+                            className="flex-1 px-3.5 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-sm transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                           >
-                            {responding === p.id ? "…" : "Accept"}
+                            {responding === p.id ? (
+                              <>
+                                <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none">
+                                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" opacity="0.4" />
+                                  <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                                </svg>
+                                Accepting
+                              </>
+                            ) : "Accept"}
                           </button>
                           <button
                             type="button"

@@ -9,6 +9,14 @@ import { authFetch } from "@/lib/api-client";
 
 // Nav order: Dashboard → Profile / Portfolio → Messages → Placements → rest.
 // (See plan item #8 — Profile first, then Messages, then Placements.)
+//
+// Settings used to live alongside the rest in the primary list with
+// "Browse Site" relegated to a secondary section. Browse-Site was
+// noise: every artist already has the global header link to leave
+// the portal, so a duplicate sidebar entry served no purpose. We
+// dropped it and moved Settings into the secondary slot so it sits
+// under a divider, visually separated from the main workflow links
+// — matches the pattern used in venue-portal.
 const navItems = [
   { label: "Dashboard", href: "/artist-portal" },
   { label: "Edit Profile", href: "/artist-portal/profile" },
@@ -22,11 +30,10 @@ const navItems = [
   { label: "QR Labels", href: "/artist-portal/labels" },
   { label: "Analytics", href: "/artist-portal/analytics" },
   { label: "Billing", href: "/artist-portal/billing" },
-  { label: "Settings", href: "/artist-portal/settings" },
 ];
 
 const secondaryItems = [
-  { label: "Browse Site", href: "/" },
+  { label: "Settings", href: "/artist-portal/settings" },
 ];
 
 interface ArtistPortalLayoutProps {

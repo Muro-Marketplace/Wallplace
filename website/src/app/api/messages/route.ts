@@ -487,3 +487,64 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
+
+// PATCH /api/messages — bulk-mark read.
+// Body: { all: true }   marks every unread message addressed to the
+//                       current user as read.
+//
+// The per-conversation PATCH at /api/messages/[conversationId] still
+// exists for the in-thread "I'm reading this thread" path. This
+// endpoint is for the "Mark all as read" affordance in the header
+// inbox dropdown — one click clears the unread badge across every
+// thread without having to open each one.
+export async function PATCH(request: Request) {
+  const auth = await getAuthenticatedUser(request);
+  if (auth.error) return auth.error;
+
+  let body: { all?: boolean } = {};
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  if (body.all !== true) {
+    return NextResponse.json(
+      { error: "Pass { all: true } to mark all messages read." },
+      { status: 400 },
+    );
+  }
+
+  const db = getSupabaseAdmin();
+
+  // Resolve the current user's slug — messages.recipient_slug is
+  // either an artist or venue slug. We mark by slug so a single
+  // user with both a venue and an artist account doesn't accidentally
+  // wipe the wrong inbox; in practice users have only one role, but
+  // the slug guard keeps it explicit either way.
+  const userId = auth.user!.id;
+  const [artistRes, venueRes] = await Promise.all([
+    db.from("artist_profiles").select("slug").eq("user_id", userId).maybeSingle(),
+    db.from("venue_profiles").select("slug").eq("user_id", userId).maybeSingle(),
+  ]);
+  const slugs = [artistRes.data?.slug, venueRes.data?.slug].filter(
+    (s): s is string => typeof s === "string" && s.length > 0,
+  );
+  if (slugs.length === 0) {
+    // No profile yet — nothing to mark. Treat as no-op success.
+    return NextResponse.json({ success: true, updated: 0 });
+  }
+
+  const { error, count } = await db
+    .from("messages")
+    .update({ is_read: true }, { count: "exact" })
+    .in("recipient_slug", slugs)
+    .eq("is_read", false);
+
+  if (error) {
+    console.error("[messages PATCH all] failed:", error);
+    return NextResponse.json({ error: "Failed to mark read" }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true, updated: count ?? 0 });
+}

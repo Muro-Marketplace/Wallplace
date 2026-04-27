@@ -28,11 +28,19 @@ export default function SavedPage() {
       .filter(Boolean);
   }, [savedItems]);
 
-  // Derive unique artists from saved works
+  // Only artists explicitly saved (type === "artist"). Previously
+  // this was derived from savedWorks — saving a work was being
+  // treated as saving the artist, so the count and grid filled
+  // up with artists the venue had never actually saved (heart on
+  // any work bumped the saved-artists count). Counts on the
+  // dashboard, the placement-request artist picker, and this
+  // page now all read from the same explicit savedItems source.
   const savedArtistSlugs = useMemo(() => {
-    const slugs = new Set(savedWorks.map((w) => w!.artistSlug));
-    return artists.filter((a) => slugs.has(a.slug));
-  }, [savedWorks]);
+    const ids = new Set(
+      savedItems.filter((s) => s.type === "artist").map((s) => s.id),
+    );
+    return artists.filter((a) => ids.has(a.slug));
+  }, [savedItems]);
 
   return (
     <VenuePortalLayout>

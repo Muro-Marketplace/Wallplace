@@ -458,9 +458,34 @@ export default function Header() {
                   {/* Dropdown panel */}
                   {msgDropdownOpen && (
                     <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[110]">
-                      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-foreground">Messages</p>
-                        <Link href={`${portalBase}/messages`} onClick={() => setMsgDropdownOpen(false)} className="text-xs text-accent hover:text-accent-hover">View All</Link>
+                        <div className="flex items-center gap-3">
+                          {unreadCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                // Optimistic: zero the badge + clear
+                                // the per-row dots immediately, then
+                                // ask the server. Next poll
+                                // reconciles if anything's drifted.
+                                setUnreadCount(0);
+                                setConversations((prev) =>
+                                  prev.map((c) => ({ ...c, unreadCount: 0 })),
+                                );
+                                authFetch("/api/messages", {
+                                  method: "PATCH",
+                                  body: JSON.stringify({ all: true }),
+                                }).catch(() => {});
+                              }}
+                              className="text-[11px] text-muted hover:text-foreground transition-colors"
+                            >
+                              Mark all read
+                            </button>
+                          )}
+                          <Link href={`${portalBase}/messages`} onClick={() => setMsgDropdownOpen(false)} className="text-xs text-accent hover:text-accent-hover">View All</Link>
+                        </div>
                       </div>
                       <div className="max-h-80 overflow-y-auto">
                         {conversations.length === 0 ? (

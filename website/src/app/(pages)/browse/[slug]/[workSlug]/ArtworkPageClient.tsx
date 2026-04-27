@@ -119,10 +119,20 @@ export default function ArtworkPageClient({
     return null;
   })();
 
+  // The number we surface here is the SELECTED size's stock cap when
+  // the artist set a per-size quantity. Saying just "2 available"
+  // misleads buyers — they read it as "2 of this artwork in total"
+  // when it's actually "2 of this size". When the cap is per-size,
+  // tag it explicitly. Falls back to the work-level unqualified
+  // label for legacy artworks tracking stock at the work level.
+  const sizeStockIsPerSize = typeof selectedPricing?.quantityAvailable === "number";
   const availabilityLabel = (() => {
     if (!work.available) return "Sold";
     if (typeof sizeStock === "number") {
-      return sizeStock > 0 ? `${sizeStock} available` : "Sold out";
+      if (sizeStock <= 0) return "Sold out at this size";
+      return sizeStockIsPerSize
+        ? `${sizeStock} available in this size`
+        : `${sizeStock} available`;
     }
     return "Available";
   })();
