@@ -97,7 +97,18 @@ export default async function VenueDetailPage({ params }: { params: Promise<{ sl
       {/* Hero */}
       <div className="relative h-[280px] sm:h-[360px] bg-border/20">
         {hero && (
-          <Image src={hero} alt={venue.name} fill className="object-cover" sizes="100vw" priority />
+          // quality=92: hero is the first thing visitors judge a venue
+          // on. Default Next.js quality (75) shows visible JPEG
+          // artefacting on detail-heavy interior shots.
+          <Image
+            src={hero}
+            alt={venue.name}
+            fill
+            className="object-cover"
+            sizes="100vw"
+            quality={92}
+            priority
+          />
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/30 to-black/70" />
         <div className="absolute inset-x-0 bottom-0 p-6 sm:p-10 text-white">
@@ -126,7 +137,14 @@ export default async function VenueDetailPage({ params }: { params: Promise<{ sl
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {gallery.slice(1).map((url, i) => (
                   <div key={i} className="relative aspect-[4/3] rounded-sm overflow-hidden border border-border bg-background">
-                    <Image src={url} alt="" fill className="object-cover" sizes="(max-width: 640px) 50vw, 33vw" />
+                    <Image
+                      src={url}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 50vw, 33vw"
+                      quality={88}
+                    />
                   </div>
                 ))}
               </div>

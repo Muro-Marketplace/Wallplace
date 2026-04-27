@@ -34,8 +34,13 @@ const PHOTOS_BUCKET = "wall-photos";
 
 // ── Tuning ──────────────────────────────────────────────────────────────
 
-export const OUTPUT_WIDTH_PX = 1600;
-export const OUTPUT_HEIGHT_PX = 1200;
+// Render output dims. 2400×1800 (was 1600×1200) — file size grows
+// ~2.25× but the on-screen preview at full-bleed lap/desktop sizes
+// no longer looks soft. Wall photos uploaded by venues come in at
+// 3000–5000px; pushing the render canvas up means the source
+// detail isn't getting squeezed into a tiny composite.
+export const OUTPUT_WIDTH_PX = 2400;
+export const OUTPUT_HEIGHT_PX = 1800;
 const PADDING_PX = 80;
 
 /** Outer canvas colour around the wall. Warm off-white = "studio". */
@@ -175,7 +180,10 @@ export async function renderLayout(input: RenderInput): Promise<RenderResult> {
     },
   })
     .composite(composites)
-    .webp({ quality: 85 })
+    // Quality 90: noticeable jump in cleanliness on detail-heavy
+    // venue photo backgrounds. ~30% larger files than 85, still
+    // streams comfortably over typical UK broadband.
+    .webp({ quality: 90 })
     .toBuffer();
 
   return {

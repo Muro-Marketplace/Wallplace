@@ -45,7 +45,6 @@ export default function ArtworkPageClient({
   // explicitly opt in to a frame.
   const [selectedFrameIdx, setSelectedFrameIdx] = useState(-1);
   const selectedFrame = selectedFrameIdx >= 0 ? frameOptions[selectedFrameIdx] : undefined;
-  const frameUplift = selectedFrame?.priceUplift || 0;
   const [wallVizOpen, setWallVizOpen] = useState(false);
 
   // ── Wall visualiser swap ──────────────────────────────────────────
@@ -80,6 +79,46 @@ export default function ArtworkPageClient({
   }, []);
 
   const selectedPricing = work.pricing[selectedSizeIdx] || work.pricing[0];
+
+  // Frame uplift scales by size. The artist's `priceUplift` value is
+  // treated as the price for the SMALLEST listed size; for larger
+  // sizes we scale by perimeter (≈ frame moulding cost) which gives
+  // a much more realistic ramp than a flat number across an A4 print
+  // and a 100×80cm canvas. The smallest size is picked deterministically
+  // by ascending area so the baseline doesn't depend on which size
+  // the buyer has selected. Falls back to the flat uplift if the
+  // size labels can't be parsed.
+  const frameUplift = (() => {
+    if (!selectedFrame) return 0;
+    const baseUplift = selectedFrame.priceUplift || 0;
+    if (baseUplift <= 0) return 0;
+    if (!work.pricing || work.pricing.length === 0) return baseUplift;
+    const parsedSizes = work.pricing
+      .map((p) => ({ pricing: p, dims: parseDimensions(p.label) }))
+      .filter(
+        (x): x is { pricing: typeof work.pricing[0]; dims: { widthCm: number; heightCm: number } } =>
+          Boolean(x.dims),
+      );
+    if (parsedSizes.length === 0) return baseUplift;
+    let smallestArea = Infinity;
+    let baselinePerimeter = 0;
+    for (const s of parsedSizes) {
+      const a = s.dims.widthCm * s.dims.heightCm;
+      if (a < smallestArea) {
+        smallestArea = a;
+        baselinePerimeter = 2 * (s.dims.widthCm + s.dims.heightCm);
+      }
+    }
+    if (!baselinePerimeter) return baseUplift;
+    const selectedDims = selectedPricing
+      ? parseDimensions(selectedPricing.label)
+      : null;
+    if (!selectedDims) return baseUplift;
+    const selectedPerimeter =
+      2 * (selectedDims.widthCm + selectedDims.heightCm);
+    return Math.round(baseUplift * (selectedPerimeter / baselinePerimeter));
+  })();
+
   const displayPrice = selectedPricing
     ? Math.round((selectedPricing.price + frameUplift) * 100) / 100
     : null;
@@ -250,11 +289,54 @@ export default function ArtworkPageClient({
             onChange={(v) => setSelectedFrameIdx(Number(v))}
             options={[
               { value: "-1", label: "No frame" },
-              ...frameOptions.map((f, i) => ({
-                value: String(i),
-                label: f.label,
-                description: f.priceUplift > 0 ? `+£${f.priceUplift}` : undefined,
-              })),
+              ...frameOptions.map((f, i) => {
+                // Show the per-size scaled uplift in the dropdown so
+                // the buyer sees the actual price they'll pay for the
+                // currently-selected size, not the artist's small-size
+                // baseline. Uses the same scaling logic as the live
+                // frameUplift used on the buy button.
+                const scaledForRow = (() => {
+                  const baseUplift = f.priceUplift || 0;
+                  if (baseUplift <= 0) return 0;
+                  const parsedSizes = work.pricing
+                    .map((p) => ({ pricing: p, dims: parseDimensions(p.label) }))
+                    .filter(
+                      (
+                        x,
+                      ): x is {
+                        pricing: typeof work.pricing[0];
+                        dims: { widthCm: number; heightCm: number };
+                      } => Boolean(x.dims),
+                    );
+                  if (parsedSizes.length === 0) return baseUplift;
+                  let smallestArea = Infinity;
+                  let baselinePerimeter = 0;
+                  for (const s of parsedSizes) {
+                    const a = s.dims.widthCm * s.dims.heightCm;
+                    if (a < smallestArea) {
+                      smallestArea = a;
+                      baselinePerimeter =
+                        2 * (s.dims.widthCm + s.dims.heightCm);
+                    }
+                  }
+                  if (!baselinePerimeter) return baseUplift;
+                  const selectedDims = selectedPricing
+                    ? parseDimensions(selectedPricing.label)
+                    : null;
+                  if (!selectedDims) return baseUplift;
+                  const selectedPerimeter =
+                    2 * (selectedDims.widthCm + selectedDims.heightCm);
+                  return Math.round(
+                    baseUplift * (selectedPerimeter / baselinePerimeter),
+                  );
+                })();
+                return {
+                  value: String(i),
+                  label: f.label,
+                  description:
+                    scaledForRow > 0 ? `+£${scaledForRow}` : undefined,
+                };
+              }),
             ]}
             ariaLabel="Choose frame"
           />

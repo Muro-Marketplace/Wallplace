@@ -88,7 +88,16 @@ export function parseContractRef(ref: string): { bucket: string; path: string } 
  */
 export async function uploadImage(
   file: File,
-  bucket: "avatars" | "artworks" | "collections"
+  bucket: "avatars" | "artworks" | "collections",
+  options?: {
+    /** Override the per-bucket max dimension. Use 2400 for venue
+        gallery / wall reference photos where soft images on the
+        public profile read as low-effort. */
+    maxDimension?: number;
+    /** WebP/JPEG quality 0–1. Default 0.85; bump to 0.92 for venue
+        gallery so detail in space + lighting survives compression. */
+    quality?: number;
+  },
 ): Promise<string> {
   // Validate file type
   if (!ALLOWED_TYPES.includes(file.type)) {
@@ -109,8 +118,11 @@ export async function uploadImage(
   // Resize large images before upload (max 2000px, converts to WebP if supported)
   let uploadBlob: Blob = file;
   try {
-    const maxDim = bucket === "avatars" ? 800 : bucket === "collections" ? 1800 : 2000;
-    uploadBlob = await resizeImage(file, maxDim);
+    const defaultMaxDim =
+      bucket === "avatars" ? 800 : bucket === "collections" ? 1800 : 2000;
+    const maxDim = options?.maxDimension ?? defaultMaxDim;
+    const quality = options?.quality ?? 0.85;
+    uploadBlob = await resizeImage(file, maxDim, quality);
   } catch {
     // If resize fails, upload original
     uploadBlob = file;

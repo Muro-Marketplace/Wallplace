@@ -268,7 +268,15 @@ export default function VenueProfilePage() {
     try {
       const urls: string[] = [];
       for (const file of Array.from(files).slice(0, 10 - venueImages.length)) {
-        const url = await uploadImage(file, "collections");
+        // Venue gallery photos drive the public venue profile + the
+        // listing card on /spaces. Crank the quality knob: 2400px
+        // max (vs 1800 default) and 0.92 WebP quality (vs 0.85). The
+        // file size delta is small in absolute terms but the visible
+        // difference at hero size is large.
+        const url = await uploadImage(file, "collections", {
+          maxDimension: 2400,
+          quality: 0.92,
+        });
         urls.push(url);
       }
       if (urls.length > 0) {

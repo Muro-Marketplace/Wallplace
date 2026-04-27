@@ -4,14 +4,21 @@
  */
 
 const MAX_DIMENSION = 2000;
+const DEFAULT_QUALITY = 0.85;
 
 /**
  * Resize an image file if it exceeds maxDimension in either direction.
  * Returns a new Blob (WebP if supported, otherwise JPEG).
+ *
+ * Quality defaults to 0.85 (artwork thumbnails on cards). Pass 0.92+
+ * for venue photos + wall reference uploads where the buyer is
+ * judging the *space*, not the artwork — softer JPEG/WebP at the
+ * default rate looks visibly cheap on the public venue profile.
  */
 export async function resizeImage(
   file: File,
-  maxDimension: number = MAX_DIMENSION
+  maxDimension: number = MAX_DIMENSION,
+  quality: number = DEFAULT_QUALITY,
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -43,6 +50,12 @@ export async function resizeImage(
         return;
       }
 
+      // Opt into higher-quality scaling — default canvas smoothing
+      // is browser-dependent but usually mid-tier and visibly soft on
+      // photographs. The "high" preset matches what the upload
+      // pipeline used to do via a separate sharp pass.
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, width, height);
 
       // Try WebP first, fall back to JPEG
@@ -57,12 +70,12 @@ export async function resizeImage(
                 resolve(jpegBlob || file);
               },
               "image/jpeg",
-              0.85
+              quality,
             );
           }
         },
         "image/webp",
-        0.85
+        quality,
       );
     };
 
