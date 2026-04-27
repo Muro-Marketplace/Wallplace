@@ -26,6 +26,7 @@ import { useRouter } from "next/navigation";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
 import { useAuth } from "@/context/AuthContext";
 import { isFlagOn } from "@/lib/feature-flags";
+import { resizeImage } from "@/lib/image";
 import { PRESET_WALLS, getPresetWall } from "@/lib/visualizer/preset-walls";
 import type { Wall, WallLayout } from "@/lib/visualizer/types";
 
@@ -90,8 +91,21 @@ export default function NewVenueWallPage() {
     setUploadError(null);
     setUploading(true);
     try {
+      // Compress + resize before upload — iPhone photos at full size
+      // typically run 4-12MB which trips Vercel's serverless body
+      // limit (≈4.5MB) and surfaces as a 413. 2400px max / 0.88 keeps
+      // the photo sharp enough to use as a wall reference while
+      // landing well under the platform cap (usually under 1MB).
+      let uploadBlob: Blob = file;
+      try {
+        uploadBlob = await resizeImage(file, 2400, 0.88);
+      } catch {
+        // Resize unsupported (e.g. browser can't decode HEIC) — fall
+        // back to the original. The route's MAX_BYTES will still
+        // surface an error that's clearer than a Vercel 413.
+      }
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", uploadBlob, file.name);
       const res = await fetch("/api/walls/upload-photo", {
         method: "POST",
         headers: session?.access_token
