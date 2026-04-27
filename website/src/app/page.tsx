@@ -111,7 +111,7 @@ export default function Home() {
             continues to 110vh and the background photo extends below.
             On sm+ the trust bar sits at the natural bottom of the
             normal-height (100vh) hero. */}
-        <div className="relative z-10 mt-auto mb-[10vh] sm:mb-0">
+        <div className="relative z-10 mt-auto mb-[14vh] sm:mb-0">
           {/* Scroll to see more */}
           <button
             onClick={scrollToContent}
