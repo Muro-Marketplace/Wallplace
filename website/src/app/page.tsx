@@ -33,7 +33,7 @@ export default function Home() {
       <Header />
 
       {/* ─── HERO ─── full screen with transparent nav */}
-      <section className="relative min-h-[110vh] sm:min-h-screen flex flex-col">
+      <section className="relative min-h-screen flex flex-col">
         {/* Hero background image – scoped to hero only */}
         <div className="absolute inset-0 -z-10">
           <Image
@@ -95,8 +95,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Scroll indicator + trust bar – anchored to bottom, pushed up on mobile */}
-        <div className="relative z-10 mt-auto mb-[13vh] sm:mb-0">
+        {/* Scroll indicator + trust bar – anchored to bottom of the
+            hero on every viewport. The previous mobile push (110vh
+            height + 13vh bottom margin) shifted the centered logo /
+            CTAs upwards on phones; reverted to the desktop layout
+            so the content sits where it used to. */}
+        <div className="relative z-10 mt-auto">
           {/* Scroll to see more */}
           <button
             onClick={scrollToContent}

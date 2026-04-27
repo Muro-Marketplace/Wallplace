@@ -30,7 +30,10 @@ export const CATEGORY_RULES: Record<EmailCategory, CategoryRules> = {
   orders_and_payouts:  { stream: "tx",     criticalAlwaysSend: true,  throttleCount: 0, throttleHours: 0 },
   placements:          { stream: "notify", criticalAlwaysSend: false, throttleCount: 10, throttleHours: 24 },
   messages:            { stream: "notify", criticalAlwaysSend: false, throttleCount: 20, throttleHours: 24 },
-  digests:             { stream: "notify", criticalAlwaysSend: false, throttleCount: 2,  throttleHours: 168 }, // ~1/week
+  // Bumped to 8/168h so daily digests (e.g. QR scan digest) can send
+  // alongside the original weekly performance digest without tripping
+  // the throttle. Still capped low enough to suppress runaway batches.
+  digests:             { stream: "notify", criticalAlwaysSend: false, throttleCount: 8,  throttleHours: 168 },
   recommendations:     { stream: "notify", criticalAlwaysSend: false, throttleCount: 3,  throttleHours: 168 },
   tips:                { stream: "news",   criticalAlwaysSend: false, throttleCount: 2,  throttleHours: 168 },
   newsletter:          { stream: "news",   criticalAlwaysSend: false, throttleCount: 4,  throttleHours: 720 }, // ~1/week

@@ -848,12 +848,26 @@ export async function POST(request: Request) {
           const arrival = payout.arrival_date
             ? new Date(payout.arrival_date * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
             : "shortly";
+          const amountLabel = `£${(payout.amount / 100).toFixed(2)}`;
+
+          // Bell notification — fires alongside the email so the
+          // artist sees the payout in-app immediately, not just via
+          // their inbox. Idempotency on payout_id at the email layer
+          // protects against double-notifying on retried webhooks.
+          createNotification({
+            userId: artistProfile.user_id,
+            kind: "payout_sent",
+            title: `Payout sent · ${amountLabel}`,
+            body: `Expected to land ${arrival}`,
+            link: "/artist-portal/billing/payouts",
+          }).catch((err) => console.warn("[stripe webhook] payout notification failed:", err));
+
           await sendEmail({
             idempotencyKey: `payout_sent:${payout.id}`,
             template: "artist_payout_sent",
             category: "orders_and_payouts",
             to: user.email,
-            subject: `Payout on the way: £${(payout.amount / 100).toFixed(2)}`,
+            subject: `Payout on the way: ${amountLabel}`,
             userId: artistProfile.user_id,
             react: ArtistPayoutSent({
               firstName: (artistProfile.name || "there").split(" ")[0],
