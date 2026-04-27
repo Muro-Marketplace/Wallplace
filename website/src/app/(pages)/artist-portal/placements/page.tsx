@@ -158,6 +158,9 @@ export default function PlacementsPage() {
   const formRef = useRef<HTMLDivElement | null>(null);
   const searchParams = useSearchParams();
   const venuePrefill = searchParams?.get("venue") || "";
+  const messagePrefill = searchParams?.get("prefillMessage") || "";
+  const wallNamePrefill = searchParams?.get("wallName") || "";
+  const wallDimsPrefill = searchParams?.get("wallDims") || "";
 
   // When a `?venue=<slug>` param is present (e.g. from the Spaces page
   // "Open in My Placements" link), prefill the form's venue and open
@@ -173,6 +176,7 @@ export default function PlacementsPage() {
     prefillAppliedRef.current = venuePrefill;
     setVenueSlug(venuePrefill);
     setShowForm(true);
+    if (messagePrefill) setMessage(messagePrefill);
 
     // Make sure the venue picker has this slug as an option even if
     // the artist hasn't messaged the venue before — fetch the public
@@ -730,6 +734,25 @@ export default function PlacementsPage() {
             <h2 className="text-base font-medium">Request Placement</h2>
             <button onClick={() => setShowForm(false)} className="text-xs text-muted hover:text-foreground transition-colors">Cancel</button>
           </div>
+
+          {/* Wall context — shown when the artist arrived here from a
+              specific venue wall (via /venues/[slug] wall card). The
+              wall info is in the URL params; we surface it as a visible
+              chip so the form clearly belongs to "this wall" not just
+              "this venue". The message field is also pre-filled with a
+              wall-aware opener. */}
+          {wallNamePrefill && (
+            <div className="mb-4 inline-flex items-center gap-2 px-3 py-2 rounded-sm bg-accent/8 border border-accent/30 text-xs">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent shrink-0"><rect x="3" y="3" width="18" height="18" rx="1" /><path d="M3 12h18M12 3v18" /></svg>
+              <span className="text-foreground/90">
+                Proposing for{" "}
+                <span className="font-semibold">{wallNamePrefill}</span>
+                {wallDimsPrefill ? (
+                  <span className="text-muted"> · {wallDimsPrefill}</span>
+                ) : null}
+              </span>
+            </div>
+          )}
 
           <div className="space-y-5">
             {/* Venue selector */}

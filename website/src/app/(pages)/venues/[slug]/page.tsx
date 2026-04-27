@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { venues as staticVenues } from "@/data/venues";
+import VenueWallCard from "@/components/VenueWallCard";
 
 interface VenueShape {
   slug: string;
@@ -203,57 +204,16 @@ export default async function VenueDetailPage({ params }: { params: Promise<{ sl
             <section>
               <h2 className="font-serif text-lg text-foreground mb-1">Available walls</h2>
               <p className="text-xs text-muted mb-3">
-                Walls this venue has measured up. Tap a card to see the
-                exact dimensions and the wall colour at scale.
+                Walls this venue has measured up. Tap a card to view it
+                in detail and request a placement on that exact wall.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {publicWalls.map((w) => (
-                  <div
+                  <VenueWallCard
                     key={w.id}
-                    className="rounded-sm overflow-hidden border border-border bg-white"
-                  >
-                    <div className="aspect-[5/3] bg-stone-100 relative">
-                      {w.kind === "uploaded" && w.source_image_url ? (
-                        // Uploaded photo. Quality 90 to match the
-                        // gallery; venue uploaded these to show the
-                        // wall, not for thumbnail-quality use.
-                        <Image
-                          src={w.source_image_url}
-                          alt={w.name}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 100vw, 50vw"
-                          quality={90}
-                        />
-                      ) : (
-                        // Preset — show the wall colour as a swatch
-                        // sized to the wall's actual aspect ratio so
-                        // the visual scale matches the dims label.
-                        <div
-                          className="absolute inset-0 grid place-items-center p-6"
-                          style={{ backgroundColor: "#F7F4EE" }}
-                        >
-                          <div
-                            className="rounded shadow-inner"
-                            style={{
-                              backgroundColor: `#${w.wall_color_hex}`,
-                              width: `${Math.min(100, (w.width_cm / w.height_cm) * 60)}%`,
-                              aspectRatio: `${w.width_cm} / ${w.height_cm}`,
-                              maxHeight: "100%",
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div className="px-3 py-2.5 flex items-center justify-between">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {w.name}
-                      </p>
-                      <p className="text-[11px] text-muted tabular-nums shrink-0 ml-3">
-                        {w.width_cm} × {w.height_cm} cm
-                      </p>
-                    </div>
-                  </div>
+                    wall={w}
+                    venue={{ slug: venue.slug, name: venue.name }}
+                  />
                 ))}
               </div>
             </section>
