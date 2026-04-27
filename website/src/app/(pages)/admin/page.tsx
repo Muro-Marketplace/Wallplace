@@ -9,6 +9,36 @@ interface Stats {
   applications: { total: number; pending: number; accepted: number; rejected: number };
   artists: number;
   venues: number;
+  // Added in /api/admin/stats expansion (item #23). All optional so old
+  // deployments without these fields render gracefully.
+  placements?: {
+    total: number;
+    pending: number;
+    active: number;
+    completed: number;
+    cancelled: number;
+  };
+  qrScans?: {
+    total: number;
+    last7d: number;
+    last30d: number;
+  };
+  payouts?: {
+    grossCents: number;
+    count: number;
+    last30dCents: number;
+    last30dCount: number;
+  };
+}
+
+function formatGbp(cents: number): string {
+  if (!Number.isFinite(cents)) return "£0";
+  const pounds = cents / 100;
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    maximumFractionDigits: pounds >= 100 ? 0 : 2,
+  }).format(pounds);
 }
 
 interface Application {
@@ -55,8 +85,8 @@ export default function AdminDashboard() {
         <p className="text-muted text-sm">Failed to load stats. Make sure the database is set up.</p>
       ) : (
         <>
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          {/* Stat cards — applications + accounts headline */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {[
               { label: "Pending Applications", value: stats.applications.pending, accent: true },
               { label: "Total Applications", value: stats.applications.total },
@@ -70,6 +100,82 @@ export default function AdminDashboard() {
                 </p>
               </div>
             ))}
+          </div>
+
+          {/* Marketplace activity — placements / QR scans / payouts. Added in
+              the admin expansion (#23) so the dashboard reflects what the
+              platform is doing day-to-day, not just sign-ups. */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+            {/* Placements */}
+            <div className="bg-white border border-border rounded-sm p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-muted uppercase tracking-wider">Placements</p>
+                <span className="text-[10px] text-muted/70">All time</span>
+              </div>
+              <p className="text-3xl font-serif text-foreground mb-3">
+                {stats.placements?.total ?? 0}
+              </p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                <span className="text-muted">Pending</span>
+                <span className="text-right font-medium text-foreground tabular-nums">
+                  {stats.placements?.pending ?? 0}
+                </span>
+                <span className="text-muted">Active</span>
+                <span className="text-right font-medium text-emerald-700 tabular-nums">
+                  {stats.placements?.active ?? 0}
+                </span>
+                <span className="text-muted">Completed</span>
+                <span className="text-right font-medium text-foreground tabular-nums">
+                  {stats.placements?.completed ?? 0}
+                </span>
+                <span className="text-muted">Cancelled</span>
+                <span className="text-right font-medium text-muted/70 tabular-nums">
+                  {stats.placements?.cancelled ?? 0}
+                </span>
+              </div>
+            </div>
+
+            {/* QR scans */}
+            <div className="bg-white border border-border rounded-sm p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-muted uppercase tracking-wider">QR Scans</p>
+                <span className="text-[10px] text-muted/70">All time</span>
+              </div>
+              <p className="text-3xl font-serif text-foreground mb-3">
+                {stats.qrScans?.total ?? 0}
+              </p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                <span className="text-muted">Last 7 days</span>
+                <span className="text-right font-medium text-foreground tabular-nums">
+                  {stats.qrScans?.last7d ?? 0}
+                </span>
+                <span className="text-muted">Last 30 days</span>
+                <span className="text-right font-medium text-foreground tabular-nums">
+                  {stats.qrScans?.last30d ?? 0}
+                </span>
+              </div>
+            </div>
+
+            {/* Payouts / gross merchandise */}
+            <div className="bg-white border border-border rounded-sm p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-muted uppercase tracking-wider">Gross Sales</p>
+                <span className="text-[10px] text-muted/70">All time</span>
+              </div>
+              <p className="text-3xl font-serif text-foreground mb-3 tabular-nums">
+                {formatGbp(stats.payouts?.grossCents ?? 0)}
+              </p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                <span className="text-muted">Orders</span>
+                <span className="text-right font-medium text-foreground tabular-nums">
+                  {stats.payouts?.count ?? 0}
+                </span>
+                <span className="text-muted">Last 30 days</span>
+                <span className="text-right font-medium text-foreground tabular-nums">
+                  {formatGbp(stats.payouts?.last30dCents ?? 0)}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Quick actions */}
