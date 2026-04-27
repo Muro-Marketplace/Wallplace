@@ -111,6 +111,7 @@ export async function PATCH(request: Request, ctx: RouteContext) {
     height_cm: parsed.data.height_cm,
     wall_color_hex: parsed.data.wall_color_hex,
     notes: parsed.data.notes ?? undefined,
+    is_public_on_profile: parsed.data.is_public_on_profile,
   });
   if (!updated) {
     return NextResponse.json({ error: "Could not update wall" }, { status: 500 });

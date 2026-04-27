@@ -36,6 +36,7 @@ interface DbWallRow {
   perspective_homography: unknown;
   segmentation_mask_path: string | null;
   notes: string | null;
+  is_public_on_profile?: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -189,6 +190,8 @@ export interface UpdateWallInput {
   height_cm?: number;
   wall_color_hex?: string;
   notes?: string | null;
+  /** Venue-only toggle (migration 037) — publish on /venues/[slug]. */
+  is_public_on_profile?: boolean;
 }
 
 export async function updateWall(
@@ -204,6 +207,9 @@ export async function updateWall(
     update.wall_color_hex = patch.wall_color_hex.replace(/^#/, "").toUpperCase();
   }
   if (patch.notes !== undefined) update.notes = patch.notes;
+  if (patch.is_public_on_profile !== undefined) {
+    update.is_public_on_profile = patch.is_public_on_profile;
+  }
 
   if (Object.keys(update).length === 0) {
     return getWallById(wallId, client);
@@ -383,6 +389,7 @@ function rowToWall(row: DbWallRow): Wall {
       (row.perspective_homography as Wall["perspective_homography"]) ?? null,
     segmentation_mask_path: row.segmentation_mask_path,
     notes: row.notes,
+    is_public_on_profile: row.is_public_on_profile === true,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

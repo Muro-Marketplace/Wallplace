@@ -25,10 +25,28 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
   const hasMounted = useRef(false);
   const hasSynced = useRef(false);
 
-  // On mount or when user changes: load items from the right source
+  // On mount or when user changes: load items from the right source.
+  //
+  // Important — the previous version auto-merged localStorage entries
+  // into the authenticated user's DB on login. That meant a logged-out
+  // shopper saving a few works, then signing in as a *venue*, would
+  // see those works appear "saved" on the venue account even though
+  // the venue had never explicitly saved them. Anyone using a shared
+  // browser hit this. Fix: localStorage is for guests only, and gets
+  // wiped the moment a user signs in. The server is the only source
+  // of truth for authenticated saved state. Items from a guest
+  // session do NOT migrate into the user's account.
   useEffect(() => {
     if (user) {
-      // Authenticated: fetch from DB
+      // Wipe any guest-session localStorage immediately so a later
+      // sign-out doesn't briefly resurrect a different user's saves.
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        /* ignore quota / Safari private mode */
+      }
+      hasSynced.current = true;
+
       authFetch("/api/saved")
         .then((r) => r.json())
         .then((data) => {
@@ -38,52 +56,16 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
                 type: row.item_type as SavedItem["type"],
                 id: row.item_id,
                 savedAt: row.created_at,
-              })
+              }),
             );
             setSavedItems(dbItems);
-
-            // Sync any localStorage items to DB, then clear localStorage
-            if (!hasSynced.current) {
-              hasSynced.current = true;
-              const stored = localStorage.getItem(STORAGE_KEY);
-              if (stored) {
-                try {
-                  const localItems: SavedItem[] = JSON.parse(stored);
-                  const existingKeys = new Set(
-                    dbItems.map((i) => `${i.type}:${i.id}`)
-                  );
-                  const toSync = localItems.filter(
-                    (i) => !existingKeys.has(`${i.type}:${i.id}`)
-                  );
-                  // Fire-and-forget sync of local items to DB
-                  for (const item of toSync) {
-                    authFetch("/api/saved", {
-                      method: "POST",
-                      body: JSON.stringify({ itemType: item.type, itemId: item.id }),
-                    }).catch(() => {});
-                  }
-                  // Merge local items into state
-                  if (toSync.length > 0) {
-                    setSavedItems((prev) => [
-                      ...prev,
-                      ...toSync.map((i) => ({
-                        type: i.type,
-                        id: i.id,
-                        savedAt: i.savedAt,
-                      })),
-                    ]);
-                  }
-                } catch {
-                  /* ignore */
-                }
-                localStorage.removeItem(STORAGE_KEY);
-              }
-            }
+          } else {
+            setSavedItems([]);
           }
         })
         .catch(() => {});
     } else {
-      // Not authenticated: use localStorage
+      // Guest session — restore from localStorage (their own saves).
       hasSynced.current = false;
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {

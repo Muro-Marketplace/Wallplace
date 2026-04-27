@@ -261,7 +261,77 @@ export default function VenueWallEditorPage({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Show on public profile — venue-side only. Optimistic
+              toggle: flip locally, fire PATCH, revert on failure.
+              Off by default per migration 037 so a venue's wall
+              stays private until they explicitly publish it. */}
+          {ready && (
+            <label
+              className="inline-flex items-center gap-1.5 text-xs text-stone-600 cursor-pointer select-none"
+              title="When ticked, this wall shows up on your public venue page so artists can see it before requesting placements."
+            >
+              <input
+                type="checkbox"
+                className="accent-accent w-3.5 h-3.5"
+                checked={!!state.wall.is_public_on_profile}
+                onChange={async (e) => {
+                  const next = e.target.checked;
+                  // Optimistic local flip.
+                  setState((prev) =>
+                    prev.kind === "ready"
+                      ? {
+                          ...prev,
+                          wall: { ...prev.wall, is_public_on_profile: next },
+                        }
+                      : prev,
+                  );
+                  try {
+                    const res = await fetch(
+                      `/api/walls/${encodeURIComponent(state.wall.id)}`,
+                      {
+                        method: "PATCH",
+                        headers: {
+                          "content-type": "application/json",
+                          ...(session?.access_token
+                            ? { Authorization: `Bearer ${session.access_token}` }
+                            : {}),
+                        },
+                        body: JSON.stringify({ is_public_on_profile: next }),
+                      },
+                    );
+                    if (!res.ok) {
+                      // Revert on failure.
+                      setState((prev) =>
+                        prev.kind === "ready"
+                          ? {
+                              ...prev,
+                              wall: {
+                                ...prev.wall,
+                                is_public_on_profile: !next,
+                              },
+                            }
+                          : prev,
+                      );
+                    }
+                  } catch {
+                    setState((prev) =>
+                      prev.kind === "ready"
+                        ? {
+                            ...prev,
+                            wall: {
+                              ...prev.wall,
+                              is_public_on_profile: !next,
+                            },
+                          }
+                        : prev,
+                    );
+                  }
+                }}
+              />
+              Show on public profile
+            </label>
+          )}
           <button
             type="button"
             onClick={() => setDeleteOpen(true)}

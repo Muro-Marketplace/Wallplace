@@ -110,6 +110,10 @@ export const updateWallSchema = z.object({
   height_cm: wallDimensionCm.optional(),
   wall_color_hex: hexColor6.optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
+  // Migration 037 — venue-controlled toggle that publishes the wall
+  // on the venue's public profile page so artists can see it before
+  // requesting placements.
+  is_public_on_profile: z.boolean().optional(),
 });
 
 // ── Layout ──────────────────────────────────────────────────────────────

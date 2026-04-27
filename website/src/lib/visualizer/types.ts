@@ -61,6 +61,11 @@ export interface Wall {
   perspective_homography: Homography | null;
   segmentation_mask_path: string | null;
   notes: string | null;
+  /** Venue-controlled — when true the wall renders on the venue's
+      public /venues/[slug] page so artists can see it before
+      requesting placements. Defaults to false (private). Migration
+      037. */
+  is_public_on_profile?: boolean;
   created_at: string;
   updated_at: string;
 }
