@@ -90,7 +90,90 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
   const [searchQuery, setSearchQuery] = useState("");
 
   // Mobile: right-side panel toggle
-  const [panelOpenMobile, setPanelOpenMobile] = useState(false);
+  // Used to be `panelOpenMobile` — desktop kept the placement-status
+  // sidebar always-visible. We've collapsed it to a drawer at every
+  // size so the thread itself gets more breathing room; this state
+  // toggles the drawer regardless of viewport now.
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  // Resizable conversations sidebar. Persists between sessions so a
+  // user who shrinks it for more thread space doesn't have to re-do
+  // the drag every visit. Only applies on sm+ screens — mobile keeps
+  // its full-width single-column layout.
+  const [sidebarWidth, setSidebarWidth] = useState<number>(320);
+  const sidebarMin = 240;
+  const sidebarMax = 480;
+  const draggingRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragStartWidthRef = useRef(0);
+
+  // Track viewport so we can apply inline `width: sidebarWidth` only at
+  // sm+ where the sidebar is actually a sidebar — not the full screen.
+  const [isDesktop, setIsDesktop] = useState<boolean>(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(min-width: 640px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("wallplace:msg-sidebar-width");
+      if (raw) {
+        const n = Number(raw);
+        if (Number.isFinite(n)) {
+          setSidebarWidth(Math.max(sidebarMin, Math.min(sidebarMax, n)));
+        }
+      }
+    } catch {
+      /* localStorage unavailable — keep default */
+    }
+  }, []);
+
+  useEffect(() => {
+    function onMove(e: MouseEvent) {
+      if (!draggingRef.current) return;
+      const delta = e.clientX - dragStartXRef.current;
+      const next = Math.max(
+        sidebarMin,
+        Math.min(sidebarMax, dragStartWidthRef.current + delta),
+      );
+      setSidebarWidth(next);
+    }
+    function onUp() {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      try {
+        window.localStorage.setItem(
+          "wallplace:msg-sidebar-width",
+          String(sidebarWidth),
+        );
+      } catch {
+        /* swallow */
+      }
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [sidebarWidth]);
+
+  function startResize(e: React.MouseEvent) {
+    draggingRef.current = true;
+    dragStartXRef.current = e.clientX;
+    dragStartWidthRef.current = sidebarWidth;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+    e.preventDefault();
+  }
   // Placement id currently being countered via the inline dialog,
   // plus the latest known terms for the placement so the counter form
   // opens pre-filled with whatever the other party offered — the user
@@ -562,7 +645,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
   }
 
   function renderConvItem(conv: Conversation) {
-    const select = () => { setSelectedConv(conv.conversationId); setComposing(false); setPanelOpenMobile(false); };
+    const select = () => { setSelectedConv(conv.conversationId); setComposing(false); setPanelOpen(false); };
     return (
       <div
         key={conv.conversationId}
@@ -610,8 +693,29 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
 
   return (
     <div className="flex h-[calc(100vh-13rem)] border border-border rounded-2xl overflow-hidden bg-surface shadow-sm">
-      {/* Conversation list */}
-      <div className={`${selectedConv || composing ? "hidden sm:flex" : "flex"} w-full sm:w-80 shrink-0 border-r border-border flex-col`}>
+      {/* Conversation list — full-width on mobile, drag-resizable on sm+
+          (persisted to localStorage). A 6px handle on the right edge
+          captures mousedown for the drag. */}
+      <div
+        className={`relative ${selectedConv || composing ? "hidden sm:flex" : "flex"} shrink-0 border-r border-border flex-col`}
+        style={isDesktop ? { width: sidebarWidth } : { width: "100%" }}
+      >
+        {/* Drag handle — only on sm+ where the column is actually a
+            sidebar. Sits on top of the right border, 1px wide visually
+            (transparent on top of the border) but with a 6px hit-area
+            so it's easy to grab without being a heavy visual element. */}
+        {isDesktop && (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize conversations sidebar"
+            onMouseDown={startResize}
+            className="hidden sm:block absolute top-0 right-0 h-full w-1.5 -mr-[3px] cursor-col-resize z-10 group"
+            title="Drag to resize"
+          >
+            <div className="absolute inset-y-0 right-[3px] w-px bg-transparent group-hover:bg-accent/50 transition-colors" />
+          </div>
+        )}
         {/* Search */}
         <div className="px-4 py-3 border-b border-border">
           <div className="relative">
@@ -722,7 +826,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
             <div className="px-4 py-3 border-b border-border border-b-accent/20">
               {/* Row 1: back + avatar + name + badge */}
               <div className="flex items-center gap-3">
-                <button onClick={() => { setSelectedConv(null); setPanelOpenMobile(false); }} className="sm:hidden text-muted hover:text-foreground shrink-0">
+                <button onClick={() => { setSelectedConv(null); setPanelOpen(false); }} className="sm:hidden text-muted hover:text-foreground shrink-0">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>
                 </button>
                 <Avatar src={selectedConvData?.otherPartyImage} name={selectedConvData?.otherPartyDisplayName || ""} size={40} />
@@ -772,8 +876,8 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                       it reads as "reveal more detail", not a separate button. */}
                   <button
                     type="button"
-                    onClick={() => setPanelOpenMobile(true)}
-                    className="lg:hidden ml-auto inline-flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors"
+                    onClick={() => setPanelOpen(true)}
+                    className="ml-auto inline-flex items-center gap-1 text-xs text-accent hover:text-accent-hover transition-colors"
                   >
                     Placement Status
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
@@ -1094,46 +1198,31 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
         )}
       </div>
 
-      {/* Right: placement context panel (lg+ always, mobile as a drawer) */}
-      {showPanel && selectedConvData && (
-        <>
-          <div className="hidden lg:block w-80 shrink-0">
-            <PlacementContextPanel
-              otherPartySlug={selectedOtherParty}
-              otherPartyName={selectedConvData.otherPartyDisplayName}
-              otherPartyType={selectedOtherPartyType}
-              otherPartyImage={selectedConvData.otherPartyImage}
-              portalType={portalType}
-              userId={user?.id}
-              otherPartyWorks={otherPartyWorks}
-              otherPartyWorksLoading={otherWorksLoading}
-            />
-          </div>
-          {panelOpenMobile && (
-            // Sits BELOW the site header (fixed, z-[100]) by starting at
-            // top-14 on mobile (h-14 header). Without that, iOS Safari
-            // clips the top of the panel behind the header bar and the
-            // progress tracker disappears.
-            <div className="lg:hidden fixed top-14 left-0 right-0 bottom-0 z-50 flex">
-              <div className="flex-1 bg-black/40" onClick={() => setPanelOpenMobile(false)} />
-              <div className="w-[min(360px,90vw)] bg-surface border-l border-border shadow-xl flex flex-col h-full">
-                <div className="flex-1 min-h-0 overflow-y-auto">
-                  <PlacementContextPanel
-                    onClose={() => setPanelOpenMobile(false)}
-                    otherPartySlug={selectedOtherParty}
-                    otherPartyName={selectedConvData.otherPartyDisplayName}
-                    otherPartyType={selectedOtherPartyType}
-                    otherPartyImage={selectedConvData.otherPartyImage}
-                    portalType={portalType}
-                    userId={user?.id}
-                    otherPartyWorks={otherPartyWorks}
-                    otherPartyWorksLoading={otherWorksLoading}
-                  />
-                </div>
-              </div>
+      {/* Placement context panel — drawer at every viewport size now.
+          Used to be always-visible at lg+ which ate horizontal space the
+          thread itself benefitted from. The "Placement Status" toggle
+          in the thread header opens this on demand. Sits BELOW the
+          site header (fixed, z-[100]) by starting at top-14 / lg:top-16
+          to match the global nav height. */}
+      {showPanel && selectedConvData && panelOpen && (
+        <div className="fixed top-14 lg:top-16 left-0 right-0 bottom-0 z-50 flex">
+          <div className="flex-1 bg-black/40" onClick={() => setPanelOpen(false)} />
+          <div className="w-[min(420px,90vw)] bg-surface border-l border-border shadow-xl flex flex-col h-full">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <PlacementContextPanel
+                onClose={() => setPanelOpen(false)}
+                otherPartySlug={selectedOtherParty}
+                otherPartyName={selectedConvData.otherPartyDisplayName}
+                otherPartyType={selectedOtherPartyType}
+                otherPartyImage={selectedConvData.otherPartyImage}
+                portalType={portalType}
+                userId={user?.id}
+                otherPartyWorks={otherPartyWorks}
+                otherPartyWorksLoading={otherWorksLoading}
+              />
             </div>
-          )}
-        </>
+          </div>
+        </div>
       )}
 
       {/* Inline counter-offer dialog triggered from the placement_request
