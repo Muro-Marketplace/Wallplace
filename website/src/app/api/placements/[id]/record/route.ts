@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAuthenticatedUser } from "@/lib/api-auth";
 import { sendEmail } from "@/lib/email/send";
+import { createNotification } from "@/lib/notifications";
 import { PlacementConsignmentRecordCreated } from "@/emails/templates/placements/PlacementConsignmentRecordCreated";
 import { PlacementContractCountersigned } from "@/emails/templates/placements/PlacementContractCountersigned";
 import { z } from "zod";
@@ -271,6 +272,18 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
       const recordOpenUrl = `${placementUrl}?record=open`;
 
       if (wasNewRecord) {
+        // Bell notifications — fire alongside the emails so users see
+        // the new record in-app even if email is filtered.
+        for (const uid of [placement.artist_user_id, placement.venue_user_id]) {
+          if (!uid) continue;
+          createNotification({
+            userId: uid,
+            kind: "placement_record_created",
+            title: "Consignment record ready",
+            body: `${artistName} × ${venueName}`,
+            link: `${placementUrl}?record=open`,
+          }).catch((err) => console.warn("[record] notification failed:", err));
+        }
         for (const party of [
           { user: artistUser, name: artistName, uid: placement.artist_user_id },
           { user: venueUser, name: venueName, uid: placement.venue_user_id },
@@ -299,6 +312,20 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
       if (transitionedToBoth) {
         const signedAt = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+        // Bell notifications for countersigned record.
+        for (const partyMeta of [
+          { uid: placement.artist_user_id, counter: venueName },
+          { uid: placement.venue_user_id, counter: artistName },
+        ]) {
+          if (!partyMeta.uid) continue;
+          createNotification({
+            userId: partyMeta.uid,
+            kind: "placement_record_countersigned",
+            title: "Contract countersigned",
+            body: `Both parties have signed — ${partyMeta.counter}`,
+            link: `${placementUrl}?record=open`,
+          }).catch((err) => console.warn("[record] countersigned notification failed:", err));
+        }
         for (const party of [
           { user: artistUser, name: artistName, uid: placement.artist_user_id, counter: venueName },
           { user: venueUser, name: venueName, uid: placement.venue_user_id, counter: artistName },

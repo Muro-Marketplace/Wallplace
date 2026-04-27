@@ -1217,6 +1217,43 @@ export async function PATCH(request: Request) {
       } catch (err) {
         console.error("Stage email error:", err);
       }
+
+      // Bell notifications for stage transitions — fire alongside the
+      // emails so users see the change in-app even if email is filtered
+      // / spam-foldered. Both parties get notified for stages that
+      // genuinely matter to either side: scheduled, installed, live,
+      // collected. Idempotency keyed by id+stage+user so re-PATCHing
+      // the same stage doesn't double-bell.
+      try {
+        const stageHeadlines: Record<string, string> = {
+          scheduled: "Install date set",
+          installed: "Artwork installed",
+          live: "Live on wall",
+          collected: "Placement collected",
+        };
+        const stageBodies: Record<string, (venue: string) => string> = {
+          scheduled: (v) => `${v} — install scheduled`,
+          installed: (v) => `${v} — work is up`,
+          live: (v) => `${v} — now publicly live`,
+          collected: (v) => `${v} — placement complete`,
+        };
+        const headline = stageHeadlines[stage as string];
+        if (headline) {
+          const venueLabel = (existing.venue as string) || "Venue";
+          for (const uid of [existing.artist_user_id, existing.venue_user_id]) {
+            if (!uid) continue;
+            createNotification({
+              userId: uid,
+              kind: `placement_${stage}`,
+              title: headline,
+              body: stageBodies[stage as string](venueLabel),
+              link: `/placements/${encodeURIComponent(id)}`,
+            }).catch((err) => console.warn("[placements] stage notification failed:", err));
+          }
+        }
+      } catch (err) {
+        console.warn("[placements] stage notification block failed:", err);
+      }
     }
 
     // On pending → active/declined, notify the requester. If the column

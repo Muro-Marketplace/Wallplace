@@ -96,6 +96,11 @@ export default function PlacementContextPanel({
   const [loading, setLoading] = useState(false);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Schedule install — open a date picker before stamping `scheduled`
+  // so the artist or venue can pick a real install date instead of
+  // "now". Mirrors the PlacementStepper / detail-page flow.
+  const [schedulePickerOpen, setSchedulePickerOpen] = useState(false);
+  const [scheduleDraft, setScheduleDraft] = useState<string>("");
 
   // Counter form state
   const [counterOpen, setCounterOpen] = useState(false);
@@ -290,21 +295,56 @@ export default function PlacementContextPanel({
     }
   }
 
-  async function handleAdvance(stage: string) {
+  async function handleAdvance(stage: string, explicitDate?: string) {
     if (!current || stage === "accepted") return;
     setBusyAction(`advance-${stage}`);
     setError(null);
     try {
+      const body: Record<string, unknown> = {
+        id: (current as RemotePlacement).id,
+        stage,
+      };
+      if (explicitDate) body.stageDate = explicitDate;
       const res = await authFetch("/api/placements", {
         method: "PATCH",
-        body: JSON.stringify({ id: (current as RemotePlacement).id, stage }),
+        body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) setError(data.error || "Could not update stage");
-      else await loadPlacements();
+      else {
+        await loadPlacements();
+        setSchedulePickerOpen(false);
+      }
     } finally {
       setBusyAction(null);
     }
+  }
+
+  async function confirmSchedule() {
+    if (!scheduleDraft) return;
+    const iso = new Date(`${scheduleDraft}T12:00:00`).toISOString();
+    await handleAdvance("scheduled", iso);
+  }
+
+  function openSchedulePicker() {
+    const existing = (current as RemotePlacement | null)?.scheduled_for;
+    if (existing) {
+      const d = new Date(existing);
+      if (!Number.isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        setScheduleDraft(`${y}-${m}-${day}`);
+        setSchedulePickerOpen(true);
+        return;
+      }
+    }
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    setScheduleDraft(`${y}-${m}-${day}`);
+    setSchedulePickerOpen(true);
   }
 
   async function handleCounterSubmit() {
@@ -917,9 +957,24 @@ export default function PlacementContextPanel({
           const showAdvance = displayStatus === "Active" && nextStageKey && nextLabel;
           const showUndo = !!lastReached && (displayStatus === "Active" || displayStatus === "Completed");
           if (!showAdvance && !showUndo) return null;
+          // Scheduled stage opens a date picker first, mirroring the
+          // detail page + PlacementStepper. Other stages stamp `now`.
+          const advanceIsSchedule = nextStageKey === "scheduled";
+          const canEditSchedule =
+            displayStatus === "Active" && reachedMap.scheduled && !reachedMap.installed;
           return (
             <>
-              {showAdvance && nextStageKey && (
+              {showAdvance && nextStageKey && advanceIsSchedule && !schedulePickerOpen && (
+                <button
+                  onClick={openSchedulePicker}
+                  disabled={busyAction === `advance-${nextStageKey}`}
+                  className="inline-flex w-full items-center justify-center gap-2 px-4 py-2 lg:py-2.5 text-xs font-medium text-white bg-accent hover:bg-accent-hover rounded-full transition-colors disabled:opacity-60"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                  Schedule install
+                </button>
+              )}
+              {showAdvance && nextStageKey && !advanceIsSchedule && (
                 <button
                   onClick={() => handleAdvance(nextStageKey)}
                   disabled={busyAction === `advance-${nextStageKey}`}
@@ -927,6 +982,49 @@ export default function PlacementContextPanel({
                 >
                   {busyAction === `advance-${nextStageKey}` ? "Updating…" : nextLabel}
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+                </button>
+              )}
+              {/* Picker — same shape as the detail page so the two
+                  surfaces feel like the same flow. */}
+              {schedulePickerOpen && (
+                <div className="flex items-center gap-2 flex-wrap bg-surface border border-border rounded-sm px-3 py-2 w-full">
+                  <label className="text-xs text-muted">Install date</label>
+                  <input
+                    type="date"
+                    value={scheduleDraft}
+                    onChange={(e) => setScheduleDraft(e.target.value)}
+                    min={new Date().toISOString().slice(0, 10)}
+                    className="px-2 py-1 bg-background border border-border rounded-sm text-xs focus:outline-none focus:border-accent/60"
+                  />
+                  <button
+                    type="button"
+                    onClick={confirmSchedule}
+                    disabled={!scheduleDraft || busyAction === "advance-scheduled"}
+                    className="px-3 py-1 text-xs font-medium text-accent bg-accent/5 border border-accent/30 hover:bg-accent/10 rounded-sm transition-colors disabled:opacity-60 ml-auto"
+                  >
+                    {busyAction === "advance-scheduled"
+                      ? "Saving…"
+                      : reachedMap.scheduled
+                        ? "Update date"
+                        : "Confirm"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSchedulePickerOpen(false)}
+                    disabled={busyAction === "advance-scheduled"}
+                    className="px-2 py-1 text-xs text-muted hover:text-foreground transition-colors disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              {canEditSchedule && !schedulePickerOpen && (
+                <button
+                  type="button"
+                  onClick={openSchedulePicker}
+                  className="text-[11px] text-muted hover:text-accent transition-colors text-center w-full"
+                >
+                  Change install date
                 </button>
               )}
               {showUndo && lastReached && (

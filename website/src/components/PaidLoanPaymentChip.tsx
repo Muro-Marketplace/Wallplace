@@ -1,25 +1,27 @@
 "use client";
 
 /**
- * Slim chip surfaced on a paid-loan placement card when the work is
- * already live on the venue's wall but the venue's monthly Stripe
- * subscription isn't active yet. Closes the gap where a placement can
- * sit at status='active' + liveFrom set, with no payment in flight,
- * meaning the artist has installed the piece and isn't being paid.
+ * Slim chip surfaced on a paid-loan placement card whenever the
+ * monthly Stripe subscription isn't active yet. Two intensities:
+ *
+ * - "Set up payment" (muted) — placement is accepted but billing
+ *   hasn't been wired yet. Action chip for venues from the moment
+ *   the placement is active so they can find the payment flow.
+ *   Artist sees an info-only "Awaiting venue's payment setup" chip.
+ *
+ * - "Payment past due" (amber, urgent) — used to be the only
+ *   variant; now reserved for billing failures (past_due, unpaid).
+ *
+ * - "Live without payment" (amber) — the work is on the wall AND
+ *   billing still isn't set up. The artist is currently going
+ *   unpaid for an installed piece — the most urgent state.
  *
  * Visibility:
- *   Only renders when ALL of:
+ *   Renders when ALL of:
  *     - arrangement is paid loan (free_loan with a positive monthly fee)
- *     - liveFrom is set (= "live on wall")
  *     - subscriptionStatus is missing or not "active" / "trialing"
- *
- * Variants:
- *   - role = "venue"   action chip → /placements/[id]/payment
- *   - role = "artist"  info-only chip
- *
- * Past-due variant (subscription exists but is past_due / unpaid) gets
- * a stronger treatment than null/incomplete since it implies a real
- * billing failure rather than "haven't set up yet".
+ *   (Used to also gate on liveFrom — that gate moved into the visual
+ *    intensity instead, so venues can find the CTA pre-install too.)
  */
 
 import Link from "next/link";
@@ -54,10 +56,15 @@ export default function PaidLoanPaymentChip({
   const isHealthy = ACTIVE_STATES.has(status);
   const isProblem = PROBLEM_STATES.has(status);
 
-  if (!isPaidLoan || !isLive || isHealthy) return null;
+  if (!isPaidLoan || isHealthy) return null;
 
-  // Visual variant — past-due is amber, "not yet set up" is muted.
-  const variant: "warn" | "muted" = isProblem ? "warn" : "muted";
+  // Visual intensity:
+  //   warn    — past-due / unpaid (real billing failure) OR live on
+  //             wall without payment (artist going unpaid for an
+  //             installed piece — needs urgent attention)
+  //   muted   — accepted but not yet live; venue has time to set
+  //             billing up before install
+  const variant: "warn" | "muted" = isProblem || isLive ? "warn" : "muted";
 
   const headline = (() => {
     if (role === "venue") {
@@ -66,7 +73,9 @@ export default function PaidLoanPaymentChip({
           ? "Monthly payment is past due"
           : "Monthly payment needs attention";
       }
-      return "Set up monthly billing for this placement";
+      return isLive
+        ? "Work is live — set up monthly billing now"
+        : "Set up monthly billing for this placement";
     }
     // Artist
     if (isProblem) {
@@ -74,7 +83,9 @@ export default function PaidLoanPaymentChip({
         ? "Venue's monthly payment is past due"
         : "Venue's monthly payment needs attention";
     }
-    return "Awaiting venue's monthly payment setup";
+    return isLive
+      ? "Work is live — venue hasn't paid yet"
+      : "Awaiting venue's monthly payment setup";
   })();
 
   const sub = (() => {
@@ -82,15 +93,18 @@ export default function PaidLoanPaymentChip({
       if (isProblem) {
         return "Stripe will retry, but please check the card on file.";
       }
-      return monthlyFeeGbp
-        ? `Pay £${monthlyFeeGbp}/mo to the artist for this placement.`
-        : "Open the payment page to begin recurring billing.";
+      const fee = monthlyFeeGbp ? ` (£${monthlyFeeGbp}/mo)` : "";
+      return isLive
+        ? `Pay the artist their monthly fee${fee} — they're already displaying the work.`
+        : `Get billing set up before the work is installed${fee}.`;
     }
     // Artist
     if (isProblem) {
       return "We've nudged the venue. Stripe will retry the charge automatically.";
     }
-    return "The artwork is up but the venue hasn't started monthly billing yet.";
+    return isLive
+      ? "The artwork is on the wall but the venue hasn't started billing yet — we've nudged them."
+      : "The venue hasn't set up the monthly card yet. They can do this from their placements list.";
   })();
 
   const cta =

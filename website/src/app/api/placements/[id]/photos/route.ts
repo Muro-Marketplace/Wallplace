@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAuthenticatedUser } from "@/lib/api-auth";
+import { createNotification } from "@/lib/notifications";
 import { z } from "zod";
 
 const addSchema = z.object({
@@ -48,6 +49,24 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     console.error("placement_photos insert:", error);
     return NextResponse.json({ error: "Failed to save" }, { status: 500 });
   }
+
+  // Bell notification to the other party — the uploader knows they
+  // just added a photo, but the counterparty wants to see the new
+  // documentation land in their inbox.
+  const otherUserId =
+    auth.user!.id === placement.artist_user_id
+      ? placement.venue_user_id
+      : placement.artist_user_id;
+  if (otherUserId) {
+    createNotification({
+      userId: otherUserId,
+      kind: "placement_photo_added",
+      title: "New placement photo",
+      body: parsed.data.caption ? parsed.data.caption.slice(0, 80) : "A photo was added to your placement",
+      link: `/placements/${encodeURIComponent(id)}`,
+    }).catch((err) => console.warn("[photos] notification failed:", err));
+  }
+
   return NextResponse.json({ photo: data });
 }
 
