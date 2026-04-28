@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { ArtistCollection } from "@/data/collections";
 import type { ArtistWork } from "@/data/artists";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import SaveButton from "@/components/SaveButton";
 
 type CollectionWork = ArtistWork & {
@@ -19,8 +20,15 @@ export default function CollectionDetailPage() {
   const router = useRouter();
   const { addItem } = useCart();
   const collectionId = params.collectionId as string;
+  const { user, userType } = useAuth();
   const [collection, setCollection] = useState<ArtistCollection | null>(null);
   const [works, setWorks] = useState<CollectionWork[]>([]);
+  const [arrangements, setArrangements] = useState<{
+    openToFreeLoan: boolean;
+    openToRevenueShare: boolean;
+    revenueSharePercent: number | null;
+    openToOutrightPurchase: boolean;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -40,6 +48,7 @@ export default function CollectionDetailPage() {
         if (data.collection) {
           setCollection(data.collection);
           setWorks((data.works || []) as CollectionWork[]);
+          if (data.artistArrangements) setArrangements(data.artistArrangements);
         } else {
           setNotFound(true);
         }
@@ -206,9 +215,32 @@ export default function CollectionDetailPage() {
                   Save £{savings} vs. buying individually (£{individualTotal})
                 </p>
               )}
-              <p className="text-xs text-muted mb-6">
+              <p className="text-xs text-muted mb-4">
                 All {collection.workIds.length} works at the sizes selected by the artist, one price.
               </p>
+
+              {/* Arrangement chips (#42) — same shape as gallery cards
+                  so the collection page reads the same way. Surfaces
+                  what the underlying artist is open to. */}
+              {arrangements && (
+                <div className="flex flex-wrap gap-1.5 mb-6">
+                  {arrangements.openToFreeLoan && (
+                    <span className="text-[10px] px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded-sm">
+                      Display
+                    </span>
+                  )}
+                  {arrangements.openToRevenueShare && (
+                    <span className="text-[10px] px-2 py-0.5 bg-accent/10 text-accent border border-accent/20 rounded-sm">
+                      Rev share{arrangements.revenueSharePercent ? ` · ${arrangements.revenueSharePercent}%` : ""}
+                    </span>
+                  )}
+                  {arrangements.openToOutrightPurchase && (
+                    <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-sm">
+                      Purchase
+                    </span>
+                  )}
+                </div>
+              )}
 
               {works.length > 0 && (
                 <div className="mb-6 space-y-1.5">
@@ -236,6 +268,46 @@ export default function CollectionDetailPage() {
                     Buy Collection – {collection.bundlePriceBand}
                   </button>
                 )}
+                {/* Request placement (#41) — venue or logged-out shopper
+                    can request the entire collection as a placement
+                    (revenue-share or paid-loan). Reuses the existing
+                    /venue-portal/placements form by passing the
+                    collection's work IDs in the `works` query param. */}
+                {(() => {
+                  if (!collection.available) return null;
+                  const workIdsParam = works.map((w) => w.id).filter(Boolean).join(",");
+                  if (!workIdsParam) return null;
+                  const venueParams = new URLSearchParams({
+                    artist: collection.artistSlug,
+                    artistName: collection.artistName,
+                    works: workIdsParam,
+                    prefillMessage: `Hi — we'd love to host the "${collection.name}" collection in our venue. Open to revenue share or paid loan, happy to discuss.`,
+                  });
+                  const venueHref = `/venue-portal/placements?${venueParams.toString()}`;
+                  // Customers + logged-out: bounce through customer
+                  // signup with the placement URL preserved as `next`,
+                  // then route them through to the venue portal flow
+                  // if they later switch type. Keeps the surface
+                  // consistent with #2.
+                  let href = venueHref;
+                  if (!user) {
+                    const next = `/venue-portal/placements?${venueParams.toString()}`;
+                    href = `/signup?next=${encodeURIComponent(next)}`;
+                  } else if (userType !== "venue") {
+                    // Artists viewing their own collection don't need
+                    // this CTA — they'd be initiating from the venue
+                    // side. Hide it for non-venue accounts.
+                    return null;
+                  }
+                  return (
+                    <Link
+                      href={href}
+                      className="block w-full px-5 py-3 text-sm font-medium text-foreground border border-foreground hover:bg-foreground hover:text-white rounded-sm transition-colors text-center"
+                    >
+                      Request placement
+                    </Link>
+                  );
+                })()}
                 <div className="flex gap-2">
                   <Link
                     href={`/browse/${collection.artistSlug}`}
