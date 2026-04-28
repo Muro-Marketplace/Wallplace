@@ -17,6 +17,7 @@ import BrowseArtistCard from "@/components/BrowseArtistCard";
 import CollectionCard from "@/components/CollectionCard";
 import ArtworkThumb from "@/components/ArtworkThumb";
 import SearchBar from "@/components/SearchBar";
+import PostcodeInput from "@/components/PostcodeInput";
 
 /** Classify a work into a size band based on its largest dimension
  *  in centimetres. Falls back to checking the per-size pricing labels
@@ -99,7 +100,11 @@ interface Filters {
 }
 
 const DEFAULT_FILTERS: Filters = {
-  mode: "global",
+  // Distance slider is the only location control now (#9). Default
+  // mode is "local" so the slider applies whenever the user has set
+  // a location; without a location, the filter logic bails out so
+  // results are still global until a postcode/geo lands.
+  mode: "local",
   maxDistance: 25,
   themes: [],
   originals: false,
@@ -279,7 +284,11 @@ function BrowsePortfoliosPageInner() {
   const [galleryAvailableOnly, setGalleryAvailableOnly] = useState(false);
   const [galleryPriceMin, setGalleryPriceMin] = useState(0);
   const [galleryPriceMax, setGalleryPriceMax] = useState(1000);
-  const [galleryLocationMode, setGalleryLocationMode] = useState<"global" | "local">("global");
+  // Mirror of `filters.mode` for the gallery view — kept so existing
+  // distance-filter call sites keep working, but the toggle UI was
+  // removed (#9) so this is effectively pinned to "local". A future
+  // refactor can drop this state entirely.
+  const [galleryLocationMode, setGalleryLocationMode] = useState<"global" | "local">("local");
   const [galleryStyle, setGalleryStyle] = useState("");
   const [galleryOriginals, setGalleryOriginals] = useState(false);
   const [galleryPrints, setGalleryPrints] = useState(false);
@@ -634,29 +643,21 @@ function BrowsePortfoliosPageInner() {
 
   const filterPanel = (
     <div className="space-y-7">
-      {/* Local / Global */}
+      {/* Location (#9) — the Local/Global toggle was removed; the
+          slider is the only location control now. Default 25mi when
+          a location is set. Drag to the right edge to switch back to
+          "Anywhere". */}
       <div>
         <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">
-          Location Mode
+          Location
         </p>
-        <div className="flex gap-2">
-          {(["global", "local"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => handleModeChange(mode)}
-              className={`flex-1 py-2 text-sm rounded-sm border transition-all duration-150 capitalize cursor-pointer ${
-                filters.mode === mode
-                  ? "bg-foreground text-background border-foreground"
-                  : "border-border bg-[#F8F6F2] lg:bg-white text-muted hover:border-foreground/30"
-              }`}
-            >
-              {mode}
-            </button>
-          ))}
-        </div>
-        {filters.mode === "local" && (
-          <div className="mt-3 space-y-3">
+        {(() => {
+          // Render the postcode + slider unconditionally — kept
+          // inside an IIFE so we can keep the existing layout without
+          // duplicating it under the old `filters.mode === "local"`
+          // gate.
+          return (
+          <div className="space-y-3">
             {/* Location status */}
             {geoRequesting && (
               <p className="text-xs text-muted animate-pulse">Detecting your location…</p>
@@ -679,23 +680,15 @@ function BrowsePortfoliosPageInner() {
             {!geoRequesting && !userCoords && (
               <div>
                 <p className="text-xs text-muted mb-1.5">Enter your postcode</p>
-                <div className="flex gap-1.5">
-                  <input
-                    type="text"
-                    value={postcodeInput}
-                    onChange={(e) => { setPostcodeInput(e.target.value.toUpperCase()); setPostcodeError(false); }}
-                    onKeyDown={(e) => { if (e.key === "Enter") handlePostcodeSubmit(); }}
-                    placeholder="e.g. EC1A 1BB"
-                    className="flex-1 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs text-foreground focus:outline-none focus:border-accent/50 uppercase"
-                  />
-                  <button
-                    type="button"
-                    onClick={handlePostcodeSubmit}
-                    className="px-3 py-1.5 bg-accent text-white text-xs rounded-sm hover:bg-accent-hover transition-colors cursor-pointer"
-                  >
-                    Go
-                  </button>
-                </div>
+                <PostcodeInput
+                  initial={postcodeInput}
+                  onGeocoded={(coords, pc) => {
+                    setUserCoords(coords);
+                    setPostcodeInput(pc);
+                    setPostcodeError(false);
+                  }}
+                  onError={(failed) => setPostcodeError(failed)}
+                />
                 {postcodeError && (
                   <p className="text-[10px] text-red-400 mt-1">Postcode not found, try again</p>
                 )}
@@ -740,7 +733,8 @@ function BrowsePortfoliosPageInner() {
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Arrangement — three independent toggles for the core Wallplace
@@ -1363,18 +1357,13 @@ function BrowsePortfoliosPageInner() {
                   )}
                 </div>
                 <div className="space-y-7">
-                  {/* Location Mode */}
+                  {/* Location (#9) — toggle removed; the slider is the
+                      only control. Postcode entry shows when no location
+                      is set; slider shows once it is. */}
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Location Mode</p>
-                    <div className="flex gap-2">
-                      {(["global", "local"] as const).map((mode) => (
-                        <button key={mode} type="button" onClick={() => { setGalleryLocationMode(mode); if (mode === "local" && !userCoords) handleModeChange("local"); }} className={`flex-1 py-2 text-sm rounded-sm border transition-all duration-150 capitalize cursor-pointer ${galleryLocationMode === mode ? "bg-foreground text-background border-foreground" : "border-border bg-[#F8F6F2] lg:bg-white text-muted hover:border-foreground/30"}`}>
-                          {mode}
-                        </button>
-                      ))}
-                    </div>
-                    {galleryLocationMode === "local" && userCoords && (
-                      <div className="mt-3">
+                    <p className="text-xs font-medium uppercase tracking-widest text-muted mb-3">Location</p>
+                    {userCoords && (
+                      <div>
                         <p className="text-xs text-muted mb-2">
                           Within {filters.maxDistance >= 9999 ? "any distance" : `${filters.maxDistance} mi`}
                         </p>
@@ -1391,7 +1380,7 @@ function BrowsePortfoliosPageInner() {
                             }}
                             className="w-full accent-accent h-1.5 cursor-pointer"
                           />
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-between gap-2">
                             <input
                               type="number"
                               min={0}
@@ -1405,18 +1394,29 @@ function BrowsePortfoliosPageInner() {
                               }}
                               className="w-20 px-2 py-1 text-xs bg-surface border border-border rounded-sm text-foreground focus:outline-none focus:border-accent/50"
                             />
-                            <span className="text-xs text-muted">mi</span>
+                            <button
+                              type="button"
+                              onClick={() => { setUserCoords(null); setPostcodeInput(""); setPostcodeError(false); }}
+                              className="text-[11px] text-muted underline hover:text-foreground"
+                            >
+                              Change postcode
+                            </button>
                           </div>
                         </div>
                       </div>
                     )}
-                    {galleryLocationMode === "local" && !userCoords && !geoRequesting && (
-                      <div className="mt-3">
-                        <p className="text-xs text-muted mb-1.5">Enter your postcode</p>
-                        <div className="flex gap-1.5">
-                          <input type="text" value={postcodeInput} onChange={(e) => { setPostcodeInput(e.target.value.toUpperCase()); setPostcodeError(false); }} onKeyDown={(e) => { if (e.key === "Enter") handlePostcodeSubmit(); }} placeholder="e.g. EC1A 1BB" className="flex-1 px-2 py-1.5 bg-surface border border-border rounded-sm text-xs text-foreground focus:outline-none focus:border-accent/50 uppercase" />
-                          <button type="button" onClick={handlePostcodeSubmit} className="px-3 py-1.5 bg-accent text-white text-xs rounded-sm hover:bg-accent-hover transition-colors cursor-pointer">Go</button>
-                        </div>
+                    {!userCoords && !geoRequesting && (
+                      <div>
+                        <p className="text-xs text-muted mb-1.5">Enter your postcode to filter by distance</p>
+                        <PostcodeInput
+                          initial={postcodeInput}
+                          onGeocoded={(coords, pc) => {
+                            setUserCoords(coords);
+                            setPostcodeInput(pc);
+                            setPostcodeError(false);
+                          }}
+                          onError={(failed) => setPostcodeError(failed)}
+                        />
                         {postcodeError && <p className="text-[10px] text-red-400 mt-1">Postcode not found</p>}
                       </div>
                     )}
