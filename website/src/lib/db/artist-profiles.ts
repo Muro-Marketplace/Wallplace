@@ -72,6 +72,9 @@ export interface DbArtistWork {
   frame_options?: { label: string; priceUplift: number }[];
   description?: string;
   images?: string[];
+  /** Postgres `timestamptz`, ISO string from PostgREST. Powers the
+   *  marketplace "Recently listed" sort (#5). */
+  created_at?: string;
 }
 
 /** Convert a DB profile row + works to the Artist shape used everywhere in the app */
@@ -140,6 +143,7 @@ export function dbProfileToArtist(profile: DbArtistProfile, works: DbArtistWork[
       inStorePrice: w.in_store_price ?? undefined,
       quantityAvailable: w.quantity_available ?? undefined,
       frameOptions: Array.isArray(w.frame_options) ? w.frame_options : [],
+      createdAt: w.created_at ?? undefined,
     })),
   };
 }

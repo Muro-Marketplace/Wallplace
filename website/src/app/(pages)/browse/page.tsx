@@ -154,7 +154,11 @@ function BrowsePortfoliosPageInner() {
   //     with the existing view-switcher buttons and ?view=collections param).
   const [activeDiscipline, setActiveDiscipline] = useState<string>("");
   const [activeSubStyles, setActiveSubStyles] = useState<Set<string>>(new Set());
-  const [viewAs, setViewAs] = useState<"artists" | "works">("artists");
+  // Default to Gallery (works) on first load (#4) — there are
+  // 5–10× more works than artists, so the marketplace looks fuller
+  // and more compelling on initial visit. Users can flip to
+  // Portfolios via the toggle or `?view=portfolios`.
+  const [viewAs, setViewAs] = useState<"artists" | "works">("works");
   // Pagination — "Show 20 more" pattern per view.
   const [loadedArtists, setLoadedArtists] = useState(PAGE_SIZE);
   const [loadedWorks, setLoadedWorks] = useState(PAGE_SIZE);
@@ -185,7 +189,7 @@ function BrowsePortfoliosPageInner() {
     }
   }, [viewParam]);
   const [artistSort, setArtistSort] = useState<"featured" | "name" | "revenue_share" | "distance">("featured");
-  const [gallerySort, setGallerySort] = useState<"featured" | "az" | "price_low" | "price_high" | "revenue_share" | "distance">("featured");
+  const [gallerySort, setGallerySort] = useState<"featured" | "recent" | "az" | "price_low" | "price_high" | "revenue_share" | "distance">("featured");
   // Gallery grid uses a JS-distributed masonry so images of varying heights
   // slot together with no row-whitespace, while reading order stays left-to-
   // right, top-to-bottom (CSS `columns-*` alone gives the masonry look but
@@ -205,6 +209,12 @@ function BrowsePortfoliosPageInner() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [artists, setArtists] = useState<Artist[]>(staticArtists);
   const [collections, setCollections] = useState<ArtistCollection[]>(staticCollections);
+  // Tracks whether live DB data has replaced the static seed (#1).
+  // While false the marketplace still paints with the seed grid for
+  // instant first paint, but result counts are suppressed so the
+  // user doesn't see e.g. "40 works" jump to "42 works" once the
+  // DB fetch lands a moment later.
+  const [dataReady, setDataReady] = useState(false);
 
   // User location state for Local mode
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -212,23 +222,28 @@ function BrowsePortfoliosPageInner() {
   const [postcodeInput, setPostcodeInput] = useState("");
   const [postcodeError, setPostcodeError] = useState(false);
 
-  // Fetch merged artists (static + database) on mount
+  // Fetch merged artists (static + database) on mount.
+  //
+  // Both endpoints are awaited via Promise.allSettled so `dataReady`
+  // only flips once we know neither call is in flight — that's what
+  // un-suppresses the result counts in the header. If a call fails
+  // we still flip to ready (we'd rather show stale-seed counts than
+  // a permanent dash on a network blip).
   useEffect(() => {
-    fetch("/api/browse-artists")
+    const a = fetch("/api/browse-artists")
       .then((res) => res.json())
       .then((data) => {
-        if (data.artists?.length) {
-          setArtists(data.artists);
-        }
+        if (data.artists?.length) setArtists(data.artists);
       })
       .catch(() => { /* keep static data */ });
-    fetch("/api/browse-collections")
+    const c = fetch("/api/browse-collections")
       .then((res) => res.json())
       .then((data) => {
         const apiCollections: ArtistCollection[] = data.collections || [];
         setCollections(apiCollections);
       })
       .catch(() => { /* keep static data */ });
+    Promise.allSettled([a, c]).then(() => setDataReady(true));
   }, []);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"compact" | "expanded">("compact");
@@ -494,6 +509,13 @@ function BrowsePortfoliosPageInner() {
       }
       return true;
     }).sort((a, b) => {
+      if (gallerySort === "recent") {
+        // Recently listed (#5). Newer createdAt wins; works without
+        // a timestamp (legacy/static seed data) sink to the bottom.
+        const at = a.createdAt ? Date.parse(a.createdAt) : -Infinity;
+        const bt = b.createdAt ? Date.parse(b.createdAt) : -Infinity;
+        return bt - at;
+      }
       if (gallerySort === "az") return a.title.localeCompare(b.title);
       if (gallerySort === "price_low") {
         const aPrice = a.pricing[0]?.price ?? 0;
@@ -932,7 +954,11 @@ function BrowsePortfoliosPageInner() {
               );
             })}
             <span className="ml-auto text-xs text-muted shrink-0">
-              {viewAs === "artists" ? `${filteredArtists.length} artists` : `${filteredGalleryWorks.length} works`}
+              {dataReady
+                ? viewAs === "artists"
+                  ? `${filteredArtists.length} artists`
+                  : `${filteredGalleryWorks.length} works`
+                : "…"}
             </span>
           </div>
         </div>
@@ -977,8 +1003,14 @@ function BrowsePortfoliosPageInner() {
                 {/* Mobile filter toggle */}
                 <div className="lg:hidden mb-4 flex items-center justify-between">
                   <p className="text-sm text-muted">
-                    {filteredArtists.length} artist
-                    {filteredArtists.length !== 1 ? "s" : ""}
+                    {dataReady ? (
+                      <>
+                        {filteredArtists.length} artist
+                        {filteredArtists.length !== 1 ? "s" : ""}
+                      </>
+                    ) : (
+                      "…"
+                    )}
                   </p>
                   <div className="flex items-center gap-2">
                     {/* View dropdown (mobile — pill-shaped native select) */}
@@ -1053,9 +1085,15 @@ function BrowsePortfoliosPageInner() {
                       <SearchBar variant="light" mode="desktop" placeholder="Search artists..." />
                     </div>
                     <p className="text-sm text-muted whitespace-nowrap">
-                      {filteredArtists.length} artist
-                      {filteredArtists.length !== 1 ? "s" : ""}
-                      {hasActiveFilters && " matching"}
+                      {dataReady ? (
+                        <>
+                          {filteredArtists.length} artist
+                          {filteredArtists.length !== 1 ? "s" : ""}
+                          {hasActiveFilters && " matching"}
+                        </>
+                      ) : (
+                        "…"
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1465,7 +1503,9 @@ function BrowsePortfoliosPageInner() {
                 {/* Mobile filter toggle */}
                 <div className="lg:hidden mb-4 flex items-center justify-between">
                   <p className="text-sm text-muted">
-                    {filteredGalleryWorks.length} work{filteredGalleryWorks.length !== 1 ? "s" : ""}
+                    {dataReady
+                      ? `${filteredGalleryWorks.length} work${filteredGalleryWorks.length !== 1 ? "s" : ""}`
+                      : "…"}
                   </p>
                   <div className="flex items-center gap-2">
                     {/* View dropdown (mobile — pill-shaped native select) */}
@@ -1676,7 +1716,9 @@ function BrowsePortfoliosPageInner() {
                       <SearchBar variant="light" mode="desktop" placeholder="Search artworks..." />
                     </div>
                     <p className="text-sm text-muted whitespace-nowrap">
-                      {filteredGalleryWorks.length} work{filteredGalleryWorks.length !== 1 ? "s" : ""}
+                      {dataReady
+                        ? `${filteredGalleryWorks.length} work${filteredGalleryWorks.length !== 1 ? "s" : ""}`
+                        : "…"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1697,6 +1739,7 @@ function BrowsePortfoliosPageInner() {
                       className="px-2.5 py-1.5 text-xs border border-border rounded-sm bg-background text-foreground cursor-pointer focus:outline-none focus:border-accent/50"
                     >
                       <option value="featured">Sort: Featured</option>
+                      <option value="recent">Sort: Recently listed</option>
                       <option value="az">Sort: A-Z</option>
                       <option value="price_low">Sort: Price (low to high)</option>
                       <option value="price_high">Sort: Price (high to low)</option>

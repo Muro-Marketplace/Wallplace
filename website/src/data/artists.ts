@@ -50,6 +50,10 @@ export interface ArtistWork {
     imageUrl?: string;
     pricesBySize?: Record<string, number>;
   }[];
+  /** ISO timestamp from `artist_works.created_at`. Surfaces so the
+   *  marketplace can offer a "Recently listed" sort (#5). Optional
+   *  because static seed data and legacy rows pre-date the column. */
+  createdAt?: string;
 }
 
 export interface Artist {
