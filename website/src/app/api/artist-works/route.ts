@@ -37,27 +37,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "ID, title, and image are required" }, { status: 400 });
     }
 
-    // Posting limit per tier (#24). Core 50, Premium 200, Pro
-    // unlimited (`-1` sentinel). Updates to an existing work don't
-    // count against the cap — only new IDs do.
-    const POST_LIMITS: Record<string, number> = { core: 50, premium: 200, pro: -1 };
+    // Posting limit per tier (#24). Core 8, Premium 20, Pro 50.
+    // Updates to an existing work don't count against the cap —
+    // only new IDs do.
+    const POST_LIMITS: Record<string, number> = { core: 8, premium: 20, pro: 50 };
     const postPlan = (result.profile.subscription_plan || "core").toLowerCase();
     const postLimit = POST_LIMITS[postPlan] ?? POST_LIMITS.core;
-    if (postLimit !== -1) {
-      const existingWorks = await getWorksByArtistProfileId(result.profile.id);
-      const isNewWork = !existingWorks.some((w) => w.id === id);
-      if (isNewWork && existingWorks.length >= postLimit) {
-        return NextResponse.json(
-          {
-            error: "post_limit_reached",
-            message: `Your ${postPlan === "premium" ? "Premium" : "Core"} plan supports up to ${postLimit} active works. Archive an existing work or upgrade your plan to add more.`,
-            limit: postLimit,
-            current: existingWorks.length,
-            plan: postPlan,
-          },
-          { status: 403 },
-        );
-      }
+    const existingWorks = await getWorksByArtistProfileId(result.profile.id);
+    const isNewWork = !existingWorks.some((w) => w.id === id);
+    if (isNewWork && existingWorks.length >= postLimit) {
+      const planLabel = postPlan.charAt(0).toUpperCase() + postPlan.slice(1);
+      return NextResponse.json(
+        {
+          error: "post_limit_reached",
+          message: `Your ${planLabel} plan supports up to ${postLimit} active works. Archive an existing work or upgrade your plan to add more.`,
+          limit: postLimit,
+          current: existingWorks.length,
+          plan: postPlan,
+        },
+        { status: 403 },
+      );
     }
 
     // Sanitize the frame options. Each frame may carry an optional

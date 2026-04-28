@@ -218,8 +218,32 @@ export default function ArtistProfileClient({
 
   const currentWork = lightboxIndex !== null ? filteredWorks[lightboxIndex] : null;
 
+  // QR-scan venue banner (#8). When the visitor has just scanned a
+  // QR code at a venue, the redirect carries `?ref=qr&venue=…`. We
+  // show a small "Seen in [venue name]" line at the top of the
+  // portfolio so the visitor has the context the physical scan
+  // gives them — and the venue gets a soft brand mention on the
+  // page that landed them here.
+  const qrVenueName = isQrScan ? searchParams.get("venue") : null;
+
   return (
     <>
+      {qrVenueName && (
+        <div className="bg-accent/5 border-y border-accent/20">
+          <div className="max-w-[1200px] mx-auto px-6 py-2.5 flex items-center gap-2 text-xs text-foreground">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-accent shrink-0">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <path d="M14 14h3v3h-3z" />
+              <path d="M20 14v7M14 20h7" />
+            </svg>
+            <span>
+              Seen in <strong className="text-foreground">{qrVenueName}</strong>
+            </span>
+          </div>
+        </div>
+      )}
       {/* Portfolio section */}
       <section className="py-14 lg:py-18">
         <div className="max-w-[1200px] mx-auto px-6">
