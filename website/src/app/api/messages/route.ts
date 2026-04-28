@@ -298,6 +298,53 @@ export async function POST(request: Request) {
       cid = existing?.conversation_id || det;
     }
 
+    // Anti-spam first-contact cap (#39). Counts NEW conversations
+    // an artist starts each day, capped per tier (Core 2, Premium 5,
+    // Pro 10). Replies inside an existing thread are exempt — those
+    // are answered conversations, not outreach. Only applies when an
+    // ARTIST messages a VENUE; venue→artist messaging isn't capped
+    // here (venues already have to act on their own enquiries).
+    const isFirstContactFromArtist =
+      resolvedSenderType === "artist" && !!recipVenue && !conversationId && !!cid;
+    if (isFirstContactFromArtist) {
+      const cidLocal = cid as string; // narrowed by the !!cid guard above
+      const dailyMessageLimits: Record<string, number> = { core: 2, premium: 5, pro: 10 };
+      const planRow = await db
+        .from("artist_profiles")
+        .select("subscription_plan")
+        .eq("user_id", auth.user!.id)
+        .single<{ subscription_plan: string | null }>();
+      const planKey = (planRow.data?.subscription_plan || "core").toLowerCase();
+      const cap = dailyMessageLimits[planKey] ?? dailyMessageLimits.core;
+      if (cap !== -1) {
+        const dayStart = new Date();
+        dayStart.setUTCHours(0, 0, 0, 0);
+        // Count distinct conversation_ids this artist *started* today.
+        const { data: rows } = await db
+          .from("messages")
+          .select("conversation_id, created_at")
+          .eq("sender_id", auth.user!.id)
+          .gte("created_at", dayStart.toISOString());
+        const startedToday = new Set<string>();
+        for (const r of (rows || []) as Array<{ conversation_id: string }>) {
+          if (r.conversation_id) startedToday.add(r.conversation_id);
+        }
+        // Already known cid means we're replying — exempt.
+        if (!startedToday.has(cidLocal) && startedToday.size >= cap) {
+          return NextResponse.json(
+            {
+              error: "outreach_limit_reached",
+              message: `Your ${planKey === "premium" ? "Premium" : planKey === "pro" ? "Pro" : "Core"} plan allows ${cap} new conversation${cap === 1 ? "" : "s"} with venues per day. Try again tomorrow, or upgrade your plan to reach more.`,
+              limit: cap,
+              sent: startedToday.size,
+              plan: planKey,
+            },
+            { status: 429 },
+          );
+        }
+      }
+    }
+
     // Try insert with new columns first, fall back to base columns if they don't exist yet
     const baseRow = {
       conversation_id: cid,

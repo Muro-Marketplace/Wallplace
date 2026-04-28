@@ -334,6 +334,43 @@ export async function POST(request: Request) {
         );
       }
 
+      // Anti-spam outreach cap (#39). Caps NEW placement requests per
+      // calendar day per tier — Core 2, Premium 5, Pro 10. Counts
+      // unique placements created today by this artist; counter-offers
+      // / status changes on existing placements aren't affected. Pro
+      // Wallplace staff (`subscription_plan = 'pro'`) and any future
+      // unlimited tier use the `-1` sentinel.
+      const planRow = await db
+        .from("artist_profiles")
+        .select("subscription_plan")
+        .eq("user_id", auth.user!.id)
+        .single<{ subscription_plan: string | null }>();
+      const dailyPlacementLimits: Record<string, number> = { core: 2, premium: 5, pro: 10 };
+      const planKey = (planRow.data?.subscription_plan || "core").toLowerCase();
+      const placementCap = dailyPlacementLimits[planKey] ?? dailyPlacementLimits.core;
+      if (placementCap !== -1) {
+        const dayStart = new Date();
+        dayStart.setUTCHours(0, 0, 0, 0);
+        const { count } = await db
+          .from("placements")
+          .select("id", { count: "exact", head: true })
+          .eq("artist_user_id", auth.user!.id)
+          .eq("requester_user_id", auth.user!.id)
+          .gte("created_at", dayStart.toISOString());
+        if ((count || 0) + parsed.data.length > placementCap) {
+          return NextResponse.json(
+            {
+              error: "outreach_limit_reached",
+              message: `Your ${planKey === "premium" ? "Premium" : planKey === "pro" ? "Pro" : "Core"} plan allows ${placementCap} new placement request${placementCap === 1 ? "" : "s"} per day. Try again tomorrow, or upgrade your plan to send more.`,
+              limit: placementCap,
+              sent: count || 0,
+              plan: planKey,
+            },
+            { status: 429 },
+          );
+        }
+      }
+
       const venueSlug = parsed.data[0].venueSlug;
       if (!venueSlug) return NextResponse.json({ error: "Venue selection required" }, { status: 400 });
 

@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 interface AccordionItem {
   question: string;
-  answer: string;
+  /** Plain string OR a ReactNode for FAQ answers that need inline
+   *  links / CTAs (#13). Strings render as a `<p>`; ReactNodes render
+   *  in a `<div>` so a caller can compose paragraphs + anchors + CTAs. */
+  answer: ReactNode;
 }
 
 interface AccordionProps {
@@ -47,10 +50,18 @@ export default function Accordion({ items }: AccordionProps) {
             </button>
             <div
               className={`overflow-hidden transition-all duration-300 ${
-                isOpen ? "max-h-96 pb-5" : "max-h-0"
+                // Bumped from max-h-96 so longer FAQ answers with
+                // inline CTAs don't get clipped (#13).
+                isOpen ? "max-h-[40rem] pb-5" : "max-h-0"
               }`}
             >
-              <p className="text-muted leading-relaxed pr-12">{item.answer}</p>
+              {typeof item.answer === "string" ? (
+                <p className="text-muted leading-relaxed pr-12">{item.answer}</p>
+              ) : (
+                <div className="text-muted leading-relaxed pr-12 space-y-3 [&_a]:text-accent [&_a]:hover:underline">
+                  {item.answer}
+                </div>
+              )}
             </div>
           </div>
         );
