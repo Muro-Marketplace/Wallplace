@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Artist } from "@/data/artists";
 import { useAuth } from "@/context/AuthContext";
 import { disciplineLabel } from "@/data/categories";
+import SaveButton from "@/components/SaveButton";
 
 interface BrowseArtistCardProps {
   artist: Artist;
@@ -74,6 +75,14 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
           ))}
           {/* Transparent overlay to block save-as */}
           <div className="absolute inset-0 pointer-events-none" />
+
+          {/* Save-artist heart (#27) — top-right, paired with the
+              Featured chip on the left. SaveButton handles the auth
+              gate (signup) and stops the click from propagating to
+              the parent <Link>. */}
+          <div className="absolute top-2 right-2 z-10">
+            <SaveButton type="artist" itemId={artist.slug} size="sm" />
+          </div>
 
           {/* Featured chip for Pro-tier artists. Subtle accent pill
               in the top-left so it's visible at a glance in the

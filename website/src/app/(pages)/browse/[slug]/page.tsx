@@ -8,6 +8,7 @@ import { getCollectionsByArtistSlug } from "@/lib/db/artist-collections";
 import Button from "@/components/Button";
 import CollectionCard from "@/components/CollectionCard";
 import MessageArtistButton from "@/components/MessageArtistButton";
+import SaveButton from "@/components/SaveButton";
 import { PlacementButton, PlacementCTASection } from "@/components/PlacementCTA";
 import ArtistProfileClient from "./ArtistProfileClient";
 import { getArtistBySlug } from "@/lib/db/merged-data";
@@ -218,9 +219,17 @@ export default async function ArtistProfilePage({
                 <p className="text-[11px] text-muted uppercase tracking-[0.18em] mb-1.5">
                   {disciplineLabel(artist.primaryMedium, artist.discipline)}
                 </p>
-                <h1 className="font-serif text-3xl text-foreground leading-tight tracking-tight mb-1.5">
-                  {artist.name}
-                </h1>
+                <div className="flex items-start gap-3 mb-1.5">
+                  <h1 className="font-serif text-3xl text-foreground leading-tight tracking-tight">
+                    {artist.name}
+                  </h1>
+                  {/* Save artist (#27). Heart pairs with the existing
+                      Message / Request placement CTAs further down so
+                      followers can stash an artist they like and come
+                      back to them — same affordance as Saatchi /
+                      Vinted. */}
+                  <SaveButton type="artist" itemId={artist.slug} size="sm" />
+                </div>
                 <p className="text-muted text-sm">{artist.location}</p>
                 {artist.instagram && (
                   <a
