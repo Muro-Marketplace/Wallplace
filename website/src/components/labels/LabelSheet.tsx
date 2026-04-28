@@ -10,10 +10,19 @@ export interface LabelData {
   artistName: string;
   artistSlug: string;
   workTitle?: string;
+  /** Real artist_works.id — used to set analytics_events.work_id
+   *  correctly when the QR is scanned. Without this, work_id was
+   *  being stored as the URL-encoded title and the analytics
+   *  top_works lookup couldn't join back to the work row. */
+  workId?: string;
   workMedium?: string;
   workDimensions?: string;
   workPrice?: string;
   venueName?: string;
+  /** Real venue_profiles.slug — used by the QR redirect to look up
+   *  venue_user_id and link the scan back to the venue cleanly.
+   *  Falls back to venueName when not present. */
+  venueSlug?: string;
   quantity: number;
   isPortfolioLabel?: boolean;
   // Source values for restoring toggled-off fields in preview
@@ -44,13 +53,24 @@ export default function LabelSheet({ labels, pageIndex }: LabelSheetProps) {
   useEffect(() => {
     async function generate() {
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://wallplace.co.uk";
+      // QR URL params (compact keys to keep the encoded string short):
+      //   w  = work id (preferred — sets analytics_events.work_id)
+      //   t  = work title (compat / display fallback)
+      //   vs = venue slug (preferred — used to resolve venue_user_id)
+      //   v  = venue name (compat / display fallback)
+      //   size = displayed size
       const uniqueUrls = await Promise.all(
         labels.map((l) => {
-          const venueParam = l.venueName ? `&v=${encodeURIComponent(l.venueName)}` : "";
-          const sizeParam = l.workDimensions ? `&size=${encodeURIComponent(l.workDimensions)}` : "";
-          const url = l.isPortfolioLabel
-            ? `${siteUrl}/api/qr/${l.artistSlug}${venueParam ? `?${venueParam.slice(1)}` : ""}`
-            : `${siteUrl}/api/qr/${l.artistSlug}?work=${encodeURIComponent(l.workTitle || "")}${venueParam}${sizeParam}`;
+          const params = new URLSearchParams();
+          if (!l.isPortfolioLabel) {
+            if (l.workId) params.set("w", l.workId);
+            if (l.workTitle) params.set("t", l.workTitle);
+          }
+          if (l.venueSlug) params.set("vs", l.venueSlug);
+          if (l.venueName) params.set("v", l.venueName);
+          if (l.workDimensions) params.set("size", l.workDimensions);
+          const qs = params.toString();
+          const url = `${siteUrl}/api/qr/${l.artistSlug}${qs ? `?${qs}` : ""}`;
           return generateQRDataURL(url);
         })
       );

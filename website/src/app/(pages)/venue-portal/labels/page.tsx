@@ -43,7 +43,7 @@ interface Placement {
 interface ArtistLookup {
   slug: string;
   name: string;
-  works?: { title: string; medium?: string; dimensions?: string; priceBand?: string }[];
+  works?: { id?: string; title: string; medium?: string; dimensions?: string; priceBand?: string }[];
 }
 
 export default function VenueLabelsPage() {
@@ -52,6 +52,10 @@ export default function VenueLabelsPage() {
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [artistsBySlug, setArtistsBySlug] = useState<Record<string, ArtistLookup>>({});
   const [venueName, setVenueName] = useState("");
+  // Slug captured from the venue profile so QR codes carry it as
+  // `?vs=` — analytics_events.venue_user_id then resolves cleanly
+  // via venue_profiles instead of leaning on the display name.
+  const [venueSlug, setVenueSlug] = useState("");
   const [loading, setLoading] = useState(true);
 
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -130,7 +134,8 @@ export default function VenueLabelsPage() {
                   // per-work medium / dimensions / price when the venue
                   // ticks those options.
                   works: Array.isArray(a.works)
-                    ? a.works.map((w: { title: string; medium?: string; dimensions?: string; priceBand?: string }) => ({
+                    ? a.works.map((w: { id?: string; title: string; medium?: string; dimensions?: string; priceBand?: string }) => ({
+                        id: w.id,
                         title: w.title,
                         medium: w.medium,
                         dimensions: w.dimensions,
@@ -144,11 +149,15 @@ export default function VenueLabelsPage() {
           } catch { /* fall back to formatting the slug */ }
         }
 
-        // Get the venue name for display
+        // Pull the venue's slug + name so the QR carries both. The
+        // slug is what /api/qr uses to resolve venue_user_id for
+        // analytics; the name is the human-readable label that
+        // shows on the artwork page banner ("Seen in [venue name]").
         try {
           const vp = await authFetch("/api/venue-profile");
           const vpData = await vp.json();
           if (vpData.profile?.name) setVenueName(vpData.profile.name);
+          if (vpData.profile?.slug) setVenueSlug(vpData.profile.slug);
         } catch { /* ignore */ }
       } catch (e) {
         console.error("labels load error", e);
@@ -213,6 +222,11 @@ export default function VenueLabelsPage() {
       return {
         artistName: formatArtistName(p.artist_slug),
         artistSlug: p.artist_slug,
+        // Real work id (when we can find it in the artist roster)
+        // so the QR scan analytics_events.work_id matches
+        // artist_works.id and the top-works dashboard works.
+        workId: work?.id,
+        venueSlug: venueSlug || undefined,
         venueName: venueName || (p.venue ?? undefined),
         workTitle: p.work_title,
         workMedium: options.showMedium ? (work?.medium || undefined) : undefined,

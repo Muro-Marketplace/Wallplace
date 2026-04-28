@@ -737,6 +737,7 @@ export default function Header() {
                           { label: "My Walls", href: "/venue-portal/walls" },
                           { label: "Saved", href: "/venue-portal/saved" },
                           { label: "QR Labels", href: "/venue-portal/labels" },
+                          { label: "Analytics", href: "/venue-portal/analytics" },
                           { label: "My Orders", href: "/venue-portal/orders" },
                           { label: "Settings", href: "/venue-portal/settings" },
                         ]

@@ -88,6 +88,13 @@ export async function GET(request: NextRequest) {
       case "qr_scan":
         totals.qr_scans++;
         viewsByDate[date].qr_scans++;
+        // Count QR scans against the work too — without this the
+        // top-works ranking only reflects artwork_view events from
+        // /browse/[slug]/[workSlug], so a piece doing well on
+        // physical labels would never surface here.
+        if (event.work_id) {
+          workViewCounts[event.work_id] = (workViewCounts[event.work_id] || 0) + 1;
+        }
         break;
       case "venue_viewed_artist":
         totals.venue_views++;

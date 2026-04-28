@@ -157,6 +157,10 @@ export default function LabelsPage() {
       labels.push({
         artistName: currentArtist.name,
         artistSlug: currentArtist.slug,
+        // Real work id so the QR scan analytics_events.work_id
+        // matches artist_works.id (rather than the URL-encoded
+        // title we used to send).
+        workId: work.id,
         venueName: selectedVenue || undefined,
         workTitle: work.title,
         workMedium: options.showMedium ? work.medium : undefined,
