@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { artists as staticArtists, type Artist } from "@/data/artists";
@@ -113,12 +113,13 @@ const DEFAULT_FILTERS: Filters = {
   // Distance slider is the only location control now (#9). Default
   // mode is "local" so the slider applies whenever the user has set
   // a location; without a location, the filter logic bails out so
-  // results are still global until a postcode/geo lands. Default
-  // distance is "Anywhere" (9999 sentinel) so users see every artist
-  // by default — they have to actively dial the slider down to
-  // narrow the result set.
+  // results are still global until a postcode/geo lands.
+  //
+  // Default distance is 25 miles — once a buyer's set their
+  // location they almost always want a near-only first result set,
+  // and the slider goes up to "Anywhere" if they want more.
   mode: "local",
-  maxDistance: 9999,
+  maxDistance: 25,
   themes: [],
   originals: false,
   prints: false,
@@ -210,7 +211,27 @@ function BrowsePortfoliosPageInner() {
   // window.location.hash because Next.js Link same-page hash changes use
   // pushState, which doesn't fire hashchange — so the page wouldn't react.
   const searchParams = useSearchParams();
+  const router = useRouter();
   const viewParam = searchParams?.get("view") || "";
+
+  // Pill toggles call this so the URL updates alongside the local
+  // viewAs / activeDiscipline state. Without it the marketplace nav
+  // tabs (which key off `?view=`) didn't update when the user
+  // switched via the in-page pills.
+  const switchView = useCallback((target: "gallery" | "portfolios" | "collections") => {
+    if (target === "gallery") {
+      setViewAs("works");
+      setActiveDiscipline("");
+    } else if (target === "portfolios") {
+      setViewAs("artists");
+      setActiveDiscipline("");
+    } else {
+      setActiveDiscipline("collections");
+    }
+    // replace (not push) so toggling doesn't bloat the back-stack.
+    const target_qs = target === "gallery" ? "" : `?view=${target}`;
+    router.replace(`/browse${target_qs}`, { scroll: false });
+  }, [router]);
   // Reset pagination when switching views / categories so users don't land
   // on an empty grid if they scroll back to a narrow filter.
   useEffect(() => {
@@ -1150,9 +1171,9 @@ function BrowsePortfoliosPageInner() {
                         value={activeDiscipline === "collections" ? "collections" : ((viewAs as string) === "works" ? "gallery" : "portfolios")}
                         onChange={(e) => {
                           const v = e.target.value;
-                          if (v === "collections") setActiveDiscipline("collections");
-                          else if (v === "gallery") { setViewAs("works"); setActiveDiscipline(""); }
-                          else { setViewAs("artists"); setActiveDiscipline(""); }
+                          if (v === "collections") switchView("collections");
+                          else if (v === "gallery") switchView("gallery");
+                          else switchView("portfolios");
                         }}
                         className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
                       >
@@ -1232,13 +1253,13 @@ function BrowsePortfoliosPageInner() {
                         default landing view (#4) and matches the new
                         nav order. */}
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5 mr-1">
-                      <button type="button" onClick={() => { setViewAs("works"); setActiveDiscipline(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { switchView("gallery"); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Galleries
                       </button>
-                      <button type="button" onClick={() => { setViewAs("artists"); setActiveDiscipline(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { switchView("portfolios"); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => setActiveDiscipline("collections")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => switchView("collections")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Collections
                       </button>
                     </div>
@@ -1680,9 +1701,9 @@ function BrowsePortfoliosPageInner() {
                         value={activeDiscipline === "collections" ? "collections" : ((viewAs as string) === "works" ? "gallery" : "portfolios")}
                         onChange={(e) => {
                           const v = e.target.value;
-                          if (v === "collections") setActiveDiscipline("collections");
-                          else if (v === "gallery") { setViewAs("works"); setActiveDiscipline(""); }
-                          else { setViewAs("artists"); setActiveDiscipline(""); }
+                          if (v === "collections") switchView("collections");
+                          else if (v === "gallery") switchView("gallery");
+                          else switchView("portfolios");
                         }}
                         className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
                       >
@@ -1894,13 +1915,13 @@ function BrowsePortfoliosPageInner() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5 mr-1">
-                      <button type="button" onClick={() => { setViewAs("works"); setActiveDiscipline(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { switchView("gallery"); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "works" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Galleries
                       </button>
-                      <button type="button" onClick={() => { setViewAs("artists"); setActiveDiscipline(""); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => { switchView("portfolios"); }} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline !== "collections" && (viewAs as string) === "artists" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Portfolios
                       </button>
-                      <button type="button" onClick={() => setActiveDiscipline("collections")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
+                      <button type="button" onClick={() => switchView("collections")} className={`px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer ${activeDiscipline === "collections" ? "bg-white text-foreground shadow-sm" : "text-muted hover:text-foreground"}`}>
                         Collections
                       </button>
                     </div>
@@ -2081,8 +2102,8 @@ function BrowsePortfoliosPageInner() {
                     value="collections"
                     onChange={(e) => {
                       const v = e.target.value;
-                      if (v === "gallery") { setViewAs("works"); setActiveDiscipline(""); }
-                      else if (v === "portfolios") { setViewAs("artists"); setActiveDiscipline(""); }
+                      if (v === "gallery") { switchView("gallery"); }
+                      else if (v === "portfolios") { switchView("portfolios"); }
                     }}
                     className="appearance-none pl-3 pr-7 py-1.5 text-[11px] rounded-full border border-border bg-white text-foreground font-medium cursor-pointer focus:outline-none focus:border-foreground/50"
                   >
@@ -2157,13 +2178,13 @@ function BrowsePortfoliosPageInner() {
                 first, then Portfolios, then Collections. */}
             <div className="hidden lg:flex mb-6 items-center justify-end">
               <div className="flex items-center gap-0.5 bg-border/30 rounded-sm p-0.5">
-                <button type="button" onClick={() => { setViewAs("works"); setActiveDiscipline(""); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
+                <button type="button" onClick={() => { switchView("gallery"); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
                   Galleries
                 </button>
-                <button type="button" onClick={() => { setViewAs("artists"); setActiveDiscipline(""); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
+                <button type="button" onClick={() => { switchView("portfolios"); }} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer text-muted hover:text-foreground">
                   Portfolios
                 </button>
-                <button type="button" onClick={() => setActiveDiscipline("collections")} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer bg-white text-foreground shadow-sm">
+                <button type="button" onClick={() => switchView("collections")} className="px-3 py-1 text-xs rounded-sm transition-colors cursor-pointer bg-white text-foreground shadow-sm">
                   Collections
                 </button>
               </div>
