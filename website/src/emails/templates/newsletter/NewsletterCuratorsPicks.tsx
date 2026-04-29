@@ -16,7 +16,7 @@ export interface NewsletterCuratorsPicksProps {
 export function NewsletterCuratorsPicks({ firstName, theme, intro, works, browseUrl }: NewsletterCuratorsPicksProps) {
   return (
     <EmailShell stream="news" persona="customer" category="newsletter" preview={`Curator's picks: ${theme}`}>
-      <H1>Curator&rsquo;s picks — {theme}</H1>
+      <H1>Curator&rsquo;s picks, {theme}</H1>
       <P>Dear {firstName},</P>
       <P>{intro}</P>
       <Divider />
@@ -31,7 +31,7 @@ export function NewsletterCuratorsPicks({ firstName, theme, intro, works, browse
 export const mock: NewsletterCuratorsPicksProps = {
   firstName: "Oliver",
   theme: "Pieces for a quiet wall",
-  intro: "A small selection for spaces that already have enough going on — photographs and paintings that reward a long, unhurried look.",
+  intro: "A small selection for spaces that already have enough going on, photographs and paintings that reward a long, unhurried look.",
   works: mockWorks,
   browseUrl: "https://wallplace.co.uk/collections/quiet",
 };

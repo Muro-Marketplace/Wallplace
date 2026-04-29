@@ -16,7 +16,7 @@ export function AccountEmailVerification({ firstName, verificationUrl, expiresIn
   return (
     <EmailShell stream="tx" persona="multi" preview={`Confirm your email to activate your Wallplace account`}>
       <H1>Welcome to Wallplace, {firstName}</H1>
-      <P>One last step — tap below to confirm your email and unlock your account.</P>
+      <P>One last step, tap below to confirm your email and unlock your account.</P>
       <Button href={verificationUrl}>Confirm email</Button>
       <Small>This link expires in {expiresIn}. If you didn&rsquo;t create an account, you can safely ignore this email.</Small>
       <Divider />

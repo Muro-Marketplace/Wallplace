@@ -1,4 +1,4 @@
-// Stream: news. Upsell — managed curation service for venues.
+// Stream: news. Upsell, managed curation service for venues.
 
 import { EmailShell, H1, P, Button, ArtistCard, Divider, Small } from "@/emails/_components";
 import type { Artist } from "@/emails/types/emailTypes";
@@ -17,7 +17,7 @@ export function VenueManagedCurationPitch({ firstName, venueName, curationUrl, b
   return (
     <EmailShell stream="news" persona="venue" category="promotions" preview={`Want a hand curating ${venueName}?`}>
       <H1>Curation, handled</H1>
-      <P>Hi {firstName} — if you&rsquo;d rather spend time running {venueName} than picking art, our curators pick, arrange, and rotate for you.</P>
+      <P>Hi {firstName}, if you&rsquo;d rather spend time running {venueName} than picking art, our curators pick, arrange, and rotate for you.</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {benefits.map((b) => <li key={b}>{b}</li>)}
       </ul>
@@ -27,7 +27,7 @@ export function VenueManagedCurationPitch({ firstName, venueName, curationUrl, b
       <div style={{ marginTop: 20 }}>
         <Button href={curationUrl} persona="venue">Talk to a curator</Button>
       </div>
-      <Small>No obligation — it&rsquo;s a short call to understand your space.</Small>
+      <Small>No obligation, it&rsquo;s a short call to understand your space.</Small>
     </EmailShell>
   );
 }
@@ -38,7 +38,7 @@ export const mock: VenueManagedCurationPitchProps = {
   curationUrl: "https://wallplace.co.uk/venue-portal/curation",
   benefits: [
     "A curator picks artists that suit your space and values",
-    "Rotations arranged quarterly — install and collection handled",
+    "Rotations arranged quarterly, install and collection handled",
     "Insurance and consignment records taken care of",
   ],
   exampleArtists: [mockArtist, mockArtistSecondary],

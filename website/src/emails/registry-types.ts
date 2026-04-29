@@ -6,17 +6,17 @@ import type { ComponentType } from "react";
 import type { EmailCategory, EmailPersona, EmailStream } from "./types/emailTypes";
 
 export interface TemplateEntry<P = Record<string, unknown>> {
-  /** Canonical snake_case id. Used everywhere — logs, idempotency keys, preview URLs. */
+  /** Canonical snake_case id. Used everywhere, logs, idempotency keys, preview URLs. */
   id: string;
   /** Human-readable name for the preview list. */
   name: string;
-  /** Short description for the preview list — what triggers this? */
+  /** Short description for the preview list, what triggers this? */
   description?: string;
-  /** Sending stream — drives domain, footer, throttling. */
+  /** Sending stream, drives domain, footer, throttling. */
   stream: EmailStream;
-  /** Audience — drives accent and voice. */
+  /** Audience, drives accent and voice. */
   persona: EmailPersona;
-  /** Category — maps to preference toggles and throttle rules. */
+  /** Category, maps to preference toggles and throttle rules. */
   category: EmailCategory;
   /** Subject line. May include {{tokens}} for substitution at send time. */
   subject: string;

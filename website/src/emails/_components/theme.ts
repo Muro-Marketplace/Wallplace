@@ -1,10 +1,10 @@
-// Central design tokens. Hex literals only — email clients (especially Outlook)
+// Central design tokens. Hex literals only, email clients (especially Outlook)
 // don't resolve CSS vars, and inline styles are the only reliably portable route.
 
 import type { EmailPersona } from "@/emails/types/emailTypes";
 
 export const theme = {
-  // Brand — Wallplace warm
+  // Brand, Wallplace warm
   accent:        "#C17C5A",
   accentHover:   "#A9683E",
 
@@ -30,7 +30,7 @@ export const theme = {
 } as const;
 
 /**
- * Persona accent — same shell, subtle voice shift. Artists get the warm orange;
+ * Persona accent, same shell, subtle voice shift. Artists get the warm orange;
  * venues get a professional charcoal; customers get an editorial neutral.
  */
 export function accentFor(persona: EmailPersona): string {

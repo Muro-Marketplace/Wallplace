@@ -15,7 +15,7 @@ export function SubscriptionCancelled({ firstName, planName, accessEndsAt, react
   return (
     <EmailShell stream="tx" persona="multi" preview={`Your ${planName} plan will end ${accessEndsAt}`}>
       <H1>Subscription cancelled</H1>
-      <P>Hi {firstName} — your {planName} subscription is scheduled to end on <strong>{accessEndsAt}</strong>. You&rsquo;ll keep full access until then.</P>
+      <P>Hi {firstName}, your {planName} subscription is scheduled to end on <strong>{accessEndsAt}</strong>. You&rsquo;ll keep full access until then.</P>
       <P>If you change your mind:</P>
       <Button href={reactivateUrl}>Reactivate</Button>
       <SupportBlock supportUrl={supportUrl} />

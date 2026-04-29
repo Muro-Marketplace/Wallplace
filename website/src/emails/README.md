@@ -18,7 +18,7 @@ open http://localhost:3000/email-preview
 
 ```
 src/emails/
-├── _components/         Shared design system — EmailShell, Button, WorkCard, …
+├── _components/         Shared design system, EmailShell, Button, WorkCard, …
 ├── data/                Reusable entity mocks (mockArtist, mockVenue, …)
 ├── types/               Shared TS types (Work, Artist, Venue, Placement, Money, …)
 ├── templates/           113 templates, grouped by concern
@@ -36,7 +36,7 @@ src/emails/
 │   ├── re-engagement/
 │   ├── newsletter/
 │   └── legal/
-├── registry.ts          Single source of truth — every template listed here
+├── registry.ts          Single source of truth, every template listed here
 ├── registry-types.ts    The TemplateEntry shape
 └── README.md            ← you are here
 ```
@@ -76,7 +76,7 @@ Adding a new template = create the file, push its default into
 
 Three sending streams, each ideally mapped to its own subdomain so
 reputation stays isolated. All three can point at the same verified
-domain during MVP — move to separate domains as volume grows.
+domain during MVP, move to separate domains as volume grows.
 
 | Stream | Purpose | Examples | Footer |
 |---|---|---|---|
@@ -91,11 +91,11 @@ on `<EmailShell>`.
 
 Same shell, subtle accent + voice differences:
 
-- `artist` — warm orange accent (`#C17C5A`), progress-oriented
-- `venue` — muted charcoal accent (`#2F3A4A`), professional
-- `customer` — editorial near-black, gallery-catalogue feel
-- `multi` — brand orange, both parties
-- `system` — grey (rarely used; internal)
+- `artist`, warm orange accent (`#C17C5A`), progress-oriented
+- `venue`, muted charcoal accent (`#2F3A4A`), professional
+- `customer`, editorial near-black, gallery-catalogue feel
+- `multi`, brand orange, both parties
+- `system`, grey (rarely used; internal)
 
 ## Categories
 
@@ -137,7 +137,7 @@ await sendEmail({
 ```
 
 **Always set an `idempotencyKey`.** Webhook retries, double-clicks, and
-scheduler retries are all expected — the idempotency key prevents
+scheduler retries are all expected, the idempotency key prevents
 double-sends.
 
 ## MVP wiring (already live)
@@ -155,7 +155,7 @@ production env:
 | `customer_order_receipt` | Stripe `checkout.session.completed` |
 | `artist_work_sold` | Stripe `checkout.session.completed` |
 | `artist_payout_sent` | Stripe `payout.paid` |
-| `message_unread_notification` | `POST /api/messages` (sends immediately — see TODO below) |
+| `message_unread_notification` | `POST /api/messages` (sends immediately, see TODO below) |
 
 ## MVP wiring (still required)
 
@@ -163,7 +163,7 @@ production env:
 
 These come from Supabase Auth, not your API routes. Two options:
 
-**Option A — use Supabase's hosted emails (simplest)**
+**Option A, use Supabase's hosted emails (simplest)**
 In Supabase Dashboard → Auth → Email Templates, paste the rendered HTML
 from `AccountEmailVerification` and `AccountPasswordReset`. Use
 `@react-email/render` in a local script to generate the HTML:
@@ -183,12 +183,12 @@ console.log(html);
 
 Paste the output into Supabase's "Confirm signup" email template.
 
-**Option B — custom SMTP via Resend (full control)**
+**Option B, custom SMTP via Resend (full control)**
 In Supabase Dashboard → Project Settings → Auth → SMTP Settings,
 configure Resend as the SMTP provider. Still uses Supabase's template
 editor but sends via your Resend IP reputation.
 
-**Option C — intercept auth webhooks (most flexibility, most work)**
+**Option C, intercept auth webhooks (most flexibility, most work)**
 Supabase emits `user.created` / `password.reset.requested` webhooks. Hook
 those up to a route that calls `sendEmail()`. More control, more moving
 parts.
@@ -202,7 +202,7 @@ Fire after email verification. Hook into:
   once, set `welcomed_at` on the profile row)
 
 ```ts
-// pseudo-code — wherever you handle the "user just verified" event
+// pseudo-code, wherever you handle the "user just verified" event
 if (!profile.welcomed_at) {
   if (profile.type === "artist") {
     await sendEmail({
@@ -277,7 +277,7 @@ pattern once Inngest is set up.
 Used for: weekly digests (Tue/Wed 9am), trial ending reminders (3d/1d
 out), card expiring (30d out), placement ending soon (14d out).
 
-Use **Vercel Cron** — one file per schedule:
+Use **Vercel Cron**, one file per schedule:
 
 ```ts
 // src/app/api/cron/weekly-artist-digest/route.ts
@@ -326,7 +326,7 @@ In `vercel.json`:
 Used for: `artist_inactive_14d/30d/90d`, `venue_inactive_*`,
 `customer_inactive_*`, `artist_qr_scan_milestone`.
 
-Same pattern as cron — daily job that queries users in the right state
+Same pattern as cron, daily job that queries users in the right state
 and sends. Remember to include a skip on `last_email_opened_at` to avoid
 re-engaging users who are already engaged by email.
 
@@ -368,12 +368,12 @@ Until `notify.` and `news.` are verified, all three can point at `tx.`.
 
 ## Not yet built
 
-The following are deliberately out of scope — flagging for future
+The following are deliberately out of scope, flagging for future
 product decisions:
 
 - **In-app calling** (item 16 from original roadmap)
 - **Payment authorization hold** (item 22)
-- **Internal Slack/PagerDuty alerts** — email is the wrong channel;
+- **Internal Slack/PagerDuty alerts**, email is the wrong channel;
   use Slack webhooks instead
 
 Templates deliberately omitted (see the earlier product discussion):
@@ -384,7 +384,7 @@ Templates deliberately omitted (see the earlier product discussion):
 ## Running the preview
 
 The preview lives at `/email-preview`. It's not gated by auth by
-default — add a middleware check or block via `robots.txt` if you want
+default, add a middleware check or block via `robots.txt` if you want
 it hidden in production.
 
 ```ts

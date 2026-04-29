@@ -16,7 +16,7 @@ export function ArtistPlacementRequestSent({ firstName, venueName, placementUrl,
   return (
     <EmailShell stream="notify" persona="artist" category="placements" preview={`Request sent to ${venueName}`}>
       <H1>Request sent to {venueName}</H1>
-      <P>Hi {firstName} — we&rsquo;ve delivered your request. We&rsquo;ll let you know as soon as {venueName} responds.</P>
+      <P>Hi {firstName}, we&rsquo;ve delivered your request. We&rsquo;ll let you know as soon as {venueName} responds.</P>
       <InfoBox tone="neutral">
         <strong>Works:</strong> {requestedWorks.join(", ")}<br />
         <strong>Terms you proposed:</strong> {proposedTerms}

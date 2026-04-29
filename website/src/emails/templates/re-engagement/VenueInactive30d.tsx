@@ -16,7 +16,7 @@ export function VenueInactive30d({ firstName, venueName, suggestedArtists, brows
   return (
     <EmailShell stream="news" persona="venue" category="tips" preview={`New artists for ${venueName}`}>
       <H1>Four artists near you</H1>
-      <P>Hi {firstName} — while you&rsquo;ve been away, a few artists worth {venueName}&rsquo;s wall signed up.</P>
+      <P>Hi {firstName}, while you&rsquo;ve been away, a few artists worth {venueName}&rsquo;s wall signed up.</P>
       {suggestedArtists.slice(0, 4).map((a) => <ArtistCard key={a.id} artist={a} />)}
       <Button href={browseArtistsUrl} persona="venue">Browse matches</Button>
     </EmailShell>

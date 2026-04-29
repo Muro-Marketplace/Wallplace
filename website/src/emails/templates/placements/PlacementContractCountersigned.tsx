@@ -1,4 +1,4 @@
-// Stream: tx. Fully-signed contract — receipt copy for both parties.
+// Stream: tx. Fully-signed contract, receipt copy for both parties.
 
 import { EmailShell, H1, P, Button, InfoBox } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -15,7 +15,7 @@ export function PlacementContractCountersigned({ firstName, placementUrl, contra
   return (
     <EmailShell stream="tx" persona="multi" preview={`Contract countersigned by ${counterpartyName}`}>
       <H1>Contract countersigned</H1>
-      <P>Hi {firstName} — {counterpartyName} has countersigned on {signedAt}. You can download a copy below.</P>
+      <P>Hi {firstName}, {counterpartyName} has countersigned on {signedAt}. You can download a copy below.</P>
       <InfoBox tone="neutral">Keep this email for your records. A copy lives in your placement page too.</InfoBox>
       <Button href={contractUrl}>Download contract</Button>
       <P style={{ marginTop: 16 }}>

@@ -30,7 +30,7 @@ export function QuoteBlock({ children, attribution }: Props) {
       </Text>
       {attribution && (
         <Text style={{ fontSize: 12, color: theme.muted, margin: "8px 0 0", letterSpacing: "0.02em" }}>
-          — {attribution}
+         , {attribution}
         </Text>
       )}
     </div>

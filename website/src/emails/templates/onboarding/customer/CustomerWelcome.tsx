@@ -14,7 +14,7 @@ export interface CustomerWelcomeProps {
 
 export function CustomerWelcome({ firstName, browseUrl, featuredWorks, followArtistsUrl }: CustomerWelcomeProps) {
   return (
-    <EmailShell stream="notify" persona="customer" category="recommendations" preview="Welcome to Wallplace — a few works to start with">
+    <EmailShell stream="notify" persona="customer" category="recommendations" preview="Welcome to Wallplace, a few works to start with">
       <H1>Welcome, {firstName}</H1>
       <P>Wallplace is a curated marketplace of independent artists showing work in real venues. Here are a few pieces to start with.</P>
       {featuredWorks.slice(0, 3).map((w) => <WorkCard key={w.id} work={w} />)}

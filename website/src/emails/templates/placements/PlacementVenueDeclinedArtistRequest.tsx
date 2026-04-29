@@ -1,4 +1,4 @@
-// ADDITION — mirror of ArtistPlacementDeclined for venue-initiated requests
+// ADDITION, mirror of ArtistPlacementDeclined for venue-initiated requests
 // the artist declines.
 // Stream: notify.
 
@@ -16,8 +16,8 @@ export function PlacementVenueDeclinedArtistRequest({ firstName, artistName, rea
   return (
     <EmailShell stream="notify" persona="venue" category="placements" preview={`${artistName} passed on the placement`}>
       <H1>{artistName} passed this time</H1>
-      <P>Hi {firstName} — {artistName} isn&rsquo;t able to place work with you just now.{reason ? ` They said: "${reason}".` : ""}</P>
-      <P>Plenty of other artists are looking for the right wall — here are a few that might suit.</P>
+      <P>Hi {firstName}, {artistName} isn&rsquo;t able to place work with you just now.{reason ? ` They said: "${reason}".` : ""}</P>
+      <P>Plenty of other artists are looking for the right wall, here are a few that might suit.</P>
       <Button href={browseArtistsUrl} persona="venue">Browse artists</Button>
     </EmailShell>
   );
@@ -26,7 +26,7 @@ export function PlacementVenueDeclinedArtistRequest({ firstName, artistName, rea
 export const mock: PlacementVenueDeclinedArtistRequestProps = {
   firstName: "Hannah",
   artistName: "Maya Chen",
-  reason: "My schedule is booked through the summer — would love to revisit in autumn.",
+  reason: "My schedule is booked through the summer, would love to revisit in autumn.",
   browseArtistsUrl: "https://wallplace.co.uk/browse",
 };
 

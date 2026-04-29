@@ -16,7 +16,7 @@ export function CustomerNewWorkFromFollowedArtist({ firstName, artistName, newWo
   return (
     <EmailShell stream="notify" persona="customer" category="recommendations" preview={`New work from ${artistName}`}>
       <H1>New from {artistName}</H1>
-      <P>Hi {firstName} — {artistName} just published new work.</P>
+      <P>Hi {firstName}, {artistName} just published new work.</P>
       {newWorks.slice(0, 3).map((w) => <WorkCard key={w.id} work={w} />)}
       <div style={{ marginTop: 20 }}>
         <Button href={artistUrl} persona="customer">Visit {artistName}</Button>

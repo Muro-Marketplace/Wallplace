@@ -16,7 +16,7 @@ export function ArtistInactive14d({ firstName, profileViews, nearbyVenues, dashb
   return (
     <EmailShell stream="news" persona="artist" category="tips" preview={`${profileViews} venues viewed your profile while you were away`}>
       <H1>You were missed</H1>
-      <P>Hi {firstName} — quiet fortnight, but Wallplace kept moving.</P>
+      <P>Hi {firstName}, quiet fortnight, but Wallplace kept moving.</P>
       <StatBlock stats={[{ label: "Profile views", value: profileViews }, { label: "Venues near you", value: nearbyVenues.length }]} />
       {nearbyVenues.slice(0, 2).map((v) => <VenueCard key={v.id} venue={v} />)}
       <Button href={dashboardUrl} persona="artist">Pick up where you left off</Button>

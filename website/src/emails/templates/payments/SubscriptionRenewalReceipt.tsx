@@ -1,4 +1,4 @@
-// ADDITION — recurring billing receipt (distinct from SubscriptionUpgraded).
+// ADDITION, recurring billing receipt (distinct from SubscriptionUpgraded).
 // Stream: tx.
 
 import { EmailShell, H1, P, Button } from "@/emails/_components";
@@ -18,7 +18,7 @@ export function SubscriptionRenewalReceipt({ firstName, planName, amount, renewe
   return (
     <EmailShell stream="tx" persona="multi" preview={`Receipt for your ${planName} subscription`}>
       <H1>Thanks for staying with us</H1>
-      <P>Hi {firstName} — we&rsquo;ve charged {formatMoney(amount)} for another period of {planName}, on {renewedAt}.</P>
+      <P>Hi {firstName}, we&rsquo;ve charged {formatMoney(amount)} for another period of {planName}, on {renewedAt}.</P>
       <P>Next billing date: <strong>{nextBillingDate}</strong>.</P>
       <Button href={invoiceUrl}>Download invoice</Button>
     </EmailShell>

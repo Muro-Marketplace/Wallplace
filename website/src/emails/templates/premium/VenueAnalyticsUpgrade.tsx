@@ -14,7 +14,7 @@ export function VenueAnalyticsUpgrade({ firstName, venueName, analyticsBenefits,
   return (
     <EmailShell stream="news" persona="venue" category="promotions" preview={`See how ${venueName}'s walls really perform`}>
       <H1>See how the walls perform</H1>
-      <P>Hi {firstName} — Premium analytics show you which pieces drive scans, sales, and dwell time at {venueName}.</P>
+      <P>Hi {firstName}, Premium analytics show you which pieces drive scans, sales, and dwell time at {venueName}.</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {analyticsBenefits.map((b) => <li key={b}>{b}</li>)}
       </ul>

@@ -16,7 +16,7 @@ export function AccountTwoFactorEnabled({ firstName, method, enabledAt, supportU
   return (
     <EmailShell stream="tx" persona="multi" preview="Two-factor authentication is now on">
       <H1>Two-factor authentication is on</H1>
-      <P>Hi {firstName} — 2FA was enabled on your account on {enabledAt} using {methodLabel}.</P>
+      <P>Hi {firstName}, 2FA was enabled on your account on {enabledAt} using {methodLabel}.</P>
       <InfoBox tone="info">
         From now on, you&rsquo;ll need a code from {methodLabel} when signing in on a new device.
       </InfoBox>

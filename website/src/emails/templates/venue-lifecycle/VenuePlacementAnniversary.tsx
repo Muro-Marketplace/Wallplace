@@ -1,4 +1,4 @@
-// Stream: notify. One-year marker of a placement — nice human touch.
+// Stream: notify. One-year marker of a placement, nice human touch.
 
 import { EmailShell, H1, P, Button, StatBlock } from "@/emails/_components";
 import type { Stat } from "@/emails/types/emailTypes";
@@ -17,7 +17,7 @@ export function VenuePlacementAnniversary({ firstName, venueName, artistName, pl
   return (
     <EmailShell stream="notify" persona="venue" category="digests" preview={`A year of ${artistName} at ${venueName}`}>
       <H1>A year of {artistName} at {venueName}</H1>
-      <P>Hi {firstName} — it&rsquo;s been a year since {artistName}&rsquo;s work arrived ({placementStartDate}).</P>
+      <P>Hi {firstName}, it&rsquo;s been a year since {artistName}&rsquo;s work arrived ({placementStartDate}).</P>
       <StatBlock stats={stats} />
       <Button href={placementUrl} persona="venue">View placement</Button>
     </EmailShell>

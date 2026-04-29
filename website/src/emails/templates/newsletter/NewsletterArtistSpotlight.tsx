@@ -35,7 +35,7 @@ export const mock: NewsletterArtistSpotlightProps = {
   firstName: "Oliver",
   artist: mockArtist,
   works: mockWorks,
-  artistStory: "Maya Chen's work lives on the eastern edges of London — late-light photography that treats the overlooked as subject matter worth staying with. Her Mare Street series, begun in 2023, has quietly become one of our most-placed portfolios.",
+  artistStory: "Maya Chen's work lives on the eastern edges of London, late-light photography that treats the overlooked as subject matter worth staying with. Her Mare Street series, begun in 2023, has quietly become one of our most-placed portfolios.",
   artistUrl: mockArtist.url,
 };
 

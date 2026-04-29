@@ -15,7 +15,7 @@ export function CustomerFollowArtistNudge({ firstName, suggestedArtists, discove
   return (
     <EmailShell stream="notify" persona="customer" category="recommendations" preview="Follow an artist to see their new work first">
       <H1>Artists you might like, {firstName}</H1>
-      <P>Follow an artist and you&rsquo;ll see their new works as soon as they publish — no browsing required.</P>
+      <P>Follow an artist and you&rsquo;ll see their new works as soon as they publish, no browsing required.</P>
       {suggestedArtists.slice(0, 3).map((a) => <ArtistCard key={a.id} artist={a} />)}
       <div style={{ marginTop: 20 }}>
         <Button href={discoverArtistsUrl} persona="customer">Discover more artists</Button>

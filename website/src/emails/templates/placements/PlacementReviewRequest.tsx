@@ -14,7 +14,7 @@ export function PlacementReviewRequest({ firstName, placementUrl, counterpartyNa
   return (
     <EmailShell stream="notify" persona="multi" category="placements" preview={`A quick review for ${counterpartyName}?`}>
       <H1>Leave a note for {counterpartyName}</H1>
-      <P>Hi {firstName} — would you share a short review? A few lines goes a long way when they&rsquo;re weighing their next placement.</P>
+      <P>Hi {firstName}, would you share a short review? A few lines goes a long way when they&rsquo;re weighing their next placement.</P>
       <Button href={reviewUrl}>Leave a review</Button>
       <P style={{ marginTop: 16 }}>
         <a href={placementUrl} style={{ color: "#6B6760", fontSize: 12, textDecoration: "underline" }}>Open placement</a>

@@ -1,4 +1,4 @@
-// Stream: notify. Daily QR scan digest — sent the morning after a day
+// Stream: notify. Daily QR scan digest, sent the morning after a day
 // the artist had at least one scan on any of their works. Skipped on
 // quiet days (no false-positive "0 scans yesterday" emails).
 
@@ -40,11 +40,11 @@ export function ArtistQrScanDigest({
       stream="notify"
       persona="artist"
       category="digests"
-      preview={`${headline} — ${dayLabel}`}
+      preview={`${headline}, ${dayLabel}`}
     >
       <H1>{headline}</H1>
       <P>
-        Hi {firstName} — your QR codes pulled {totalScans === 1 ? "a scan" : "scans"} on{" "}
+        Hi {firstName}, your QR codes pulled {totalScans === 1 ? "a scan" : "scans"} on{" "}
         {dayLabel}. Each one is a person who saw your work in a venue and
         cared enough to look you up.
       </P>
@@ -63,19 +63,19 @@ export function ArtistQrScanDigest({
             {works.slice(0, 8).map((w) => (
               <li key={`${w.workTitle}-${w.venueName ?? ""}`}>
                 <strong>{w.workTitle}</strong>
-                {w.venueName ? ` — ${w.venueName}` : ""} · {w.scans} scan
+                {w.venueName ? `, ${w.venueName}` : ""} · {w.scans} scan
                 {w.scans === 1 ? "" : "s"}
               </li>
             ))}
           </ul>
           {works.length > 8 && (
-            <Small>+ {works.length - 8} more — see the full list in your analytics.</Small>
+            <Small>+ {works.length - 8} more, see the full list in your analytics.</Small>
           )}
         </>
       )}
       <Button href={analyticsUrl} persona="artist">Open analytics</Button>
       <Small>
-        We only email you on days you actually got scans — no quiet-day digests.
+        We only email you on days you actually got scans, no quiet-day digests.
       </Small>
     </EmailShell>
   );

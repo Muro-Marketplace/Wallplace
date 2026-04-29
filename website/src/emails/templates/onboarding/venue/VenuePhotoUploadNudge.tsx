@@ -14,13 +14,13 @@ export function VenuePhotoUploadNudge({ firstName, venueName, uploadPhotosUrl, p
   return (
     <EmailShell stream="notify" persona="venue" category="recommendations" preview={`Photos make ${venueName}'s listing come alive`}>
       <H1>Show artists your walls</H1>
-      <P>Hi {firstName} — photos are the single biggest factor in whether an artist chooses to place work with {venueName}.</P>
+      <P>Hi {firstName}, photos are the single biggest factor in whether an artist chooses to place work with {venueName}.</P>
       <P>Quick tips:</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {photoTips.map((t) => <li key={t}>{t}</li>)}
       </ul>
       <Button href={uploadPhotosUrl} persona="venue">Add photos</Button>
-      <Small>Three or four shots is plenty — daytime, eye-level, minimal clutter.</Small>
+      <Small>Three or four shots is plenty, daytime, eye-level, minimal clutter.</Small>
     </EmailShell>
   );
 }
@@ -30,7 +30,7 @@ export const mock: VenuePhotoUploadNudgeProps = {
   venueName: "The Curzon",
   uploadPhotosUrl: "https://wallplace.co.uk/venue-portal/profile#photos",
   photoTips: [
-    "Shoot in daylight — avoid mixed warm/cool lighting",
+    "Shoot in daylight, avoid mixed warm/cool lighting",
     "Show the wall as it would be lived in",
     "Include at least one wide shot for context",
   ],

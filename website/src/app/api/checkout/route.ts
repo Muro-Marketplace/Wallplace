@@ -104,6 +104,13 @@ export async function POST(request: Request) {
         shipping_country: shipping.country || "United Kingdom",
         shipping_notes: shipping.notes || "",
         cart_items: JSON.stringify(items.map(i => ({ title: i.title, qty: i.quantity, price: i.price, artistSlug: i.artistSlug || "" }))).slice(0, 500),
+        // Images split into a parallel array (indexed by cart_items)
+        // so the webhook can pass the artwork image into customer
+        // emails. Stripe metadata caps each value at 500 chars; large
+        // carts may truncate and fall back to the placeholder.
+        cart_images: JSON.stringify(
+          items.map(i => (i.image && !i.image.startsWith("data:")) ? i.image : ""),
+        ).slice(0, 500),
         source,
         venue_slug: venueSlug,
         artist_slugs: [...new Set(items.map(i => i.artistSlug || "").filter(Boolean))].join(","),

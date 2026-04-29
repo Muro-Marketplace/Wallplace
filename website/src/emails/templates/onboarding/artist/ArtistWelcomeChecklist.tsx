@@ -1,5 +1,5 @@
 // Stream: notify (first-touch onboarding). Suppressible only via the broader
-// "onboarding" preference — we don't let users opt out of individual steps.
+// "onboarding" preference, we don't let users opt out of individual steps.
 
 import { EmailShell, H1, P, Button, Checklist, Small } from "@/emails/_components";
 import type { ChecklistStep } from "@/emails/types/emailTypes";
@@ -18,7 +18,7 @@ export interface ArtistWelcomeChecklistProps {
 
 export function ArtistWelcomeChecklist({ firstName, remainingSteps }: ArtistWelcomeChecklistProps) {
   return (
-    <EmailShell stream="notify" persona="artist" category="recommendations" preview="Welcome to Wallplace — here's how artists get placed">
+    <EmailShell stream="notify" persona="artist" category="recommendations" preview="Welcome to Wallplace, here's how artists get placed">
       <H1>Welcome to Wallplace, {firstName}</H1>
       <P>You&rsquo;re in. Here&rsquo;s a short setup list to get your work in front of venues.</P>
       <Checklist steps={remainingSteps} />
@@ -47,7 +47,7 @@ const entry: TemplateEntry<ArtistWelcomeChecklistProps> = {
   stream: "notify",
   persona: "artist",
   category: "recommendations",
-  subject: "Welcome to Wallplace, {{firstName}} — here's how artists get placed",
+  subject: "Welcome to Wallplace, {{firstName}}, here's how artists get placed",
   previewText: "Three steps to start getting matched with venues.",
   component: ArtistWelcomeChecklist,
   mock,

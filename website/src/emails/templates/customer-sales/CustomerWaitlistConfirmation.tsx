@@ -1,4 +1,4 @@
-// ADDITION — Wallplace has a /waitlist page, so signups deserve a polished
+// ADDITION, Wallplace has a /waitlist page, so signups deserve a polished
 // confirmation. Stream: tx (relational confirmation, not marketing).
 
 import { EmailShell, H1, P, Small } from "@/emails/_components";

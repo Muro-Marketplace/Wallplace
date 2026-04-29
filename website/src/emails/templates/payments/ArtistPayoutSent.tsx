@@ -17,7 +17,7 @@ export function ArtistPayoutSent({ firstName, payoutAmount, payoutDate, expected
   return (
     <EmailShell stream="tx" persona="artist" preview={`Payout on the way: ${formatMoney(payoutAmount)}`}>
       <H1>{formatMoney(payoutAmount)} on its way</H1>
-      <P>Hi {firstName} — your payout was sent on {payoutDate}. Expected to land by <strong>{expectedArrival}</strong>.</P>
+      <P>Hi {firstName}, your payout was sent on {payoutDate}. Expected to land by <strong>{expectedArrival}</strong>.</P>
       <InfoBox tone="neutral">Payouts go via Stripe to the bank account connected to your Wallplace account.</InfoBox>
       <Button href={payoutUrl} persona="artist">View payout</Button>
       <SupportBlock supportUrl={supportUrl} />

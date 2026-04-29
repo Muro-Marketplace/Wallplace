@@ -1,4 +1,4 @@
-// Stream: notify. Placement has ended — logistics + review prompt.
+// Stream: notify. Placement has ended, logistics + review prompt.
 
 import { EmailShell, H1, P, Button, SecondaryButton } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -13,9 +13,9 @@ export interface PlacementEndedProps {
 
 export function PlacementEnded({ firstName, placementUrl, venueName, returnInstructionsUrl, reviewUrl }: PlacementEndedProps) {
   return (
-    <EmailShell stream="notify" persona="multi" category="placements" preview={`Your placement at ${venueName} ended — last steps`}>
+    <EmailShell stream="notify" persona="multi" category="placements" preview={`Your placement at ${venueName} ended, last steps`}>
       <H1>Placement at {venueName} ended</H1>
-      <P>Hi {firstName} — the placement has wrapped up. Two last things:</P>
+      <P>Hi {firstName}, the placement has wrapped up. Two last things:</P>
       <ol style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         <li>Arrange or confirm collection of the work.</li>
         <li>Leave a short review so the other party can build their reputation.</li>
@@ -42,7 +42,7 @@ export const mock: PlacementEndedProps = {
 const entry: TemplateEntry<PlacementEndedProps> = {
   id: "placement_ended",
   name: "Placement ended",
-  description: "Placement closed — collection + review CTAs.",
+  description: "Placement closed, collection + review CTAs.",
   stream: "notify",
   persona: "multi",
   category: "placements",

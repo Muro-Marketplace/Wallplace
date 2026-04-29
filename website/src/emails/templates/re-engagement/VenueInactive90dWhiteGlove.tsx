@@ -1,4 +1,4 @@
-// Stream: news. 90-day venue re-engage with a human touch — feeds into
+// Stream: news. 90-day venue re-engage with a human touch, feeds into
 // managed curation.
 
 import { EmailShell, H1, P, Button, SupportBlock } from "@/emails/_components";
@@ -15,8 +15,8 @@ export function VenueInactive90dWhiteGlove({ firstName, venueName, curationReque
   return (
     <EmailShell stream="news" persona="venue" category="tips" preview={`Can we help at ${venueName}?`}>
       <H1>Can we help?</H1>
-      <P>Hi {firstName} — it&rsquo;s been a while since {venueName} placed art. If the barrier is time rather than interest, we&rsquo;ll do the curation for you.</P>
-      <P>Reply to this email or book a short call — we&rsquo;ll handle the rest.</P>
+      <P>Hi {firstName}, it&rsquo;s been a while since {venueName} placed art. If the barrier is time rather than interest, we&rsquo;ll do the curation for you.</P>
+      <P>Reply to this email or book a short call, we&rsquo;ll handle the rest.</P>
       <Button href={curationRequestUrl} persona="venue">Request curation</Button>
       <SupportBlock supportUrl={supportUrl} />
     </EmailShell>
@@ -32,7 +32,7 @@ export const mock: VenueInactive90dWhiteGloveProps = {
 
 const entry: TemplateEntry<VenueInactive90dWhiteGloveProps> = {
   id: "venue_inactive_90d_white_glove",
-  name: "Venue inactive 90d — white glove",
+  name: "Venue inactive 90d, white glove",
   description: "Human-touch offer to handle curation.",
   stream: "news",
   persona: "venue",

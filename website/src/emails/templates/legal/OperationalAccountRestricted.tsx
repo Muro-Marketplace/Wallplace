@@ -1,4 +1,4 @@
-// Stream: tx. Stronger-than-warning — the account is in a limited state.
+// Stream: tx. Stronger-than-warning, the account is in a limited state.
 
 import { EmailShell, H1, P, Button, InfoBox, SupportBlock } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -15,7 +15,7 @@ export function OperationalAccountRestricted({ firstName, reason, restrictionDet
   return (
     <EmailShell stream="tx" persona="multi" preview="Your Wallplace account has been restricted">
       <H1>Your account is restricted</H1>
-      <P>Hi {firstName} — we&rsquo;ve placed restrictions on your Wallplace account.</P>
+      <P>Hi {firstName}, we&rsquo;ve placed restrictions on your Wallplace account.</P>
       <InfoBox tone="danger">
         <strong>Reason:</strong> {reason}
       </InfoBox>

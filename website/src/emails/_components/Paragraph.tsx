@@ -4,7 +4,7 @@ import { theme } from "./theme";
 
 interface TextProps {
   children: ReactNode;
-  /** Override the default style — merged, not replaced. */
+  /** Override the default style, merged, not replaced. */
   style?: CSSProperties;
 }
 

@@ -1,4 +1,4 @@
-// ADDITION — second state. Rarely fires; only if the review takes longer.
+// ADDITION, second state. Rarely fires; only if the review takes longer.
 // Stream: notify.
 
 import { EmailShell, H1, P, Small } from "@/emails/_components";
@@ -13,7 +13,7 @@ export function ArtistApplicationUnderReview({ firstName, extraDays }: ArtistApp
   return (
     <EmailShell stream="notify" persona="artist" category="placements" preview="Your Wallplace application is still under review">
       <H1>Still with the curators</H1>
-      <P>Hi {firstName} — we&rsquo;re giving your application the time it deserves. Expect to hear from us in about {extraDays} more working days.</P>
+      <P>Hi {firstName}, we&rsquo;re giving your application the time it deserves. Expect to hear from us in about {extraDays} more working days.</P>
       <Small>No action needed on your end.</Small>
     </EmailShell>
   );
@@ -27,7 +27,7 @@ export const mock: ArtistApplicationUnderReviewProps = {
 const entry: TemplateEntry<ArtistApplicationUnderReviewProps> = {
   id: "artist_application_under_review",
   name: "Application under review",
-  description: "Rare — fires when review exceeds the normal window.",
+  description: "Rare, fires when review exceeds the normal window.",
   stream: "notify",
   persona: "artist",
   category: "placements",

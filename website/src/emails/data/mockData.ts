@@ -1,7 +1,7 @@
 // Realistic mock data for template previews. Stays separate from the real
 // data layer so designers can tweak copy here without touching Supabase
 // fixtures. Every template also exports its own specific mock from the
-// template file — this module holds the reusable entity mocks.
+// template file, this module holds the reusable entity mocks.
 
 import type {
   Address,

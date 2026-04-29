@@ -1,4 +1,4 @@
-// Stream: tx. Dispute resolution — outcome stated clearly.
+// Stream: tx. Dispute resolution, outcome stated clearly.
 
 import { EmailShell, H1, P, Button, InfoBox, SupportBlock } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -15,7 +15,7 @@ export function OrderDisputeResolved({ firstName, orderNumber, outcome, disputeU
   return (
     <EmailShell stream="tx" persona="multi" preview={`Dispute on ${orderNumber} resolved`}>
       <H1>Dispute resolved</H1>
-      <P>Hi {firstName} — the dispute on order {orderNumber} is closed.</P>
+      <P>Hi {firstName}, the dispute on order {orderNumber} is closed.</P>
       <InfoBox tone="neutral">
         <strong>Outcome:</strong> {outcome}
       </InfoBox>

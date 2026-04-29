@@ -1,4 +1,4 @@
-// Central registry — every template in the library, with metadata.
+// Central registry, every template in the library, with metadata.
 // Add a new template: create the file, import its default here, push it
 // into EMAIL_REGISTRY. That's it.
 //

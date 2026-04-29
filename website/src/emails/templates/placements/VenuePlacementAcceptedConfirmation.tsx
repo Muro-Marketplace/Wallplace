@@ -1,5 +1,5 @@
 // Stream: notify. Mirror for the venue when they accept a venue-initiated
-// request and the artist responds — or confirms their own acceptance.
+// request and the artist responds, or confirms their own acceptance.
 
 import { EmailShell, H1, P, Button } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -15,7 +15,7 @@ export function VenuePlacementAcceptedConfirmation({ firstName, artistName, plac
   return (
     <EmailShell stream="notify" persona="venue" category="placements" preview={`${artistName} is placing work with you`}>
       <H1>Placement confirmed with {artistName}</H1>
-      <P>Hi {firstName} — everything&rsquo;s set. Next up:</P>
+      <P>Hi {firstName}, everything&rsquo;s set. Next up:</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {nextSteps.map((s) => <li key={s}>{s}</li>)}
       </ul>

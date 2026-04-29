@@ -1,4 +1,4 @@
-// Stream: news. 90-day customer — sunset-aware.
+// Stream: news. 90-day customer, sunset-aware.
 
 import { EmailShell, H1, P, Button, Small } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -13,7 +13,7 @@ export function CustomerInactive90d({ firstName, preferenceUrl, browseUrl }: Cus
   return (
     <EmailShell stream="news" persona="customer" category="tips" preview="Still enjoy the gallery?">
       <H1>Still enjoy the gallery?</H1>
-      <P>Hi {firstName} — we haven&rsquo;t seen you in a while. If Wallplace is still your kind of thing, we&rsquo;ll keep the dispatches coming.</P>
+      <P>Hi {firstName}, we haven&rsquo;t seen you in a while. If Wallplace is still your kind of thing, we&rsquo;ll keep the dispatches coming.</P>
       <Button href={browseUrl} persona="customer">Visit the gallery</Button>
       <Small>
         Prefer quiet?{" "}

@@ -15,9 +15,9 @@ export interface VenueRevenueShareStatementProps {
 
 export function VenueRevenueShareStatement({ firstName, venueName, statementPeriod, totalSales, venueShare, statementUrl }: VenueRevenueShareStatementProps) {
   return (
-    <EmailShell stream="tx" persona="venue" preview={`Revenue share for ${venueName} — ${statementPeriod}`}>
+    <EmailShell stream="tx" persona="venue" preview={`Revenue share for ${venueName}, ${statementPeriod}`}>
       <H1>Revenue share statement</H1>
-      <P>Hi {firstName} — here&rsquo;s {venueName}&rsquo;s revenue share for {statementPeriod}.</P>
+      <P>Hi {firstName}, here&rsquo;s {venueName}&rsquo;s revenue share for {statementPeriod}.</P>
       <table style={{ width: "100%", marginTop: 16, fontSize: 14, color: "#4A4740", borderCollapse: "collapse" as const }}>
         <tbody>
           <tr><td>Total sales</td><td style={{ textAlign: "right" as const }}>{formatMoney(totalSales)}</td></tr>
@@ -48,7 +48,7 @@ const entry: TemplateEntry<VenueRevenueShareStatementProps> = {
   stream: "tx",
   persona: "venue",
   category: "orders_and_payouts",
-  subject: "Revenue share for {{venueName}} — {{statementPeriod}}",
+  subject: "Revenue share for {{venueName}}, {{statementPeriod}}",
   previewText: "Your monthly statement.",
   component: VenueRevenueShareStatement,
   mock,

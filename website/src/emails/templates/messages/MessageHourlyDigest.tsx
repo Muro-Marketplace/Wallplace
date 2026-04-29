@@ -15,9 +15,9 @@ export interface MessageHourlyDigestProps {
 export function MessageHourlyDigest({ firstName, conversations, inboxUrl, muteMessagesUrl }: MessageHourlyDigestProps) {
   const total = conversations.reduce((n, c) => n + c.unreadCount, 0);
   return (
-    <EmailShell stream="notify" persona="multi" category="messages" preview={`${total} unread messages — from ${conversations.length} people`}>
+    <EmailShell stream="notify" persona="multi" category="messages" preview={`${total} unread messages, from ${conversations.length} people`}>
       <H1>{total} new messages</H1>
-      <P>Hi {firstName} — a round-up of what&rsquo;s waiting for you.</P>
+      <P>Hi {firstName}, a round-up of what&rsquo;s waiting for you.</P>
       {conversations.slice(0, 6).map((c) => <MessagePreview key={c.id} conversation={c} />)}
       <Button href={inboxUrl}>Open inbox</Button>
       <Small>

@@ -1,4 +1,4 @@
-// ADDITION — 30-day pre-warning so `payment_failed` dunning is rarer.
+// ADDITION, 30-day pre-warning so `payment_failed` dunning is rarer.
 // Stream: tx.
 
 import { EmailShell, H1, P, Button, InfoBox } from "@/emails/_components";
@@ -15,7 +15,7 @@ export function SubscriptionCardExpiring({ firstName, last4, expiresAt, updatePa
   return (
     <EmailShell stream="tx" persona="multi" preview={`Card ending ${last4} expires soon`}>
       <H1>Your card is expiring</H1>
-      <P>Hi {firstName} — the card ending in <strong>{last4}</strong> expires on <strong>{expiresAt}</strong>. Update it now so your subscription keeps running.</P>
+      <P>Hi {firstName}, the card ending in <strong>{last4}</strong> expires on <strong>{expiresAt}</strong>. Update it now so your subscription keeps running.</P>
       <InfoBox tone="warning">We&rsquo;ll start the dunning flow if the renewal fails, so best to update before then.</InfoBox>
       <Button href={updatePaymentUrl}>Update payment method</Button>
     </EmailShell>

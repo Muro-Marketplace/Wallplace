@@ -15,7 +15,7 @@ export function ArtistInactive30d({ firstName, portfolioStats, suggestedAction, 
   return (
     <EmailShell stream="news" persona="artist" category="tips" preview="A month in, here's your portfolio snapshot">
       <H1>A month in</H1>
-      <P>Hi {firstName} — a snapshot of your portfolio this past month.</P>
+      <P>Hi {firstName}, a snapshot of your portfolio this past month.</P>
       <StatBlock stats={portfolioStats} />
       <P><strong>Quick win:</strong> {suggestedAction}</P>
       <Button href={dashboardUrl} persona="artist">Open dashboard</Button>
@@ -30,7 +30,7 @@ export const mock: ArtistInactive30dProps = {
     { label: "QR scans", value: 22 },
     { label: "Placement requests", value: 1 },
   ],
-  suggestedAction: "Add one new piece — artists with 5+ works appear higher in venue searches.",
+  suggestedAction: "Add one new piece, artists with 5+ works appear higher in venue searches.",
   dashboardUrl: "https://wallplace.co.uk/artist-portal",
 };
 
@@ -41,7 +41,7 @@ const entry: TemplateEntry<ArtistInactive30dProps> = {
   stream: "news",
   persona: "artist",
   category: "tips",
-  subject: "A month in — your portfolio snapshot",
+  subject: "A month in, your portfolio snapshot",
   previewText: "A quick look, and one tiny action.",
   component: ArtistInactive30d,
   mock,

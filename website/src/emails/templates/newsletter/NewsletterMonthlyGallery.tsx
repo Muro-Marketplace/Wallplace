@@ -45,7 +45,7 @@ export const mock: NewsletterMonthlyGalleryProps = {
   firstName: "Oliver",
   heroImage: mockWorks[0].image,
   heroAlt: "Gallery hero",
-  editorialIntro: "April has been a quiet, attentive month — photographs of late light, paintings reaching towards stillness. Here's what caught our eye.",
+  editorialIntro: "April has been a quiet, attentive month, photographs of late light, paintings reaching towards stillness. Here's what caught our eye.",
   featuredWorks: mockWorks,
   featuredArtists: [mockArtist, mockArtistSecondary],
   featuredVenues: [mockVenue, mockVenueSecondary],

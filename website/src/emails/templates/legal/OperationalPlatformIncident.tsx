@@ -15,7 +15,7 @@ export function OperationalPlatformIncident({ firstName, incidentSummary, affect
   return (
     <EmailShell stream="tx" persona="multi" preview="Wallplace service update">
       <H1>Service update</H1>
-      <P>Hi {firstName} — we&rsquo;re letting you know about a current issue so you&rsquo;re not left guessing.</P>
+      <P>Hi {firstName}, we&rsquo;re letting you know about a current issue so you&rsquo;re not left guessing.</P>
       <InfoBox tone="warning">
         <strong>Summary:</strong> {incidentSummary}
         <br /><br />

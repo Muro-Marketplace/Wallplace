@@ -18,7 +18,7 @@ export function PlacementArtworkInstalled({ firstName, placementUrl, venueName, 
   return (
     <EmailShell stream="notify" persona="multi" category="placements" preview={`${artistName}'s work is now at ${venueName}`}>
       <H1>It&rsquo;s on the wall</H1>
-      <P>Hi {firstName} — {artistName}&rsquo;s work is now live at {venueName}.</P>
+      <P>Hi {firstName}, {artistName}&rsquo;s work is now live at {venueName}.</P>
       {installedWorks.slice(0, 3).map((w) => <WorkCard key={w.id} work={w} />)}
       <div style={{ marginTop: 20 }}>
         <Button href={placementUrl}>View placement</Button>{" "}
@@ -40,7 +40,7 @@ export const mock: PlacementArtworkInstalledProps = {
 const entry: TemplateEntry<PlacementArtworkInstalledProps> = {
   id: "placement_artwork_installed",
   name: "Artwork installed",
-  description: "Install complete — both parties notified.",
+  description: "Install complete, both parties notified.",
   stream: "notify",
   persona: "multi",
   category: "placements",

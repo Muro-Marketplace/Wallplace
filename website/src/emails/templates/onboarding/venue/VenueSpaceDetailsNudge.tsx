@@ -14,7 +14,7 @@ export function VenueSpaceDetailsNudge({ firstName, venueName, missingItems, spa
   return (
     <EmailShell stream="notify" persona="venue" category="recommendations" preview="Finish your space details so artists can match">
       <H1>{venueName} is waiting for its details</H1>
-      <P>Hi {firstName} — artists use these fields to decide whether your space fits their work. A few minutes and it&rsquo;s done.</P>
+      <P>Hi {firstName}, artists use these fields to decide whether your space fits their work. A few minutes and it&rsquo;s done.</P>
       <P>Still to add:</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {missingItems.map((m) => <li key={m}>{m}</li>)}

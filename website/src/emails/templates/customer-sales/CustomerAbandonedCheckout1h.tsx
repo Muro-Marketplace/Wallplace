@@ -17,12 +17,12 @@ export function CustomerAbandonedCheckout1h({ firstName, cartItems, subtotal, ch
   return (
     <EmailShell stream="news" persona="customer" category="promotions" preview="Left something behind?">
       <H1>Left something behind?</H1>
-      <P>Hi {firstName} — we&rsquo;ve held your cart. Carry on whenever you&rsquo;re ready.</P>
+      <P>Hi {firstName}, we&rsquo;ve held your cart. Carry on whenever you&rsquo;re ready.</P>
       <OrderSummary items={cartItems} subtotal={subtotal} shipping={{ amount: 0, currency: "GBP" }} total={subtotal} />
       <div style={{ marginTop: 20 }}>
         <Button href={checkoutUrl} persona="customer">Continue checkout</Button>
       </div>
-      <Small>Stock is live — popular pieces can sell before you&rsquo;re back.</Small>
+      <Small>Stock is live, popular pieces can sell before you&rsquo;re back.</Small>
     </EmailShell>
   );
 }
@@ -36,7 +36,7 @@ export const mock: CustomerAbandonedCheckout1hProps = {
 
 const entry: TemplateEntry<CustomerAbandonedCheckout1hProps> = {
   id: "customer_abandoned_checkout_1h",
-  name: "Abandoned checkout — 1h",
+  name: "Abandoned checkout, 1h",
   description: "First gentle reminder an hour after abandonment.",
   stream: "news",
   persona: "customer",

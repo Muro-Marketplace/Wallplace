@@ -1,4 +1,4 @@
-// Stream: notify. Delightful first-scan moment — fires once per QR code.
+// Stream: notify. Delightful first-scan moment, fires once per QR code.
 
 import { EmailShell, H1, P, Button, QRScanSummary } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -15,7 +15,7 @@ export function ArtistFirstQrScan({ firstName, workTitle, venueName, qrStatsUrl,
   return (
     <EmailShell stream="notify" persona="artist" category="recommendations" preview={`Your work was just scanned at ${venueName}`}>
       <H1>Someone just scanned your work</H1>
-      <P>Hi {firstName} — the first scan of <strong>{workTitle}</strong> at {venueName} came in at {scanTime}.</P>
+      <P>Hi {firstName}, the first scan of <strong>{workTitle}</strong> at {venueName} came in at {scanTime}.</P>
       <QRScanSummary workTitle={workTitle} venueName={venueName} scanCount={1} since="install" />
       <Button href={qrStatsUrl} persona="artist">See scan stats</Button>
     </EmailShell>
@@ -33,7 +33,7 @@ export const mock: ArtistFirstQrScanProps = {
 const entry: TemplateEntry<ArtistFirstQrScanProps> = {
   id: "artist_first_qr_scan",
   name: "First QR scan",
-  description: "A moment worth celebrating — first interaction with a piece.",
+  description: "A moment worth celebrating, first interaction with a piece.",
   stream: "notify",
   persona: "artist",
   category: "recommendations",

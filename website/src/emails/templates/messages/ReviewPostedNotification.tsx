@@ -1,4 +1,4 @@
-// Stream: notify. Fires on new review — shows stars + text.
+// Stream: notify. Fires on new review, shows stars + text.
 
 import { EmailShell, H1, P, Button, QuoteBlock } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -16,7 +16,7 @@ export function ReviewPostedNotification({ firstName, reviewerName, reviewRating
   return (
     <EmailShell stream="notify" persona="multi" category="placements" preview={`${reviewerName} left you a ${reviewRating}-star review`}>
       <H1>New review from {reviewerName}</H1>
-      <P>Hi {firstName} — {reviewerName} gave you <span style={{ color: "#C17C5A", letterSpacing: "0.05em" }}>{stars}</span></P>
+      <P>Hi {firstName}, {reviewerName} gave you <span style={{ color: "#C17C5A", letterSpacing: "0.05em" }}>{stars}</span></P>
       {reviewText && <QuoteBlock attribution={reviewerName}>{reviewText}</QuoteBlock>}
       <Button href={reviewUrl}>View review</Button>
     </EmailShell>

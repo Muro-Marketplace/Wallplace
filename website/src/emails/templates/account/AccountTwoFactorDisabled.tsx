@@ -1,4 +1,4 @@
-// Stream: tx (security). Counterpart to AccountTwoFactorEnabled — an attacker
+// Stream: tx (security). Counterpart to AccountTwoFactorEnabled, an attacker
 // disabling 2FA is a strong signal, so the real user must see this.
 
 import { EmailShell, H1, P, Button, InfoBox, SupportBlock } from "@/emails/_components";
@@ -15,7 +15,7 @@ export function AccountTwoFactorDisabled({ firstName, disabledAt, reenableUrl, s
   return (
     <EmailShell stream="tx" persona="multi" preview="Two-factor authentication was turned off">
       <H1>Two-factor authentication was turned off</H1>
-      <P>Hi {firstName} — 2FA was disabled on your account on {disabledAt}.</P>
+      <P>Hi {firstName}, 2FA was disabled on your account on {disabledAt}.</P>
       <InfoBox tone="warning">
         Your account is now less secure. If you didn&rsquo;t make this change, turn 2FA back on and change your password immediately.
       </InfoBox>

@@ -1,4 +1,4 @@
-// Stream: tx (legal — CCR 2013 requires a receipt). Never suppressible.
+// Stream: tx (legal, CCR 2013 requires a receipt). Never suppressible.
 
 import { EmailShell, H1, P, Button, OrderSummary, AddressBlock, Divider, Small, SupportBlock } from "@/emails/_components";
 import type { Address, Money, OrderItem } from "@/emails/types/emailTypes";
@@ -24,7 +24,7 @@ export function CustomerOrderReceipt(p: CustomerOrderReceiptProps) {
   return (
     <EmailShell stream="tx" persona="customer" preview={`Your Wallplace order ${p.orderNumber}`}>
       <H1>Thanks, {p.firstName}</H1>
-      <P>Your order <strong>{p.orderNumber}</strong> is confirmed. Receipt below — keep this email for your records.</P>
+      <P>Your order <strong>{p.orderNumber}</strong> is confirmed. Receipt below, keep this email for your records.</P>
       <OrderSummary items={p.items} subtotal={p.subtotal} shipping={p.shipping} tax={p.tax} total={p.total} />
       <Divider />
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" as const }}>
@@ -33,7 +33,7 @@ export function CustomerOrderReceipt(p: CustomerOrderReceiptProps) {
       </div>
       <Button href={p.orderUrl} persona="customer">View order</Button>
       <Small>Ordered {p.orderDate}.</Small>
-      {/* Guest buyers (#3) — they can re-look up the order any time
+      {/* Guest buyers (#3), they can re-look up the order any time
           with this order ID + the email this receipt came to. The
           View order button above only works for buyers signed in
           with a Wallplace account. */}

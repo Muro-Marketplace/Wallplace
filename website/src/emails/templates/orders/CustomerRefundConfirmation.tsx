@@ -17,7 +17,7 @@ export function CustomerRefundConfirmation({ firstName, orderNumber, refundAmoun
   return (
     <EmailShell stream="tx" persona="customer" preview={`Refund for order ${orderNumber}`}>
       <H1>Refund on the way</H1>
-      <P>Hi {firstName} — we&rsquo;ve refunded <strong>{formatMoney(refundAmount)}</strong> to your original payment method for order {orderNumber}.</P>
+      <P>Hi {firstName}, we&rsquo;ve refunded <strong>{formatMoney(refundAmount)}</strong> to your original payment method for order {orderNumber}.</P>
       <InfoBox tone="neutral">
         Expected to arrive by <strong>{expectedArrival}</strong>.
         {refundReason ? <><br />Reason: {refundReason}.</> : null}

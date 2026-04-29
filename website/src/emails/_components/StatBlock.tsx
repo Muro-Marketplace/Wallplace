@@ -3,7 +3,7 @@ import type { Stat } from "@/emails/types/emailTypes";
 import { theme } from "./theme";
 
 /**
- * Grid of stat tiles — up to 4 per row. Rendered as a table for Outlook
+ * Grid of stat tiles, up to 4 per row. Rendered as a table for Outlook
  * compatibility. Delta, when present, shows as a small trailing label.
  */
 export function StatBlock({ stats }: { stats: Stat[] }) {

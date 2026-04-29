@@ -1,4 +1,4 @@
-// Stream: tx. Dunning email — fires at +0 / +3d / +7d / +10d with retry date.
+// Stream: tx. Dunning email, fires at +0 / +3d / +7d / +10d with retry date.
 
 import { EmailShell, H1, P, Button, InfoBox, SupportBlock } from "@/emails/_components";
 import { formatMoney, type Money } from "@/emails/types/emailTypes";
@@ -17,7 +17,7 @@ export function SubscriptionPaymentFailed({ firstName, planName, amountDue, retr
   return (
     <EmailShell stream="tx" persona="multi" preview={`Payment failed on your ${planName} subscription`}>
       <H1>Payment failed</H1>
-      <P>Hi {firstName} — we couldn&rsquo;t charge your payment method for the {planName} subscription ({formatMoney(amountDue)}).</P>
+      <P>Hi {firstName}, we couldn&rsquo;t charge your payment method for the {planName} subscription ({formatMoney(amountDue)}).</P>
       <InfoBox tone="warning">
         We&rsquo;ll retry on <strong>{retryDate}</strong>. Update your card before then to avoid losing access.
       </InfoBox>
@@ -39,7 +39,7 @@ export const mock: SubscriptionPaymentFailedProps = {
 const entry: TemplateEntry<SubscriptionPaymentFailedProps> = {
   id: "subscription_payment_failed",
   name: "Subscription payment failed",
-  description: "Dunning email — multiple retries.",
+  description: "Dunning email, multiple retries.",
   stream: "tx",
   persona: "multi",
   category: "orders_and_payouts",

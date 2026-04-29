@@ -6,6 +6,7 @@ import { notifyArtistNewOrder, notifyVenueOrderFromPlacement, notifyCurationCust
 import { createNotification } from "@/lib/notifications";
 import { sendEmail } from "@/lib/email/send";
 import { CustomerOrderReceipt } from "@/emails/templates/orders/CustomerOrderReceipt";
+import { resolveArtistNamesBulk } from "@/emails/_helpers/resolve-artist-name";
 import { ArtistOrderConfirmation } from "@/emails/templates/orders/ArtistOrderConfirmation";
 import { ArtistWorkSold } from "@/emails/templates/orders/ArtistWorkSold";
 import { ArtistPayoutSent } from "@/emails/templates/payments/ArtistPayoutSent";
@@ -272,7 +273,26 @@ export async function POST(request: Request) {
           }
 
           const cartItemsForNotify = session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [];
+          // Parallel image array — populated by /api/checkout. Truncation
+          // at the Stripe-metadata 500-char cap is possible for big carts;
+          // unrecovered slots fall back to the placeholder.
+          let cartImagesForNotify: string[] = [];
+          try {
+            cartImagesForNotify = session.metadata?.cart_images
+              ? (JSON.parse(session.metadata.cart_images) as string[])
+              : [];
+          } catch {
+            cartImagesForNotify = [];
+          }
           const firstItemTitle = cartItemsForNotify[0]?.title || "Artwork";
+
+          // Resolve artist display names by slug in one round-trip.
+          // Without this, item.artistName fell back to the slug
+          // ("maya-chen") and the email showed an ID instead of a name.
+          const slugMap = await resolveArtistNamesBulk(
+            db,
+            (cartItemsForNotify as Array<{ artistSlug?: string }>).map((i) => i.artistSlug),
+          );
 
           // Customer order receipt (legally required under CCR 2013).
           // Keyed by payment_intent so Stripe retries don't double-send.
@@ -281,18 +301,35 @@ export async function POST(request: Request) {
             const buyerName = session.metadata?.shipping_name || "there";
             // Adapt the cart items shape to the OrderSummary component.
             const orderItems = (cartItemsForNotify as Array<{
-              title?: string; artistName?: string; qty?: number; quantity?: number; size?: string; image?: string; price?: number;
-            }>).map((item) => ({
-              title: item.title || "Artwork",
-              artistName: item.artistName || firstArtistSlug || "Artist",
-              quantity: Number(item.qty ?? item.quantity ?? 1),
-              size: item.size,
-              image: item.image || `${SITE}/placeholder-work.jpg`,
-              lineTotal: {
-                amount: Math.round((item.price ?? 0) * Number(item.qty ?? item.quantity ?? 1) * 100),
-                currency: "GBP" as const,
-              },
-            }));
+              title?: string; artistName?: string; artistSlug?: string; qty?: number; quantity?: number; size?: string; image?: string; price?: number;
+            }>).map((item, idx) => {
+              const slug = item.artistSlug || firstArtistSlug || "";
+              const resolved = slugMap.get(slug);
+              const fallbackName = item.artistName && !/^[a-z0-9-]+$/.test(item.artistName) ? item.artistName : null;
+              const imageFromMetadata = cartImagesForNotify[idx] || item.image || "";
+              return {
+                title: item.title || "Artwork",
+                artistName: resolved || fallbackName || slug || "Artist",
+                quantity: Number(item.qty ?? item.quantity ?? 1),
+                size: item.size,
+                image: imageFromMetadata || `${SITE}/placeholder-work.jpg`,
+                lineTotal: {
+                  amount: Math.round((item.price ?? 0) * Number(item.qty ?? item.quantity ?? 1) * 100),
+                  currency: "GBP" as const,
+                },
+              };
+            });
+
+            // Persist the enriched items (with display names + images) on
+            // the orders row so subsequent shipping/delivery emails can
+            // read them deterministically without re-running the lookup.
+            // Best-effort — failure here is non-fatal; the receipt email
+            // already has what it needs in scope.
+            try {
+              await db.from("orders").update({ items: orderItems }).eq("id", orderId);
+            } catch (persistErr) {
+              console.warn("[webhook] persisting enriched items failed:", persistErr);
+            }
             await sendEmail({
               idempotencyKey: `order_receipt:${paymentIntentId || orderId}`,
               template: "customer_order_receipt",

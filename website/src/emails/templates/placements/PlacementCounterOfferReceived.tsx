@@ -16,7 +16,7 @@ export function PlacementCounterOfferReceived({ firstName, counterpartyName, pla
   return (
     <EmailShell stream="notify" persona="multi" category="placements" preview={`${counterpartyName} sent revised terms`}>
       <H1>Counter offer from {counterpartyName}</H1>
-      <P>Hi {firstName} — {counterpartyName} sent back a revised offer. Here&rsquo;s what changed:</P>
+      <P>Hi {firstName}, {counterpartyName} sent back a revised offer. Here&rsquo;s what changed:</P>
       <InfoBox tone="info">
         <ul style={{ margin: 0, paddingLeft: 18 }}>
           {changedTerms.map((t) => <li key={t}>{t}</li>)}

@@ -22,7 +22,7 @@ export function VenueWeeklyDigest({ firstName, venueName, weekStart, weekEnd, pr
   return (
     <EmailShell stream="notify" persona="venue" category="digests" preview={`${venueName}'s week on Wallplace (${weekStart}–${weekEnd})`}>
       <H1>{venueName}&rsquo;s week</H1>
-      <P>Hi {firstName} — from {weekStart} to {weekEnd}.</P>
+      <P>Hi {firstName}, from {weekStart} to {weekEnd}.</P>
       <StatBlock stats={[
         { label: "Profile views", value: profileViews },
         { label: "Artist matches", value: artistMatches },

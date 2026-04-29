@@ -1,4 +1,4 @@
-// Stream: tx. Dispute opened — both parties + support cc'd (bcc at send time).
+// Stream: tx. Dispute opened, both parties + support cc'd (bcc at send time).
 
 import { EmailShell, H1, P, Button, InfoBox, SupportBlock } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -15,7 +15,7 @@ export function OrderDisputeOpened({ firstName, orderNumber, disputeUrl, nextSte
   return (
     <EmailShell stream="tx" persona="multi" preview={`Dispute opened on order ${orderNumber}`}>
       <H1>Dispute opened on {orderNumber}</H1>
-      <P>Hi {firstName} — a dispute has been raised on this order. We&rsquo;ll handle the moderation and keep you both updated.</P>
+      <P>Hi {firstName}, a dispute has been raised on this order. We&rsquo;ll handle the moderation and keep you both updated.</P>
       <InfoBox tone="warning">
         <strong>What happens next</strong>
         <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>

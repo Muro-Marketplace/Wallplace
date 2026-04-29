@@ -15,7 +15,7 @@ export function ArtistQrScanMilestone({ firstName, milestone, workTitle, venueNa
   return (
     <EmailShell stream="notify" persona="artist" category="recommendations" preview={`${milestone} scans on ${workTitle}`}>
       <H1>{milestone} scans on {workTitle}</H1>
-      <P>Hi {firstName} — that&rsquo;s {milestone.toLocaleString()} people who&rsquo;ve tapped the QR next to your work at {venueName}.</P>
+      <P>Hi {firstName}, that&rsquo;s {milestone.toLocaleString()} people who&rsquo;ve tapped the QR next to your work at {venueName}.</P>
       <QRScanSummary workTitle={workTitle} venueName={venueName} scanCount={milestone} />
       <Button href={qrStatsUrl} persona="artist">See all stats</Button>
     </EmailShell>

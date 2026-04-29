@@ -1,4 +1,4 @@
-// Stream: notify. Closes the loop for the artist — enables QR setup + record.
+// Stream: notify. Closes the loop for the artist, enables QR setup + record.
 
 import { EmailShell, H1, P, Button, SecondaryButton, Badge } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -18,7 +18,7 @@ export function ArtistPlacementAccepted({ firstName, venueName, placementUrl, ne
       <H1>
         <Badge tone="success">Accepted</Badge> <span style={{ marginLeft: 6 }}>{venueName} accepted</span>
       </H1>
-      <P>Hi {firstName} — your placement is confirmed. A few things to get sorted next:</P>
+      <P>Hi {firstName}, your placement is confirmed. A few things to get sorted next:</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {nextSteps.map((s) => <li key={s}>{s}</li>)}
       </ul>

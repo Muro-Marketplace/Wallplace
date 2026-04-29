@@ -1,4 +1,4 @@
-// Stream: notify. Day-14 counterpart to graduation — fires if onboarding
+// Stream: notify. Day-14 counterpart to graduation, fires if onboarding
 // isn't done. Recaps what's left without nagging.
 
 import { EmailShell, H1, P, Button, Checklist, Small } from "@/emails/_components";
@@ -15,7 +15,7 @@ export interface ArtistOnboardingIncompleteRecapProps {
 
 export function ArtistOnboardingIncompleteRecap({ firstName, completionPct, remainingSteps, continueSetupUrl }: ArtistOnboardingIncompleteRecapProps) {
   return (
-    <EmailShell stream="notify" persona="artist" category="recommendations" preview={`Your setup is ${completionPct}% done — one quick push`}>
+    <EmailShell stream="notify" persona="artist" category="recommendations" preview={`Your setup is ${completionPct}% done, one quick push`}>
       <H1>Nearly there, {firstName}</H1>
       <P>Your Wallplace setup is {completionPct}% complete. Here&rsquo;s what&rsquo;s left:</P>
       <Checklist steps={remainingSteps} />

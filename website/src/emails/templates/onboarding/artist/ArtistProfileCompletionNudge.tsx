@@ -12,7 +12,7 @@ export interface ArtistProfileCompletionNudgeProps {
 
 export function ArtistProfileCompletionNudge({ firstName, completionPct, missingItems, profileUrl }: ArtistProfileCompletionNudgeProps) {
   return (
-    <EmailShell stream="notify" persona="artist" category="recommendations" preview={`Your profile is ${completionPct}% complete — a few minutes finishes it`}>
+    <EmailShell stream="notify" persona="artist" category="recommendations" preview={`Your profile is ${completionPct}% complete, a few minutes finishes it`}>
       <H1>You&rsquo;re almost set up, {firstName}</H1>
       <P>
         Your profile is <Badge tone="warning">{completionPct}% complete</Badge>. Venues review finished profiles faster and are more likely to accept a placement.
@@ -41,7 +41,7 @@ const entry: TemplateEntry<ArtistProfileCompletionNudgeProps> = {
   stream: "notify",
   persona: "artist",
   category: "recommendations",
-  subject: "Your profile is {{completionPct}}% done — a few minutes finishes it",
+  subject: "Your profile is {{completionPct}}% done, a few minutes finishes it",
   previewText: "Venues review finished profiles faster.",
   component: ArtistProfileCompletionNudge,
   mock,

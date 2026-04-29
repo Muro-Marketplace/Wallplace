@@ -1,4 +1,4 @@
-// Stream: tx. Operational receipt — artist's copy of a customer purchase.
+// Stream: tx. Operational receipt, artist's copy of a customer purchase.
 
 import { EmailShell, H1, P, Button } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -14,9 +14,9 @@ export interface ArtistOrderConfirmationProps {
 
 export function ArtistOrderConfirmation({ firstName, orderNumber, workTitle, buyerFirstName, orderUrl, nextSteps }: ArtistOrderConfirmationProps) {
   return (
-    <EmailShell stream="tx" persona="artist" preview={`Order ${orderNumber} — ${workTitle}`}>
+    <EmailShell stream="tx" persona="artist" preview={`Order ${orderNumber}, ${workTitle}`}>
       <H1>Order {orderNumber}</H1>
-      <P>Hi {firstName} — {buyerFirstName} just ordered <strong>{workTitle}</strong>.</P>
+      <P>Hi {firstName}, {buyerFirstName} just ordered <strong>{workTitle}</strong>.</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {nextSteps.map((s) => <li key={s}>{s}</li>)}
       </ul>
@@ -41,7 +41,7 @@ const entry: TemplateEntry<ArtistOrderConfirmationProps> = {
   stream: "tx",
   persona: "artist",
   category: "orders_and_payouts",
-  subject: "Order {{orderNumber}} — {{workTitle}}",
+  subject: "Order {{orderNumber}}, {{workTitle}}",
   previewText: "Ship within 3 business days.",
   component: ArtistOrderConfirmation,
   mock,

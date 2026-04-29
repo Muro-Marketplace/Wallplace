@@ -1,4 +1,4 @@
-// Stream: news. Educational — arrives 3 days after tier_cap_hit if the
+// Stream: news. Educational, arrives 3 days after tier_cap_hit if the
 // artist hasn't converted.
 
 import { EmailShell, H1, P, Button } from "@/emails/_components";
@@ -15,7 +15,7 @@ export function ArtistPremiumUpgradeEducational({ firstName, currentPlan, premiu
   return (
     <EmailShell stream="news" persona="artist" category="promotions" preview="What Premium actually unlocks">
       <H1>What Premium actually unlocks</H1>
-      <P>Hi {firstName} — you&rsquo;re on {currentPlan}. Here&rsquo;s the difference, plainly.</P>
+      <P>Hi {firstName}, you&rsquo;re on {currentPlan}. Here&rsquo;s the difference, plainly.</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {premiumBenefits.map((b) => <li key={b}>{b}</li>)}
       </ul>
@@ -39,7 +39,7 @@ export const mock: ArtistPremiumUpgradeEducationalProps = {
 const entry: TemplateEntry<ArtistPremiumUpgradeEducationalProps> = {
   id: "artist_premium_upgrade_educational",
   name: "Premium educational upgrade",
-  description: "Follow-up after cap-hit — benefits explained.",
+  description: "Follow-up after cap-hit, benefits explained.",
   stream: "news",
   persona: "artist",
   category: "promotions",

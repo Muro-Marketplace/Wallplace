@@ -14,7 +14,7 @@ export function AccountDataExportReady({ firstName, downloadUrl, expiresAt, supp
   return (
     <EmailShell stream="tx" persona="multi" preview="Your Wallplace data export is ready">
       <H1>Your data export is ready</H1>
-      <P>Hi {firstName} — the data export you requested is ready to download.</P>
+      <P>Hi {firstName}, the data export you requested is ready to download.</P>
       <Button href={downloadUrl}>Download your data</Button>
       <Small>This link expires on {expiresAt}. After that you&rsquo;ll need to request a new export.</Small>
       <SupportBlock supportUrl={supportUrl} />
@@ -37,7 +37,7 @@ const entry: TemplateEntry<AccountDataExportReadyProps> = {
   persona: "multi",
   category: "legal",
   subject: "Your Wallplace data export is ready",
-  previewText: "Download your data — link expires soon.",
+  previewText: "Download your data, link expires soon.",
   component: AccountDataExportReady,
   mock,
   canUnsubscribe: false,

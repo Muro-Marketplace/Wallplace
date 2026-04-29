@@ -1,4 +1,4 @@
-// ADDITION — decisive good news. Stream: notify.
+// ADDITION, decisive good news. Stream: notify.
 
 import { EmailShell, H1, P, Button, Badge } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -15,7 +15,7 @@ export function ArtistApplicationApproved({ firstName, goLiveUrl, welcomeMessage
       <H1><Badge tone="success">Accepted</Badge> <span style={{ marginLeft: 6 }}>You&rsquo;re in, {firstName}</span></H1>
       <P>Your work has been accepted into Wallplace. Welcome aboard.</P>
       {welcomeMessage && <P>{welcomeMessage}</P>}
-      <P>Next up — go live on the marketplace:</P>
+      <P>Next up, go live on the marketplace:</P>
       <Button href={goLiveUrl} persona="artist">Open artist portal</Button>
     </EmailShell>
   );
@@ -34,7 +34,7 @@ const entry: TemplateEntry<ArtistApplicationApprovedProps> = {
   stream: "notify",
   persona: "artist",
   category: "placements",
-  subject: "You're in — welcome to Wallplace",
+  subject: "You're in, welcome to Wallplace",
   previewText: "Your application was accepted.",
   component: ArtistApplicationApproved,
   mock,

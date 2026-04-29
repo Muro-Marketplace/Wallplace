@@ -9,7 +9,7 @@ interface Props {
   children: ReactNode;
   variant?: "primary" | "secondary" | "ghost";
   persona?: EmailPersona;
-  /** Full-width CTA — useful on mobile-first layouts. */
+  /** Full-width CTA, useful on mobile-first layouts. */
   block?: boolean;
 }
 
@@ -43,7 +43,7 @@ export function Button({ href, children, variant = "primary", persona = "multi",
   );
 }
 
-/** Secondary styled as `variant="secondary"` — named component for readability. */
+/** Secondary styled as `variant="secondary"`, named component for readability. */
 export function SecondaryButton(props: Omit<Props, "variant">) {
   return <Button {...props} variant="secondary" />;
 }

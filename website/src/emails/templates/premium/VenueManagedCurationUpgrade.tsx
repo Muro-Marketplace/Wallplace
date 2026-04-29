@@ -1,4 +1,4 @@
-// Stream: news. Managed curation pitch — similar to the pitch template but
+// Stream: news. Managed curation pitch, similar to the pitch template but
 // aimed at an existing subscriber upgrading tier.
 
 import { EmailShell, H1, P, Button } from "@/emails/_components";
@@ -15,7 +15,7 @@ export function VenueManagedCurationUpgrade({ firstName, venueName, managedCurat
   return (
     <EmailShell stream="news" persona="venue" category="promotions" preview={`Let us handle the curation at ${venueName}`}>
       <H1>Curation, done for you</H1>
-      <P>Hi {firstName} — upgrade to managed curation and we handle {venueName}&rsquo;s art programme end-to-end.</P>
+      <P>Hi {firstName}, upgrade to managed curation and we handle {venueName}&rsquo;s art programme end-to-end.</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {managedCurationBenefits.map((b) => <li key={b}>{b}</li>)}
       </ul>

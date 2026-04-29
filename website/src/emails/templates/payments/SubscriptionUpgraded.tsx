@@ -15,7 +15,7 @@ export function SubscriptionUpgraded({ firstName, oldPlan, newPlan, billingDate,
   return (
     <EmailShell stream="tx" persona="multi" preview={`You're now on ${newPlan}`}>
       <H1>You&rsquo;re on {newPlan}</H1>
-      <P>Hi {firstName} — you moved from {oldPlan} to {newPlan}. Your next billing date is <strong>{billingDate}</strong>.</P>
+      <P>Hi {firstName}, you moved from {oldPlan} to {newPlan}. Your next billing date is <strong>{billingDate}</strong>.</P>
       <Button href={accountUrl}>Manage subscription</Button>
     </EmailShell>
   );

@@ -1,7 +1,7 @@
 // Shared types across every email template. Kept in one place so mock data,
 // registry metadata, and template props all speak the same language.
 //
-// NB: these are DISPLAY types — what the email needs to render — not the full
+// NB: these are DISPLAY types, what the email needs to render, not the full
 // DB row. Many email payloads only carry the handful of fields they actually
 // show (e.g. a WorkCard needs title + image + artist, not the full pricing[]
 // or placement history).
@@ -28,7 +28,7 @@ export interface Money {
   currency: "GBP" | "USD" | "EUR";
 }
 
-/** Render helper — all templates should format via this, never via toLocaleString directly. */
+/** Render helper, all templates should format via this, never via toLocaleString directly. */
 export function formatMoney(m: Money): string {
   const symbols: Record<Money["currency"], string> = { GBP: "£", USD: "$", EUR: "€" };
   return `${symbols[m.currency]}${(m.amount / 100).toFixed(2)}`;
@@ -85,7 +85,7 @@ export interface Placement {
   status: "pending" | "active" | "declined" | "completed" | "cancelled";
   startDate?: string;
   endDate?: string;
-  /** "Paid loan · £120/mo · 10% rev share" — pre-formatted for the email. */
+  /** "Paid loan · £120/mo · 10% rev share", pre-formatted for the email. */
   termsSummary: string;
 }
 
@@ -113,7 +113,7 @@ export interface Review {
   url: string;
 }
 
-/** Stat blocks in digests. `deltaPct` optional — positive = improvement. */
+/** Stat blocks in digests. `deltaPct` optional, positive = improvement. */
 export interface Stat {
   label: string;
   value: string | number;
@@ -133,7 +133,7 @@ export interface TimelineEvent {
   state: "done" | "current" | "upcoming";
 }
 
-/** Canonical props all templates receive via metadata — not always rendered. */
+/** Canonical props all templates receive via metadata, not always rendered. */
 export interface CommonEmailMeta {
   /** The account-level unsubscribe token, appended to preference links. */
   unsubscribeToken?: string;

@@ -16,7 +16,7 @@ export function PlacementScheduled({ firstName, placementUrl, venueName, artistN
   return (
     <EmailShell stream="notify" persona="multi" category="placements" preview={`Install scheduled for ${scheduledDate}`}>
       <H1>Install scheduled</H1>
-      <P>Hi {firstName} — {artistName} and {venueName} are set for <strong>{scheduledDate}</strong>.</P>
+      <P>Hi {firstName}, {artistName} and {venueName} are set for <strong>{scheduledDate}</strong>.</P>
       {logisticsNotes && <InfoBox tone="neutral">{logisticsNotes}</InfoBox>}
       <Button href={placementUrl}>View placement</Button>
     </EmailShell>
@@ -35,7 +35,7 @@ export const mock: PlacementScheduledProps = {
 const entry: TemplateEntry<PlacementScheduledProps> = {
   id: "placement_scheduled",
   name: "Placement scheduled",
-  description: "Install date locked in — to both parties.",
+  description: "Install date locked in, to both parties.",
   stream: "notify",
   persona: "multi",
   category: "placements",

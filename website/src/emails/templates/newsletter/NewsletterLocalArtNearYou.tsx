@@ -1,4 +1,4 @@
-// Stream: news. Geo-targeted editorial — works and artists near the reader.
+// Stream: news. Geo-targeted editorial, works and artists near the reader.
 
 import { EmailShell, H1, P, WorkCard, ArtistCard, Button, Divider } from "@/emails/_components";
 import type { Artist, Work } from "@/emails/types/emailTypes";
@@ -17,7 +17,7 @@ export function NewsletterLocalArtNearYou({ firstName, location, localWorks, loc
   return (
     <EmailShell stream="news" persona="customer" category="newsletter" preview={`Art from around ${location}`}>
       <H1>Art from around {location}</H1>
-      <P>Hi {firstName} — a small selection of work showing near you right now.</P>
+      <P>Hi {firstName}, a small selection of work showing near you right now.</P>
       <Divider />
       <H1>Works up the road</H1>
       {localWorks.slice(0, 3).map((w) => <WorkCard key={w.id} work={w} />)}

@@ -18,7 +18,7 @@ export function VenueRotationReminder({ firstName, venueName, currentPlacements,
   return (
     <EmailShell stream="notify" persona="venue" category="recommendations" preview={`Time to rotate the walls at ${venueName}?`}>
       <H1>Time to rotate the walls?</H1>
-      <P>Hi {firstName} — {venueName}&rsquo;s current placements have been up for a while. Rotation keeps the walls interesting for returning guests.</P>
+      <P>Hi {firstName}, {venueName}&rsquo;s current placements have been up for a while. Rotation keeps the walls interesting for returning guests.</P>
       {currentPlacements.slice(0, 2).map((p) => <PlacementCard key={p.id} placement={p} />)}
       {suggestedArtists.length > 0 && (
         <>

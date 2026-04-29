@@ -14,7 +14,7 @@ export interface ArtistFirstArtworkUploadNudgeProps {
 
 export function ArtistFirstArtworkUploadNudge({ firstName, uploadArtworkUrl, exampleWorks, guideUrl }: ArtistFirstArtworkUploadNudgeProps) {
   return (
-    <EmailShell stream="notify" persona="artist" category="recommendations" preview="The first artwork is the hardest — here's how to add yours">
+    <EmailShell stream="notify" persona="artist" category="recommendations" preview="The first artwork is the hardest, here's how to add yours">
       <H1>Add your first work, {firstName}</H1>
       <P>Your portfolio&rsquo;s ready and waiting. Upload one piece to start appearing to venues.</P>
       {exampleWorks.slice(0, 2).map((w) => <WorkCard key={w.id} work={w} />)}
@@ -40,7 +40,7 @@ const entry: TemplateEntry<ArtistFirstArtworkUploadNudgeProps> = {
   stream: "notify",
   persona: "artist",
   category: "recommendations",
-  subject: "The first artwork is the hardest — here's how to add yours",
+  subject: "The first artwork is the hardest, here's how to add yours",
   previewText: "Upload one piece to start appearing to venues.",
   component: ArtistFirstArtworkUploadNudge,
   mock,

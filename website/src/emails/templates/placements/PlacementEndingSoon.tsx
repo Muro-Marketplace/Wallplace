@@ -16,7 +16,7 @@ export function PlacementEndingSoon({ firstName, placementUrl, venueName, endDat
   return (
     <EmailShell stream="notify" persona="multi" category="placements" preview={`Placement at ${venueName} ends ${endDate}`}>
       <H1>Your placement ends soon</H1>
-      <P>Hi {firstName} — your placement at {venueName} is scheduled to end on <strong>{endDate}</strong>.</P>
+      <P>Hi {firstName}, your placement at {venueName} is scheduled to end on <strong>{endDate}</strong>.</P>
       <InfoBox tone="neutral">
         Two options: extend, or arrange collection. Either way, decide early so logistics go smoothly.
       </InfoBox>

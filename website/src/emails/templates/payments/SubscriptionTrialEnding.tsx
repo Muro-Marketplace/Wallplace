@@ -15,7 +15,7 @@ export function SubscriptionTrialEnding({ firstName, planName, trialEndDate, upg
   return (
     <EmailShell stream="news" persona="multi" category="promotions" preview={`Your ${planName} trial ends ${trialEndDate}`}>
       <H1>Your trial ends {trialEndDate}</H1>
-      <P>Hi {firstName} — you&rsquo;re using {planName}. Here&rsquo;s what you&rsquo;d lose when the trial ends:</P>
+      <P>Hi {firstName}, you&rsquo;re using {planName}. Here&rsquo;s what you&rsquo;d lose when the trial ends:</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {benefits.map((b) => <li key={b}>{b}</li>)}
       </ul>

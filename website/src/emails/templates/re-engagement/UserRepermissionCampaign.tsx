@@ -14,10 +14,10 @@ export function UserRepermissionCampaign({ firstName, confirmSubscriptionUrl, un
   return (
     <EmailShell stream="news" persona="multi" category="newsletter" preview="Should we keep in touch?">
       <H1>Should we keep in touch?</H1>
-      <P>Hi {firstName} — we only want to land in inboxes where we&rsquo;re welcome. Tap the button if you&rsquo;d like to keep hearing from us. Silence = we&rsquo;ll stop.</P>
+      <P>Hi {firstName}, we only want to land in inboxes where we&rsquo;re welcome. Tap the button if you&rsquo;d like to keep hearing from us. Silence = we&rsquo;ll stop.</P>
       <Button href={confirmSubscriptionUrl}>Keep me subscribed</Button>
       <Small>
-        No? That&rsquo;s fine too —{" "}
+        No? That&rsquo;s fine too,{" "}
         <a href={unsubscribeUrl} style={{ color: "#6B6760", textDecoration: "underline" }}>unsubscribe here</a>.
       </Small>
     </EmailShell>

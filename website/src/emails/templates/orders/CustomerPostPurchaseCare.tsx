@@ -1,4 +1,4 @@
-// Stream: notify. 3 days after delivery — care tips specific to the piece.
+// Stream: notify. 3 days after delivery, care tips specific to the piece.
 
 import { EmailShell, H1, P, Button } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -15,7 +15,7 @@ export function CustomerPostPurchaseCare({ firstName, workTitle, artistName, car
   return (
     <EmailShell stream="notify" persona="customer" category="tips" preview={`Looking after ${workTitle}`}>
       <H1>Looking after {workTitle}</H1>
-      <P>Hi {firstName} — a few notes from {artistName} on keeping the piece at its best.</P>
+      <P>Hi {firstName}, a few notes from {artistName} on keeping the piece at its best.</P>
       <ul style={{ fontSize: 14, color: "#4A4740", lineHeight: 1.7, paddingLeft: 18, margin: "8px 0 20px" }}>
         {careTips.map((t) => <li key={t}>{t}</li>)}
       </ul>
@@ -30,7 +30,7 @@ export const mock: CustomerPostPurchaseCareProps = {
   artistName: "Maya Chen",
   careTips: [
     "Keep out of direct sunlight to avoid fading",
-    "Wipe the frame with a dry microfibre cloth — no sprays",
+    "Wipe the frame with a dry microfibre cloth, no sprays",
     "Aim for steady humidity (40–60%) if possible",
   ],
   orderUrl: "https://wallplace.co.uk/orders/WP-28473",

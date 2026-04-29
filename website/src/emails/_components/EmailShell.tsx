@@ -19,9 +19,9 @@ interface EmailShellProps {
   preview: string;
   /** Drives subtle accent + shell variation. */
   persona?: EmailPersona;
-  /** Drives footer logic — tx/critical omits the marketing unsubscribe. */
+  /** Drives footer logic, tx/critical omits the marketing unsubscribe. */
   stream: EmailStream;
-  /** Category — used to build the category-scoped unsubscribe link on notify/news. */
+  /** Category, used to build the category-scoped unsubscribe link on notify/news. */
   category?: EmailCategory;
   children: ReactNode;
 }
@@ -42,7 +42,7 @@ export function EmailShell({
       <Preview>{preview}</Preview>
       <Body style={bodyStyle}>
         <Container style={containerStyle}>
-          {/* Header — thin, editorial. Persona accent sits under the wordmark. */}
+          {/* Header, thin, editorial. Persona accent sits under the wordmark. */}
           <Section style={{ padding: "28px 32px 16px", textAlign: "center" }}>
             <Link href={siteUrl} style={{ textDecoration: "none" }}>
               <Text
@@ -74,7 +74,7 @@ export function EmailShell({
 
           <Hr style={{ borderColor: theme.border, margin: 0 }} />
 
-          {/* Footer — stream-aware. */}
+          {/* Footer, stream-aware. */}
           <Section style={footerStyle}>
             <Text style={footerTextStyle}>
               {companyDetails.name} &middot; {companyDetails.address}

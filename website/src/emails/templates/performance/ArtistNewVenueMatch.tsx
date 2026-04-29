@@ -17,7 +17,7 @@ export function ArtistNewVenueMatch({ firstName, matchedVenues, discoverVenuesUr
   return (
     <EmailShell stream="notify" persona="artist" category="recommendations" preview={`${matchedVenues.length} venues near you looking for your kind of work`}>
       <H1>{matchedVenues.length} new matches for you</H1>
-      <P>Hi {firstName} — we found a few venues that suit your work. {matchReason}</P>
+      <P>Hi {firstName}, we found a few venues that suit your work. {matchReason}</P>
       {matchedVenues.slice(0, 4).map((v) => <VenueCard key={v.id} venue={v} />)}
       <div style={{ marginTop: 20 }}>
         <Button href={discoverVenuesUrl} persona="artist">See all matches</Button>

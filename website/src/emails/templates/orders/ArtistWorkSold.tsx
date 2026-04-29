@@ -1,4 +1,4 @@
-// Stream: notify. The artist's celebration email — "you made a sale".
+// Stream: notify. The artist's celebration email, "you made a sale".
 
 import { EmailShell, H1, P, Button, SecondaryButton, InfoBox } from "@/emails/_components";
 import { formatMoney, type Money } from "@/emails/types/emailTypes";
@@ -18,7 +18,7 @@ export function ArtistWorkSold({ firstName, workTitle, orderNumber, saleAmount, 
   return (
     <EmailShell stream="notify" persona="artist" category="orders_and_payouts" preview={`${workTitle} just sold for ${formatMoney(saleAmount)}`}>
       <H1>You made a sale</H1>
-      <P>Hi {firstName} — <strong>{workTitle}</strong> just sold for <strong>{formatMoney(saleAmount)}</strong> (order {orderNumber}).</P>
+      <P>Hi {firstName}, <strong>{workTitle}</strong> just sold for <strong>{formatMoney(saleAmount)}</strong> (order {orderNumber}).</P>
       <InfoBox tone="info">
         <strong>What&rsquo;s next</strong>
         <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
@@ -54,7 +54,7 @@ const entry: TemplateEntry<ArtistWorkSoldProps> = {
   stream: "notify",
   persona: "artist",
   category: "orders_and_payouts",
-  subject: "You made a sale — {{workTitle}}",
+  subject: "You made a sale, {{workTitle}}",
   previewText: "A piece of yours has sold.",
   component: ArtistWorkSold,
   mock,

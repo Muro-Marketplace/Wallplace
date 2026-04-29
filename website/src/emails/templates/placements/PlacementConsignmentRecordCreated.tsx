@@ -1,5 +1,5 @@
 // Stream: tx (legal-adjacent). The consignment record is a contractual
-// document — both parties must have a copy.
+// document, both parties must have a copy.
 
 import { EmailShell, H1, P, Button, InfoBox } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -18,7 +18,7 @@ export function PlacementConsignmentRecordCreated({ firstName, placementUrl, con
   return (
     <EmailShell stream="tx" persona="multi" preview={`Consignment record for ${artistName} × ${venueName}`}>
       <H1>Consignment record ready</H1>
-      <P>Hi {firstName} — the record for <strong>{artistName}</strong> × <strong>{venueName}</strong> has been drafted. Please review and approve.</P>
+      <P>Hi {firstName}, the record for <strong>{artistName}</strong> × <strong>{venueName}</strong> has been drafted. Please review and approve.</P>
       <InfoBox tone="neutral">
         <strong>Works:</strong> {works.join(", ")}<br />
         <strong>Terms:</strong> {termsSummary}

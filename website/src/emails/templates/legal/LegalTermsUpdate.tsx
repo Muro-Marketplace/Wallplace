@@ -13,9 +13,9 @@ export interface LegalTermsUpdateProps {
 
 export function LegalTermsUpdate({ firstName, effectiveDate, summaryChanges, termsUrl, supportUrl }: LegalTermsUpdateProps) {
   return (
-    <EmailShell stream="tx" persona="multi" preview={`Terms update — effective ${effectiveDate}`}>
+    <EmailShell stream="tx" persona="multi" preview={`Terms update, effective ${effectiveDate}`}>
       <H1>We&rsquo;re updating our Terms</H1>
-      <P>Hi {firstName} — our Terms of Service change on <strong>{effectiveDate}</strong>. No action needed from you — we wanted to summarise what&rsquo;s different.</P>
+      <P>Hi {firstName}, our Terms of Service change on <strong>{effectiveDate}</strong>. No action needed from you, we wanted to summarise what&rsquo;s different.</P>
       <InfoBox tone="neutral">
         <strong>What&rsquo;s changed:</strong>
         <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
@@ -47,7 +47,7 @@ const entry: TemplateEntry<LegalTermsUpdateProps> = {
   stream: "tx",
   persona: "multi",
   category: "legal",
-  subject: "Updates to the Wallplace Terms — effective {{effectiveDate}}",
+  subject: "Updates to the Wallplace Terms, effective {{effectiveDate}}",
   previewText: "A summary of what's changed.",
   component: LegalTermsUpdate,
   mock,

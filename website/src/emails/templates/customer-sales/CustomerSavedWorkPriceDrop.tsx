@@ -20,7 +20,7 @@ export function CustomerSavedWorkPriceDrop({ firstName, workTitle, artistName, o
   return (
     <EmailShell stream="news" persona="customer" category="promotions" preview={`${workTitle} dropped to ${formatMoney(newPrice)}`}>
       <H1>Price change on a piece you saved</H1>
-      <P>Hi {firstName} — {workTitle} by {artistName} is now <strong>{formatMoney(newPrice)}</strong> <Badge tone="success">Was {formatMoney(oldPrice)}</Badge>.</P>
+      <P>Hi {firstName}, {workTitle} by {artistName} is now <strong>{formatMoney(newPrice)}</strong> <Badge tone="success">Was {formatMoney(oldPrice)}</Badge>.</P>
       <WorkCard work={work} />
       <div style={{ marginTop: 20 }}>
         <Button href={workUrl} persona="customer">View piece</Button>

@@ -1,4 +1,4 @@
-// Stream: tx. Unhappy path — reason + fix link.
+// Stream: tx. Unhappy path, reason + fix link.
 
 import { EmailShell, H1, P, Button, InfoBox, SupportBlock } from "@/emails/_components";
 import { formatMoney, type Money } from "@/emails/types/emailTypes";
@@ -16,7 +16,7 @@ export function ArtistPayoutFailed({ firstName, payoutAmount, reason, fixPayoutU
   return (
     <EmailShell stream="tx" persona="artist" preview={`Payout of ${formatMoney(payoutAmount)} couldn't be sent`}>
       <H1>Payout couldn&rsquo;t be sent</H1>
-      <P>Hi {firstName} — your {formatMoney(payoutAmount)} payout failed. No money has left our account, and we&rsquo;ll retry once the issue is fixed.</P>
+      <P>Hi {firstName}, your {formatMoney(payoutAmount)} payout failed. No money has left our account, and we&rsquo;ll retry once the issue is fixed.</P>
       <InfoBox tone="danger">
         <strong>Reason:</strong> {reason}
       </InfoBox>
@@ -37,7 +37,7 @@ export const mock: ArtistPayoutFailedProps = {
 const entry: TemplateEntry<ArtistPayoutFailedProps> = {
   id: "artist_payout_failed",
   name: "Payout failed",
-  description: "Payout could not be sent — action required.",
+  description: "Payout could not be sent, action required.",
   stream: "tx",
   persona: "artist",
   category: "orders_and_payouts",

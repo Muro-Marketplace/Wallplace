@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// "alex-2" / "maya-chen" / "abc" — slug-shaped strings the upstream
+// "alex-2" / "maya-chen" / "abc", slug-shaped strings the upstream
 // callers sometimes pass in place of a real display name. Anything
 // containing whitespace, capitals, or back-to-back hyphens is
 // presumed to be a real human-typed name and used as-is.

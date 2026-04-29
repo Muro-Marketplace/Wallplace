@@ -1,5 +1,5 @@
 // Stream: notify. The single most important marketplace-liquidity email.
-// Has an in-app equivalent — only email if the venue hasn't responded in-app.
+// Has an in-app equivalent, only email if the venue hasn't responded in-app.
 
 import { EmailShell, H1, P, Button, SecondaryButton, ArtistCard, InfoBox, Small } from "@/emails/_components";
 import type { Artist } from "@/emails/types/emailTypes";
@@ -21,7 +21,7 @@ export function VenueNewPlacementRequest({ firstName, venueName, artist, artistP
   return (
     <EmailShell stream="notify" persona="venue" category="placements" preview={`${artist.name} would like to place work at ${venueName}`}>
       <H1>New placement request</H1>
-      <P>Hi {firstName} — {artist.name} would like to place work at <strong>{venueName}</strong>.</P>
+      <P>Hi {firstName}, {artist.name} would like to place work at <strong>{venueName}</strong>.</P>
       <ArtistCard artist={artist} />
       <InfoBox tone="neutral">
         <strong>Works:</strong> {requestedWorks.join(", ")}<br />

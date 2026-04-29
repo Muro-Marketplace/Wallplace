@@ -14,7 +14,7 @@ export function CustomerPurchaseReviewRequest({ firstName, workTitle, artistName
   return (
     <EmailShell stream="notify" persona="customer" category="recommendations" preview={`A few words on ${workTitle}?`}>
       <H1>A few words on {workTitle}?</H1>
-      <P>Hi {firstName} — has {workTitle} settled in? A short review helps {artistName} reach the next collector.</P>
+      <P>Hi {firstName}, has {workTitle} settled in? A short review helps {artistName} reach the next collector.</P>
       <Button href={reviewUrl} persona="customer">Leave a review</Button>
     </EmailShell>
   );

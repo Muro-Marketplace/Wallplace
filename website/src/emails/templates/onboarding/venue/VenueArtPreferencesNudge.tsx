@@ -14,7 +14,7 @@ export function VenueArtPreferencesNudge({ firstName, venueName, preferencesUrl,
   return (
     <EmailShell stream="notify" persona="venue" category="recommendations" preview="Tell us the kind of art you're drawn to">
       <H1>What should we match you with?</H1>
-      <P>Hi {firstName} — a minute of preferences means we only show you artists who suit {venueName}.</P>
+      <P>Hi {firstName}, a minute of preferences means we only show you artists who suit {venueName}.</P>
       <P>Think: {styleExamples.slice(0, 4).join(", ")}…</P>
       <Button href={preferencesUrl} persona="venue">Set preferences</Button>
       <Small>You can change them any time, and we&rsquo;ll never send you a match that ignores them.</Small>

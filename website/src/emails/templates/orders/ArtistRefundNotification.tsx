@@ -17,7 +17,7 @@ export function ArtistRefundNotification({ firstName, orderNumber, workTitle, re
   return (
     <EmailShell stream="tx" persona="artist" preview={`Refund on order ${orderNumber}`}>
       <H1>Refund issued on {workTitle}</H1>
-      <P>Hi {firstName} — we&rsquo;ve issued a {formatMoney(refundAmount)} refund on order {orderNumber}.</P>
+      <P>Hi {firstName}, we&rsquo;ve issued a {formatMoney(refundAmount)} refund on order {orderNumber}.</P>
       {reason && (
         <InfoBox tone="warning">
           Reason from the customer: &ldquo;{reason}&rdquo;

@@ -16,7 +16,7 @@ export function VenueFirstPlacementCta({ firstName, venueName, browseArtistsUrl,
   return (
     <EmailShell stream="notify" persona="venue" category="recommendations" preview={`Ready to host art at ${venueName}?`}>
       <H1>Ready for your first placement?</H1>
-      <P>Hi {firstName} — {venueName} is set up. Here are a few artists who&rsquo;d fit your space.</P>
+      <P>Hi {firstName}, {venueName} is set up. Here are a few artists who&rsquo;d fit your space.</P>
       {suggestedArtists.slice(0, 3).map((a) => <ArtistCard key={a.id} artist={a} />)}
       <div style={{ marginTop: 20 }}>
         <Button href={browseArtistsUrl} persona="venue">Browse all artists</Button>

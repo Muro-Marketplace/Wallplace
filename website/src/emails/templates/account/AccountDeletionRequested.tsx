@@ -14,7 +14,7 @@ export function AccountDeletionRequested({ firstName, deletionDate, cancelDeleti
   return (
     <EmailShell stream="tx" persona="multi" preview="Your account is scheduled for deletion">
       <H1>Account deletion scheduled</H1>
-      <P>Hi {firstName} — we received your request to delete your Wallplace account.</P>
+      <P>Hi {firstName}, we received your request to delete your Wallplace account.</P>
       <InfoBox tone="warning">
         Your account and data will be permanently removed on <strong>{deletionDate}</strong>. You can cancel any time before then.
       </InfoBox>

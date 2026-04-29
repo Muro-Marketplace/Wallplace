@@ -13,14 +13,14 @@ export interface CustomerSavedWorksDigestProps {
 
 export function CustomerSavedWorksDigest({ firstName, savedWorks, browseUrl }: CustomerSavedWorksDigestProps) {
   return (
-    <EmailShell stream="notify" persona="customer" category="digests" preview="Your saved works — a quick look">
+    <EmailShell stream="notify" persona="customer" category="digests" preview="Your saved works, a quick look">
       <H1>Your saved works</H1>
-      <P>Hi {firstName} — a gentle check-in on the pieces you&rsquo;ve favourited.</P>
+      <P>Hi {firstName}, a gentle check-in on the pieces you&rsquo;ve favourited.</P>
       {savedWorks.slice(0, 4).map((w) => <WorkCard key={w.id} work={w} />)}
       <div style={{ marginTop: 20 }}>
         <Button href={browseUrl} persona="customer">Browse the gallery</Button>
       </div>
-      <Small>Weekly — always skippable from your email preferences.</Small>
+      <Small>Weekly, always skippable from your email preferences.</Small>
     </EmailShell>
   );
 }
@@ -38,7 +38,7 @@ const entry: TemplateEntry<CustomerSavedWorksDigestProps> = {
   stream: "notify",
   persona: "customer",
   category: "digests",
-  subject: "Your saved works — a quick look",
+  subject: "Your saved works, a quick look",
   previewText: "A gentle weekly check-in.",
   component: CustomerSavedWorksDigest,
   mock,

@@ -14,7 +14,7 @@ export function AccountPasswordReset({ firstName, resetUrl, expiresIn, supportUr
   return (
     <EmailShell stream="tx" persona="multi" preview="Reset your Wallplace password">
       <H1>Reset your password</H1>
-      <P>Hi {firstName} — use the button below to choose a new password.</P>
+      <P>Hi {firstName}, use the button below to choose a new password.</P>
       <Button href={resetUrl}>Reset password</Button>
       <Small>This link expires in {expiresIn}. If you didn&rsquo;t request a reset, ignore this email and your password stays the same.</Small>
       <Divider />

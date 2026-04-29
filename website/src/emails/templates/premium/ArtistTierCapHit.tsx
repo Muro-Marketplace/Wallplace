@@ -18,7 +18,7 @@ export function ArtistTierCapHit({ firstName, currentPlan, capType, currentUsage
   return (
     <EmailShell stream="news" persona="artist" category="promotions" preview={`You've hit the ${capType} limit on ${currentPlan}`}>
       <H1>You&rsquo;ve hit a limit</H1>
-      <P>Hi {firstName} — you&rsquo;re using <strong>{currentUsage} of {capLimit}</strong> {capType} on {currentPlan}. Upgrade and the cap lifts.</P>
+      <P>Hi {firstName}, you&rsquo;re using <strong>{currentUsage} of {capLimit}</strong> {capType} on {currentPlan}. Upgrade and the cap lifts.</P>
       <InfoBox tone="info">
         <strong>What&rsquo;s unlocked with Premium:</strong>
         <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>

@@ -1,4 +1,4 @@
-// Stream: notify. Halfway through a placement — keeps both parties engaged
+// Stream: notify. Halfway through a placement, keeps both parties engaged
 // and surfaces interesting data.
 
 import { EmailShell, H1, P, Button, QRScanSummary, StatBlock } from "@/emails/_components";
@@ -15,9 +15,9 @@ export interface PlacementMidwayCheckinProps {
 
 export function PlacementMidwayCheckin({ firstName, placementUrl, venueName, scanCount, messagesCount, feedbackUrl }: PlacementMidwayCheckinProps) {
   return (
-    <EmailShell stream="notify" persona="multi" category="digests" preview={`Halfway check-in — ${venueName}`}>
+    <EmailShell stream="notify" persona="multi" category="digests" preview={`Halfway check-in, ${venueName}`}>
       <H1>Halfway there</H1>
-      <P>Hi {firstName} — quick look at how the placement is doing at {venueName}.</P>
+      <P>Hi {firstName}, quick look at how the placement is doing at {venueName}.</P>
       <StatBlock
         stats={[
           { label: "QR scans", value: scanCount },

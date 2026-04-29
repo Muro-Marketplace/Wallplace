@@ -25,7 +25,7 @@ export interface VenueWelcomeChecklistProps {
 
 export function VenueWelcomeChecklist({ firstName, venueName, remainingSteps }: VenueWelcomeChecklistProps) {
   return (
-    <EmailShell stream="notify" persona="venue" category="recommendations" preview={`Welcome to Wallplace — how ${venueName} finds art`}>
+    <EmailShell stream="notify" persona="venue" category="recommendations" preview={`Welcome to Wallplace, how ${venueName} finds art`}>
       <H1>Welcome, {firstName}</H1>
       <P>{venueName} is signed up. A few steps will get you ready to host work.</P>
       <Checklist steps={remainingSteps} />
@@ -54,7 +54,7 @@ const entry: TemplateEntry<VenueWelcomeChecklistProps> = {
   stream: "notify",
   persona: "venue",
   category: "recommendations",
-  subject: "Welcome to Wallplace — how {{venueName}} finds art",
+  subject: "Welcome to Wallplace, how {{venueName}} finds art",
   previewText: "A short setup list to get you hosting.",
   component: VenueWelcomeChecklist,
   mock,

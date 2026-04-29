@@ -16,7 +16,7 @@ export function AccountTeamInviteAccepted({ inviterFirstName, memberName, member
   return (
     <EmailShell stream="notify" persona="venue" category="placements" preview={`${memberName} joined ${venueName}`}>
       <H1>{memberName} joined {venueName}</H1>
-      <P>Hi {inviterFirstName} — {memberName} ({memberEmail}) accepted your invite and can now manage {venueName} with you.</P>
+      <P>Hi {inviterFirstName}, {memberName} ({memberEmail}) accepted your invite and can now manage {venueName} with you.</P>
       <Button href={teamUrl} persona="venue">Manage team</Button>
     </EmailShell>
   );

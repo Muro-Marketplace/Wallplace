@@ -1,4 +1,4 @@
-// Stream: tx. Good news counterpart — restrictions lifted.
+// Stream: tx. Good news counterpart, restrictions lifted.
 
 import { EmailShell, H1, P, Button, Badge } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -13,7 +13,7 @@ export function OperationalAccountRestored({ firstName, restoredAt, accountUrl }
   return (
     <EmailShell stream="tx" persona="multi" preview="Your Wallplace account is back to normal">
       <H1><Badge tone="success">Restored</Badge> <span style={{ marginLeft: 6 }}>You&rsquo;re back in</span></H1>
-      <P>Hi {firstName} — your account was restored on {restoredAt}. Everything&rsquo;s back to normal.</P>
+      <P>Hi {firstName}, your account was restored on {restoredAt}. Everything&rsquo;s back to normal.</P>
       <Button href={accountUrl}>Open account</Button>
     </EmailShell>
   );

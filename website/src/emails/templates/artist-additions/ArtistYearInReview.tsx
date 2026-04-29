@@ -1,4 +1,4 @@
-// ADDITION — annual retrospective. Massive engagement moment. Stream: news
+// ADDITION, annual retrospective. Massive engagement moment. Stream: news
 // (editorial-ish). Suppressible but rarely turned off.
 
 import { EmailShell, H1, P, Button, StatBlock, WorkCard, QuoteBlock, Divider } from "@/emails/_components";
@@ -19,7 +19,7 @@ export function ArtistYearInReview({ firstName, year, stats, topWorks, favourite
   return (
     <EmailShell stream="news" persona="artist" category="newsletter" preview={`Your ${year} on Wallplace`}>
       <H1>Your {year} on Wallplace</H1>
-      <P>Hi {firstName} — a small scrapbook of how your work travelled this year.</P>
+      <P>Hi {firstName}, a small scrapbook of how your work travelled this year.</P>
       <StatBlock stats={stats} />
       <Divider />
       <H1>Most-seen works</H1>

@@ -13,9 +13,9 @@ export interface LegalPrivacyUpdateProps {
 
 export function LegalPrivacyUpdate({ firstName, effectiveDate, summaryChanges, privacyUrl, supportUrl }: LegalPrivacyUpdateProps) {
   return (
-    <EmailShell stream="tx" persona="multi" preview={`Privacy policy update — effective ${effectiveDate}`}>
+    <EmailShell stream="tx" persona="multi" preview={`Privacy policy update, effective ${effectiveDate}`}>
       <H1>Our Privacy Policy is changing</H1>
-      <P>Hi {firstName} — from <strong>{effectiveDate}</strong>, our Privacy Policy has a few updates.</P>
+      <P>Hi {firstName}, from <strong>{effectiveDate}</strong>, our Privacy Policy has a few updates.</P>
       <InfoBox tone="neutral">
         <strong>What&rsquo;s different:</strong>
         <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
@@ -47,7 +47,7 @@ const entry: TemplateEntry<LegalPrivacyUpdateProps> = {
   stream: "tx",
   persona: "multi",
   category: "legal",
-  subject: "Privacy policy update — effective {{effectiveDate}}",
+  subject: "Privacy policy update, effective {{effectiveDate}}",
   previewText: "A summary of what's changed.",
   component: LegalPrivacyUpdate,
   mock,

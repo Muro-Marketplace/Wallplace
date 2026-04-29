@@ -18,7 +18,7 @@ export function VenuePaidLoanInvoice({ firstName, venueName, invoiceNumber, amou
   return (
     <EmailShell stream="tx" persona="venue" preview={`${venueName} invoice ${invoiceNumber}`}>
       <H1>Invoice {invoiceNumber}</H1>
-      <P>Hi {firstName} — {venueName}&rsquo;s paid loan invoice is ready.</P>
+      <P>Hi {firstName}, {venueName}&rsquo;s paid loan invoice is ready.</P>
       <InfoBox tone="neutral">
         <strong>Amount:</strong> {formatMoney(amountDue)}<br />
         <strong>Due:</strong> {dueDate}
@@ -46,7 +46,7 @@ const entry: TemplateEntry<VenuePaidLoanInvoiceProps> = {
   stream: "tx",
   persona: "venue",
   category: "orders_and_payouts",
-  subject: "Invoice {{invoiceNumber}} — {{venueName}}",
+  subject: "Invoice {{invoiceNumber}}, {{venueName}}",
   previewText: "Pay in a tap.",
   component: VenuePaidLoanInvoice,
   mock,

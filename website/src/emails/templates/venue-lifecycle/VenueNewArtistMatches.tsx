@@ -1,4 +1,4 @@
-// Stream: notify. Ad-hoc match email — sent when the matcher finds strong
+// Stream: notify. Ad-hoc match email, sent when the matcher finds strong
 // new artists for a venue.
 
 import { EmailShell, H1, P, Button, ArtistCard } from "@/emails/_components";
@@ -18,7 +18,7 @@ export function VenueNewArtistMatches({ firstName, venueName, artists, browseArt
   return (
     <EmailShell stream="notify" persona="venue" category="recommendations" preview={`${artists.length} new artists that would suit ${venueName}`}>
       <H1>{artists.length} artists for {venueName}</H1>
-      <P>Hi {firstName} — {matchReason}</P>
+      <P>Hi {firstName}, {matchReason}</P>
       {artists.slice(0, 4).map((a) => <ArtistCard key={a.id} artist={a} />)}
       <div style={{ marginTop: 20 }}>
         <Button href={browseArtistsUrl} persona="venue">Browse all artists</Button>

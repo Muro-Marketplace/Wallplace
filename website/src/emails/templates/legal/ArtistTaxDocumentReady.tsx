@@ -14,7 +14,7 @@ export function ArtistTaxDocumentReady({ firstName, taxYear, documentUrl, suppor
   return (
     <EmailShell stream="tx" persona="artist" preview={`Your ${taxYear} Wallplace tax summary`}>
       <H1>Your {taxYear} tax summary</H1>
-      <P>Hi {firstName} — your Wallplace income summary for {taxYear} is ready. Download for your records or your accountant.</P>
+      <P>Hi {firstName}, your Wallplace income summary for {taxYear} is ready. Download for your records or your accountant.</P>
       <Button href={documentUrl} persona="artist">Download summary</Button>
       <Small>This is a summary of your earnings on the platform. Check with a qualified accountant for how to report it.</Small>
       <SupportBlock supportUrl={supportUrl} />

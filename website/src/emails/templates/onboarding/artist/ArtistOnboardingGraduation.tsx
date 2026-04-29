@@ -13,19 +13,19 @@ export interface ArtistOnboardingGraduationProps {
 
 export function ArtistOnboardingGraduation({ firstName, dashboardUrl, discoverVenuesUrl, profileUrl }: ArtistOnboardingGraduationProps) {
   return (
-    <EmailShell stream="notify" persona="artist" category="recommendations" preview="You're live on Wallplace — here's what happens next">
+    <EmailShell stream="notify" persona="artist" category="recommendations" preview="You're live on Wallplace, here's what happens next">
       <H1>You&rsquo;re live, {firstName}</H1>
       <P>Your profile is visible to venues across the UK. From here, placements happen two ways:</P>
       <P>
-        <strong>Venues reach out to you</strong> — you&rsquo;ll get an email when a new request arrives.
+        <strong>Venues reach out to you</strong>, you&rsquo;ll get an email when a new request arrives.
         <br />
-        <strong>You request placements</strong> — browse venues looking for your kind of work and send a request.
+        <strong>You request placements</strong>, browse venues looking for your kind of work and send a request.
       </P>
       <div style={{ margin: "16px 0" }}>
         <Button href={dashboardUrl} persona="artist">Go to dashboard</Button>{" "}
         <SecondaryButton href={discoverVenuesUrl} persona="artist">Discover venues</SecondaryButton>
       </div>
-      <Small>Keep your portfolio fresh — artists with 5+ works and recent activity are shown to venues first. <a href={profileUrl} style={{ color: "#6B6760" }}>View profile</a>.</Small>
+      <Small>Keep your portfolio fresh, artists with 5+ works and recent activity are shown to venues first. <a href={profileUrl} style={{ color: "#6B6760" }}>View profile</a>.</Small>
     </EmailShell>
   );
 }

@@ -16,7 +16,7 @@ export function AccountPasswordChanged({ firstName, changedAt, location, device,
   return (
     <EmailShell stream="tx" persona="multi" preview="Your Wallplace password was changed">
       <H1>Your password was changed</H1>
-      <P>Hi {firstName} — we wanted to confirm your password was updated on {changedAt}.</P>
+      <P>Hi {firstName}, we wanted to confirm your password was updated on {changedAt}.</P>
       {(location || device) && (
         <InfoBox tone="neutral">
           {device ? <>Device: <strong>{device}</strong><br /></> : null}

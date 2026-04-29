@@ -28,7 +28,7 @@ export function ArtistWeeklyPortfolioDigest({ firstName, weekStart, weekEnd, pro
   return (
     <EmailShell stream="notify" persona="artist" category="digests" preview={`Your week on Wallplace (${weekStart}–${weekEnd})`}>
       <H1>Your week on Wallplace</H1>
-      <P>Hi {firstName} — here&rsquo;s how your work performed from {weekStart} to {weekEnd}.</P>
+      <P>Hi {firstName}, here&rsquo;s how your work performed from {weekStart} to {weekEnd}.</P>
       <StatBlock stats={stats} />
       <Divider />
       <H1>Top works this week</H1>
@@ -60,7 +60,7 @@ export const mock: ArtistWeeklyPortfolioDigestProps = {
   recommendedActions: [
     "Reply to 2 unread messages from venues",
     "Update the caption on your top-performing work",
-    "Add one new piece — artists with 5+ works appear to venues first",
+    "Add one new piece, artists with 5+ works appear to venues first",
   ],
   dashboardUrl: "https://wallplace.co.uk/artist-portal",
 };

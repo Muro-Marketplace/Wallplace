@@ -34,7 +34,7 @@ export const mock: NewsletterVenueSpotlightProps = {
   firstName: "Oliver",
   venue: mockVenue,
   currentPlacements: [mockPlacement],
-  venueStory: "The Curzon's lobby has been rotating art since long before 'rotating art' was a feature. We caught up with their programming lead on what makes a cinema wall different — and why the pieces that thrive there don't compete with the film.",
+  venueStory: "The Curzon's lobby has been rotating art since long before 'rotating art' was a feature. We caught up with their programming lead on what makes a cinema wall different, and why the pieces that thrive there don't compete with the film.",
   venueUrl: mockVenue.url,
 };
 

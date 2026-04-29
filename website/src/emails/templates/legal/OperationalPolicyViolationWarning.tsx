@@ -15,13 +15,13 @@ export function OperationalPolicyViolationWarning({ firstName, issueSummary, act
   return (
     <EmailShell stream="tx" persona="multi" preview="An issue with your Wallplace account">
       <H1>An issue with your account</H1>
-      <P>Hi {firstName} — we wanted to flag something that doesn&rsquo;t sit right with our policies.</P>
+      <P>Hi {firstName}, we wanted to flag something that doesn&rsquo;t sit right with our policies.</P>
       <InfoBox tone="warning">
         <strong>Issue:</strong> {issueSummary}
         <br /><br />
         <strong>Action required:</strong> {actionRequired}
       </InfoBox>
-      <P>If you think we&rsquo;ve got this wrong, tell us — we&rsquo;ll review.</P>
+      <P>If you think we&rsquo;ve got this wrong, tell us, we&rsquo;ll review.</P>
       <Button href={appealUrl}>Appeal / reply</Button>
       <SupportBlock supportUrl={supportUrl} />
     </EmailShell>

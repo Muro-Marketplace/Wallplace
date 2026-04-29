@@ -15,7 +15,7 @@ export function CustomerInactive30d({ firstName, recommendedWorks, browseUrl }: 
   return (
     <EmailShell stream="news" persona="customer" category="tips" preview="New pieces worth seeing">
       <H1>New since you were last here</H1>
-      <P>Hi {firstName} — a small curation from the last few weeks.</P>
+      <P>Hi {firstName}, a small curation from the last few weeks.</P>
       {recommendedWorks.slice(0, 4).map((w) => <WorkCard key={w.id} work={w} />)}
       <div style={{ marginTop: 20 }}>
         <Button href={browseUrl} persona="customer">Browse the gallery</Button>

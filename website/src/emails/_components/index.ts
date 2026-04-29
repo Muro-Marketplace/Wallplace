@@ -1,6 +1,6 @@
 // Single import surface for every email template.
 // Templates should import from "@/emails/_components" and never reach into
-// individual files — keeps downstream refactors painless.
+// individual files, keeps downstream refactors painless.
 
 export { EmailShell } from "./EmailShell";
 export { theme, accentFor, siteUrl, companyDetails } from "./theme";

@@ -1,4 +1,4 @@
-// Stream: tx (security-ish) — invites are one-time, not suppressible.
+// Stream: tx (security-ish), invites are one-time, not suppressible.
 // Venues can invite staff so multiple people manage the same space.
 
 import { EmailShell, H1, P, Button, Small, SupportBlock } from "@/emails/_components";

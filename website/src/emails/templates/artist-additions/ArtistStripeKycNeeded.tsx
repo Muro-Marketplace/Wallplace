@@ -1,6 +1,6 @@
-// ADDITION — distinct from the onboarding nudge: Stripe has asked for more
+// ADDITION, distinct from the onboarding nudge: Stripe has asked for more
 // info mid-flow (business verification, ID check, tax forms).
-// Stream: tx (orders_and_payouts) — payouts depend on this.
+// Stream: tx (orders_and_payouts), payouts depend on this.
 
 import { EmailShell, H1, P, Button, InfoBox, SupportBlock } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -17,13 +17,13 @@ export function ArtistStripeKycNeeded({ firstName, requestedDocuments, stripeUrl
   return (
     <EmailShell stream="tx" persona="artist" preview="Stripe needs a little more from you to keep payouts flowing">
       <H1>Stripe needs more info</H1>
-      <P>Hi {firstName} — Stripe (our payout partner) has asked for a few details to keep your account verified.</P>
+      <P>Hi {firstName}, Stripe (our payout partner) has asked for a few details to keep your account verified.</P>
       <InfoBox tone="warning">
         <strong>Requested:</strong>
         <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
           {requestedDocuments.map((d) => <li key={d}>{d}</li>)}
         </ul>
-        {deadline ? <><br />Please submit by <strong>{deadline}</strong> — payouts are paused until it&rsquo;s resolved.</> : null}
+        {deadline ? <><br />Please submit by <strong>{deadline}</strong>, payouts are paused until it&rsquo;s resolved.</> : null}
       </InfoBox>
       <Button href={stripeUrl} persona="artist">Complete in Stripe</Button>
       <SupportBlock supportUrl={supportUrl} />
@@ -42,7 +42,7 @@ export const mock: ArtistStripeKycNeededProps = {
 const entry: TemplateEntry<ArtistStripeKycNeededProps> = {
   id: "artist_stripe_kyc_needed",
   name: "Stripe KYC needed",
-  description: "Stripe requested additional verification — payouts paused.",
+  description: "Stripe requested additional verification, payouts paused.",
   stream: "tx",
   persona: "artist",
   category: "orders_and_payouts",

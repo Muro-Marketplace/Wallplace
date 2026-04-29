@@ -1,4 +1,4 @@
-// Stream: news. 24h after abandoned checkout — with an artist note if available.
+// Stream: news. 24h after abandoned checkout, with an artist note if available.
 
 import { EmailShell, H1, P, Button, QuoteBlock, OrderSummary } from "@/emails/_components";
 import type { Money, OrderItem } from "@/emails/types/emailTypes";
@@ -18,7 +18,7 @@ export function CustomerAbandonedCheckout24h({ firstName, cartItems, subtotal, c
   return (
     <EmailShell stream="news" persona="customer" category="promotions" preview="A note from the artist">
       <H1>{artistName ? `A note from ${artistName}` : "Still thinking?"}</H1>
-      <P>Hi {firstName} — your cart is still here.</P>
+      <P>Hi {firstName}, your cart is still here.</P>
       {artistNote && <QuoteBlock attribution={artistName}>{artistNote}</QuoteBlock>}
       <OrderSummary items={cartItems} subtotal={subtotal} shipping={{ amount: 0, currency: "GBP" }} total={subtotal} />
       <div style={{ marginTop: 20 }}>
@@ -33,13 +33,13 @@ export const mock: CustomerAbandonedCheckout24hProps = {
   cartItems: mockOrderItems,
   subtotal: { amount: 66000, currency: "GBP" },
   checkoutUrl: "https://wallplace.co.uk/checkout?resume=example",
-  artistNote: "If it's the shipping that's giving you pause — I'll cover it. Just reply and I'll sort it.",
+  artistNote: "If it's the shipping that's giving you pause, I'll cover it. Just reply and I'll sort it.",
   artistName: "Maya Chen",
 };
 
 const entry: TemplateEntry<CustomerAbandonedCheckout24hProps> = {
   id: "customer_abandoned_checkout_24h",
-  name: "Abandoned checkout — 24h",
+  name: "Abandoned checkout, 24h",
   description: "Second reminder with artist note.",
   stream: "news",
   persona: "customer",

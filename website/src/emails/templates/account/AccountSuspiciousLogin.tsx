@@ -17,7 +17,7 @@ export function AccountSuspiciousLogin({ firstName, loginTime, location, device,
   return (
     <EmailShell stream="tx" persona="multi" preview="New sign-in to your Wallplace account">
       <H1>New sign-in detected</H1>
-      <P>Hi {firstName} — we noticed a new sign-in to your Wallplace account.</P>
+      <P>Hi {firstName}, we noticed a new sign-in to your Wallplace account.</P>
       <InfoBox tone="warning">
         When: <strong>{loginTime}</strong>
         {device ? <><br />Device: <strong>{device}</strong></> : null}
@@ -34,7 +34,7 @@ export function AccountSuspiciousLogin({ firstName, loginTime, location, device,
 export const mock: AccountSuspiciousLoginProps = {
   firstName: "Maya",
   loginTime: "24 April 2026, 02:17 BST",
-  location: "Unknown — Lagos, Nigeria",
+  location: "Unknown, Lagos, Nigeria",
   device: "Chrome on Windows",
   secureAccountUrl: "https://wallplace.co.uk/account/security",
   supportUrl: "https://wallplace.co.uk/support",

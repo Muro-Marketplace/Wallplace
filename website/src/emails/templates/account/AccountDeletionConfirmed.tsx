@@ -1,4 +1,4 @@
-// Stream: tx (legal). Final "your account is gone" receipt — sent after the
+// Stream: tx (legal). Final "your account is gone" receipt, sent after the
 // delayed deletion actually executes.
 
 import { EmailShell, H1, P, Small, SupportBlock } from "@/emails/_components";
@@ -13,8 +13,8 @@ export function AccountDeletionConfirmed({ firstName, supportUrl }: AccountDelet
   return (
     <EmailShell stream="tx" persona="multi" preview="Your Wallplace account has been deleted">
       <H1>Your account has been deleted</H1>
-      <P>Hi {firstName} — your Wallplace account and associated data have been permanently removed.</P>
-      <P>Thank you for being part of Wallplace. If you ever change your mind, you&rsquo;re welcome to join again — you&rsquo;ll need to sign up as a new member.</P>
+      <P>Hi {firstName}, your Wallplace account and associated data have been permanently removed.</P>
+      <P>Thank you for being part of Wallplace. If you ever change your mind, you&rsquo;re welcome to join again, you&rsquo;ll need to sign up as a new member.</P>
       <Small>We&rsquo;ve retained only the transaction records we&rsquo;re legally required to keep. Those have been anonymised where possible.</Small>
       <SupportBlock supportUrl={supportUrl} />
     </EmailShell>

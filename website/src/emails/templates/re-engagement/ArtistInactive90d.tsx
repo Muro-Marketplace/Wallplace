@@ -13,7 +13,7 @@ export function ArtistInactive90d({ firstName, returnUrl, preferenceUrl }: Artis
   return (
     <EmailShell stream="news" persona="artist" category="tips" preview="We're keeping a spot for you">
       <H1>We&rsquo;re keeping a spot for you</H1>
-      <P>Hi {firstName} — it&rsquo;s been a while. If Wallplace still fits into your practice, we&rsquo;d love you back.</P>
+      <P>Hi {firstName}, it&rsquo;s been a while. If Wallplace still fits into your practice, we&rsquo;d love you back.</P>
       <P>If it doesn&rsquo;t, no worries. We&rsquo;ll stop sending these after the next one.</P>
       <Button href={returnUrl} persona="artist">Pick up where I left off</Button>
       <Small>

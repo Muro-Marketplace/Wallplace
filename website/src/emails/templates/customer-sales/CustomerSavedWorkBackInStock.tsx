@@ -17,7 +17,7 @@ export function CustomerSavedWorkBackInStock({ firstName, workTitle, artistName,
   return (
     <EmailShell stream="news" persona="customer" category="promotions" preview={`${workTitle} is available again`}>
       <H1>Available again</H1>
-      <P>Hi {firstName} — {workTitle} by {artistName} is back. These tend not to stick around.</P>
+      <P>Hi {firstName}, {workTitle} by {artistName} is back. These tend not to stick around.</P>
       <WorkCard work={work} />
       <div style={{ marginTop: 20 }}>
         <Button href={workUrl} persona="customer">View piece</Button>

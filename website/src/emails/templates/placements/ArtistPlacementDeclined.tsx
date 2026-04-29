@@ -1,4 +1,4 @@
-// Stream: notify. Soft copy — no need to make the decline feel like a wall.
+// Stream: notify. Soft copy, no need to make the decline feel like a wall.
 
 import { EmailShell, H1, P, Button } from "@/emails/_components";
 import type { TemplateEntry } from "@/emails/registry-types";
@@ -14,8 +14,8 @@ export function ArtistPlacementDeclined({ firstName, venueName, reason, discover
   return (
     <EmailShell stream="notify" persona="artist" category="placements" preview={`${venueName} passed on the placement`}>
       <H1>{venueName} passed this time</H1>
-      <P>Hi {firstName} — {venueName} isn&rsquo;t able to host the placement right now.{reason ? ` They said: "${reason}".` : ""}</P>
-      <P>Declines are part of the rhythm — we&rsquo;ll keep matching your work to the right spaces.</P>
+      <P>Hi {firstName}, {venueName} isn&rsquo;t able to host the placement right now.{reason ? ` They said: "${reason}".` : ""}</P>
+      <P>Declines are part of the rhythm, we&rsquo;ll keep matching your work to the right spaces.</P>
       <Button href={discoverMoreVenuesUrl} persona="artist">Discover more venues</Button>
     </EmailShell>
   );
@@ -36,7 +36,7 @@ const entry: TemplateEntry<ArtistPlacementDeclinedProps> = {
   persona: "artist",
   category: "placements",
   subject: "{{venueName}} passed on this placement",
-  previewText: "A gentle note — plus a few other venues to consider.",
+  previewText: "A gentle note, plus a few other venues to consider.",
   component: ArtistPlacementDeclined,
   mock,
   canUnsubscribe: true,
