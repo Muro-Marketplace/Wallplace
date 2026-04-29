@@ -33,12 +33,22 @@ export interface LabelData {
   tagline?: string;
 }
 
+/** Per-label render flags. Parallel to `labels`, indexed by uniqueIndex
+ *  (the position of the label in the user's selection, ignoring quantity
+ *  expansion). Optional; absent means render every field that has data. */
+export interface LabelVisibility {
+  medium: boolean;
+  dimensions: boolean;
+  price: boolean;
+}
+
 interface LabelSheetProps {
   labels: LabelData[];
+  labelVisibility?: LabelVisibility[];
   pageIndex?: number; // If provided, render only this page (0-based)
 }
 
-export default function LabelSheet({ labels, pageIndex }: LabelSheetProps) {
+export default function LabelSheet({ labels, labelVisibility, pageIndex }: LabelSheetProps) {
   const [qrUrls, setQrUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -118,20 +128,26 @@ export default function LabelSheet({ labels, pageIndex }: LabelSheetProps) {
               justifyContent: "center",
             }}
           >
-            {page.map((item, i) => (
-              <QRLabel
-                key={`${actualPageIndex}-${i}`}
-                artistName={item.label.artistName}
-                workTitle={item.label.workTitle}
-                workMedium={item.label.workMedium}
-                workDimensions={item.label.workDimensions}
-                workPrice={item.label.workPrice}
-                qrDataUrl={qrUrls[item.uniqueIndex] || ""}
-                isPortfolioLabel={item.label.isPortfolioLabel}
-                labelSize={currentSize}
-                tagline={item.label.tagline}
-              />
-            ))}
+            {page.map((item, i) => {
+              const vis = labelVisibility?.[item.uniqueIndex];
+              return (
+                <QRLabel
+                  key={`${actualPageIndex}-${i}`}
+                  artistName={item.label.artistName}
+                  workTitle={item.label.workTitle}
+                  workMedium={item.label.workMedium}
+                  workDimensions={item.label.workDimensions}
+                  workPrice={item.label.workPrice}
+                  qrDataUrl={qrUrls[item.uniqueIndex] || ""}
+                  isPortfolioLabel={item.label.isPortfolioLabel}
+                  labelSize={currentSize}
+                  tagline={item.label.tagline}
+                  showMedium={vis ? vis.medium : true}
+                  showDimensions={vis ? vis.dimensions : true}
+                  showPrice={vis ? vis.price : true}
+                />
+              );
+            })}
           </div>
         );
       })}

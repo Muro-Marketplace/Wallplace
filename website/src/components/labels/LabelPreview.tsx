@@ -1,19 +1,43 @@
 "use client";
 
 import { useState } from "react";
-import LabelSheet from "./LabelSheet";
+import LabelSheet, { type LabelVisibility } from "./LabelSheet";
 import type { LabelData } from "./LabelSheet";
 import { LABEL_SIZES, type LabelSize } from "./QRLabel";
 
 interface LabelPreviewProps {
   labels: LabelData[];
   availableSizes: string[];
+  /** Initial per-label show flags. Index-parallel to `labels`. If
+   *  omitted, defaults are derived from each label's data presence. */
+  initialVisibility?: LabelVisibility[];
   onClose: () => void;
 }
 
-export default function LabelPreview({ labels: initialLabels, availableSizes = [], onClose }: LabelPreviewProps) {
+export default function LabelPreview({
+  labels: initialLabels,
+  availableSizes = [],
+  initialVisibility,
+  onClose,
+}: LabelPreviewProps) {
   const [labels, setLabels] = useState<LabelData[]>(initialLabels);
   const [showControls, setShowControls] = useState(true);
+  // Per-label visibility flags, decoupled from the data fields. Toggle
+  // handlers below flip these flags only — the underlying workMedium /
+  // workDimensions / workPrice strings stay populated from the upstream
+  // construction so a flag flipped off and on again restores correctly.
+  // Without this decoupling, the second-label deselect bug appeared
+  // because the toggle was both the data carrier and the visibility
+  // carrier, leaving no way to distinguish "off" from "no data".
+  const [labelVisibility, setLabelVisibility] = useState<LabelVisibility[]>(
+    () =>
+      initialVisibility ??
+      initialLabels.map((l) => ({
+        medium: !!l.workMedium,
+        dimensions: !!l.workDimensions,
+        price: !!l.workPrice,
+      })),
+  );
 
   // Calculate total including quantities
   const totalCount = labels.reduce((sum, l) => sum + l.quantity, 0);
@@ -25,8 +49,15 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
     setLabels((prev) => prev.map((l, i) => (i === index ? { ...l, ...updates } : l)));
   }
 
+  function setVisibility(index: number, key: keyof LabelVisibility, next: boolean) {
+    setLabelVisibility((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, [key]: next } : v)),
+    );
+  }
+
   function removeLabel(index: number) {
     setLabels((prev) => prev.filter((_, i) => i !== index));
+    setLabelVisibility((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -157,21 +188,20 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
                         </div>
                       </div>
 
-                      {/* Toggle fields */}
+                      {/* Toggle fields — flips visibility flags only,
+                          leaves workMedium / workDimensions / workPrice
+                          intact so re-enabling restores the data. */}
                       <div className="flex flex-wrap gap-x-3 gap-y-1">
                         {([
-                          { key: "workMedium" as const, sourceKey: "_sourceMedium" as const, label: "Medium" },
-                          { key: "workDimensions" as const, sourceKey: "_sourceDimensions" as const, label: "Dimensions" },
-                          { key: "workPrice" as const, sourceKey: "_sourcePrice" as const, label: "Price" },
-                        ]).map(({ key, sourceKey, label: fieldLabel }) => {
-                          const isOn = !!label[key];
+                          { key: "medium" as const, label: "Medium" },
+                          { key: "dimensions" as const, label: "Dimensions" },
+                          { key: "price" as const, label: "Price" },
+                        ]).map(({ key, label: fieldLabel }) => {
+                          const isOn = labelVisibility[index]?.[key] ?? false;
                           return (
                             <label key={key} className="flex items-center gap-1.5 cursor-pointer">
                               <button
-                                onClick={() => {
-                                  // Toggle: if on, set to undefined; if off, restore from source data
-                                  updateLabel(index, { [key]: isOn ? undefined : label[sourceKey] });
-                                }}
+                                onClick={() => setVisibility(index, key, !isOn)}
                                 className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center transition-colors ${
                                   isOn ? "bg-accent border-accent" : "bg-white border-border"
                                 }`}
@@ -231,7 +261,7 @@ export default function LabelPreview({ labels: initialLabels, availableSizes = [
                   <div className="no-print absolute top-2 right-3 text-[10px] text-muted/50">
                     Page {pageIdx + 1} of {pageCount}
                   </div>
-                  <LabelSheet labels={labels} pageIndex={pageIdx} />
+                  <LabelSheet labels={labels} labelVisibility={labelVisibility} pageIndex={pageIdx} />
                 </div>
                 </div>
               ))}

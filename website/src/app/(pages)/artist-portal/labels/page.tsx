@@ -163,9 +163,13 @@ export default function LabelsPage() {
         workId: work.id,
         venueName: selectedVenue || undefined,
         workTitle: work.title,
-        workMedium: options.showMedium ? work.medium : undefined,
-        workDimensions: selectedSizes[i] || (options.showDimensions ? work.dimensions : undefined),
-        workPrice: options.showPrice ? work.priceBand : undefined,
+        // Always populate the data fields. Whether they show on the
+        // rendered label is controlled by labelVisibility in LabelPreview;
+        // gating the data here used to leave the second-label toggle
+        // unable to re-enable a field once turned off.
+        workMedium: work.medium,
+        workDimensions: selectedSizes[i] || work.dimensions,
+        workPrice: work.priceBand,
         quantity: getQty(i),
         _sourceMedium: work.medium,
         _sourcePrice: work.priceBand,
@@ -175,6 +179,14 @@ export default function LabelsPage() {
       });
     });
     return labels;
+  }
+
+  function buildVisibility(labels: LabelData[]): { medium: boolean; dimensions: boolean; price: boolean }[] {
+    return labels.map((l) => ({
+      medium: l.isPortfolioLabel ? false : options.showMedium,
+      dimensions: l.isPortfolioLabel ? false : options.showDimensions,
+      price: l.isPortfolioLabel ? false : options.showPrice,
+    }));
   }
 
   function openPreview(indices: number[]) {
@@ -468,6 +480,7 @@ export default function LabelsPage() {
       {showPreview && (
         <LabelPreview
           labels={previewLabels}
+          initialVisibility={buildVisibility(previewLabels)}
           availableSizes={currentArtist.availableSizes}
           onClose={() => setShowPreview(false)}
         />

@@ -18,6 +18,12 @@ interface QRLabelProps {
   isPortfolioLabel?: boolean;
   labelSize?: LabelSize;
   tagline?: string;
+  /** Per-label visibility flags. Default true so existing call sites
+   *  that don't pass them keep their behaviour. The flags gate
+   *  rendering only — the data still flows through. */
+  showMedium?: boolean;
+  showDimensions?: boolean;
+  showPrice?: boolean;
 }
 
 export default function QRLabel({
@@ -30,6 +36,9 @@ export default function QRLabel({
   isPortfolioLabel,
   labelSize = "medium",
   tagline,
+  showMedium = true,
+  showDimensions = true,
+  showPrice = true,
 }: QRLabelProps) {
   const sizeConfig = LABEL_SIZES.find((s) => s.key === labelSize) || LABEL_SIZES[2];
   const isMicro = labelSize === "micro";
@@ -127,7 +136,7 @@ export default function QRLabel({
                   {workTitle}
                 </p>
               )}
-              {workMedium && (
+              {showMedium && workMedium && (
                 <p
                   style={{
                     fontSize: "7.5pt",
@@ -139,7 +148,7 @@ export default function QRLabel({
                   {workMedium}
                 </p>
               )}
-              {workDimensions && (
+              {showDimensions && workDimensions && (
                 <p
                   style={{
                     fontSize: "7pt",
@@ -151,7 +160,7 @@ export default function QRLabel({
                   {workDimensions}
                 </p>
               )}
-              {workPrice && (
+              {showPrice && workPrice && (
                 <p
                   style={{
                     fontSize: "8pt",

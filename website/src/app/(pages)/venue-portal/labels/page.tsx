@@ -229,9 +229,11 @@ export default function VenueLabelsPage() {
         venueSlug: venueSlug || undefined,
         venueName: venueName || (p.venue ?? undefined),
         workTitle: p.work_title,
-        workMedium: options.showMedium ? (work?.medium || undefined) : undefined,
-        workDimensions: options.showDimensions ? (effectiveDimensions || undefined) : undefined,
-        workPrice: options.showPrice ? (work?.priceBand || undefined) : undefined,
+        // Always populate data; visibility on the rendered label is
+        // gated by labelVisibility in LabelPreview, not by absence here.
+        workMedium: work?.medium,
+        workDimensions: effectiveDimensions,
+        workPrice: work?.priceBand,
         _sourceMedium: work?.medium,
         _sourcePrice: work?.priceBand,
         _sourceDimensions: effectiveDimensions,
@@ -240,6 +242,14 @@ export default function VenueLabelsPage() {
         tagline: (labelSize === "large" || labelSize === "xlarge") ? tagline || undefined : undefined,
       };
     });
+  }
+
+  function buildVisibility(labels: LabelData[]): { medium: boolean; dimensions: boolean; price: boolean }[] {
+    return labels.map(() => ({
+      medium: options.showMedium,
+      dimensions: options.showDimensions,
+      price: options.showPrice,
+    }));
   }
 
   function openPreview(indices: number[]) {
@@ -449,6 +459,7 @@ export default function VenueLabelsPage() {
       {showPreview && (
         <LabelPreview
           labels={previewLabels}
+          initialVisibility={buildVisibility(previewLabels)}
           availableSizes={[]}
           onClose={() => setShowPreview(false)}
         />
