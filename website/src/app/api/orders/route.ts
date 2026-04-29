@@ -102,7 +102,7 @@ export async function PATCH(request: Request) {
     // aren't locked out of the status transitions.
     const { data: order } = await db
       .from("orders")
-      .select("artist_user_id, artist_slug, buyer_email, status_history")
+      .select("artist_user_id, artist_slug, buyer_email, status_history, placement_id, venue_revenue")
       .eq("id", orderId)
       .single();
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -156,6 +156,9 @@ export async function PATCH(request: Request) {
     }
 
     // On delivery, release pending payouts immediately (instead of waiting 14 days)
+    // and attribute the venue revenue back to the source placement so venue
+    // dashboards see the linkage. Idempotent: status_history is checked before
+    // the original update; if "delivered" was already there we skip the bump.
     if (status === "delivered") {
       const { data: pendingTransfers } = await db
         .from("stripe_transfers")
@@ -167,6 +170,20 @@ export async function PATCH(request: Request) {
         for (const t of pendingTransfers) {
           executeTransfer(t.id).catch((err) => console.error("Early payout error:", err));
         }
+      }
+
+      // Placement-revenue attribution. Only fires on the first delivered
+      // transition (rawHistory was the pre-update snapshot, so an existing
+      // "delivered" entry there means we've already counted this order).
+      const alreadyDelivered = parsedHistory
+        .slice(0, -1)
+        .some((h: { status?: string }) => h?.status === "delivered");
+      if (!alreadyDelivered && order.placement_id && order.venue_revenue) {
+        const { error: rpcErr } = await db.rpc("increment_placement_revenue", {
+          p_placement_id: order.placement_id,
+          p_amount: order.venue_revenue,
+        });
+        if (rpcErr) console.error("Failed to attribute placement revenue:", rpcErr);
       }
     }
 
