@@ -44,6 +44,7 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
         <div
           className="aspect-square relative overflow-hidden bg-[#F0EDE8] rounded-t-lg select-none"
           onContextMenu={(e) => e.preventDefault()}
+          data-protected="artwork"
           onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
           onTouchEnd={(e) => {
             const diff = touchStartX - e.changedTouches[0].clientX;

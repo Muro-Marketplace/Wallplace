@@ -41,6 +41,7 @@ export default function ArtworkImageViewer({ src, alt, aspectRatio, images }: Pr
         <div
           className="relative bg-[#f5f5f3] rounded-sm overflow-hidden select-none"
           onContextMenu={(e) => e.preventDefault()}
+          data-protected="artwork"
         >
           {/* Container shape stays driven by the work's aspect ratio,
               but the height is capped at ~80vh so a tall portrait
@@ -129,7 +130,12 @@ export default function ArtworkImageViewer({ src, alt, aspectRatio, images }: Pr
           className="fixed inset-0 z-[60] bg-black flex items-center justify-center"
           onClick={() => setIsFullscreen(false)}
         >
-          <div className="relative w-full h-full" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="relative w-full h-full"
+            onClick={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.preventDefault()}
+            data-protected="artwork"
+          >
             <Image
               src={activeSrc}
               alt={alt}
@@ -139,6 +145,7 @@ export default function ArtworkImageViewer({ src, alt, aspectRatio, images }: Pr
               quality={85}
               draggable={false}
               onContextMenu={(e) => e.preventDefault()}
+              style={{ WebkitTouchCallout: "none", WebkitUserDrag: "none" } as React.CSSProperties}
             />
             <button
               onClick={() => setIsFullscreen(false)}

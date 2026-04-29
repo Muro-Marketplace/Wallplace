@@ -198,3 +198,14 @@ img {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* Image-save protection. Belt-and-braces: contextmenu + dragstart are
+   handled inline on the React Image components; this stops the iOS
+   long-press save callout, blocks text/image selection, and disables
+   WebKit's drag preview. Cannot stop a screenshot. */
+[data-protected="artwork"],
+[data-protected="artwork"] img {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}

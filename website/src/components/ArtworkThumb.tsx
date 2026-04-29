@@ -36,7 +36,10 @@ export default function ArtworkThumb({
   padding = "md",
 }: ArtworkThumbProps) {
   return (
-    <div className={`aspect-square relative overflow-hidden bg-[#F0EDE8] ${className}`}>
+    <div
+      className={`aspect-square relative overflow-hidden bg-[#F0EDE8] ${className}`}
+      data-protected="artwork"
+    >
       <div className={`absolute ${PADDING_CLASSES[padding]}`}>
         <Image
           src={src}
