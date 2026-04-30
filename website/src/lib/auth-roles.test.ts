@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ALLOWED_ROLES, isRole, parseRole, type UserRole } from "./auth-roles";
+import { ALLOWED_ROLES, isRole, parseRole, portalPathForRole, type UserRole } from "./auth-roles";
 
 describe("ALLOWED_ROLES", () => {
   it("contains exactly the four supported roles", () => {
@@ -31,5 +31,20 @@ describe("parseRole()", () => {
     expect(parseRole("hacker")).toBeNull();
     expect(parseRole(undefined)).toBeNull();
     expect(parseRole(123)).toBeNull();
+  });
+});
+
+describe("portalPathForRole()", () => {
+  it.each([
+    ["admin", "/admin"],
+    ["venue", "/venue-portal"],
+    ["customer", "/customer-portal"],
+    ["artist", "/artist-portal"],
+  ] as const)("%s -> %s", (role, path) => {
+    expect(portalPathForRole(role)).toBe(path);
+  });
+
+  it("falls back to /browse for null", () => {
+    expect(portalPathForRole(null)).toBe("/browse");
   });
 });
