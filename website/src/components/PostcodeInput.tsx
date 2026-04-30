@@ -17,6 +17,28 @@
 import { useEffect, useRef, useState } from "react";
 import { geocodePostcode } from "@/lib/geocode";
 
+// Platform-specific instructions when the browser blocks geolocation.
+// Detection runs client-side only (this is a "use client" file and the
+// message only renders after a user gesture), so no hydration risk.
+function deniedCopyForPlatform(): string {
+  if (typeof navigator === "undefined") {
+    return "Location permission was denied. Allow location in your browser settings, or enter your postcode below.";
+  }
+  const ua = navigator.userAgent || "";
+  // Treat iPadOS-with-Mac-UA correctly: it presents as Macintosh but has touch.
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    (ua.includes("Macintosh") && typeof document !== "undefined" && "ontouchend" in document);
+  const isAndroid = /Android/.test(ua);
+  if (isIOS) {
+    return "Location permission was denied. On iOS: open Settings → Privacy & Security → Location Services → Safari Websites → While Using, then refresh. Or just enter your postcode below.";
+  }
+  if (isAndroid) {
+    return "Location permission was denied. Tap the lock icon next to the URL → Permissions → Location → Allow, then refresh. Or enter your postcode below.";
+  }
+  return "Location permission was denied. Click the lock icon in the address bar → Site settings → Location → Allow, then refresh. Or enter your postcode below.";
+}
+
 interface PostcodeInputProps {
   /** Initial value, a previously-entered postcode if any. */
   initial?: string;
@@ -257,8 +279,7 @@ export default function PostcodeInput({
           </button>
           {geoError && (
             <p className="text-[10px] text-red-600 mt-1 leading-snug">
-              {geoError === "denied" &&
-                "Location permission was denied. Allow location in your browser/site settings, or enter your postcode below."}
+              {geoError === "denied" && deniedCopyForPlatform()}
               {geoError === "timeout" &&
                 "Couldn't get a location fix in time. Try again outdoors or enter your postcode."}
               {geoError === "unavailable" &&

@@ -16,17 +16,32 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Honour ?next= so an email CTA can deep-link into a portal page.
+  // We read window.location directly rather than useSearchParams() to
+  // avoid forcing this whole page behind a <Suspense> boundary —
+  // Next.js fails the prerender otherwise. Same-origin only so we
+  // can't be tricked into bouncing users to a third-party domain.
+  const [safeNext, setSafeNext] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const raw = sp.get("next");
+    if (raw && raw.startsWith("/") && !raw.startsWith("//")) {
+      setSafeNext(raw);
+    }
+  }, []);
+
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace(
+      const fallback =
         userType === "admin" ? "/admin" :
         userType === "venue" ? "/venue-portal" :
         userType === "customer" ? "/customer-portal" :
-        "/artist-portal"
-      );
+        "/artist-portal";
+      router.replace(safeNext || fallback);
     }
-  }, [authLoading, user, userType, router]);
+  }, [authLoading, user, userType, router, safeNext]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

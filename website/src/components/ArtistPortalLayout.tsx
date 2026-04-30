@@ -24,10 +24,13 @@ const navItems = [
   { label: "Showroom", href: "/artist-portal/showroom" },
   { label: "Messages", href: "/artist-portal/messages" },
   { label: "Placements", href: "/artist-portal/placements" },
+  { label: "My Offers", href: "/artist-portal/offers" },
+  { label: "Artwork Requests", href: "/artist-portal/artwork-requests" },
   { label: "Collections", href: "/artist-portal/collections" },
   { label: "Saved", href: "/artist-portal/saved" },
   { label: "Orders", href: "/artist-portal/orders" },
   { label: "QR Labels", href: "/artist-portal/labels" },
+  { label: "Social Posts", href: "/artist-portal/posts" },
   { label: "Analytics", href: "/artist-portal/analytics" },
   { label: "Billing", href: "/artist-portal/billing" },
 ];

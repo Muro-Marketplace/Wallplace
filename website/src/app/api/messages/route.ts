@@ -219,7 +219,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const { conversationId, senderType, recipientSlug, content, messageType, metadata } = parsed.data;
+    const { conversationId, senderType, recipientSlug, content, messageType, metadata, attachments } = parsed.data;
+
+    // Allow empty content if there's at least one attachment.
+    if (!content.trim() && (!attachments || attachments.length === 0)) {
+      return NextResponse.json({ error: "Message can't be empty" }, { status: 400 });
+    }
 
     // ── Content moderation ──────────────────────────────────────────────────
     const moderation = moderateMessage(content);
@@ -363,6 +368,7 @@ export async function POST(request: Request) {
       ...baseRow,
       message_type: messageType || "text",
       metadata: metadata || {},
+      attachments: attachments || [],
       ...(moderation.flagged ? { flagged: true, flagged_reason: moderation.reason } : {}),
     };
 

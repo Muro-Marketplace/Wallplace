@@ -157,3 +157,99 @@ export async function uploadImage(
 
   return urlData.publicUrl;
 }
+
+const MESSAGE_ATTACHMENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+] as const;
+
+export interface MessageAttachment {
+  url: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  width?: number;
+  height?: number;
+}
+
+/**
+ * Upload a file attachment for a message. Images get resized to a sane
+ * max dimension; PDFs go up as-is. Returns a stable public URL plus the
+ * metadata we persist on `messages.attachments[]`.
+ */
+export async function uploadMessageAttachment(file: File): Promise<MessageAttachment> {
+  if (!(MESSAGE_ATTACHMENT_TYPES as readonly string[]).includes(file.type)) {
+    throw new Error("Allowed attachments: JPEG, PNG, WebP, GIF, PDF.");
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(`File too large: ${(file.size / 1024 / 1024).toFixed(1)}MB. Maximum: 10MB`);
+  }
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("You must be signed in to attach files.");
+
+  // Images: pre-resize to keep storage + transit lean. PDFs go up
+  // verbatim — we don't transform them.
+  let uploadBlob: Blob = file;
+  let width: number | undefined;
+  let height: number | undefined;
+  if (file.type.startsWith("image/")) {
+    try {
+      uploadBlob = await resizeImage(file, 1800, 0.85);
+    } catch {
+      uploadBlob = file;
+    }
+    // Capture intrinsic dimensions for inline rendering.
+    try {
+      const url = URL.createObjectURL(uploadBlob);
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = url;
+      });
+      width = img.naturalWidth;
+      height = img.naturalHeight;
+      URL.revokeObjectURL(url);
+    } catch { /* swallow — dims are best-effort */ }
+  }
+
+  const mimeToExt: Record<string, string> = {
+    "image/webp": "webp",
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "application/pdf": "pdf",
+  };
+  const ext = mimeToExt[uploadBlob.type] || file.name.split(".").pop() || "bin";
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 60);
+  const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName || `attachment.${ext}`}`;
+
+  const { error } = await supabase.storage
+    .from("message-attachments")
+    .upload(path, uploadBlob, {
+      cacheControl: "86400",
+      upsert: false,
+      contentType: uploadBlob.type || file.type,
+    });
+  if (error) {
+    console.error("Attachment upload error:", error);
+    throw new Error("Attachment upload failed. Please try again.");
+  }
+
+  const { data: urlData } = supabase.storage
+    .from("message-attachments")
+    .getPublicUrl(path);
+
+  return {
+    url: urlData.publicUrl,
+    filename: file.name,
+    mimeType: file.type,
+    sizeBytes: uploadBlob.size,
+    width,
+    height,
+  };
+}

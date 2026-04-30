@@ -103,9 +103,23 @@ export const messageSchema = z.object({
   senderName: safeString(100),
   senderType: z.enum(["artist", "venue", "anonymous"]).optional(),
   recipientSlug: safeString(100),
-  content: safeString(5000),
+  // Attachments allow content to be empty; validated post-parse below.
+  content: z.string().max(5000),
   messageType: z.enum(["text", "placement_request", "placement_response"]).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  attachments: z
+    .array(
+      z.object({
+        url: z.string().url().max(2000),
+        filename: z.string().max(200),
+        mimeType: z.string().max(100),
+        sizeBytes: z.number().int().nonnegative(),
+        width: z.number().int().positive().optional(),
+        height: z.number().int().positive().optional(),
+      })
+    )
+    .max(10)
+    .optional(),
 });
 
 export const placementSchema = z.object({

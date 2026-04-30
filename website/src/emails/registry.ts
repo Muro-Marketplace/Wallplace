@@ -59,6 +59,7 @@ import PlacementContractCountersigned from "./templates/placements/PlacementCont
 import MessageUnreadNotification from "./templates/messages/MessageUnreadNotification";
 import MessageHourlyDigest from "./templates/messages/MessageHourlyDigest";
 import ReviewPostedNotification from "./templates/messages/ReviewPostedNotification";
+import OfferReceivedNotification from "./templates/messages/OfferReceivedNotification";
 
 // ── Performance (artist) ──────────────────────────────────────────────────
 import ArtistFirstQrScan from "./templates/performance/ArtistFirstQrScan";
@@ -73,6 +74,7 @@ import VenueNewArtistMatches from "./templates/venue-lifecycle/VenueNewArtistMat
 import VenueRotationReminder from "./templates/venue-lifecycle/VenueRotationReminder";
 import VenuePlacementAnniversary from "./templates/venue-lifecycle/VenuePlacementAnniversary";
 import VenueManagedCurationPitch from "./templates/venue-lifecycle/VenueManagedCurationPitch";
+import VenueRegistrationConfirmation from "./templates/venue-lifecycle/VenueRegistrationConfirmation";
 
 // ── Orders ────────────────────────────────────────────────────────────────
 import CustomerOrderReceipt from "./templates/orders/CustomerOrderReceipt";
@@ -202,6 +204,7 @@ export const EMAIL_REGISTRY: TemplateEntry<any>[] = [
   MessageUnreadNotification,
   MessageHourlyDigest,
   ReviewPostedNotification,
+  OfferReceivedNotification,
 
   // Performance
   ArtistFirstQrScan,
@@ -216,6 +219,7 @@ export const EMAIL_REGISTRY: TemplateEntry<any>[] = [
   VenueRotationReminder,
   VenuePlacementAnniversary,
   VenueManagedCurationPitch,
+  VenueRegistrationConfirmation,
 
   // Orders
   CustomerOrderReceipt,

@@ -1,0 +1,158 @@
+// PATCH /api/artwork-requests/[id]/responses/[responseId]
+//
+// Venue accepts / declines / counters an artist's response. On accept,
+// converts the response into the appropriate downstream entity:
+//   - response_type='offer'      → creates a purchase_offer (pre-accepted)
+//   - response_type='commission' → creates a commission row
+//   - response_type='placement'  → notifies; venue sends a placement
+//                                  request via the existing flow
+//   - response_type='existing_works' / 'message' → just acknowledged
+
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { getAuthenticatedUser } from "@/lib/api-auth";
+import { createNotification } from "@/lib/notifications";
+
+export const runtime = "nodejs";
+
+const patchSchema = z.object({
+  action: z.enum(["accept", "decline"]),
+});
+
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string; responseId: string }> },
+) {
+  const auth = await getAuthenticatedUser(request);
+  if (auth.error) return auth.error;
+
+  const { id: requestId, responseId } = await context.params;
+  const body = await request.json().catch(() => null);
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+
+  const db = getSupabaseAdmin();
+  const { data: req } = await db
+    .from("artwork_requests")
+    .select("id, venue_user_id, venue_slug, title")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (!req) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (req.venue_user_id !== auth.user!.id) {
+    return NextResponse.json({ error: "Only the venue can act on responses" }, { status: 403 });
+  }
+
+  const { data: resp } = await db
+    .from("artwork_request_responses")
+    .select("*")
+    .eq("id", responseId)
+    .eq("request_id", requestId)
+    .maybeSingle();
+  if (!resp) return NextResponse.json({ error: "Response not found" }, { status: 404 });
+
+  if (resp.status !== "sent") {
+    return NextResponse.json({ error: "Response already actioned" }, { status: 409 });
+  }
+
+  if (parsed.data.action === "decline") {
+    await db
+      .from("artwork_request_responses")
+      .update({ status: "declined", updated_at: new Date().toISOString() })
+      .eq("id", responseId);
+    createNotification({
+      userId: resp.artist_user_id,
+      kind: "artwork_response_declined",
+      title: `Response declined`,
+      body: `${req.title} — the venue passed on this response.`,
+      link: `/artist-portal/artwork-requests`,
+    }).catch(() => {});
+    return NextResponse.json({ success: true, status: "declined" });
+  }
+
+  // Accept — convert into the downstream entity.
+  let linkedOfferId: string | null = null;
+  let linkedCommissionId: string | null = null;
+  let nextStepLink = "";
+
+  if (resp.response_type === "offer" && resp.proposed_offer_amount_pence) {
+    // Create a pre-accepted purchase_offer the venue can pay against.
+    linkedOfferId = `off_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    await db.from("purchase_offers").insert({
+      id: linkedOfferId,
+      buyer_user_id: req.venue_user_id,
+      buyer_type: "venue",
+      buyer_email: auth.user!.email || null,
+      artist_user_id: resp.artist_user_id,
+      artist_slug: resp.artist_slug,
+      work_ids: resp.work_ids || [],
+      collection_id: null,
+      amount_pence: resp.proposed_offer_amount_pence,
+      currency: "GBP",
+      message: `Accepted from artwork request "${req.title}"`,
+      status: "accepted",
+      accepted_at: new Date().toISOString(),
+    });
+    nextStepLink = `/venue-portal/offers`;
+  } else if (resp.response_type === "commission" && resp.proposed_commission_amount_pence) {
+    linkedCommissionId = `com_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    await db.from("commissions").insert({
+      id: linkedCommissionId,
+      request_id: requestId,
+      artist_user_id: resp.artist_user_id,
+      artist_slug: resp.artist_slug,
+      buyer_user_id: req.venue_user_id,
+      buyer_type: "venue",
+      title: `Commission for "${req.title}"`,
+      description: resp.message,
+      amount_pence: resp.proposed_commission_amount_pence,
+      currency: "GBP",
+      timeline: resp.proposed_commission_timeline,
+      status: "accepted",
+    });
+    nextStepLink = `/venue-portal/commissions`;
+  } else if (resp.response_type === "placement") {
+    // Placement responses just light up the venue's existing
+    // request flow — the venue then completes a placement request
+    // using the existing /api/placements POST surface.
+    nextStepLink = `/venue-portal/placements?artist=${encodeURIComponent(resp.artist_slug || "")}`;
+  } else {
+    // existing_works / message — no downstream entity, just an
+    // acknowledged thread.
+    nextStepLink = `/venue-portal/messages?artist=${encodeURIComponent(resp.artist_slug || "")}`;
+  }
+
+  await db
+    .from("artwork_request_responses")
+    .update({
+      status: "accepted",
+      linked_offer_id: linkedOfferId,
+      linked_commission_id: linkedCommissionId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", responseId);
+
+  // If the venue marked their request fulfilled by accepting, surface
+  // that — but don't auto-close: a venue may want to keep collecting
+  // more responses.
+
+  createNotification({
+    userId: resp.artist_user_id,
+    kind: "artwork_response_accepted",
+    title: `Response accepted`,
+    body: `${req.title} — the venue accepted your response. Tap to continue.`,
+    link: linkedOfferId
+      ? `/artist-portal/offers`
+      : linkedCommissionId
+        ? `/artist-portal/commissions`
+        : `/artist-portal/messages`,
+  }).catch(() => {});
+
+  return NextResponse.json({
+    success: true,
+    status: "accepted",
+    linkedOfferId,
+    linkedCommissionId,
+    nextStepLink,
+  });
+}
