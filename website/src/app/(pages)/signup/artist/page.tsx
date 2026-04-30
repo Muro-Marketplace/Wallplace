@@ -57,8 +57,8 @@ export default function ArtistSignUpPage() {
     setError("");
     setLoading(true);
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       setLoading(false);
       return;
     }
@@ -69,6 +69,7 @@ export default function ArtistSignUpPage() {
         password,
         options: {
           data: { user_type: "artist", display_name: name },
+          emailRedirectTo: `${window.location.origin}/login?next=/apply`,
         },
       });
 
@@ -78,23 +79,6 @@ export default function ArtistSignUpPage() {
         return;
       }
 
-      // Sign in immediately so the application form has access to
-      // the authed user, saves a round-trip through the verify
-      // email link before they can apply.
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (signInError) {
-        // Rare case: signUp succeeded but signIn didn't (usually a
-        // policy mismatch). Send them to the login page with a hint
-        // so they don't lose the work they've already typed.
-        router.push("/login?next=/apply");
-        return;
-      }
-
-      // Record terms acceptance (fire-and-forget). Mirrors the
-      // customer signup pattern.
       fetch("/api/terms/accept", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,7 +90,7 @@ export default function ArtistSignUpPage() {
         }),
       }).catch(() => {});
 
-      router.push("/apply");
+      router.push("/check-your-inbox");
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
@@ -175,8 +159,8 @@ export default function ArtistSignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
-                placeholder="At least 6 characters"
+                minLength={8}
+                placeholder="At least 8 characters"
                 className="w-full px-4 py-3 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/60 transition-colors"
               />
             </div>

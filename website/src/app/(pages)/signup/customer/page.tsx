@@ -23,8 +23,8 @@ export default function CustomerSignUpPage() {
     setError("");
     setLoading(true);
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       setLoading(false);
       return;
     }
@@ -35,6 +35,7 @@ export default function CustomerSignUpPage() {
         password,
         options: {
           data: { user_type: "customer", display_name: name },
+          emailRedirectTo: `${window.location.origin}/login?next=/browse`,
         },
       });
 
@@ -44,15 +45,9 @@ export default function CustomerSignUpPage() {
         return;
       }
 
-      // Sign in immediately
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) {
-        setError("Account created! Please sign in.");
-        setLoading(false);
-        return;
-      }
-
-      // Record terms acceptance (fire-and-forget)
+      // Best-effort: record terms acceptance. Don't await — the user
+      // doesn't need to wait on it, and it's fine if it lands a moment
+      // later.
       fetch("/api/terms/accept", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,7 +59,7 @@ export default function CustomerSignUpPage() {
         }),
       }).catch(() => {});
 
-      router.push("/browse");
+      router.push("/check-your-inbox");
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
@@ -122,8 +117,8 @@ export default function CustomerSignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
-                placeholder="At least 6 characters"
+                minLength={8}
+                placeholder="At least 8 characters"
                 className="w-full px-4 py-3 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/60 transition-colors"
               />
             </div>
