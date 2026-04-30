@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
@@ -11,7 +11,6 @@ import { calculateOrderShipping } from "@/lib/shipping-checkout";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { items, removeItem, updateQuantity, subtotal, ready } = useCart();
   const [shipping, setShipping] = useState<ShippingInfo>({
     fullName: "",
@@ -29,12 +28,16 @@ export default function CheckoutPage() {
   // Pre-fill the email from a QR-scan ref so the buyer doesn't have to
   // re-type it. ?ref=qr&email=foo@bar.com is the canonical form; we
   // accept ?email= alone too in case someone passes it directly.
+  // Reads window.location.search rather than useSearchParams so the
+  // page can be statically prerendered without a Suspense boundary;
+  // matches the pattern handleSubmit below already uses for ?ref/?venue.
   useEffect(() => {
-    const presetEmail = searchParams?.get("email");
+    if (typeof window === "undefined") return;
+    const presetEmail = new URLSearchParams(window.location.search).get("email");
     if (presetEmail) {
       setShipping((prev) => (prev.email ? prev : { ...prev, email: presetEmail }));
     }
-  }, [searchParams]);
+  }, []);
 
   const region: "uk" | "international" =
     shipping.country !== "United Kingdom" && shipping.country !== "" ? "international" : "uk";
