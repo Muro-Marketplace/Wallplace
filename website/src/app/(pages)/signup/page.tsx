@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import RedirectIfLoggedIn from "@/components/RedirectIfLoggedIn";
 
 export const metadata: Metadata = {
   title: "Sign Up – Wallplace",
@@ -51,6 +52,7 @@ const options = [
 
 export default function SignUpPage() {
   return (
+    <RedirectIfLoggedIn>
     <div className="relative min-h-[calc(110vh-3.5rem)] sm:min-h-[calc(100vh-3.5rem)] lg:min-h-[calc(100vh-4rem)] flex items-center justify-center">
       {/* Background, same as login */}
       <div className="absolute inset-0 -z-10">
@@ -106,5 +108,6 @@ export default function SignUpPage() {
         </p>
       </div>
     </div>
+    </RedirectIfLoggedIn>
   );
 }

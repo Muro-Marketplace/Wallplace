@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { slugify } from "@/lib/slugify";
 import TermsCheckbox from "@/components/TermsCheckbox";
 import Dropdown from "@/components/Dropdown";
+import RedirectIfLoggedIn from "@/components/RedirectIfLoggedIn";
 
 const venueTypes = [
   "Café / Coffee Shop",
@@ -240,6 +241,7 @@ export default function RegisterVenuePage() {
   }
 
   return (
+    <RedirectIfLoggedIn>
     <div className="bg-background">
       {/* Hero */}
       <section className="py-20 lg:py-24 bg-foreground text-white">
@@ -460,5 +462,6 @@ export default function RegisterVenuePage() {
         </div>
       </section>
     </div>
+    </RedirectIfLoggedIn>
   );
 }

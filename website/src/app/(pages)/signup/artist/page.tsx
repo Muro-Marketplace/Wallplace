@@ -41,6 +41,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { isFlagOn } from "@/lib/feature-flags";
 import TermsCheckbox from "@/components/TermsCheckbox";
+import RedirectIfLoggedIn from "@/components/RedirectIfLoggedIn";
 
 export default function ArtistSignUpPage() {
   const router = useRouter();
@@ -113,6 +114,7 @@ export default function ArtistSignUpPage() {
   }
 
   return (
+    <RedirectIfLoggedIn>
     <div className="min-h-screen flex items-center justify-center relative">
       <div className="absolute inset-0 -z-10">
         <Image
@@ -272,5 +274,6 @@ export default function ArtistSignUpPage() {
         </p>
       </div>
     </div>
+    </RedirectIfLoggedIn>
   );
 }
