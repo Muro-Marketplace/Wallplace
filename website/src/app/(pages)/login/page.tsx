@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { isFlagOn } from "@/lib/feature-flags";
+import { safeRedirect } from "@/lib/safe-redirect";
+import { portalPathForRole } from "@/lib/auth-roles";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,16 +18,15 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already logged in
+  // Redirect if already logged in. Honours ?next= so a deep link that
+  // bounced the user through /login lands them back where they started.
   useEffect(() => {
-    if (!authLoading && user) {
-      router.replace(
-        userType === "admin" ? "/admin" :
-        userType === "venue" ? "/venue-portal" :
-        userType === "customer" ? "/customer-portal" :
-        "/artist-portal"
-      );
-    }
+    if (authLoading || !user) return;
+    const next =
+      typeof window === "undefined"
+        ? null
+        : new URLSearchParams(window.location.search).get("next");
+    router.replace(safeRedirect(next, portalPathForRole(userType)));
   }, [authLoading, user, userType, router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -148,9 +149,17 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={async () => {
+                    const next =
+                      new URLSearchParams(window.location.search).get("next") || "";
+                    const dest = next
+                      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeRedirect(next, "/browse"))}`
+                      : `${window.location.origin}/browse`;
                     await supabase.auth.signInWithOAuth({
                       provider: "google",
-                      options: { redirectTo: `${window.location.origin}/browse` },
+                      options: {
+                        redirectTo: dest,
+                        queryParams: { access_type: "offline", prompt: "consent" },
+                      },
                     });
                   }}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-sm text-sm font-medium text-foreground hover:bg-background transition-colors"
@@ -161,9 +170,14 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={async () => {
+                    const next =
+                      new URLSearchParams(window.location.search).get("next") || "";
+                    const dest = next
+                      ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeRedirect(next, "/browse"))}`
+                      : `${window.location.origin}/browse`;
                     await supabase.auth.signInWithOAuth({
                       provider: "apple",
-                      options: { redirectTo: `${window.location.origin}/browse` },
+                      options: { redirectTo: dest },
                     });
                   }}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-sm text-sm font-medium text-foreground hover:bg-background transition-colors"
