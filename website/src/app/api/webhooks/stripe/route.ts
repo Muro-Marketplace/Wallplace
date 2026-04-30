@@ -105,6 +105,51 @@ export async function POST(request: Request) {
     }
   }
 
+  // ─── Purchase-offer checkout (Request 1 — venue-only offers) ───
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    if (session.metadata?.checkout_kind === "purchase_offer") {
+      const offerId = session.metadata.offer_id;
+      if (offerId) {
+        const paidOrderId = `OFR-${session.id.slice(-8)}`;
+        // Mark offer paid + persist a minimal order row so the order
+        // lifecycle (refunds, fulfilment, payouts) plumbing reuses the
+        // same primitives as a normal purchase.
+        await db
+          .from("purchase_offers")
+          .update({
+            status: "paid",
+            paid_at: new Date().toISOString(),
+            paid_order_id: paidOrderId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", offerId);
+
+        await db.from("orders").insert({
+          id: paidOrderId,
+          stripe_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
+          buyer_email: session.customer_email || session.metadata.offer_buyer_user_id || null,
+          items: [{
+            offer_id: offerId,
+            work_ids: (session.metadata.offer_work_ids || "").split(",").filter(Boolean),
+            collection_id: session.metadata.offer_collection_id || null,
+          }],
+          subtotal: (session.amount_total || 0) / 100,
+          shipping_cost: 0,
+          total: (session.amount_total || 0) / 100,
+          status: "confirmed",
+          status_history: JSON.stringify([{ status: "confirmed", timestamp: new Date().toISOString() }]),
+          source: "purchase_offer",
+          artist_slug: session.metadata.offer_artist_slug || null,
+          artist_user_id: session.metadata.offer_artist_user_id || null,
+          fulfilment_method: "ship",
+          created_at: new Date().toISOString(),
+        }).then(() => {}, (err) => console.warn("[offer order insert]", err));
+      }
+      return NextResponse.json({ received: true });
+    }
+  }
+
   // ─── Art purchase checkout ───
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
@@ -199,6 +244,8 @@ export async function POST(request: Request) {
           platform_fee_percent: platformFeePct,
           platform_fee: platformFee,
           placement_id: placementId,
+          fulfilment_method: session.metadata?.fulfilment_method || "ship",
+          collection_notes: session.metadata?.collection_notes || null,
           created_at: new Date().toISOString(),
         };
 

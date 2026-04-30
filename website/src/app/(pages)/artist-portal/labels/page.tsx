@@ -6,7 +6,7 @@ import Image from "next/image";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
 import LabelPreview from "@/components/labels/LabelPreview";
 import type { LabelData } from "@/components/labels/LabelSheet";
-import { LABEL_SIZES, type LabelSize } from "@/components/labels/QRLabel";
+import { LABEL_SIZES, LABEL_STYLES, PAPER_FINISHES, type LabelSize, type LabelStyle, type PaperFinish } from "@/components/labels/QRLabel";
 import { useCurrentArtist } from "@/hooks/useCurrentArtist";
 import { authFetch } from "@/lib/api-client";
 
@@ -38,6 +38,25 @@ export default function LabelsPage() {
   const [preselected, setPreselected] = useState(false);
   const [labelSize, setLabelSize] = useState<LabelSize>("medium");
   const [tagline, setTagline] = useState("");
+  // High-level style picker — drives size + which fields to show, so
+  // the artist doesn't have to think about both. Falling back to
+  // "minimal" matches the existing default size of medium.
+  const [labelStyle, setLabelStyleRaw] = useState<LabelStyle>("minimal");
+  const [paperFinish, setPaperFinish] = useState<PaperFinish>("matte");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  function applyStyle(style: LabelStyle) {
+    setLabelStyleRaw(style);
+    const cfg = LABEL_STYLES.find((s) => s.key === style);
+    if (cfg) {
+      setLabelSize(cfg.size);
+      setOptions({
+        showMedium: cfg.showMedium,
+        showDimensions: cfg.showDimensions,
+        showPrice: cfg.showPrice,
+      });
+    }
+  }
 
   // Pre-select venue and works from query params (from placement QR
   // button). Two flavours of size param:
@@ -209,62 +228,109 @@ export default function LabelsPage() {
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
           {/* Customisation panel */}
           <div className="flex-1 bg-surface border border-border rounded-sm p-4">
-            <h3 className="text-xs font-medium tracking-wider uppercase text-muted mb-3">Label Options</h3>
+            <h3 className="text-xs font-medium tracking-wider uppercase text-muted mb-3">Label Style</h3>
 
-            {/* Size selector */}
-            <div className="mb-3">
-              <p className="text-xs text-muted mb-1.5">Label Size</p>
-              <div className="flex gap-1.5">
-                {LABEL_SIZES.map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => setLabelSize(s.key)}
-                    className={`px-3 py-1.5 text-xs rounded-sm border transition-colors ${
-                      labelSize === s.key ? "bg-foreground text-white border-foreground" : "border-border text-muted hover:border-foreground/30"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Tagline for large sizes */}
-            {(labelSize === "large" || labelSize === "xlarge") && (
-              <div className="mb-3">
-                <p className="text-xs text-muted mb-1.5">Tagline (shown on label)</p>
-                <input
-                  type="text"
-                  value={tagline}
-                  onChange={(e) => setTagline(e.target.value)}
-                  placeholder="e.g. Scan to view & purchase this artwork"
-                  maxLength={80}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/60"
-                />
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-x-5 gap-y-2">
-              {([
-                { key: "showMedium" as const, label: "Medium" },
-                { key: "showDimensions" as const, label: "Dimensions" },
-                { key: "showPrice" as const, label: "Price" },
-              ]).map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-2 cursor-pointer text-sm text-foreground">
-                  <button
-                    onClick={() => setOptions((prev) => ({ ...prev, [key]: !prev[key] }))}
-                    className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${
-                      options[key] ? "bg-accent border-accent" : "bg-white border-border"
-                    }`}
-                  >
-                    {options[key] && (
-                      <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
-                    )}
-                  </button>
-                  {label}
-                </label>
+            {/* High-level style picker — three curated presets that
+                pre-fill the right size + field toggles. */}
+            <div className="grid sm:grid-cols-3 gap-2 mb-4">
+              {LABEL_STYLES.map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => applyStyle(s.key)}
+                  className={`text-left p-3 rounded-sm border transition-colors ${
+                    labelStyle === s.key ? "border-accent bg-accent/5" : "border-border hover:border-accent/40"
+                  }`}
+                >
+                  <p className="text-sm font-medium text-foreground mb-0.5">{s.name}</p>
+                  <p className="text-[11px] text-muted leading-snug">{s.description}</p>
+                </button>
               ))}
             </div>
+
+            {/* Paper finish — informational, no behaviour change. */}
+            <div className="grid sm:grid-cols-2 gap-3 mb-3">
+              <div>
+                <p className="text-xs text-muted mb-1.5">Paper finish</p>
+                <select
+                  value={paperFinish}
+                  onChange={(e) => setPaperFinish(e.target.value as PaperFinish)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/60"
+                >
+                  {PAPER_FINISHES.map((f) => (
+                    <option key={f.key} value={f.key}>{f.name}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-muted mt-1">{PAPER_FINISHES.find((f) => f.key === paperFinish)?.description}</p>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced((v) => !v)}
+                  className="text-xs text-muted hover:text-accent transition-colors mt-6"
+                >
+                  {showAdvanced ? "Hide advanced" : "Advanced options"}
+                </button>
+              </div>
+            </div>
+
+            {showAdvanced && (
+              <>
+                {/* Raw size selector — power users can override style. */}
+                <div className="mb-3">
+                  <p className="text-xs text-muted mb-1.5">Label size</p>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {LABEL_SIZES.map((s) => (
+                      <button
+                        key={s.key}
+                        onClick={() => setLabelSize(s.key)}
+                        className={`px-3 py-1.5 text-xs rounded-sm border transition-colors ${
+                          labelSize === s.key ? "bg-foreground text-white border-foreground" : "border-border text-muted hover:border-foreground/30"
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {(labelSize === "large" || labelSize === "xlarge") && (
+                  <div className="mb-3">
+                    <p className="text-xs text-muted mb-1.5">Tagline (shown on label)</p>
+                    <input
+                      type="text"
+                      value={tagline}
+                      onChange={(e) => setTagline(e.target.value)}
+                      placeholder="e.g. Scan to view & purchase this artwork"
+                      maxLength={80}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/60"
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-x-5 gap-y-2">
+                  {([
+                    { key: "showMedium" as const, label: "Medium" },
+                    { key: "showDimensions" as const, label: "Dimensions" },
+                    { key: "showPrice" as const, label: "Price" },
+                  ]).map(({ key, label }) => (
+                    <label key={key} className="flex items-center gap-2 cursor-pointer text-sm text-foreground">
+                      <button
+                        onClick={() => setOptions((prev) => ({ ...prev, [key]: !prev[key] }))}
+                        className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${
+                          options[key] ? "bg-accent border-accent" : "bg-white border-border"
+                        }`}
+                      >
+                        {options[key] && (
+                          <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
+                        )}
+                      </button>
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Venue selector */}

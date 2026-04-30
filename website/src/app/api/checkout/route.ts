@@ -15,6 +15,14 @@ export async function POST(request: Request) {
     const { items, shipping } = parsed.data;
     const source = body.source || "direct";
     const venueSlug = body.venueSlug || "";
+    // Fulfilment method — 'ship' (default), 'collection' (drop-off at
+    // the artist's space), or 'digital'. Validated server-side, not
+    // trusted from the client beyond the enum.
+    const fulfilmentMethod: "ship" | "collection" | "digital" =
+      body.fulfilmentMethod === "collection" || body.fulfilmentMethod === "digital"
+        ? body.fulfilmentMethod
+        : "ship";
+    const collectionNotes = typeof body.collectionNotes === "string" ? body.collectionNotes.slice(0, 1000) : "";
 
     // Build Stripe line items from cart
     const lineItems = items.map((item) => ({
@@ -64,7 +72,9 @@ export async function POST(request: Request) {
       });
     }
 
-    if (totalShipping > 0) {
+    // Collection / digital skip shipping costs by definition — buyer
+    // picks up from the artist (or the work is intangible).
+    if (totalShipping > 0 && fulfilmentMethod === "ship") {
       lineItems.push({
         price_data: {
           currency: "gbp",
@@ -114,6 +124,8 @@ export async function POST(request: Request) {
         source,
         venue_slug: venueSlug,
         artist_slugs: [...new Set(items.map(i => i.artistSlug || "").filter(Boolean))].join(","),
+        fulfilment_method: fulfilmentMethod,
+        collection_notes: collectionNotes,
       },
       success_url: `${origin}/checkout/confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout`,

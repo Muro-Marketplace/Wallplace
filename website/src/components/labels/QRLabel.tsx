@@ -1,4 +1,6 @@
 export type LabelSize = "micro" | "small" | "medium" | "large" | "xlarge";
+export type LabelStyle = "minimal" | "editorial" | "qr_only";
+export type PaperFinish = "matte" | "satin" | "glossy";
 
 export const LABEL_SIZES: { key: LabelSize; label: string; width: string; height: string; qr: string; perPage: number }[] = [
   { key: "micro", label: "QR Only", width: "25mm", height: "25mm", qr: "25mm", perPage: 48 },
@@ -6,6 +8,53 @@ export const LABEL_SIZES: { key: LabelSize; label: string; width: string; height
   { key: "medium", label: "Medium", width: "70mm", height: "50mm", qr: "28mm", perPage: 8 },
   { key: "large", label: "Large", width: "90mm", height: "60mm", qr: "34mm", perPage: 6 },
   { key: "xlarge", label: "Extra Large", width: "130mm", height: "80mm", qr: "44mm", perPage: 3 },
+];
+
+// Curated styles from the design mockup. Each style picks a sensible
+// size + decides which fields to show. Artists can still drop down to
+// raw size + per-field toggles via the advanced controls.
+export const LABEL_STYLES: {
+  key: LabelStyle;
+  name: string;
+  description: string;
+  size: LabelSize;
+  showMedium: boolean;
+  showDimensions: boolean;
+  showPrice: boolean;
+}[] = [
+  {
+    key: "minimal",
+    name: "Minimal",
+    description: "Clean and classic. Artist, title and QR code.",
+    size: "medium",
+    showMedium: false,
+    showDimensions: false,
+    showPrice: false,
+  },
+  {
+    key: "editorial",
+    name: "Editorial",
+    description: "Adds artwork details for a gallery-style label.",
+    size: "large",
+    showMedium: true,
+    showDimensions: true,
+    showPrice: true,
+  },
+  {
+    key: "qr_only",
+    name: "QR Only",
+    description: "QR code only. For ultra-minimal spaces.",
+    size: "micro",
+    showMedium: false,
+    showDimensions: false,
+    showPrice: false,
+  },
+];
+
+export const PAPER_FINISHES: { key: PaperFinish; name: string; description: string }[] = [
+  { key: "matte", name: "Matte (Recommended)", description: "Best for venues — no glare, premium feel." },
+  { key: "satin", name: "Satin", description: "Light sheen. Holds up well over time." },
+  { key: "glossy", name: "Glossy", description: "High contrast for QR scans in low light." },
 ];
 
 interface QRLabelProps {

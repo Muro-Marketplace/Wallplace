@@ -8,6 +8,7 @@ import { useCart } from "@/context/CartContext";
 import type { ShippingInfo } from "@/lib/types";
 import { SIGNATURE_THRESHOLD_GBP } from "@/lib/shipping-calculator";
 import { calculateOrderShipping } from "@/lib/shipping-checkout";
+import { formatSizeLabelForDisplay } from "@/lib/format-size-label";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -24,6 +25,11 @@ export default function CheckoutPage() {
     notes: "",
   });
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  // Fulfilment method — buyer chooses ship (default), collection from
+  // the artist (drop-off), or digital (rare). Collection skips shipping
+  // costs and the address requirement.
+  const [fulfilmentMethod, setFulfilmentMethod] = useState<"ship" | "collection">("ship");
+  const [collectionNotes, setCollectionNotes] = useState("");
 
   // Pre-fill the email from a QR-scan ref so the buyer doesn't have to
   // re-type it. ?ref=qr&email=foo@bar.com is the canonical form; we
@@ -90,7 +96,9 @@ export default function CheckoutPage() {
     return out;
   }, [artistGroupsArr, items]);
 
-  const shippingCost = totalShipping;
+  // Collection skips delivery cost entirely — buyer picks up from the
+  // artist's space. The shared helper above gives us the ship-mode total.
+  const shippingCost = fulfilmentMethod === "collection" ? 0 : totalShipping;
   const total = subtotal + shippingCost;
 
   function updateField(field: keyof ShippingInfo, value: string) {
@@ -99,7 +107,11 @@ export default function CheckoutPage() {
   }
 
   async function handleSubmit() {
-    const required: (keyof ShippingInfo)[] = ["fullName", "email", "phone", "addressLine1", "city", "postcode"];
+    // Collection only needs name + contact; addressLine/postcode/city
+    // are skipped because the artist supplies the location.
+    const required: (keyof ShippingInfo)[] = fulfilmentMethod === "collection"
+      ? ["fullName", "email", "phone"]
+      : ["fullName", "email", "phone", "addressLine1", "city", "postcode"];
     const newErrors: Record<string, boolean> = {};
     required.forEach((f) => {
       if (!shipping[f]?.trim()) newErrors[f] = true;
@@ -131,6 +143,8 @@ export default function CheckoutPage() {
           expectedSubtotal: subtotal,
           source: typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("ref") || "direct" : "direct",
           venueSlug: typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("venue") || "" : "",
+          fulfilmentMethod,
+          collectionNotes,
         }),
       });
       const data = await res.json();
@@ -213,41 +227,98 @@ export default function CheckoutPage() {
       <div className="grid lg:grid-cols-5 gap-6 sm:gap-8 lg:gap-10">
         {/* Form – 3 cols */}
         <div className="lg:col-span-3 space-y-8">
-          {/* Shipping */}
+          {/* Delivery method selector */}
           <div>
-            <h2 className="text-lg font-medium mb-4">Delivery Details</h2>
+            <h2 className="text-lg font-medium mb-4">Delivery Method</h2>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                type="button"
+                onClick={() => setFulfilmentMethod("ship")}
+                className={`text-left p-4 rounded-sm border transition-colors ${
+                  fulfilmentMethod === "ship"
+                    ? "border-accent bg-accent/5"
+                    : "border-border hover:border-accent/50"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={fulfilmentMethod === "ship" ? "text-accent" : "text-muted"}>
+                    <rect x="1" y="3" width="15" height="13" />
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                    <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+                  </svg>
+                  <p className="text-sm font-medium">Ship to me</p>
+                </div>
+                <p className="text-xs text-muted leading-snug">Tracked delivery from the artist. 7 working days.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFulfilmentMethod("collection")}
+                className={`text-left p-4 rounded-sm border transition-colors ${
+                  fulfilmentMethod === "collection"
+                    ? "border-accent bg-accent/5"
+                    : "border-border hover:border-accent/50"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={fulfilmentMethod === "collection" ? "text-accent" : "text-muted"}>
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <p className="text-sm font-medium">Collect from artist</p>
+                </div>
+                <p className="text-xs text-muted leading-snug">No shipping costs. Arrange a pickup time after payment.</p>
+              </button>
+            </div>
+          </div>
+
+          {/* Buyer details */}
+          <div>
+            <h2 className="text-lg font-medium mb-4">{fulfilmentMethod === "collection" ? "Your Details" : "Delivery Details"}</h2>
             <div className="space-y-3">
               {renderInput("fullName", "Full name *")}
               <div className="grid grid-cols-2 gap-3">
                 {renderInput("email", "Email address *", "email")}
                 {renderInput("phone", "Phone number *", "tel")}
               </div>
-              {renderInput("addressLine1", "Address line 1 *")}
-              <input
-                type="text"
-                placeholder="Address line 2"
-                value={shipping.addressLine2}
-                onChange={(e) => updateField("addressLine2", e.target.value)}
-                className={inputClass("addressLine2")}
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {renderInput("city", "City *")}
-                {renderInput("postcode", "Postcode *")}
-                <input
-                  type="text"
-                  placeholder="Country"
-                  value={shipping.country}
-                  onChange={(e) => updateField("country", e.target.value)}
-                  className={inputClass("country")}
+              {fulfilmentMethod === "ship" && (
+                <>
+                  {renderInput("addressLine1", "Address line 1 *")}
+                  <input
+                    type="text"
+                    placeholder="Address line 2"
+                    value={shipping.addressLine2}
+                    onChange={(e) => updateField("addressLine2", e.target.value)}
+                    className={inputClass("addressLine2")}
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {renderInput("city", "City *")}
+                    {renderInput("postcode", "Postcode *")}
+                    <input
+                      type="text"
+                      placeholder="Country"
+                      value={shipping.country}
+                      onChange={(e) => updateField("country", e.target.value)}
+                      className={inputClass("country")}
+                    />
+                  </div>
+                  <textarea
+                    placeholder="Delivery notes (optional)"
+                    value={shipping.notes}
+                    onChange={(e) => updateField("notes", e.target.value)}
+                    rows={2}
+                    className={inputClass("notes")}
+                  />
+                </>
+              )}
+              {fulfilmentMethod === "collection" && (
+                <textarea
+                  placeholder="Pickup notes — when works for you, anyone we should ask for? (optional)"
+                  value={collectionNotes}
+                  onChange={(e) => setCollectionNotes(e.target.value)}
+                  rows={3}
+                  className={inputClass("collectionNotes")}
                 />
-              </div>
-              <textarea
-                placeholder="Delivery notes (optional)"
-                value={shipping.notes}
-                onChange={(e) => updateField("notes", e.target.value)}
-                rows={2}
-                className={inputClass("notes")}
-              />
+              )}
             </div>
           </div>
 
@@ -301,7 +372,7 @@ export default function CheckoutPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
                     <p className="text-xs text-muted">{item.artistName}</p>
-                    {item.size && <p className="text-xs text-muted">{item.size}</p>}
+                    {item.size && <p className="text-xs text-muted">{formatSizeLabelForDisplay(item.size)}</p>}
                     <div className="flex items-center justify-between mt-1.5 gap-2 flex-wrap">
                       {/* Per-line quantity stepper so buyers can grab
                           N of a specific size without going back to

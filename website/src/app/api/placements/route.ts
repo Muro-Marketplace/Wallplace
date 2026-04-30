@@ -1271,8 +1271,16 @@ export async function PATCH(request: Request) {
           });
         }
 
+        // Format as "30 April 2026, 14:30". Now that the picker captures
+        // time, surface it in the email so both parties see exactly when
+        // the install is scheduled rather than just the date.
         const scheduledLabel = updates.scheduled_for
-          ? new Date(updates.scheduled_for as string).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+          ? (() => {
+              const d = new Date(updates.scheduled_for as string);
+              const date = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+              const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+              return `${date}, ${time}`;
+            })()
           : "soon";
 
         if (stage === "scheduled") {

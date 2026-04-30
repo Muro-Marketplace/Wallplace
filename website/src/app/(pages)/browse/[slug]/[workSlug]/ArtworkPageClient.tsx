@@ -12,6 +12,7 @@ import WallVisualiser from "@/components/WallVisualiser";
 import CustomerWallSheet from "@/components/visualizer/CustomerWallSheet";
 import type { PanelWork } from "@/components/visualizer/WorksPanel";
 import Dropdown from "@/components/Dropdown";
+import MakeOfferModal from "@/components/offers/MakeOfferModal";
 import { isFlagOn } from "@/lib/feature-flags";
 import {
   buildSizeVariants,
@@ -52,6 +53,7 @@ export default function ArtworkPageClient({
   const [selectedFrameIdx, setSelectedFrameIdx] = useState(-1);
   const selectedFrame = selectedFrameIdx >= 0 ? frameOptions[selectedFrameIdx] : undefined;
   const [wallVizOpen, setWallVizOpen] = useState(false);
+  const [offerOpen, setOfferOpen] = useState(false);
 
   // ── Wall visualiser swap ──────────────────────────────────────────
   // When the WALL_VISUALIZER_V1 flag is on we use the new react-konva
@@ -483,6 +485,7 @@ export default function ArtworkPageClient({
                 </button>
               ) : (
               <>
+              <div className="flex gap-2">
               <button
                 onClick={() => {
                   const r = addItem({
@@ -507,11 +510,16 @@ export default function ArtworkPageClient({
                   }
                   router.push("/checkout");
                 }}
-                className="w-full px-5 py-3.5 text-[13px] font-medium tracking-wider uppercase text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors"
+                className="flex-1 px-5 py-3.5 text-[13px] font-medium tracking-wider uppercase text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors"
               >
                 Buy Now, £{totalPrice}
               </button>
+              {/* Compact basket icon — keeps the page from getting two
+                  competing CTAs while still giving multi-item buyers a
+                  single-tap "save for later" affordance. */}
               <button
+                aria-label="Add to basket"
+                title="Add to basket"
                 onClick={() => {
                   const r = addItem({
                     type: "work",
@@ -535,10 +543,15 @@ export default function ArtworkPageClient({
                     showToast("Added to basket");
                   }
                 }}
-                className="w-full px-5 py-3 text-sm font-medium text-foreground border border-border hover:border-foreground/50 rounded-sm transition-colors"
+                className="px-3.5 py-3.5 text-foreground border border-border hover:border-foreground/50 rounded-sm transition-colors"
               >
-                Add to Basket
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="9" cy="21" r="1" />
+                  <circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6" />
+                </svg>
               </button>
+              </div>
               </>
               )}
             </>
@@ -610,7 +623,32 @@ export default function ArtworkPageClient({
           Message the artist
           <span className="ml-1">→</span>
         </button>
+
+        {/* Make-an-Offer — venue-only, surfaced quietly under the
+            primary buy + message actions to avoid cluttering the page
+            for customers. The modal handles the auth/non-venue gates. */}
+        <button
+          type="button"
+          onClick={() => setOfferOpen(true)}
+          className="w-full px-5 py-3 text-xs text-muted hover:text-accent transition-colors border-t border-border"
+        >
+          Make an offer (venues)
+        </button>
       </div>
+
+      <MakeOfferModal
+        open={offerOpen}
+        onClose={() => setOfferOpen(false)}
+        artistSlug={artistSlug}
+        artistName={artistName}
+        workIds={[work.id]}
+        workTitle={work.title}
+        askingPriceGbp={(() => {
+          const tiers = work.pricing || [];
+          if (tiers.length === 0) return null;
+          return Math.max(...tiers.map((t) => Number(t.price) || 0));
+        })()}
+      />
 
       {/* Wall visualiser, opens as a modal from the "View on your wall"
           CTA. The new react-konva visualizer takes over when the

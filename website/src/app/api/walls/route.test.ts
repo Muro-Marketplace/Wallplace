@@ -46,6 +46,21 @@ vi.mock("@/lib/api-auth", () => ({
   }),
 }));
 
+// The route enriches uploaded walls with short-lived signed URLs from
+// the wall-photos bucket — that requires the service-role client.
+// Tests don't have one configured (intentional: unit tests should never
+// hit a real Supabase), so we hand back a stub whose only job is to
+// satisfy the `db.storage.from(...).createSignedUrl(...)` call shape.
+vi.mock("@/lib/supabase-admin", () => ({
+  getSupabaseAdmin: () => ({
+    storage: {
+      from: () => ({
+        createSignedUrl: async () => ({ data: null, error: null }),
+      }),
+    },
+  }),
+}));
+
 beforeEach(() => {
   vi.resetModules();
   listWallsByUserMock.mockReset();

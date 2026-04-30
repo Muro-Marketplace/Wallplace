@@ -73,9 +73,27 @@ describe("messageSchema", () => {
     expect(r.success).toBe(false);
   });
 
-  it("empty content is not allowed (min length 1 after trim)", () => {
-    expect(messageSchema.safeParse({ ...base, content: "" }).success).toBe(false);
-    expect(messageSchema.safeParse({ ...base, content: "   " }).success).toBe(false);
+  it("empty content is allowed at the schema level — emptiness is enforced server-side after attachments are factored in", () => {
+    // After F2 (message attachments), the schema permits empty content
+    // because a message with one or more attachments is valid. The
+    // route-level POST handler still rejects "no content AND no
+    // attachments" with a 400.
+    expect(messageSchema.safeParse({ ...base, content: "" }).success).toBe(true);
+    expect(messageSchema.safeParse({ ...base, content: "   " }).success).toBe(true);
+  });
+
+  it("accepts well-formed attachments[]", () => {
+    const r = messageSchema.safeParse({
+      ...base,
+      content: "",
+      attachments: [{
+        url: "https://example.com/img.png",
+        filename: "img.png",
+        mimeType: "image/png",
+        sizeBytes: 1024,
+      }],
+    });
+    expect(r.success).toBe(true);
   });
 });
 

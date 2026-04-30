@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { waitlistSchema } from "@/lib/validations";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { sendEmail } from "@/lib/email/send";
+import { CustomerWaitlistConfirmation } from "@/emails/templates/customer-sales/CustomerWaitlistConfirmation";
 
 export async function POST(request: Request) {
   const limited = await checkRateLimit(request, 5, 60000);
@@ -39,6 +41,18 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    await sendEmail({
+      idempotencyKey: `customer_waitlist_confirmation:${email.toLowerCase()}`,
+      template: "customer_waitlist_confirmation",
+      category: "security",
+      to: email,
+      subject: "You're on the Wallplace waitlist",
+      react: CustomerWaitlistConfirmation({
+        firstName: (name || "there").split(" ")[0],
+      }),
+      metadata: { userType },
+    });
 
     return NextResponse.json({ success: true });
   } catch {

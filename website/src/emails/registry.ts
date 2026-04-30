@@ -73,6 +73,7 @@ import VenueNewArtistMatches from "./templates/venue-lifecycle/VenueNewArtistMat
 import VenueRotationReminder from "./templates/venue-lifecycle/VenueRotationReminder";
 import VenuePlacementAnniversary from "./templates/venue-lifecycle/VenuePlacementAnniversary";
 import VenueManagedCurationPitch from "./templates/venue-lifecycle/VenueManagedCurationPitch";
+import VenueRegistrationConfirmation from "./templates/venue-lifecycle/VenueRegistrationConfirmation";
 
 // ── Orders ────────────────────────────────────────────────────────────────
 import CustomerOrderReceipt from "./templates/orders/CustomerOrderReceipt";
@@ -216,6 +217,7 @@ export const EMAIL_REGISTRY: TemplateEntry<any>[] = [
   VenueRotationReminder,
   VenuePlacementAnniversary,
   VenueManagedCurationPitch,
+  VenueRegistrationConfirmation,
 
   // Orders
   CustomerOrderReceipt,

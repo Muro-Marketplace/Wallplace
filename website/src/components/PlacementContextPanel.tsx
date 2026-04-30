@@ -101,6 +101,8 @@ export default function PlacementContextPanel({
   // "now". Mirrors the PlacementStepper / detail-page flow.
   const [schedulePickerOpen, setSchedulePickerOpen] = useState(false);
   const [scheduleDraft, setScheduleDraft] = useState<string>("");
+  // Time-of-day for the install. Defaults to 12:00 if the user doesn't pick.
+  const [scheduleTimeDraft, setScheduleTimeDraft] = useState<string>("12:00");
 
   // Counter form state
   const [counterOpen, setCounterOpen] = useState(false);
@@ -322,7 +324,11 @@ export default function PlacementContextPanel({
 
   async function confirmSchedule() {
     if (!scheduleDraft) return;
-    const iso = new Date(`${scheduleDraft}T12:00:00`).toISOString();
+    // Combine the date + time (defaulting to 12:00 if blank). Browsers
+    // give us local-time wall-clock strings; toISOString shifts to UTC,
+    // which is what the server expects.
+    const time = scheduleTimeDraft || "12:00";
+    const iso = new Date(`${scheduleDraft}T${time}:00`).toISOString();
     await handleAdvance("scheduled", iso);
   }
 
@@ -334,7 +340,10 @@ export default function PlacementContextPanel({
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, "0");
         const day = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
         setScheduleDraft(`${y}-${m}-${day}`);
+        setScheduleTimeDraft(`${hh}:${mm}`);
         setSchedulePickerOpen(true);
         return;
       }
@@ -344,6 +353,7 @@ export default function PlacementContextPanel({
     const m = String(now.getMonth() + 1).padStart(2, "0");
     const day = String(now.getDate()).padStart(2, "0");
     setScheduleDraft(`${y}-${m}-${day}`);
+    setScheduleTimeDraft("12:00");
     setSchedulePickerOpen(true);
   }
 
@@ -988,12 +998,18 @@ export default function PlacementContextPanel({
                   surfaces feel like the same flow. */}
               {schedulePickerOpen && (
                 <div className="flex items-center gap-2 flex-wrap bg-surface border border-border rounded-sm px-3 py-2 w-full">
-                  <label className="text-xs text-muted">Install date</label>
+                  <label className="text-xs text-muted">Install</label>
                   <input
                     type="date"
                     value={scheduleDraft}
                     onChange={(e) => setScheduleDraft(e.target.value)}
                     min={new Date().toISOString().slice(0, 10)}
+                    className="px-2 py-1 bg-background border border-border rounded-sm text-xs focus:outline-none focus:border-accent/60"
+                  />
+                  <input
+                    type="time"
+                    value={scheduleTimeDraft}
+                    onChange={(e) => setScheduleTimeDraft(e.target.value)}
                     className="px-2 py-1 bg-background border border-border rounded-sm text-xs focus:outline-none focus:border-accent/60"
                   />
                   <button
@@ -1005,7 +1021,7 @@ export default function PlacementContextPanel({
                     {busyAction === "advance-scheduled"
                       ? "Saving…"
                       : reachedMap.scheduled
-                        ? "Update date"
+                        ? "Update"
                         : "Confirm"}
                   </button>
                   <button
