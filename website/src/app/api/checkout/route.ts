@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { checkoutSchema } from "@/lib/validations";
 import { calculateOrderShipping } from "@/lib/shipping-checkout";
+import { getAuthenticatedUser } from "@/lib/api-auth";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +17,34 @@ export async function POST(request: Request) {
     const { items, shipping } = parsed.data;
     const source = body.source || "direct";
     const venueSlug = body.venueSlug || "";
+
+    // Self-purchase guard. Auth is optional (guest checkout still
+    // allowed). If the caller IS authenticated and is the artist behind
+    // any cart item, refuse — money would cycle through Stripe Connect
+    // and the platform would skim a fee from the artist's own card.
+    const authHeader = request.headers.get("authorization");
+    if (authHeader) {
+      const auth = await getAuthenticatedUser(request);
+      if (auth.user) {
+        const db = getSupabaseAdmin();
+        const { data: artistProfile } = await db
+          .from("artist_profiles")
+          .select("slug")
+          .eq("user_id", auth.user.id)
+          .single();
+        if (artistProfile?.slug) {
+          const conflict = items.some(
+            (it) => (it.artistSlug || "").toLowerCase() === artistProfile.slug.toLowerCase(),
+          );
+          if (conflict) {
+            return NextResponse.json(
+              { error: "You can't purchase your own work." },
+              { status: 403 },
+            );
+          }
+        }
+      }
+    }
 
     // Build Stripe line items from cart
     const lineItems = items.map((item) => ({
