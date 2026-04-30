@@ -1155,62 +1155,73 @@ export async function PATCH(request: Request) {
       const becameActive = existing.status === "pending" && status === "active";
       const becameCollected = existing.status === "active" && stage === "collected";
       if (becameActive || becameCollected) {
-        // Pull the linked work_id (single-work placements). Multi-work
-        // placements use work_ids JSONB; we walk that too when present.
+        // Production schema stores work data denormalised on the
+        // placement (work_title + extra_works JSONB), there is no
+        // FK to artist_works.id. Match by title within the artist's
+        // portfolio, primary work + every extra. Same pattern the
+        // venue-portal/labels page uses.
         const { data: pl } = await db
           .from("placements")
-          .select("work_id, work_ids")
+          .select("work_title, extra_works")
           .eq("id", id)
           .maybeSingle();
-        const primary = pl?.work_id ? [pl.work_id as string] : [];
-        const extras = Array.isArray(pl?.work_ids)
-          ? (pl.work_ids as unknown[]).filter((v): v is string => typeof v === "string")
-          : [];
-        const workIds = Array.from(new Set([...primary, ...extras]));
+        const titles = new Set<string>();
+        if (typeof pl?.work_title === "string" && pl.work_title) titles.add(pl.work_title);
+        if (Array.isArray(pl?.extra_works)) {
+          for (const ew of pl.extra_works as Array<{ title?: string }>) {
+            if (typeof ew?.title === "string" && ew.title) titles.add(ew.title);
+          }
+        }
 
-        if (workIds.length > 0) {
-          if (becameActive) {
-            const { data: venueP } = await db
-              .from("venue_profiles")
-              .select("name")
-              .eq("user_id", existing.venue_user_id)
-              .maybeSingle();
-            const venueDisplay = venueP?.name ?? existing.venue ?? null;
-            for (const wid of workIds) {
-              const { data: w } = await db
-                .from("artist_works")
-                .select("quantity_available")
-                .eq("id", wid)
+        if (titles.size > 0 && existing.artist_user_id) {
+          // Resolve titles → artist_works rows scoped to this artist.
+          // Postgres lookup by artist_id (the FK) requires the artist's
+          // profile id, not the user id; resolve once.
+          const { data: artistProfile } = await db
+            .from("artist_profiles")
+            .select("id")
+            .eq("user_id", existing.artist_user_id)
+            .maybeSingle();
+          if (artistProfile?.id) {
+            const { data: matchedWorks } = await db
+              .from("artist_works")
+              .select("id, quantity_available, current_placement_id")
+              .eq("artist_id", artistProfile.id)
+              .in("title", Array.from(titles));
+
+            if (becameActive) {
+              const { data: venueP } = await db
+                .from("venue_profiles")
+                .select("name")
+                .eq("user_id", existing.venue_user_id)
                 .maybeSingle();
-              const updates: Record<string, unknown> = {
-                placed_at_venue: venueDisplay,
-                current_placement_id: id,
-              };
-              if (typeof w?.quantity_available === "number" && w.quantity_available > 0) {
-                const next = w.quantity_available - 1;
-                updates.quantity_available = next;
-                updates.available = next > 0;
-              }
-              await db.from("artist_works").update(updates).eq("id", wid);
-            }
-          } else if (becameCollected) {
-            for (const wid of workIds) {
-              const { data: w } = await db
-                .from("artist_works")
-                .select("quantity_available, current_placement_id")
-                .eq("id", wid)
-                .maybeSingle();
-              // Only restore if THIS placement still owns the work.
-              if (w?.current_placement_id === id) {
-                const restoreUpdates: Record<string, unknown> = {
-                  placed_at_venue: null,
-                  current_placement_id: null,
+              const venueDisplay = venueP?.name ?? existing.venue ?? null;
+              for (const w of (matchedWorks || []) as Array<{ id: string; quantity_available: number | null }>) {
+                const updates: Record<string, unknown> = {
+                  placed_at_venue: venueDisplay,
+                  current_placement_id: id,
                 };
-                if (typeof w.quantity_available === "number") {
-                  restoreUpdates.quantity_available = w.quantity_available + 1;
-                  restoreUpdates.available = true;
+                if (typeof w.quantity_available === "number" && w.quantity_available > 0) {
+                  const next = w.quantity_available - 1;
+                  updates.quantity_available = next;
+                  updates.available = next > 0;
                 }
-                await db.from("artist_works").update(restoreUpdates).eq("id", wid);
+                await db.from("artist_works").update(updates).eq("id", w.id);
+              }
+            } else if (becameCollected) {
+              for (const w of (matchedWorks || []) as Array<{ id: string; quantity_available: number | null; current_placement_id: string | null }>) {
+                // Only restore if THIS placement still owns the work.
+                if (w.current_placement_id === id) {
+                  const restoreUpdates: Record<string, unknown> = {
+                    placed_at_venue: null,
+                    current_placement_id: null,
+                  };
+                  if (typeof w.quantity_available === "number") {
+                    restoreUpdates.quantity_available = w.quantity_available + 1;
+                    restoreUpdates.available = true;
+                  }
+                  await db.from("artist_works").update(restoreUpdates).eq("id", w.id);
+                }
               }
             }
           }

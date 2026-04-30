@@ -140,12 +140,11 @@ export async function GET(request: NextRequest) {
   // earned from placement Y" alongside the QR scan stats.
   const { data: placementRows } = await db
     .from("placements")
-    .select("id, artist_slug, work_id, work_title, status, delivery_count, revenue")
+    .select("id, artist_slug, work_title, status, delivery_count, revenue")
     .eq("venue_user_id", profile.user_id);
   const placement_revenue = (placementRows || []).map((p) => ({
     placementId: p.id,
     artistSlug: p.artist_slug,
-    workId: p.work_id,
     workTitle: p.work_title,
     status: p.status,
     deliveryCount: (p as { delivery_count?: number }).delivery_count ?? 0,
