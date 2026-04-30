@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAuthenticatedUser } from "@/lib/api-auth";
 import { notifyBuyerStatusUpdate } from "@/lib/email";
 import { executeTransfer } from "@/lib/stripe-connect";
+import { canTransition, type OrderStatus, ORDER_STATUSES } from "@/lib/order-state-machine";
 
 // GET: fetch orders for the authenticated user (customer, artist, or venue)
 export async function GET(request: Request) {
@@ -89,8 +90,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Order ID and status required" }, { status: 400 });
     }
 
-    const validStatuses = ["processing", "shipped", "delivered", "cancelled"];
-    if (!validStatuses.includes(status)) {
+    if (!ORDER_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
@@ -102,7 +102,7 @@ export async function PATCH(request: Request) {
     // aren't locked out of the status transitions.
     const { data: order } = await db
       .from("orders")
-      .select("artist_user_id, artist_slug, buyer_email, status_history, placement_id, venue_revenue")
+      .select("artist_user_id, artist_slug, buyer_email, status, status_history, placement_id, venue_revenue")
       .eq("id", orderId)
       .single();
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -122,6 +122,11 @@ export async function PATCH(request: Request) {
       }
     }
     if (!authorised) return NextResponse.json({ error: "Not authorised" }, { status: 403 });
+
+    const transition = canTransition(order.status as OrderStatus, status as OrderStatus);
+    if (!transition.ok) {
+      return NextResponse.json({ error: transition.reason }, { status: 422 });
+    }
 
     // Append to status history. status_history is JSONB, pass the actual
     // array, never JSON.stringify'd, otherwise the column stores a string
