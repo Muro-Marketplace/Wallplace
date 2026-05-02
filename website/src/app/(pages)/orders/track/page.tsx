@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 
 interface OrderItem {
@@ -68,6 +68,36 @@ export default function OrderTrackPage() {
   const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tokenAuthed, setTokenAuthed] = useState(false);
+
+  // Plan B Task 10: receipt emails carry a signed `?t=` token. If
+  // present, look up the order without showing the form — the
+  // signature already proves the buyer holds the link.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("t");
+    if (!t) return;
+    setTokenAuthed(true);
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await fetch("/api/orders/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: t }),
+        });
+        const data: { order?: TrackedOrder; error?: string } = await res.json();
+        if (!res.ok || !data.order) {
+          setError(data.error || "This tracking link has expired or is invalid.");
+          return;
+        }
+        setOrder(data.order);
+      } catch {
+        setError("Network error, please try again in a moment.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -117,6 +147,11 @@ export default function OrderTrackPage() {
             details with the order ID alone.
           </p>
 
+          {tokenAuthed && loading && (
+            <p className="text-sm text-muted mb-8">Looking up your order…</p>
+          )}
+
+          {!tokenAuthed && (
           <form onSubmit={handleSubmit} className="bg-surface border border-border rounded-sm p-6 space-y-4 mb-8">
             <div>
               <label htmlFor="orderId" className="block text-xs font-medium uppercase tracking-widest text-muted mb-2">
@@ -155,6 +190,7 @@ export default function OrderTrackPage() {
               {loading ? "Looking up…" : "Track order"}
             </button>
           </form>
+          )}
 
           {order && statusInfo && (
             <div className="bg-surface border border-border rounded-sm p-6">

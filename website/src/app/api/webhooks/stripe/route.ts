@@ -19,6 +19,7 @@ import { SubscriptionRenewalReceipt } from "@/emails/templates/payments/Subscrip
 import { ArtistStripeKycNeeded } from "@/emails/templates/artist-additions/ArtistStripeKycNeeded";
 import { platformFeePercentForArtist, DEFAULT_PLAN_FEE_PERCENT } from "@/lib/platform-fee";
 import { loadCartSession } from "@/lib/cart-sessions";
+import { signOrderToken } from "@/lib/order-tracking-token";
 import type Stripe from "stripe";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://wallplace.co.uk";
@@ -380,6 +381,16 @@ export async function POST(request: Request) {
             } catch (persistErr) {
               console.warn("[webhook] persisting enriched items failed:", persistErr);
             }
+            // Mint a signed tracking token bound to {orderId, email} so
+            // /orders/track can authenticate the lookup without trusting
+            // bare email match. Best-effort: if the secret isn't
+            // configured the email still sends, just without the token.
+            let trackingToken: string | undefined;
+            try {
+              trackingToken = await signOrderToken({ orderId, email: buyerEmail });
+            } catch (err) {
+              console.warn("[webhook] signOrderToken failed:", err);
+            }
             await sendEmail({
               idempotencyKey: `order_receipt:${paymentIntentId || orderId}`,
               template: "customer_order_receipt",
@@ -391,6 +402,7 @@ export async function POST(request: Request) {
                 orderNumber: orderId,
                 orderUrl: `${SITE}/orders/${orderId}`,
                 orderDate: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+                trackingToken,
                 items: orderItems,
                 subtotal: { amount: Math.round(subtotal * 100), currency: "GBP" },
                 shipping: { amount: Math.round(shippingCost * 100), currency: "GBP" },
