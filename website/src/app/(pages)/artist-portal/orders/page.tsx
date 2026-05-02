@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
+import EmptyState from "@/components/EmptyState";
 import OrderStatusTracker from "@/components/OrderStatusTracker";
 import { authFetch } from "@/lib/api-client";
 
@@ -422,9 +423,11 @@ export default function ArtistOrdersPage() {
       {loading ? (
         <p className="text-muted text-sm py-12 text-center">Loading orders...</p>
       ) : orders.length === 0 ? (
-        <div className="bg-surface border border-border rounded-sm px-6 py-12 text-center">
-          <p className="text-muted text-sm">No orders yet. When someone buys your work, orders will appear here.</p>
-        </div>
+        <EmptyState
+          title="No orders yet"
+          hint="When someone buys your work, orders will appear here."
+          cta={{ label: "Discover art", href: "/browse" }}
+        />
       ) : (
         <div className="space-y-3">
           {orders.map((order) => (

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
+import EmptyState from "@/components/EmptyState";
 import { useSaved } from "@/context/SavedContext";
 import { artists } from "@/data/artists";
 import { getGalleryWorks } from "@/data/galleries";
@@ -78,13 +79,11 @@ export default function SavedPage() {
       {activeTab === "works" && (
         <>
           {savedWorks.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="text-muted mb-4">No saved works yet.</p>
-              <p className="text-xs text-muted mb-4">Browse artwork and tap the heart icon to save pieces you like.</p>
-              <Link href="/browse" className="text-sm text-accent hover:underline">
-                Browse Artwork
-              </Link>
-            </div>
+            <EmptyState
+              title="No saved works yet"
+              hint="Browse galleries and tap the heart on pieces you'd like to revisit."
+              cta={{ label: "Browse galleries", href: "/browse" }}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {savedWorks.map((work) => (
@@ -136,13 +135,11 @@ export default function SavedPage() {
       {activeTab === "artists" && (
         <>
           {savedArtistSlugs.length === 0 ? (
-            <div className="py-16 text-center">
-              <p className="text-muted mb-4">No saved artists yet.</p>
-              <p className="text-xs text-muted mb-4">Save an artist&apos;s work and they&apos;ll appear here.</p>
-              <Link href="/browse" className="text-sm text-accent hover:underline">
-                Browse Portfolios
-              </Link>
-            </div>
+            <EmptyState
+              title="No saved artists yet"
+              hint="Save an artist's work and they'll appear here."
+              cta={{ label: "Browse portfolios", href: "/browse?view=portfolios" }}
+            />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
               {savedArtistSlugs.map((artist) => (
@@ -184,13 +181,11 @@ export default function SavedPage() {
       {activeTab === "collections" && (() => {
         const savedCollections = savedItems.filter((s) => s.type === "collection");
         return savedCollections.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-muted mb-4">No saved collections yet.</p>
-            <p className="text-xs text-muted mb-4">Browse collections and tap the heart icon to save them.</p>
-            <Link href="/browse" className="text-sm text-accent hover:underline">
-              Browse Collections
-            </Link>
-          </div>
+          <EmptyState
+            title="No saved collections yet"
+            hint="Browse collections and tap the heart icon to save them."
+            cta={{ label: "Browse collections", href: "/browse?view=collections" }}
+          />
         ) : (
           <div className="space-y-3">
             {savedCollections.map((item) => (

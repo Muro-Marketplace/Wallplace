@@ -12,14 +12,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
+import EmptyState from "@/components/EmptyState";
 import { useAuth } from "@/context/AuthContext";
 import { isFlagOn } from "@/lib/feature-flags";
 import type { Wall } from "@/lib/visualizer/types";
 
 export default function VenueWallsPage() {
-  const router = useRouter();
   const { session, loading: authLoading } = useAuth();
   const [walls, setWalls] = useState<Wall[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -100,7 +99,9 @@ export default function VenueWallsPage() {
         <LoadingGrid />
       ) : walls.length === 0 ? (
         <EmptyState
-          onCreate={() => router.push("/venue-portal/walls/new")}
+          title="Build your first wall"
+          hint="Pick a preset, dial in your wall's real-world dimensions, then drag in artworks to see how they'd look."
+          cta={{ label: "Add your first wall", href: "/venue-portal/walls/new" }}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -161,27 +162,6 @@ function WallCard({ wall }: { wall: Wall }) {
         </p>
       </div>
     </Link>
-  );
-}
-
-function EmptyState({ onCreate }: { onCreate: () => void }) {
-  return (
-    <div className="py-16 text-center border border-dashed border-border rounded-2xl bg-white">
-      <h2 className="font-serif text-xl text-foreground mb-2">
-        Build your first wall
-      </h2>
-      <p className="text-sm text-muted mb-5 max-w-md mx-auto">
-        Pick a preset, dial in your wall&apos;s real-world dimensions, then
-        drag in artworks to see how they&apos;d look in your space.
-      </p>
-      <button
-        type="button"
-        onClick={onCreate}
-        className="px-4 py-2 rounded-full bg-stone-900 text-white text-sm font-medium hover:bg-stone-800"
-      >
-        + New Wall
-      </button>
-    </div>
   );
 }
 

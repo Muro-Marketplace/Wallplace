@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
+import EmptyState from "@/components/EmptyState";
 import OrderStatusTracker from "@/components/OrderStatusTracker";
 import { authFetch } from "@/lib/api-client";
 
@@ -201,13 +202,15 @@ function VenueOrdersContent() {
       {loading ? (
         <p className="text-muted text-sm py-12 text-center">Loading orders...</p>
       ) : visibleOrders.length === 0 ? (
-        <div className="bg-surface border border-border rounded-sm px-6 py-12 text-center">
-          <p className="text-muted text-sm">
-            {tab === "sales"
-              ? "No placement sales yet. Sales attributed to your venue will appear here."
-              : "You haven't purchased anything yet. Art you buy will appear here."}
-          </p>
-        </div>
+        <EmptyState
+          title={tab === "sales" ? "No placement sales yet" : "Nothing purchased yet"}
+          hint={
+            tab === "sales"
+              ? "Sales attributed to your venue will appear here."
+              : "Art you buy will appear here."
+          }
+          cta={{ label: "Discover art", href: "/browse" }}
+        />
       ) : (
         <div className="space-y-3">
           {visibleOrders.map((order) => (

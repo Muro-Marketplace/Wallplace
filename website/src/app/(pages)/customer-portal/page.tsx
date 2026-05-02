@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import CustomerPortalLayout from "@/components/CustomerPortalLayout";
+import EmptyState from "@/components/EmptyState";
 import OrderStatusTracker from "@/components/OrderStatusTracker";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
@@ -283,10 +282,11 @@ export default function CustomerPortalPage() {
       {loading ? (
         <p className="text-muted text-sm py-12 text-center">Loading orders...</p>
       ) : orders.length === 0 ? (
-        <div className="bg-surface border border-border rounded-sm px-6 py-12 text-center">
-          <p className="text-muted text-sm mb-2">No orders yet</p>
-          <Link href="/browse" className="text-sm text-accent hover:text-accent-hover">Browse the marketplace</Link>
-        </div>
+        <EmptyState
+          title="No orders yet"
+          hint="Browse the marketplace to place your first order."
+          cta={{ label: "Discover art", href: "/browse" }}
+        />
       ) : (
         <div className="space-y-3">
           {orders.map((order) => (
