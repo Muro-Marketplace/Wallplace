@@ -19,7 +19,7 @@ export interface CounterResult {
   monthlyFeeGbp: number | null;
   qrEnabled: boolean;
   revenueSharePercent: number | null;
-  arrangementType: "free_loan" | "revenue_share" | "purchase";
+  arrangementType: "free_loan" | "paid_loan" | "revenue_share" | "purchase";
   /** Current user's id, lets the caller optimistically flip requester_user_id. */
   senderUserId: string | null;
 }
@@ -64,9 +64,13 @@ export default function CounterPlacementDialog({ placementId, currentUserId, ini
     setBusy(true);
     setError(null);
     try {
-      // Server treats "free_loan" as "has a monthly fee" (legacy column
-      // name). Pure revenue share has no fee.
-      const arrangementType: "free_loan" | "revenue_share" = paidLoan ? "free_loan" : qr ? "revenue_share" : "free_loan";
+      // paidLoan toggle on -> paid_loan; QR-only (no monthly fee) -> revenue_share;
+      // neither toggle on -> free_loan (free display).
+      const arrangementType: "free_loan" | "paid_loan" | "revenue_share" = paidLoan
+        ? "paid_loan"
+        : qr
+          ? "revenue_share"
+          : "free_loan";
       const finalMonthlyFee = paidLoan && typeof fee === "number" ? fee : null;
       const finalRevShare = qr && typeof revShare === "number" && revShare > 0 ? revShare : null;
       const res = await authFetch("/api/placements", {

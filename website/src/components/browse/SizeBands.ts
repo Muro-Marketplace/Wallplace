@@ -2,6 +2,8 @@
 // side of each filter row. Single source of truth, bandForCm() and
 // the FilterPanel render must agree on the same numbers.
 
+import { parseDimensions } from "@/lib/shipping-calculator";
+
 export type SizeBandKey = "small" | "medium" | "large" | "xl";
 
 export interface SizeBand {
@@ -29,4 +31,37 @@ export function bandForCm(longestEdgeCm: number): SizeBandKey {
     if (longestEdgeCm > lo && longestEdgeCm <= hi) return band.key;
   }
   return "xl";
+}
+
+/**
+ * Set of size bands a work matches across every size string the work
+ * exposes — work-level dimensions, the artist-selected collection size
+ * (if present), and every pricing tier label. A work that ships in
+ * A4, A2 and A0 should match Small, Medium and XL filters, not just
+ * whichever happens to be largest.
+ *
+ * Falls back to "medium" when nothing parses, so unparseable works
+ * still match a single, generous-by-default filter rather than
+ * disappearing entirely.
+ */
+export function bandsForWork(work: {
+  dimensions?: string | null;
+  selectedSize?: string | null;
+  pricing?: { label: string }[] | null;
+}): Set<SizeBandKey> {
+  const bands = new Set<SizeBandKey>();
+  const candidates: string[] = [];
+  if (work.dimensions) candidates.push(work.dimensions);
+  if (work.selectedSize) candidates.push(work.selectedSize);
+  for (const p of work.pricing || []) {
+    if (p?.label) candidates.push(p.label);
+  }
+  for (const c of candidates) {
+    const d = parseDimensions(c);
+    if (!d) continue;
+    const largest = Math.max(d.widthCm, d.heightCm);
+    bands.add(bandForCm(largest));
+  }
+  if (bands.size === 0) bands.add("medium");
+  return bands;
 }

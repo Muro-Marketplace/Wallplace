@@ -111,8 +111,12 @@ describe("placementSchema", () => {
     expect(placementSchema.safeParse(base).success).toBe(true);
   });
 
-  it("rejects unknown type (only free_loan/revenue_share/purchase)", () => {
+  it("rejects unknown type (only free_loan/paid_loan/revenue_share/purchase)", () => {
     expect(placementSchema.safeParse({ ...base, type: "gift" }).success).toBe(false);
+  });
+
+  it("accepts type=paid_loan", () => {
+    expect(placementSchema.safeParse({ ...base, type: "paid_loan" }).success).toBe(true);
   });
 
   it("revenueSharePercent must be 0–100", () => {
@@ -151,6 +155,20 @@ describe("placementUpdateSchema", () => {
 
   it("counter.revenueSharePercent still 0–100", () => {
     expect(placementUpdateSchema.safeParse({ id: "p1", counter: { revenueSharePercent: 150 } }).success).toBe(false);
+  });
+
+  it("counter.arrangementType=paid_loan is accepted", () => {
+    const r = placementUpdateSchema.safeParse({
+      id: "p1",
+      counter: { arrangementType: "paid_loan", monthlyFeeGbp: 50 },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("counter.arrangementType rejects unknown values", () => {
+    expect(
+      placementUpdateSchema.safeParse({ id: "p1", counter: { arrangementType: "barter" } }).success,
+    ).toBe(false);
   });
 });
 

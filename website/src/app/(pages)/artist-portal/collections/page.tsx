@@ -150,6 +150,11 @@ export default function CollectionsPage() {
   const handleDelete = useCallback(
     async (id: string) => {
       if (!artist) return;
+      const collection = userCollections.find((c) => c.id === id);
+      const ok = window.confirm(
+        `Delete collection "${collection?.name || id}"? Works in it stay in your portfolio.`,
+      );
+      if (!ok) return;
       // Optimistic remove
       const prev = userCollections;
       setUserCollections(prev.filter((c) => c.id !== id));

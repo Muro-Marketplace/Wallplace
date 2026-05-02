@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,46 +11,20 @@ import { collections as staticCollections, type ArtistCollection } from "@/data/
 import { DISCIPLINES, formatSubStyleLabel, getDisciplineById, resolveDiscipline, disciplineLabel } from "@/data/categories";
 import { slugify } from "@/lib/slugify";
 import { geocodePostcode } from "@/lib/geocode";
-import { parseDimensions } from "@/lib/shipping-calculator";
+import { bandsForWork } from "@/components/browse/SizeBands";
 import Button from "@/components/Button";
 import BrowseArtistCard from "@/components/BrowseArtistCard";
 import CollectionCard from "@/components/CollectionCard";
 import ArtworkThumb from "@/components/ArtworkThumb";
 import SearchBar from "@/components/SearchBar";
 import PostcodeInput, { readPersistedCoords, clearPersistedLocation } from "@/components/PostcodeInput";
-
-/** Map the largest dimension in cm to a size band id. */
-function bandForCm(largestCm: number): "small" | "medium" | "large" | "xl" {
-  if (largestCm <= 30) return "small";
-  if (largestCm <= 60) return "medium";
-  if (largestCm <= 100) return "large";
-  return "xl";
-}
-
-/** Return the set of size bands a work matches across ALL of its
- *  pricing options + the work-level dimensions. A work that ships in
- *  A4, A2, A0 should match Small, Medium AND Extra-large filters,
- *  not just whichever size happens to be biggest. Work-level
- *  dimensions are also added so legacy single-size works still
- *  classify correctly. Empty result = unparseable, falls back to
- *  "medium" (matches just the medium filter, generous default).
- */
-function bandsForWork(work: { dimensions: string; pricing: { label: string }[] }): Set<"small" | "medium" | "large" | "xl"> {
-  const bands = new Set<"small" | "medium" | "large" | "xl">();
-  const candidates: string[] = [];
-  if (work.dimensions) candidates.push(work.dimensions);
-  for (const p of work.pricing || []) {
-    if (p?.label) candidates.push(p.label);
-  }
-  for (const c of candidates) {
-    const d = parseDimensions(c);
-    if (!d) continue;
-    const largest = Math.max(d.widthCm, d.heightCm);
-    bands.add(bandForCm(largest));
-  }
-  if (bands.size === 0) bands.add("medium");
-  return bands;
-}
+import {
+  ANY_DISTANCE,
+  DEFAULT_MAX_DISTANCE,
+  parseLocationParams,
+  serializeLocationParams,
+  type ParsedLocation,
+} from "./locationParams";
 
 /** Haversine great-circle distance in miles */
 function calcDistance(
@@ -91,7 +65,6 @@ const DISTANCE_OPTIONS = [
 
 interface Filters {
   mode: "local" | "global";
-  maxDistance: number;
   themes: string[];
   originals: boolean;
   prints: boolean;
@@ -115,11 +88,9 @@ const DEFAULT_FILTERS: Filters = {
   // a location; without a location, the filter logic bails out so
   // results are still global until a postcode/geo lands.
   //
-  // Default distance is 25 miles, once a buyer's set their
-  // location they almost always want a near-only first result set,
-  // and the slider goes up to "Anywhere" if they want more.
+  // `maxDistance` lives in the URL (loc params) so it survives the
+  // view-switch links, see locationParams.ts and Plan C Task 8.
   mode: "local",
-  maxDistance: 25,
   themes: [],
   originals: false,
   prints: false,
@@ -218,6 +189,12 @@ function BrowsePortfoliosPageInner() {
   // viewAs / activeDiscipline state. Without it the marketplace nav
   // tabs (which key off `?view=`) didn't update when the user
   // switched via the in-page pills.
+  //
+  // Plan C #2.8: merge the new `view` into the existing search
+  // params so location filter params (loc_lat / loc_lng / etc.)
+  // survive a view switch. Previously this overwrote the whole
+  // query string, so setting "Within 10km" on Galleries and tabbing
+  // to Collections wiped the filter.
   const switchView = useCallback((target: "gallery" | "portfolios" | "collections") => {
     if (target === "gallery") {
       setViewAs("works");
@@ -228,10 +205,13 @@ function BrowsePortfoliosPageInner() {
     } else {
       setActiveDiscipline("collections");
     }
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    if (target === "gallery") params.delete("view");
+    else params.set("view", target);
+    const qs = params.toString();
     // replace (not push) so toggling doesn't bloat the back-stack.
-    const target_qs = target === "gallery" ? "" : `?view=${target}`;
-    router.replace(`/browse${target_qs}`, { scroll: false });
-  }, [router]);
+    router.replace(`/browse${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [router, searchParams]);
   // Reset pagination when switching views / categories so users don't land
   // on an empty grid if they scroll back to a narrow filter.
   useEffect(() => {
@@ -284,20 +264,89 @@ function BrowsePortfoliosPageInner() {
   // DB fetch lands a moment later.
   const [dataReady, setDataReady] = useState(false);
 
-  // User location state. Hydrated from localStorage on mount via
-  // useEffect (kept out of the lazy initialiser so we don't
-  // hydrate-mismatch SSR + client). Without this, navigating away
-  // from /browse and back wiped the user's location every time.
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // User location state. Lives in the URL (loc_lat / loc_lng /
+  // loc_label / maxDistance) so it survives the `?view=` switch
+  // links and is shareable / back-forward friendly. See
+  // Plan C #2.8 + locationParams.ts.
+  //
+  // localStorage is still used as a one-time hydration source: if a
+  // user lands on /browse with no location params but had one stored
+  // last visit, we re-write it to the URL on mount. Subsequent
+  // changes are URL-driven.
+  const parsedLocation = useMemo(
+    () => parseLocationParams(searchParams),
+    [searchParams],
+  );
+  const userCoords = parsedLocation.coords;
+  const postcodeInput = parsedLocation.label;
+  const maxDistance = parsedLocation.maxDistance;
+
   const [geoRequesting, setGeoRequesting] = useState(false);
-  const [postcodeInput, setPostcodeInput] = useState("");
   const [postcodeError, setPostcodeError] = useState(false);
+
+  /** Write the desired location into the URL, merging with any
+   *  non-location params already there (`view`, etc.). */
+  const setLocation = useCallback(
+    (next: ParsedLocation) => {
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+      const merged = serializeLocationParams(next, params);
+      const qs = merged.toString();
+      router.replace(qs ? `?${qs}` : "/browse", { scroll: false });
+    },
+    [searchParams, router],
+  );
+
+  // Helper for the common "user just resolved a location" path
+  // (postcode geocode or geolocation success). Keeps maxDistance
+  // intact so a buyer that had set "Within 10mi" doesn't see it
+  // jump back to the default when they re-enter their postcode.
+  const updateLocationCoords = useCallback(
+    (coords: { lat: number; lng: number }, label: string) => {
+      setLocation({ coords, label, maxDistance: parsedLocation.maxDistance });
+    },
+    [setLocation, parsedLocation.maxDistance],
+  );
+
+  /** Drop location entirely. Mirrors the "change postcode" UI. */
+  const clearLocation = useCallback(() => {
+    setLocation({ coords: null, label: "", maxDistance: DEFAULT_MAX_DISTANCE });
+    clearPersistedLocation();
+  }, [setLocation]);
+
+  /** Just the maxDistance dimension. Coords + label stay put. */
+  const setMaxDistance = useCallback(
+    (n: number) => {
+      // No-op if no location is set, the slider isn't visible in
+      // that state but this guards against e.g. a deep link writing
+      // a stale maxDistance into a no-coords URL.
+      if (!parsedLocation.coords) return;
+      setLocation({ ...parsedLocation, maxDistance: Math.max(0, n) });
+    },
+    [parsedLocation, setLocation],
+  );
+
+  // Hydrate from localStorage on first mount when the URL itself is
+  // location-less. This keeps the existing UX where a returning
+  // visitor doesn't re-enter their postcode, while still letting a
+  // shared URL with explicit loc_* params win over the stored value.
+  // Run-once flag (a ref would do too) keeps a re-hydrate from
+  // firing if the user clears the location, since `parsedLocation`
+  // becomes coords:null again.
+  const hydratedFromStorageRef = useRef(false);
   useEffect(() => {
+    if (hydratedFromStorageRef.current) return;
+    hydratedFromStorageRef.current = true;
+    if (parsedLocation.coords) return; // URL is the source of truth
     const stored = readPersistedCoords();
     if (stored) {
-      setUserCoords(stored.coords);
-      if (stored.label) setPostcodeInput(stored.label);
+      setLocation({
+        coords: stored.coords,
+        label: stored.label ?? "",
+        maxDistance: parsedLocation.maxDistance,
+      });
     }
+    // Intentionally only run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch merged artists (static + database) on mount.
@@ -394,7 +443,15 @@ function BrowsePortfoliosPageInner() {
     }));
   }
 
-  const clearAll = () => setFilters(DEFAULT_FILTERS);
+  const clearAll = () => {
+    setFilters(DEFAULT_FILTERS);
+    // Match the pre-Plan-C behaviour: clear-all resets the distance
+    // slider back to the default but keeps the user's coords (so a
+    // postcode they typed once doesn't get wiped on a single click).
+    if (parsedLocation.coords && parsedLocation.maxDistance !== DEFAULT_MAX_DISTANCE) {
+      setMaxDistance(DEFAULT_MAX_DISTANCE);
+    }
+  };
 
   const requestGeolocation = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -403,7 +460,10 @@ function BrowsePortfoliosPageInner() {
     setGeoRequesting(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        updateLocationCoords(
+          { lat: pos.coords.latitude, lng: pos.coords.longitude },
+          "Current location",
+        );
         setGeoRequesting(false);
       },
       () => {
@@ -411,25 +471,7 @@ function BrowsePortfoliosPageInner() {
       },
       { timeout: 10000 }
     );
-  }, []);
-
-  function handleModeChange(newMode: "local" | "global") {
-    setFilter("mode", newMode);
-    if (newMode === "local" && !userCoords && !geoRequesting) {
-      requestGeolocation();
-    }
-  }
-
-  async function handlePostcodeSubmit() {
-    if (!postcodeInput.trim()) return;
-    const coords = await geocodePostcode(postcodeInput);
-    if (coords) {
-      setUserCoords(coords);
-      setPostcodeError(false);
-    } else {
-      setPostcodeError(true);
-    }
-  }
+  }, [updateLocationCoords]);
 
   const hasActiveFilters =
     // mode is permanently "local" now (toggle removed); the actual
@@ -501,7 +543,7 @@ function BrowsePortfoliosPageInner() {
           artist.coordinates.lat,
           artist.coordinates.lng
         );
-        if (dist > filters.maxDistance) return false;
+        if (dist > maxDistance) return false;
       }
       if (
         filters.themes.length > 0 &&
@@ -568,7 +610,7 @@ function BrowsePortfoliosPageInner() {
       if (!a.isFoundingArtist && b.isFoundingArtist) return 1;
       return 0;
     });
-  }, [artists, filters, userCoords, activeDisciplineObj, activeSubStyles, artistSort]);
+  }, [artists, filters, userCoords, maxDistance, activeDisciplineObj, activeSubStyles, artistSort]);
 
   const allMediums = useMemo(
     () => Array.from(new Set(artists.map((a) => a.primaryMedium))).sort(),
@@ -629,7 +671,7 @@ function BrowsePortfoliosPageInner() {
       // Location
       if (galleryLocationMode === "local" && userCoords && work.artistCoordinates) {
         const dist = calcDistance(userCoords.lat, userCoords.lng, work.artistCoordinates.lat, work.artistCoordinates.lng);
-        if (dist > filters.maxDistance) return false;
+        if (dist > maxDistance) return false;
       }
       return true;
     }).sort((a, b) => {
@@ -675,7 +717,7 @@ function BrowsePortfoliosPageInner() {
       if (!a.artistIsFounding && b.artistIsFounding) return 1;
       return 0;
     });
-  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, gallerySizes, galleryLocationMode, userCoords, filters.maxDistance, activeDisciplineObj, activeSubStyles, gallerySort]);
+  }, [allGalleryWorks, galleryTheme, galleryMedium, galleryStyle, galleryAvailableOnly, galleryPriceMin, galleryPriceMax, galleryOriginals, galleryPrints, galleryFraming, galleryFreeLoan, galleryRevenueShare, galleryRevenueShareMin, galleryPurchase, gallerySizes, galleryLocationMode, userCoords, maxDistance, activeDisciplineObj, activeSubStyles, gallerySort]);
 
   const hasGalleryFilters =
     !!galleryTheme || !!galleryMedium || !!galleryStyle || galleryAvailableOnly || galleryPriceMin > 0 || galleryPriceMax < 1000 || galleryOriginals || galleryPrints || galleryFraming || galleryFreeLoan || galleryRevenueShare || galleryPurchase || !!userCoords || gallerySizes.size > 0;
@@ -692,7 +734,7 @@ function BrowsePortfoliosPageInner() {
         const artist = artists.find((a) => a.slug === c.artistSlug);
         if (!artist?.coordinates) return false;
         const dist = calcDistance(userCoords.lat, userCoords.lng, artist.coordinates.lat, artist.coordinates.lng);
-        if (dist > filters.maxDistance) return false;
+        if (dist > maxDistance) return false;
       }
       // Bundle price.
       if (collectionsPriceMin > 0 && (c.bundlePrice || 0) < collectionsPriceMin) return false;
@@ -708,7 +750,7 @@ function BrowsePortfoliosPageInner() {
       }
       return true;
     });
-  }, [collections, collectionsLocationMode, userCoords, artists, filters.maxDistance, collectionsPriceMin, collectionsPriceMax, collectionsFreeLoan, collectionsRevShare, collectionsPurchase]);
+  }, [collections, collectionsLocationMode, userCoords, artists, maxDistance, collectionsPriceMin, collectionsPriceMax, collectionsFreeLoan, collectionsRevShare, collectionsPurchase]);
 
   const hasCollectionsFilters =
     collectionsLocationMode === "local" ||
@@ -779,7 +821,7 @@ function BrowsePortfoliosPageInner() {
                 Location set
                 <button
                   type="button"
-                  onClick={() => { clearPersistedLocation(); setUserCoords(null); setPostcodeInput(""); setPostcodeError(false); }}
+                  onClick={() => { clearLocation(); setPostcodeError(false); }}
                   className="ml-1 text-[10px] text-muted underline cursor-pointer"
                 >
                   change
@@ -792,8 +834,7 @@ function BrowsePortfoliosPageInner() {
                 <PostcodeInput
                   initial={postcodeInput}
                   onGeocoded={(coords, pc) => {
-                    setUserCoords(coords);
-                    setPostcodeInput(pc);
+                    updateLocationCoords(coords, pc);
                     setPostcodeError(false);
                   }}
                   onError={(failed) => setPostcodeError(failed)}
@@ -807,7 +848,7 @@ function BrowsePortfoliosPageInner() {
             {userCoords && (
               <div>
                 <p className="text-xs text-muted mb-2">
-                  Within {filters.maxDistance >= 9999 ? "any distance" : `${filters.maxDistance} mi`}
+                  Within {maxDistance >= 9999 ? "any distance" : `${maxDistance} mi`}
                 </p>
                 <div className="space-y-2.5">
                   <input
@@ -815,10 +856,10 @@ function BrowsePortfoliosPageInner() {
                     min={0}
                     max={200}
                     step={1}
-                    value={filters.maxDistance >= 9999 ? 200 : filters.maxDistance}
+                    value={maxDistance >= 9999 ? 200 : maxDistance}
                     onChange={(e) => {
                       const v = Number(e.target.value);
-                      setFilter("maxDistance", v >= 200 ? 9999 : v);
+                      setMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                     }}
                     className="w-full accent-accent h-1.5 cursor-pointer"
                   />
@@ -827,12 +868,12 @@ function BrowsePortfoliosPageInner() {
                       type="number"
                       min={0}
                       max={9999}
-                      value={filters.maxDistance >= 9999 ? "" : filters.maxDistance}
+                      value={maxDistance >= 9999 ? "" : maxDistance}
                       placeholder="Any"
                       onChange={(e) => {
                         const raw = e.target.value;
-                        if (raw === "") { setFilter("maxDistance", 9999); return; }
-                        setFilter("maxDistance", Math.max(0, Number(raw) || 0));
+                        if (raw === "") { setMaxDistance(ANY_DISTANCE); return; }
+                        setMaxDistance(Math.max(0, Number(raw) || 0));
                       }}
                       className="w-20 px-2 py-1 text-xs bg-surface border border-border rounded-sm text-foreground focus:outline-none focus:border-accent/50"
                     />
@@ -1478,7 +1519,7 @@ function BrowsePortfoliosPageInner() {
                     {userCoords && (
                       <div>
                         <p className="text-xs text-muted mb-2">
-                          Within {filters.maxDistance >= 9999 ? "any distance" : `${filters.maxDistance} mi`}
+                          Within {maxDistance >= 9999 ? "any distance" : `${maxDistance} mi`}
                         </p>
                         <div className="space-y-2.5">
                           <input
@@ -1486,10 +1527,10 @@ function BrowsePortfoliosPageInner() {
                             min={0}
                             max={200}
                             step={1}
-                            value={filters.maxDistance >= 9999 ? 200 : filters.maxDistance}
+                            value={maxDistance >= 9999 ? 200 : maxDistance}
                             onChange={(e) => {
                               const v = Number(e.target.value);
-                              setFilter("maxDistance", v >= 200 ? 9999 : v);
+                              setMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                             }}
                             className="w-full accent-accent h-1.5 cursor-pointer"
                           />
@@ -1498,18 +1539,18 @@ function BrowsePortfoliosPageInner() {
                               type="number"
                               min={0}
                               max={9999}
-                              value={filters.maxDistance >= 9999 ? "" : filters.maxDistance}
+                              value={maxDistance >= 9999 ? "" : maxDistance}
                               placeholder="Any"
                               onChange={(e) => {
                                 const raw = e.target.value;
-                                if (raw === "") { setFilter("maxDistance", 9999); return; }
-                                setFilter("maxDistance", Math.max(0, Number(raw) || 0));
+                                if (raw === "") { setMaxDistance(ANY_DISTANCE); return; }
+                                setMaxDistance(Math.max(0, Number(raw) || 0));
                               }}
                               className="w-20 px-2 py-1 text-xs bg-surface border border-border rounded-sm text-foreground focus:outline-none focus:border-accent/50"
                             />
                             <button
                               type="button"
-                              onClick={() => { clearPersistedLocation(); setUserCoords(null); setPostcodeInput(""); setPostcodeError(false); }}
+                              onClick={() => { clearLocation(); setPostcodeError(false); }}
                               className="text-[11px] text-muted underline hover:text-foreground"
                             >
                               Change postcode
@@ -1524,8 +1565,7 @@ function BrowsePortfoliosPageInner() {
                         <PostcodeInput
                           initial={postcodeInput}
                           onGeocoded={(coords, pc) => {
-                            setUserCoords(coords);
-                            setPostcodeInput(pc);
+                            updateLocationCoords(coords, pc);
                             setPostcodeError(false);
                           }}
                           onError={(failed) => setPostcodeError(failed)}
@@ -1762,24 +1802,24 @@ function BrowsePortfoliosPageInner() {
                             Location set
                             <button
                               type="button"
-                              onClick={() => { clearPersistedLocation(); setUserCoords(null); setPostcodeInput(""); setPostcodeError(false); }}
+                              onClick={() => { clearLocation(); setPostcodeError(false); }}
                               className="ml-1 text-[10px] text-muted underline cursor-pointer"
                             >
                               change
                             </button>
                           </p>
                           <p className="text-[10px] text-muted mb-1.5">
-                            Within {filters.maxDistance >= 9999 ? "any distance" : `${filters.maxDistance} mi`}
+                            Within {maxDistance >= 9999 ? "any distance" : `${maxDistance} mi`}
                           </p>
                           <input
                             type="range"
                             min={0}
                             max={200}
                             step={1}
-                            value={filters.maxDistance >= 9999 ? 200 : filters.maxDistance}
+                            value={maxDistance >= 9999 ? 200 : maxDistance}
                             onChange={(e) => {
                               const v = Number(e.target.value);
-                              setFilter("maxDistance", v >= 200 ? 9999 : v);
+                              setMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                             }}
                             className="w-full accent-accent h-1.5 cursor-pointer"
                           />
@@ -1791,8 +1831,7 @@ function BrowsePortfoliosPageInner() {
                           <PostcodeInput
                             initial={postcodeInput}
                             onGeocoded={(coords, pc) => {
-                              setUserCoords(coords);
-                              setPostcodeInput(pc);
+                              updateLocationCoords(coords, pc);
                               setPostcodeError(false);
                             }}
                             onError={(failed) => setPostcodeError(failed)}
@@ -2145,7 +2184,7 @@ function BrowsePortfoliosPageInner() {
                     Location set
                     <button
                       type="button"
-                      onClick={() => { clearPersistedLocation(); setUserCoords(null); setPostcodeInput(""); setPostcodeError(false); }}
+                      onClick={() => { clearLocation(); setPostcodeError(false); }}
                       className="ml-1 text-[10px] text-muted underline cursor-pointer"
                     >
                       change
@@ -2153,17 +2192,17 @@ function BrowsePortfoliosPageInner() {
                   </p>
                   <div>
                     <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">
-                      Within {filters.maxDistance >= 9999 ? "any distance" : `${filters.maxDistance} mi`}
+                      Within {maxDistance >= 9999 ? "any distance" : `${maxDistance} mi`}
                     </p>
                     <input
                       type="range"
                       min={0}
                       max={200}
                       step={1}
-                      value={filters.maxDistance >= 9999 ? 200 : filters.maxDistance}
+                      value={maxDistance >= 9999 ? 200 : maxDistance}
                       onChange={(e) => {
                         const v = Number(e.target.value);
-                        setFilter("maxDistance", v >= 200 ? 9999 : v);
+                        setMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                       }}
                       className="w-full accent-accent h-1.5 cursor-pointer"
                     />
@@ -2176,8 +2215,7 @@ function BrowsePortfoliosPageInner() {
                   <PostcodeInput
                     initial={postcodeInput}
                     onGeocoded={(coords, pc) => {
-                      setUserCoords(coords);
-                      setPostcodeInput(pc);
+                      updateLocationCoords(coords, pc);
                       setPostcodeError(false);
                     }}
                     onError={(failed) => setPostcodeError(failed)}
@@ -2214,17 +2252,17 @@ function BrowsePortfoliosPageInner() {
                 {userCoords && (
                   <div className="hidden lg:block min-w-[180px]">
                     <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">
-                      Within {filters.maxDistance >= 9999 ? "any" : `${filters.maxDistance} mi`}
+                      Within {maxDistance >= 9999 ? "any" : `${maxDistance} mi`}
                     </p>
                     <input
                       type="range"
                       min={0}
                       max={200}
                       step={1}
-                      value={filters.maxDistance >= 9999 ? 200 : filters.maxDistance}
+                      value={maxDistance >= 9999 ? 200 : maxDistance}
                       onChange={(e) => {
                         const v = Number(e.target.value);
-                        setFilter("maxDistance", v >= 200 ? 9999 : v);
+                        setMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                       }}
                       className="w-full accent-accent h-1.5 cursor-pointer"
                     />
@@ -2236,8 +2274,7 @@ function BrowsePortfoliosPageInner() {
                     <PostcodeInput
                       initial={postcodeInput}
                       onGeocoded={(coords, pc) => {
-                        setUserCoords(coords);
-                        setPostcodeInput(pc);
+                        updateLocationCoords(coords, pc);
                         setPostcodeError(false);
                       }}
                       onError={(failed) => setPostcodeError(failed)}

@@ -178,12 +178,15 @@ export default function VenueWallEditorPage({
         method: "DELETE",
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (!res.ok && res.status !== 204) {
-        throw new Error(`Delete failed (${res.status})`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || `Could not delete (status ${res.status}).`);
+        return;
       }
       router.push("/venue-portal/walls");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Could not delete wall");
+    } finally {
       setDeleting(false);
       setDeleteOpen(false);
     }

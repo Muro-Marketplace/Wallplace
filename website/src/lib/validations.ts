@@ -129,7 +129,7 @@ export const placementSchema = z.object({
   workImage: optionalString(1000),
   venueSlug: safeString(100),
   venue: optionalString(200),
-  type: z.enum(["free_loan", "revenue_share", "purchase"]),
+  type: z.enum(["free_loan", "paid_loan", "revenue_share", "purchase"]),
   revenueSharePercent: z.number().min(0).max(100).optional(),
   status: z.enum(["pending", "active", "declined", "completed", "paused"]).optional(),
   revenue: z.number().min(0).optional(),
@@ -167,7 +167,7 @@ export const placementUpdateSchema = z.object({
     revenueSharePercent: z.number().min(0).max(100).optional(),
     qrEnabled: z.boolean().optional(),
     monthlyFeeGbp: z.number().min(0).max(100000).optional(),
-    arrangementType: z.enum(["free_loan", "revenue_share", "purchase"]).optional(),
+    arrangementType: z.enum(["free_loan", "paid_loan", "revenue_share", "purchase"]).optional(),
     message: optionalString(2000),
   }).optional(),
 });

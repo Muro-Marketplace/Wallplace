@@ -53,7 +53,12 @@ interface Message {
 
 interface MessageInboxProps {
   userSlug: string;
-  portalType: "artist" | "venue";
+  // "customer" is treated as a non-artist outreach role — functionally
+  // identical to "venue" for thread/UI purposes (the customer initiates
+  // conversations with artists). The API still resolves the real sender
+  // role server-side from the user's profile, so this prop only affects
+  // client-side rendering and the (unused) hint passed in `senderType`.
+  portalType: "artist" | "venue" | "customer";
   initialArtistSlug?: string;
   initialArtistName?: string;
   works?: ArtistWork[];
@@ -73,6 +78,11 @@ function Avatar({ src, name, size = 36 }: { src?: string | null; name: string; s
 }
 
 export default function MessageInbox({ userSlug, portalType, initialArtistSlug, initialArtistName, works }: MessageInboxProps) {
+  // For sub-components and the messages API that only know "artist" | "venue",
+  // collapse "customer" into "venue" — customers behave like venues from the
+  // thread's perspective (non-artist outreach). The server still derives the
+  // real sender role from the user's profile, so this is a UI-only coercion.
+  const portalRole: "artist" | "venue" = portalType === "artist" ? "artist" : "venue";
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConv, setSelectedConv] = useState<string | null>(null);
@@ -435,7 +445,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
         body: JSON.stringify({
           conversationId: selectedConv,
           senderName: userSlug,
-          senderType: portalType,
+          senderType: portalRole,
           recipientSlug: selectedConvData.otherParty,
           content: trimmed,
           attachments: pendingAttachments,
@@ -452,7 +462,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
         conversation_id: selectedConv,
         sender_id: user?.id || null,
         sender_name: userSlug,
-        sender_type: portalType,
+        sender_type: portalRole,
         recipient_slug: selectedConvData.otherParty,
         content: trimmed,
         attachments: pendingAttachments,
@@ -483,7 +493,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           senderName: userSlug,
-          senderType: portalType,
+          senderType: portalRole,
           recipientSlug: composeRecipient,
           content: composeMessage.trim(),
         }),
@@ -1488,7 +1498,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                 otherPartyName={selectedConvData.otherPartyDisplayName}
                 otherPartyType={selectedOtherPartyType}
                 otherPartyImage={selectedConvData.otherPartyImage}
-                portalType={portalType}
+                portalType={portalRole}
                 userId={user?.id}
                 otherPartyWorks={otherPartyWorks}
                 otherPartyWorksLoading={otherWorksLoading}
