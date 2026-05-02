@@ -4,6 +4,7 @@ import { checkoutSchema } from "@/lib/validations";
 import { calculateOrderShipping } from "@/lib/shipping-checkout";
 import { regionForCountry, isSupportedCountry } from "@/lib/iso-countries";
 import { saveCartSession } from "@/lib/cart-sessions";
+import { canArtistAcceptOrders } from "@/lib/stripe-connect-status";
 
 export async function POST(request: Request) {
   try {
@@ -53,6 +54,27 @@ export async function POST(request: Request) {
       );
     }
     const region = regionForCountry(shipping.country);
+
+    // Pre-flight Stripe Connect status — refuse to mint a session if any
+    // artist in the cart isn't charges_enabled. Without this, money lands
+    // in Stripe but can't be paid out (escrow) until KYC completes.
+    const uniqueArtistSlugs = [...new Set(items.map((i) => i.artistSlug || "").filter(Boolean))];
+    const checks = await Promise.all(
+      uniqueArtistSlugs.map(async (slug) => ({ slug, ok: await canArtistAcceptOrders(slug) })),
+    );
+    const blocked = checks.filter((c) => !c.ok).map((c) => c.slug);
+    if (blocked.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            blocked.length === 1
+              ? `${blocked[0]} isn't ready to take orders yet — try again in a few minutes.`
+              : `${blocked.length} artists in this cart aren't ready to take orders yet.`,
+          blocked,
+        },
+        { status: 422 },
+      );
+    }
     const { totalShipping } = calculateOrderShipping(
       items.map((it) => ({
         artistSlug: it.artistSlug || "",

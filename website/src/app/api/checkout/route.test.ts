@@ -1,11 +1,16 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { stripeCreate } = vi.hoisted(() => ({
+const { stripeCreate, canArtistAcceptOrdersMock } = vi.hoisted(() => ({
   stripeCreate: vi.fn(async () => ({ url: "https://stripe.example/session" })),
+  canArtistAcceptOrdersMock: vi.fn(async () => true),
 }));
 
 vi.mock("@/lib/stripe", () => ({
   stripe: { checkout: { sessions: { create: stripeCreate } } },
+}));
+
+vi.mock("@/lib/stripe-connect-status", () => ({
+  canArtistAcceptOrders: canArtistAcceptOrdersMock,
 }));
 
 vi.mock("@/lib/shipping-checkout", () => ({
@@ -26,6 +31,8 @@ import { POST } from "./route";
 
 beforeEach(() => {
   stripeCreate.mockClear();
+  canArtistAcceptOrdersMock.mockReset();
+  canArtistAcceptOrdersMock.mockResolvedValue(true);
 });
 
 function req(body: unknown): Request {
@@ -104,5 +111,30 @@ describe("POST /api/checkout country guard", () => {
       shipping: { ...baseShipping, country: "United Kingdom" },
     }));
     expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/checkout Stripe Connect pre-flight", () => {
+  it("rejects with 422 when an artist isn't charges_enabled", async () => {
+    canArtistAcceptOrdersMock.mockResolvedValue(false);
+    const res = await POST(req({
+      items: [baseItem],
+      shipping: { ...baseShipping, country: "GB" },
+    }));
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body.error).toMatch(/alice/i);
+    expect(body.blocked).toEqual(["alice"]);
+    expect(stripeCreate).not.toHaveBeenCalled();
+  });
+
+  it("permits checkout when all artists are ready", async () => {
+    canArtistAcceptOrdersMock.mockResolvedValue(true);
+    const res = await POST(req({
+      items: [baseItem],
+      shipping: { ...baseShipping, country: "GB" },
+    }));
+    expect(res.status).toBe(200);
+    expect(stripeCreate).toHaveBeenCalled();
   });
 });
