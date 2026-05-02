@@ -227,9 +227,12 @@ export default function Header() {
     if (!msgDropdownOpen && user) fetchUnread();
   }, [msgDropdownOpen, user, fetchUnread]);
 
-  // Load notifications from the persistent notifications table, with a fallback
-  // to derived placements/messages data for environments where the table
-  // does not yet exist or has no rows.
+  // Load notifications from the persistent notifications table.
+  // The legacy fallback that derived rows from /api/placements + /api/messages
+  // was removed because it could fabricate notifications that aren't in the
+  // DB and link to stale ids. The placement/message endpoints now write
+  // proper notification rows; an empty table is a real "no notifications"
+  // state.
   useEffect(() => {
     if (!notifDropdownOpen || !user) return;
     async function loadNotifs() {
@@ -237,47 +240,13 @@ export default function Header() {
         const res = await authFetch("/api/notifications");
         const data = await res.json();
         const rows = Array.isArray(data.notifications) ? data.notifications : [];
-        if (rows.length > 0) {
-          setNotifications(rows.slice(0, 12));
-          return;
-        }
-      } catch { /* fall through to derived */ }
-
-      if (!resolvedSlug) return;
-      const notifs: typeof notifications = [];
-      try {
-        const placementsRes = await authFetch("/api/placements");
-        const placementsData = await placementsRes.json();
-        for (const p of (placementsData.placements || []).slice(0, 10)) {
-          // Suppress notifications for placement requests *this user sent*
-          //, they already know they sent it. Same applies to accept /
-          // decline actions they performed themselves.
-          const iAmRequester = p.requester_user_id && p.requester_user_id === user?.id;
-          // Deep-link each placement-related notification to the full
-          // placement page so clicking it lands on the specific deal.
-          const placementLink = `/placements/${encodeURIComponent(p.id)}`;
-          if (p.status === "pending" && !iAmRequester) {
-            notifs.push({ id: p.id, type: "placement", title: "Placement Request", description: `${p.work_title || "Artwork"}, ${p.venue || p.artist_slug || ""}`, time: p.created_at, link: placementLink });
-          } else if (p.status === "active" && p.responded_at && iAmRequester) {
-            // Requester hears back on their request being accepted.
-            notifs.push({ id: p.id + "-a", type: "placement_accepted", title: "Placement Accepted", description: `${p.work_title || "Artwork"}, ${p.venue || p.artist_slug || ""}`, time: p.responded_at, link: placementLink });
-          } else if (p.status === "declined" && p.responded_at && iAmRequester) {
-            notifs.push({ id: p.id + "-d", type: "placement_declined", title: "Placement Declined", description: `${p.work_title || "Artwork"}, ${p.venue || p.artist_slug || ""}`, time: p.responded_at, link: placementLink });
-          }
-        }
-        const msgsRes = await authFetch(`/api/messages?slug=${resolvedSlug}`);
-        const msgsData = await msgsRes.json();
-        for (const c of (msgsData.conversations || []).slice(0, 5)) {
-          if (c.unreadCount > 0) {
-            notifs.push({ id: "msg-" + c.conversationId, type: "message", title: "New Message", description: `${c.otherPartyDisplayName || c.otherParty}: ${c.latestMessage}`.slice(0, 80), time: c.lastActivity, link: `${portalBase}/messages` });
-          }
-        }
-      } catch { /* empty */ }
-      notifs.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-      setNotifications(notifs.slice(0, 12));
+        setNotifications(rows.slice(0, 12));
+      } catch {
+        setNotifications([]);
+      }
     }
     loadNotifs();
-  }, [notifDropdownOpen, user, resolvedSlug, portalBase]);
+  }, [notifDropdownOpen, user]);
 
   // Close dropdowns on click outside
   useEffect(() => {
