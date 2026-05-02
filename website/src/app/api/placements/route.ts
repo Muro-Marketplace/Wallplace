@@ -955,8 +955,10 @@ export async function PATCH(request: Request) {
           const terms: string[] = [];
           if (counter.arrangementType === "revenue_share" && counter.revenueSharePercent !== undefined) {
             terms.push(`Revenue share: ${counter.revenueSharePercent}% to the venue`);
-          } else if (counter.arrangementType === "free_loan") {
+          } else if (counter.arrangementType === "paid_loan") {
             terms.push("Paid loan arrangement");
+          } else if (counter.arrangementType === "free_loan") {
+            terms.push("Free loan arrangement");
           } else if (counter.arrangementType === "purchase") {
             terms.push("Purchase arrangement");
           } else if (counter.revenueSharePercent !== undefined) {
