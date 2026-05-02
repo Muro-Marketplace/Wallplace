@@ -50,5 +50,17 @@ export async function getAdminUser(request: Request) {
     };
   }
 
+  // Defence in depth: even if the email is allowlisted, require
+  // user_metadata.user_type === "admin". Blocks an attacker who
+  // compromises an allowlisted email but cannot also set the metadata
+  // field through the admin API.
+  const role = (user.user_metadata as { user_type?: unknown } | null)?.user_type;
+  if (role !== "admin") {
+    return {
+      user: null,
+      error: NextResponse.json({ error: "Admin access required" }, { status: 403 }),
+    };
+  }
+
   return { user, error: null };
 }
