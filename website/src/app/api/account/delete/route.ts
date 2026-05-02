@@ -28,6 +28,13 @@
 // requests/responses/commissions from 046, feature_requests from 044,
 // placement_records/photos/archives/reviews, terms/email/curation rows)
 // are now included.
+//
+// Known gap: email-keyed PII tables (newsletter_subscribers,
+// email_suppressions, email_events rows with user_id IS NULL) are
+// NOT erased here. They persist by-design until a follow-up plan
+// adds an email-keyed deletion pass. The auth user's email itself
+// IS erased by auth.admin.deleteUser, but copies in the email
+// pipeline tables persist.
 
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/api-auth";
@@ -45,6 +52,8 @@ const TABLES_USER_ID: Array<{ table: string; col: string }> = [
   { table: "notifications", col: "user_id" },
   { table: "feature_request_upvotes", col: "user_id" },
   { table: "feature_requests", col: "user_id" },
+  { table: "artist_referrals", col: "referrer_user_id" },
+  { table: "artist_referrals", col: "referred_user_id" },
 
   // Messaging
   { table: "messages", col: "sender_id" },
@@ -95,17 +104,17 @@ export async function POST(request: Request) {
   const auth = await getAuthenticatedUser(request);
   if (auth.error) return auth.error;
 
-  let body: { confirm?: string } = {};
+  // request.json() returns null (not an exception) when the body is
+  // literal JSON `null`, so we must defensively guard against `body`
+  // being null/undefined before reading `body.confirm`.
+  let body: { confirm?: string } | null = {};
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: `To confirm, the body must contain { "confirm": "${CONFIRM_STRING}" }.` },
-      { status: 400 },
-    );
+    /* fall through — body stays {} and the confirm check below will fail */
   }
 
-  if (body.confirm !== CONFIRM_STRING) {
+  if (!body || body.confirm !== CONFIRM_STRING) {
     return NextResponse.json(
       { error: `To confirm, the body must contain { "confirm": "${CONFIRM_STRING}" }.` },
       { status: 400 },

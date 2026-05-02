@@ -85,6 +85,19 @@ describe("POST /api/account/delete", () => {
     expect(mockDeleteUser).not.toHaveBeenCalled();
   });
 
+  it("rejects when JSON body is literal null (not 500)", async () => {
+    // request.json() returns null (not an exception) for body "null", which
+    // would crash on body.confirm if not guarded. Must return 400, not 500.
+    const r = new Request("http://localhost/api/account/delete", {
+      method: "POST",
+      headers: { authorization: "Bearer valid", "content-type": "application/json" },
+      body: "null",
+    });
+    const res = await POST(r);
+    expect(res.status).toBe(400);
+    expect(mockDeleteUser).not.toHaveBeenCalled();
+  });
+
   it("deletes every user-owned table row, then the auth user", async () => {
     const res = await POST(req("Bearer valid"));
     expect(res.status).toBe(200);
