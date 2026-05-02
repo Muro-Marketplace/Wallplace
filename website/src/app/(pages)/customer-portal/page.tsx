@@ -6,6 +6,7 @@ import EmptyState from "@/components/EmptyState";
 import OrderStatusTracker from "@/components/OrderStatusTracker";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
+import { detectCarrierUrl } from "@/lib/carrier-tracking";
 
 function safeArray(val: unknown): { title: string; qty: number; price: number; artistSlug?: string }[] {
   if (Array.isArray(val)) return val;
@@ -130,9 +131,26 @@ export default function CustomerPortalPage() {
             statusHistory={selected.status_history || []}
           />
 
-          {selected.tracking_number && (
-            <p className="text-sm text-muted mt-4">Tracking: <span className="text-foreground font-medium">{selected.tracking_number}</span></p>
-          )}
+          {selected.tracking_number && (() => {
+            const url = detectCarrierUrl(selected.tracking_number);
+            return (
+              <p className="text-sm text-muted mt-4">
+                Tracking:{" "}
+                {url ? (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent font-medium hover:underline"
+                  >
+                    {selected.tracking_number} ↗
+                  </a>
+                ) : (
+                  <span className="text-foreground font-medium">{selected.tracking_number}</span>
+                )}
+              </p>
+            );
+          })()}
 
           <div className="mt-6 space-y-3">
             <p className="text-xs text-muted uppercase tracking-wider">Items</p>

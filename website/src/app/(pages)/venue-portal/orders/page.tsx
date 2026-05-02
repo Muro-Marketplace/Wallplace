@@ -7,6 +7,7 @@ import VenuePortalLayout from "@/components/VenuePortalLayout";
 import EmptyState from "@/components/EmptyState";
 import OrderStatusTracker from "@/components/OrderStatusTracker";
 import { authFetch } from "@/lib/api-client";
+import { detectCarrierUrl } from "@/lib/carrier-tracking";
 
 interface Order {
   id: string;
@@ -139,9 +140,26 @@ function VenueOrdersContent() {
 
           <OrderStatusTracker currentStatus={selected.status || "confirmed"} statusHistory={selected.status_history || []} />
 
-          {selected.tracking_number && (
-            <p className="text-sm text-muted mt-4">Tracking: <span className="text-foreground font-medium">{selected.tracking_number}</span></p>
-          )}
+          {selected.tracking_number && (() => {
+            const url = detectCarrierUrl(selected.tracking_number);
+            return (
+              <p className="text-sm text-muted mt-4">
+                Tracking:{" "}
+                {url ? (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent font-medium hover:underline"
+                  >
+                    {selected.tracking_number} ↗
+                  </a>
+                ) : (
+                  <span className="text-foreground font-medium">{selected.tracking_number}</span>
+                )}
+              </p>
+            );
+          })()}
 
           <div className="mt-6 space-y-2">
             <p className="text-xs text-muted uppercase tracking-wider">Items</p>
