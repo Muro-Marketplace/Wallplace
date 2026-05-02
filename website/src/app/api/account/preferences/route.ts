@@ -12,6 +12,15 @@
 // and unknown keys are silently dropped, and a body with no valid fields
 // returns 400.
 //
+// Known gap (customer_profiles): the production DB does not currently have
+// a customer_profiles table — the `001_analytics_events.sql` repo migration
+// that defined it was never applied, and the prod bootstrap from
+// `supabase-all-migrations.sql` omits it. So GET/PATCH for customers will
+// hit a non-existent table and return 500. The customer settings page's
+// `useNotificationPrefs` hook swallows the GET error and shows the opt-in
+// defaults, but PATCH will surface the failure. A follow-up plan should
+// either create customer_profiles or remove the customer notif-prefs UI.
+//
 // Security: the user_id used for both read and write comes from the
 // verified bearer token (auth.user.id), never from the request body.
 // Unsupported roles (admin, anything else) return 400.
