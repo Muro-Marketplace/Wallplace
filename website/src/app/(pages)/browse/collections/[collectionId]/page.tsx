@@ -8,6 +8,7 @@ import type { ArtistCollection } from "@/data/collections";
 import type { ArtistWork } from "@/data/artists";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import SaveButton from "@/components/SaveButton";
 import MakeOfferModal from "@/components/offers/MakeOfferModal";
 import { formatDimensionsForDisplay } from "@/lib/format-dimensions";
@@ -136,6 +137,14 @@ export default function CollectionDetailPage() {
 
   return (
     <div>
+      <div className="max-w-[1200px] mx-auto px-6 pt-5">
+        <Breadcrumbs
+          items={[
+            { label: "Collections", href: "/browse?view=collections" },
+            { label: collection.name },
+          ]}
+        />
+      </div>
       {/* Banner */}
       <section className="relative h-64 lg:h-80 overflow-hidden">
         <Image
