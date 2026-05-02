@@ -21,9 +21,10 @@ CREATE TABLE IF NOT EXISTS cart_sessions (
 
 CREATE INDEX IF NOT EXISTS idx_cart_sessions_stripe_session_id
   ON cart_sessions(stripe_session_id);
+-- Full index (not partial); a `WHERE expires_at < now() + …` predicate
+-- can't be used because now() is volatile, not IMMUTABLE.
 CREATE INDEX IF NOT EXISTS idx_cart_sessions_expires_at
-  ON cart_sessions(expires_at)
-  WHERE expires_at < now() + interval '15 days';
+  ON cart_sessions(expires_at);
 
 ALTER TABLE cart_sessions ENABLE ROW LEVEL SECURITY;
 
