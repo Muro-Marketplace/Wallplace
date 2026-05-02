@@ -21,6 +21,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const toastFired = useRef(false);
 
+  // Read ?email=… on mount so the portal-switcher flow (which signs the
+  // user out and redirects here) can pre-fill the email of the account
+  // they're trying to switch into.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const seed = new URLSearchParams(window.location.search).get("email");
+    if (seed) setEmail(seed);
+  }, []);
+
   // Redirect if already logged in. Honours ?next= so a deep link that
   // bounced the user through /login lands them back where they started.
   // We read window.location directly (no useSearchParams) so the page

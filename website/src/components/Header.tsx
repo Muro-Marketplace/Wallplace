@@ -147,6 +147,7 @@ export default function Header() {
   const marketplaceDropdownRef = useRef<HTMLDivElement>(null);
   const [portalDropdownOpen, setPortalDropdownOpen] = useState(false);
   const portalDropdownRef = useRef<HTMLDivElement>(null);
+  const [otherRoles, setOtherRoles] = useState<string[]>([]);
 
   const isMarketplaceArea = pathname.startsWith("/browse") || pathname === "/spaces-looking-for-art";
 
@@ -227,6 +228,30 @@ export default function Header() {
   useEffect(() => {
     if (!msgDropdownOpen && user) fetchUnread();
   }, [msgDropdownOpen, user, fetchUnread]);
+
+  // Load the set of other roles this email is registered under, so the
+  // portal dropdown can offer "Switch to X portal" entries when the same
+  // email has both an artist + a customer account, etc.
+  useEffect(() => {
+    if (!user || !userType) {
+      setOtherRoles([]);
+      return;
+    }
+    let cancelled = false;
+    authFetch("/api/account/roles")
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const roles = Array.isArray(data.roles) ? data.roles : [];
+        setOtherRoles(roles.filter((r: string) => r !== userType));
+      })
+      .catch(() => {
+        if (!cancelled) setOtherRoles([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, userType]);
 
   // Load notifications from the persistent notifications table.
   // The legacy fallback that derived rows from /api/placements + /api/messages
@@ -747,6 +772,30 @@ export default function Header() {
                               </Link>
                             </li>
                           ))}
+                          {otherRoles.length > 0 && (
+                            <li className="border-t border-border mt-1 pt-1">
+                              <p className="px-4 py-1 text-[10px] uppercase tracking-wider text-muted">
+                                Other accounts
+                              </p>
+                              {otherRoles.map((r) => (
+                                <button
+                                  key={r}
+                                  type="button"
+                                  onClick={async () => {
+                                    setPortalDropdownOpen(false);
+                                    const email = user?.email ?? "";
+                                    await signOut();
+                                    router.push(
+                                      `/login?email=${encodeURIComponent(email)}&hint=${encodeURIComponent(r)}`,
+                                    );
+                                  }}
+                                  className="block w-full text-left px-4 py-2 text-sm text-foreground hover:bg-[#FAF8F5] transition-colors"
+                                >
+                                  Switch to {r} portal
+                                </button>
+                              ))}
+                            </li>
+                          )}
                         </ul>
                       </div>
                     );
