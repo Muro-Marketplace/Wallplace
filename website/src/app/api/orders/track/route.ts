@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { verifyOrderToken } from "@/lib/order-tracking-token";
 
 interface DbOrder {
   id: string;
@@ -41,14 +42,35 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const { orderId, email } = (body || {}) as { orderId?: string; email?: string };
-  if (typeof orderId !== "string" || typeof email !== "string") {
-    return NextResponse.json({ error: "orderId and email are required" }, { status: 400 });
-  }
-  const cleanedId = orderId.trim();
-  const cleanedEmail = email.trim().toLowerCase();
-  if (!cleanedId || !cleanedEmail || !cleanedEmail.includes("@")) {
-    return NextResponse.json({ error: "orderId and email are required" }, { status: 400 });
+  const { orderId, email, token } = (body || {}) as {
+    orderId?: string;
+    email?: string;
+    token?: string;
+  };
+
+  // Plan B Task 11: token-first / email-fallback. Tokenized links from
+  // order confirmation emails skip the orderId+email form. Bare email
+  // path stays for legacy receipts (90-day deprecation window before
+  // removal).
+  let cleanedId: string;
+  let cleanedEmail: string;
+  if (typeof token === "string" && token.length > 0) {
+    try {
+      const verified = await verifyOrderToken(token);
+      cleanedId = verified.orderId;
+      cleanedEmail = verified.email.toLowerCase();
+    } catch {
+      return NextResponse.json({ error: "Invalid or expired link" }, { status: 401 });
+    }
+  } else {
+    if (typeof orderId !== "string" || typeof email !== "string") {
+      return NextResponse.json({ error: "orderId and email are required" }, { status: 400 });
+    }
+    cleanedId = orderId.trim();
+    cleanedEmail = email.trim().toLowerCase();
+    if (!cleanedId || !cleanedEmail || !cleanedEmail.includes("@")) {
+      return NextResponse.json({ error: "orderId and email are required" }, { status: 400 });
+    }
   }
 
   const db = getSupabaseAdmin();
