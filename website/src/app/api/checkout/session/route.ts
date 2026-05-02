@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
+import { loadCartSession } from "@/lib/cart-sessions";
 
 export async function GET(request: Request) {
   try {
@@ -14,12 +15,19 @@ export async function GET(request: Request) {
       expand: ["line_items"],
     });
 
+    // Cart + shipping live in cart_sessions (Plan B Task 6); Stripe
+    // metadata is intentionally slim. Fall back gracefully if the row
+    // is missing — older sessions still use legacy metadata.
+    const saved = await loadCartSession(sessionId);
+
     return NextResponse.json({
       id: session.id,
       status: session.payment_status,
       amountTotal: (session.amount_total || 0) / 100,
       customerEmail: session.customer_email,
       metadata: session.metadata,
+      cart: saved?.cart ?? [],
+      shipping: saved?.shipping ?? null,
       lineItems: session.line_items?.data.map((item) => ({
         name: item.description,
         quantity: item.quantity,

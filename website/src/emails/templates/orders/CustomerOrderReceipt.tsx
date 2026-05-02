@@ -18,6 +18,9 @@ export interface CustomerOrderReceiptProps {
   billingAddress: Address;
   shippingAddress: Address;
   supportUrl?: string;
+  /** HMAC token bound to {orderId, email}. When present the
+   *  /orders/track link auto-authenticates the lookup. */
+  trackingToken?: string;
 }
 
 export function CustomerOrderReceipt(p: CustomerOrderReceiptProps) {
@@ -39,10 +42,19 @@ export function CustomerOrderReceipt(p: CustomerOrderReceiptProps) {
           with a Wallplace account. */}
       <Small>
         Don&rsquo;t have a Wallplace account? Track this order any time at{" "}
-        <a href="https://wallplace.co.uk/orders/track" style={{ color: "#9b6b3f" }}>
+        <a
+          href={
+            p.trackingToken
+              ? `https://wallplace.co.uk/orders/track?t=${encodeURIComponent(p.trackingToken)}`
+              : "https://wallplace.co.uk/orders/track"
+          }
+          style={{ color: "#9b6b3f" }}
+        >
           wallplace.co.uk/orders/track
         </a>
-        {" "}using order ID <strong>{p.orderNumber}</strong>.
+        {p.trackingToken
+          ? "."
+          : <> using order ID <strong>{p.orderNumber}</strong>.</>}
       </Small>
       <SupportBlock supportUrl={p.supportUrl} />
     </EmailShell>
