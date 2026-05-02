@@ -7,8 +7,11 @@ describe("SIZE_BANDS", () => {
   });
 
   it("uses en dash, not em dash, in dimension hints", () => {
+    // En dash (U+2013) is the right glyph for ranges ("30–60 cm").
+    // Em dash (U+2014) is the parenthetical glyph and should never
+    // appear in a numeric range — guard against accidental autocorrect.
     for (const b of SIZE_BANDS) {
-      expect(b.dimensionHint).not.toContain("–");
+      expect(b.dimensionHint).not.toContain("—");
     }
   });
 
