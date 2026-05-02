@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { checkoutSchema } from "@/lib/validations";
 import { calculateOrderShipping } from "@/lib/shipping-checkout";
 import { regionForCountry, isSupportedCountry } from "@/lib/iso-countries";
+import { saveCartSession } from "@/lib/cart-sessions";
 
 export async function POST(request: Request) {
   try {
@@ -103,38 +104,41 @@ export async function POST(request: Request) {
     const requestOrigin = request.headers.get("origin");
     const origin = requestOrigin || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-    // Create Stripe Checkout Session
+    const artistSlugs = [...new Set(items.map((i) => i.artistSlug || "").filter(Boolean))];
+    const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+    // Create Stripe Checkout Session. Metadata is intentionally slim —
+    // full cart + shipping live in cart_sessions (Plan B Task 6). Stripe
+    // caps each metadata value at 500 chars, which used to truncate
+    // large carts; that's no longer a constraint here.
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
       customer_email: shipping.email,
       metadata: {
-        shipping_name: shipping.fullName,
-        shipping_email: shipping.email,
-        shipping_phone: shipping.phone || "",
-        shipping_address1: shipping.addressLine1,
-        shipping_address2: shipping.addressLine2 || "",
-        shipping_city: shipping.city,
-        shipping_postcode: shipping.postcode,
-        shipping_country: shipping.country,
-        shipping_notes: shipping.notes || "",
-        cart_items: JSON.stringify(items.map(i => ({ title: i.title, qty: i.quantity, price: i.price, artistSlug: i.artistSlug || "" }))).slice(0, 500),
-        // Images split into a parallel array (indexed by cart_items)
-        // so the webhook can pass the artwork image into customer
-        // emails. Stripe metadata caps each value at 500 chars; large
-        // carts may truncate and fall back to the placeholder.
-        cart_images: JSON.stringify(
-          items.map(i => (i.image && !i.image.startsWith("data:")) ? i.image : ""),
-        ).slice(0, 500),
+        kind: "cart_checkout",
         source,
         venue_slug: venueSlug,
-        artist_slugs: [...new Set(items.map(i => i.artistSlug || "").filter(Boolean))].join(","),
+        artist_slugs: artistSlugs.join(","),
         fulfilment_method: fulfilmentMethod,
-        collection_notes: collectionNotes,
       },
       success_url: `${origin}/checkout/confirmation?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout`,
+    });
+
+    // Persist the full cart server-side so the webhook + confirmation
+    // page have the un-truncated payload available. Failure here is
+    // fatal — without the row, the webhook can't process the order.
+    await saveCartSession({
+      stripeSessionId: session.id,
+      cart: items,
+      shipping: { ...shipping, fulfilmentMethod, collectionNotes },
+      source,
+      venueSlug,
+      artistSlugs,
+      expectedSubtotalPence: Math.round(subtotal * 100),
+      expectedShippingPence: Math.round(totalShipping * 100),
     });
 
     return NextResponse.json({ url: session.url });

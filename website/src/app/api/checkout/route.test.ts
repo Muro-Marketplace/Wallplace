@@ -18,6 +18,10 @@ vi.mock("@/lib/validations", () => ({
   },
 }));
 
+vi.mock("@/lib/cart-sessions", () => ({
+  saveCartSession: vi.fn(async () => undefined),
+}));
+
 import { POST } from "./route";
 
 beforeEach(() => {
@@ -69,15 +73,20 @@ describe("POST /api/checkout country guard", () => {
     expect(stripeCreate).not.toHaveBeenCalled();
   });
 
-  it("accepts GB and creates a Stripe session", async () => {
+  it("accepts GB and creates a Stripe session with slim metadata", async () => {
     const res = await POST(req({
       items: [baseItem],
       shipping: { ...baseShipping, country: "GB" },
     }));
     expect(res.status).toBe(200);
     expect(stripeCreate).toHaveBeenCalledTimes(1);
-    const call = stripeCreate.mock.calls[0][0] as { metadata?: { shipping_country?: string } };
-    expect(call.metadata?.shipping_country).toBe("GB");
+    const calls = stripeCreate.mock.calls as unknown as Array<
+      [{ metadata?: { kind?: string; shipping_country?: string } }]
+    >;
+    const args = calls[0]?.[0];
+    // Plan B Task 6: full shipping/cart no longer in Stripe metadata.
+    expect(args?.metadata?.kind).toBe("cart_checkout");
+    expect(args?.metadata?.shipping_country).toBeUndefined();
   });
 
   it("accepts US (international) and creates a Stripe session", async () => {

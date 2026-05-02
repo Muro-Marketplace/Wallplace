@@ -7,12 +7,25 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { labelForCountry } from "@/lib/iso-countries";
 
+interface SavedShipping {
+  fullName?: string;
+  email?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  postcode?: string;
+  country?: string;
+  notes?: string;
+}
+
 interface StripeOrder {
   id: string;
   status: string;
   amountTotal: number;
   customerEmail: string;
   metadata: Record<string, string>;
+  cart: unknown[];
+  shipping: SavedShipping | null;
   lineItems: { name: string; quantity: number; amount: number }[];
 }
 
@@ -149,16 +162,16 @@ function ConfirmationContent() {
         </div>
       )}
 
-      {/* Delivery details */}
-      {order?.metadata && (
+      {/* Delivery details — pulled from cart_sessions (Plan B Task 6) */}
+      {order?.shipping && (
         <div className="bg-surface border border-border rounded-sm p-5 mb-6 text-left">
           <h2 className="text-sm font-medium mb-3">Delivery Address</h2>
           <p className="text-sm text-muted">
-            {order.metadata.shipping_name}<br />
-            {order.metadata.shipping_address1}<br />
-            {order.metadata.shipping_address2 && <>{order.metadata.shipping_address2}<br /></>}
-            {order.metadata.shipping_city}, {order.metadata.shipping_postcode}<br />
-            {labelForCountry(order.metadata.shipping_country)}
+            {order.shipping.fullName}<br />
+            {order.shipping.addressLine1}<br />
+            {order.shipping.addressLine2 && <>{order.shipping.addressLine2}<br /></>}
+            {order.shipping.city}, {order.shipping.postcode}<br />
+            {labelForCountry(order.shipping.country || "")}
           </p>
         </div>
       )}

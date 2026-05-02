@@ -18,6 +18,7 @@ import { SubscriptionCancelled } from "@/emails/templates/payments/SubscriptionC
 import { SubscriptionRenewalReceipt } from "@/emails/templates/payments/SubscriptionRenewalReceipt";
 import { ArtistStripeKycNeeded } from "@/emails/templates/artist-additions/ArtistStripeKycNeeded";
 import { platformFeePercentForArtist, DEFAULT_PLAN_FEE_PERCENT } from "@/lib/platform-fee";
+import { loadCartSession } from "@/lib/cart-sessions";
 import type Stripe from "stripe";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://wallplace.co.uk";
@@ -157,16 +158,28 @@ export async function POST(request: Request) {
     // Only process one-time payment checkouts (art purchases), not subscriptions
     if (session.mode === "payment") {
       try {
+        // Server-side cart row is the data-of-record (Plan B Task 6). The
+        // 500-char metadata cap used to truncate big carts; cart_sessions
+        // carries the full payload.
+        const saved = await loadCartSession(session.id);
+        if (!saved) {
+          console.error("[webhook] cart_sessions miss for", session.id, "— refusing to process");
+          return NextResponse.json(
+            { error: "Cart session not found", sessionId: session.id },
+            { status: 500 },
+          );
+        }
         // Stripe amount_total already includes shipping (added as line item in checkout)
         const total = (session.amount_total || 0) / 100;
-        const cartItems = session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [];
-        const subtotal = cartItems.reduce((sum: number, i: { price?: number; qty?: number }) => sum + (i.price || 0) * (i.qty || 1), 0) || total;
+        const cartItems = saved.cart as Array<{ price?: number; qty?: number; quantity?: number }>;
+        const subtotal = cartItems.reduce((sum: number, i) => sum + (i.price || 0) * (Number(i.qty ?? i.quantity ?? 1)), 0) || total;
         const shippingCost = Math.max(0, total - subtotal);
         const orderId = `WS-${session.id.slice(-8)}`;
-        const source = session.metadata?.source || "direct";
-        const venueSlug = session.metadata?.venue_slug || "";
-        const artistSlugs = session.metadata?.artist_slugs || "";
+        const source = saved.source || session.metadata?.source || "direct";
+        const venueSlug = saved.venueSlug || session.metadata?.venue_slug || "";
+        const artistSlugs = (saved.artistSlugs || []).join(",") || session.metadata?.artist_slugs || "";
         const firstArtistSlug = artistSlugs.split(",")[0] || "";
+        const savedShipping = saved.shipping as Record<string, string>;
 
         // Compute revenue splits
         let venueRevSharePct = 0;
@@ -216,18 +229,18 @@ export async function POST(request: Request) {
         const orderRow: Record<string, unknown> = {
           id: orderId,
           stripe_payment_intent_id: paymentIntentId,
-          buyer_email: session.customer_email || session.metadata?.shipping_email || "",
-          items: session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [],
+          buyer_email: session.customer_email || savedShipping?.email || "",
+          items: cartItems,
           shipping: {
-            fullName: session.metadata?.shipping_name || "",
-            email: session.metadata?.shipping_email || "",
-            phone: session.metadata?.shipping_phone || "",
-            addressLine1: session.metadata?.shipping_address1 || "",
-            addressLine2: session.metadata?.shipping_address2 || "",
-            city: session.metadata?.shipping_city || "",
-            postcode: session.metadata?.shipping_postcode || "",
-            country: session.metadata?.shipping_country || "United Kingdom",
-            notes: session.metadata?.shipping_notes || "",
+            fullName: savedShipping?.fullName || "",
+            email: savedShipping?.email || "",
+            phone: savedShipping?.phone || "",
+            addressLine1: savedShipping?.addressLine1 || "",
+            addressLine2: savedShipping?.addressLine2 || "",
+            city: savedShipping?.city || "",
+            postcode: savedShipping?.postcode || "",
+            country: savedShipping?.country || "GB",
+            notes: savedShipping?.notes || "",
           },
           subtotal,
           shipping_cost: shippingCost,
@@ -244,8 +257,8 @@ export async function POST(request: Request) {
           platform_fee_percent: platformFeePct,
           platform_fee: platformFee,
           placement_id: placementId,
-          fulfilment_method: session.metadata?.fulfilment_method || "ship",
-          collection_notes: session.metadata?.collection_notes || null,
+          fulfilment_method: (savedShipping as { fulfilmentMethod?: string })?.fulfilmentMethod || session.metadata?.fulfilment_method || "ship",
+          collection_notes: (savedShipping as { collectionNotes?: string })?.collectionNotes || null,
           created_at: new Date().toISOString(),
         };
 
@@ -319,18 +332,9 @@ export async function POST(request: Request) {
             console.warn("Quantity decrement skipped:", err);
           }
 
-          const cartItemsForNotify = session.metadata?.cart_items ? JSON.parse(session.metadata.cart_items) : [];
-          // Parallel image array, populated by /api/checkout. Truncation
-          // at the Stripe-metadata 500-char cap is possible for big carts;
-          // unrecovered slots fall back to the placeholder.
-          let cartImagesForNotify: string[] = [];
-          try {
-            cartImagesForNotify = session.metadata?.cart_images
-              ? (JSON.parse(session.metadata.cart_images) as string[])
-              : [];
-          } catch {
-            cartImagesForNotify = [];
-          }
+          // Notification payload comes from the saved cart row; images
+          // are inline on each item now (no parallel array, no truncation).
+          const cartItemsForNotify = cartItems as Array<{ title?: string; image?: string }>;
           const firstItemTitle = cartItemsForNotify[0]?.title || "Artwork";
 
           // Resolve artist display names by slug in one round-trip.
@@ -343,23 +347,22 @@ export async function POST(request: Request) {
 
           // Customer order receipt (legally required under CCR 2013).
           // Keyed by payment_intent so Stripe retries don't double-send.
-          const buyerEmail = session.customer_email || session.metadata?.shipping_email;
+          const buyerEmail = session.customer_email || savedShipping?.email;
           if (buyerEmail) {
-            const buyerName = session.metadata?.shipping_name || "there";
+            const buyerName = savedShipping?.fullName || "there";
             // Adapt the cart items shape to the OrderSummary component.
             const orderItems = (cartItemsForNotify as Array<{
               title?: string; artistName?: string; artistSlug?: string; qty?: number; quantity?: number; size?: string; image?: string; price?: number;
-            }>).map((item, idx) => {
+            }>).map((item) => {
               const slug = item.artistSlug || firstArtistSlug || "";
               const resolved = slugMap.get(slug);
               const fallbackName = item.artistName && !/^[a-z0-9-]+$/.test(item.artistName) ? item.artistName : null;
-              const imageFromMetadata = cartImagesForNotify[idx] || item.image || "";
               return {
                 title: item.title || "Artwork",
                 artistName: resolved || fallbackName || slug || "Artist",
                 quantity: Number(item.qty ?? item.quantity ?? 1),
                 size: item.size,
-                image: imageFromMetadata || `${SITE}/placeholder-work.jpg`,
+                image: item.image || `${SITE}/placeholder-work.jpg`,
                 lineTotal: {
                   amount: Math.round((item.price ?? 0) * Number(item.qty ?? item.quantity ?? 1) * 100),
                   currency: "GBP" as const,
@@ -394,19 +397,19 @@ export async function POST(request: Request) {
                 total: { amount: Math.round(total * 100), currency: "GBP" },
                 billingAddress: {
                   name: buyerName,
-                  line1: session.metadata?.shipping_address1 || "",
-                  line2: session.metadata?.shipping_address2 || undefined,
-                  city: session.metadata?.shipping_city || "",
-                  postcode: session.metadata?.shipping_postcode || "",
-                  country: session.metadata?.shipping_country || "United Kingdom",
+                  line1: savedShipping?.addressLine1 || "",
+                  line2: savedShipping?.addressLine2 || undefined,
+                  city: savedShipping?.city || "",
+                  postcode: savedShipping?.postcode || "",
+                  country: savedShipping?.country || "GB",
                 },
                 shippingAddress: {
                   name: buyerName,
-                  line1: session.metadata?.shipping_address1 || "",
-                  line2: session.metadata?.shipping_address2 || undefined,
-                  city: session.metadata?.shipping_city || "",
-                  postcode: session.metadata?.shipping_postcode || "",
-                  country: session.metadata?.shipping_country || "United Kingdom",
+                  line1: savedShipping?.addressLine1 || "",
+                  line2: savedShipping?.addressLine2 || undefined,
+                  city: savedShipping?.city || "",
+                  postcode: savedShipping?.postcode || "",
+                  country: savedShipping?.country || "GB",
                 },
                 supportUrl: `${SITE}/support`,
               }),
@@ -456,7 +459,7 @@ export async function POST(request: Request) {
                   firstName: (artistProfile.name || "there").split(" ")[0],
                   orderNumber: orderId,
                   workTitle: firstItemTitle,
-                  buyerFirstName: (session.metadata?.shipping_name || "your buyer").split(" ")[0],
+                  buyerFirstName: (savedShipping?.fullName || "your buyer").split(" ")[0],
                   orderUrl: `${SITE}/artist-portal/orders/${orderId}`,
                   nextSteps: [
                     "Ship within 3 business days",
