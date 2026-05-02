@@ -181,13 +181,12 @@ export default function VenueWallEditorPage({
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         alert(data.error || `Could not delete (status ${res.status}).`);
-        setDeleting(false);
-        setDeleteOpen(false);
         return;
       }
       router.push("/venue-portal/walls");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Could not delete wall");
+    } finally {
       setDeleting(false);
       setDeleteOpen(false);
     }
