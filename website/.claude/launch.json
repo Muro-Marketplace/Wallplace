@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "wallplace-dev",
-      "runtimeExecutable": "/opt/homebrew/Cellar/node/25.8.2/bin/node",
-      "runtimeArgs": ["/Users/finlaycoles/Wallplace/Wallplace/website/node_modules/.bin/next", "dev", "--cwd", "/Users/finlaycoles/Wallplace/Wallplace/website"],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
       "port": 3000
     }
   ]
