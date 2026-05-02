@@ -408,12 +408,16 @@ export default function VenueDashboardPage() {
               <span className="font-medium">{savedArtistCount}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted">Orders</span>
-              <span className="font-medium">{stats[2]?.value || "0"}</span>
+              <span className="text-muted">Total spent</span>
+              <span className="font-medium">{stats[1]?.value || "\u00a30"}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted">Total spent</span>
-              <span className="font-medium">{stats[3]?.value || "\u00a30"}</span>
+              <span className="text-muted">Revenue share earned</span>
+              <span className="font-medium">{stats[2]?.value || "\u00a30"}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted">QR scans</span>
+              <span className="font-medium">{stats[3]?.value || "0"}</span>
             </div>
           </div>
           <div className="mt-5 pt-4 border-t border-border">
