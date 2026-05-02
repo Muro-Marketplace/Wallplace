@@ -45,6 +45,13 @@ export function calculateOrderShipping(
   region: "uk" | "international",
 ): OrderShipping {
   const isInternational = region === "international";
+  // Plan B Task 14: signature uplift threshold is order-level, not
+  // per-group. Two artists at £60 each (£120 order) used to escape the
+  // uplift because each group was independently below £100. Compute
+  // once here and seed each group with it.
+  const orderSubtotal = items.reduce((s, it) => s + it.price * it.quantity, 0);
+  const orderNeedsSignature = orderSubtotal >= SIGNATURE_THRESHOLD_GBP;
+
   const groupsBySlug = new Map<string, { artistName: string; lines: CartLineForShipping[] }>();
   for (const it of items) {
     const slug = it.artistSlug || "_unknown";
@@ -54,7 +61,7 @@ export function calculateOrderShipping(
 
   const artistGroups: ArtistShippingGroup[] = [];
   for (const [slug, group] of groupsBySlug) {
-    let needsSignature = false;
+    let needsSignature = orderNeedsSignature;
     let longestTierLabel: string | null = null;
     let estimatedDays: string | null = null;
     let anyEstimated = false;
@@ -73,7 +80,9 @@ export function calculateOrderShipping(
       });
       let rate = resolved.cost;
       if (rate == null) rate = isInternational ? FALLBACK_MEDIUM_INT : FALLBACK_MEDIUM_UK;
-      if (resolved.estimate?.requiresSignature || it.price >= SIGNATURE_THRESHOLD_GBP) needsSignature = true;
+      // Per-line signature still escalates for fragile/oversized work.
+      // The price-threshold check moved to the order level above.
+      if (resolved.estimate?.requiresSignature) needsSignature = true;
       if (resolved.source === "estimate" && resolved.estimate) {
         anyEstimated = true;
         if (

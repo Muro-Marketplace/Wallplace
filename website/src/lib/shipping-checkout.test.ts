@@ -57,6 +57,28 @@ describe("calculateOrderShipping", () => {
     expect(Math.round(r.totalShipping * 100) / 100).toBe(r.totalShipping);
   });
 
+  it("applies signature uplift when order subtotal >= £100, even across artists (Plan B Task 14)", () => {
+    const result = calculateOrderShipping(
+      [
+        { ...baseItem, artistSlug: "a", artistName: "A", price: 60, quantity: 1, dimensions: "30 x 40 cm" },
+        { ...baseItem, artistSlug: "b", artistName: "B", price: 60, quantity: 1, dimensions: "30 x 40 cm" },
+      ],
+      "uk",
+    );
+    expect(result.artistGroups.every((g) => g.needsSignature)).toBe(true);
+  });
+
+  it("does not apply uplift when order subtotal < £100 (Plan B Task 14)", () => {
+    const result = calculateOrderShipping(
+      [
+        { ...baseItem, artistSlug: "a", artistName: "A", price: 30, quantity: 1, dimensions: "30 x 40 cm" },
+        { ...baseItem, artistSlug: "b", artistName: "B", price: 30, quantity: 1, dimensions: "30 x 40 cm" },
+      ],
+      "uk",
+    );
+    expect(result.artistGroups.every((g) => !g.needsSignature)).toBe(true);
+  });
+
   it("display total === API total for the bug-report scenario", () => {
     // Two pieces same artist, no manual price set, mixed sizes.
     // The original bug: display said £80.49, API charged £79.94.
