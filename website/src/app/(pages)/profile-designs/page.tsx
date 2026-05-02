@@ -22,6 +22,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { artists } from "@/data/artists";
 import { disciplineLabel, formatSubStyleLabel } from "@/data/categories";
 import type { Artist } from "@/data/artists";
@@ -65,6 +66,8 @@ export default async function ProfileDesignsPage({
 }: {
   searchParams: Promise<{ slug?: string }>;
 }) {
+  // Dev preview route — production gets a 404.
+  if (process.env.NODE_ENV === "production") notFound();
   const params = await searchParams;
   // Pick the first artist that has at least one work (so the banner
   // image fallback resolves). Optional ?slug= lets the user switch.
