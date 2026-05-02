@@ -624,7 +624,25 @@ export default function CollectionsPage() {
                   <div className="space-y-2">
                     {form.workIds.map((wid) => {
                       const work = artist.works.find((w) => w.id === wid);
-                      if (!work) return null;
+                      if (!work) {
+                        return (
+                          <div
+                            key={wid}
+                            className="flex items-center justify-between py-2 border-b border-border/40 last:border-b-0"
+                          >
+                            <p className="text-xs text-muted italic">
+                              Work removed from portfolio
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => toggleWork(wid)}
+                              className="text-[11px] text-muted hover:text-red-600 transition-colors"
+                            >
+                              Remove from collection
+                            </button>
+                          </div>
+                        );
+                      }
                       const pricing = work.pricing || [];
                       const selected = form.workSizes[wid] || pricing[0]?.label || "";
                       return (
