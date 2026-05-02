@@ -2,17 +2,47 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAuthenticatedUser } from "@/lib/api-auth";
 import { notifyRefundRequested } from "@/lib/email";
+import { verifyOrderToken } from "@/lib/order-tracking-token";
 
 export async function POST(request: Request) {
-  const auth = await getAuthenticatedUser(request);
-  if (auth.error) return auth.error;
+  let body: { orderId?: string; reason?: string; type?: string; amount?: number; token?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  // Plan B Task 12: signed-token branch lets guest buyers (no Bearer)
+  // request a refund using the same HMAC link from their receipt
+  // email. Bearer auth still works for logged-in buyers/artists/venues.
+  let userId: string | null = null;
+  let userEmail = "";
+  let tokenAuthOrderId: string | null = null;
+  if (typeof body.token === "string" && body.token.length > 0) {
+    try {
+      const verified = await verifyOrderToken(body.token);
+      userEmail = verified.email.toLowerCase();
+      tokenAuthOrderId = verified.orderId;
+    } catch {
+      return NextResponse.json({ error: "Invalid or expired link" }, { status: 401 });
+    }
+  } else {
+    const auth = await getAuthenticatedUser(request);
+    if (auth.error) return auth.error;
+    userId = auth.user!.id;
+    userEmail = (auth.user!.email || "").toLowerCase();
+  }
 
   try {
-    const body = await request.json();
     const { orderId, reason, type, amount } = body;
 
     if (!orderId || !reason || !type) {
       return NextResponse.json({ error: "orderId, reason, and type are required" }, { status: 400 });
+    }
+
+    // Token is order-scoped — refuse if the body's orderId doesn't match.
+    if (tokenAuthOrderId && tokenAuthOrderId !== orderId) {
+      return NextResponse.json({ error: "Token does not authorise this order" }, { status: 403 });
     }
 
     if (type !== "full" && type !== "partial") {
@@ -24,8 +54,6 @@ export async function POST(request: Request) {
     }
 
     const db = getSupabaseAdmin();
-    const userId = auth.user!.id;
-    const userEmail = auth.user!.email || "";
 
     // Fetch the order
     const { data: order, error: orderErr } = await db
@@ -41,16 +69,18 @@ export async function POST(request: Request) {
     // Validate the user is the buyer, venue, or the artist who owns this order
     let requesterType: "buyer" | "venue" | "artist";
 
-    const isBuyer = order.buyer_email === userEmail;
-    const isArtist = order.artist_user_id === userId;
+    const isBuyer = (order.buyer_email || "").toLowerCase() === userEmail;
+    const isArtist = userId !== null && order.artist_user_id === userId;
 
-    const { data: venueProfile } = await db
-      .from("venue_profiles")
-      .select("slug")
-      .eq("user_id", userId)
-      .single();
-
-    const isVenue = venueProfile && order.venue_slug === venueProfile.slug;
+    let isVenue = false;
+    if (userId !== null) {
+      const { data: venueProfile } = await db
+        .from("venue_profiles")
+        .select("slug")
+        .eq("user_id", userId)
+        .single();
+      isVenue = !!(venueProfile && order.venue_slug === venueProfile.slug);
+    }
 
     if (isArtist) {
       requesterType = "artist";
@@ -62,16 +92,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not authorised to request a refund for this order" }, { status: 403 });
     }
 
-    // Check for existing pending refund request
+    // Block any non-rejected duplicate (was: only `pending`). An
+    // approved-but-not-yet-processed request shouldn't be re-submittable.
     const { data: existing } = await db
       .from("refund_requests")
-      .select("id")
+      .select("id, status")
       .eq("order_id", orderId)
-      .eq("status", "pending")
+      .neq("status", "rejected")
       .limit(1);
 
     if (existing && existing.length > 0) {
-      return NextResponse.json({ error: "A pending refund request already exists for this order" }, { status: 409 });
+      return NextResponse.json(
+        { error: `A ${existing[0].status} refund request already exists for this order.` },
+        { status: 409 },
+      );
     }
 
     // Determine refund amount
