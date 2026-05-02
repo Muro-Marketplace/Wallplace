@@ -99,19 +99,25 @@ export default function VenueDashboardPage() {
     Promise.all([
       authFetch("/api/dashboard").then((r) => r.json()).catch(() => ({})),
       authFetch("/api/placements").then((r) => r.json()).catch(() => ({ placements: [] })),
-    ]).then(([dashboardData, placementsData]) => {
+      // QR scan count comes from the venue analytics endpoint, which counts
+      // analytics_events rows scoped to this venue (event_type=qr_scan).
+      // `range=all` so the dashboard tile shows the lifetime number rather
+      // than a 30-day window.
+      authFetch("/api/analytics/venue?range=all").then((r) => r.json()).catch(() => ({ totals: { qr_scans: 0 } })),
+    ]).then(([dashboardData, placementsData, analyticsData]) => {
       const orders = dashboardData.orders || [];
       const totalSpent = orders.reduce((sum: number, o: { total?: number }) => sum + (o.total || 0), 0);
       const placements = placementsData.placements || [];
       const revenueEarned = placements.reduce(
         (sum: number, p: { revenue?: number }) => sum + (p.revenue || 0), 0
       );
+      const qrScans = (analyticsData?.totals?.qr_scans as number | undefined) ?? 0;
 
       setStats([
         { label: "Saved Artists", value: String(savedArtistCount) },
         { label: "Total Spent", value: `\u00a3${totalSpent.toLocaleString()}` },
         { label: "Revenue Share Earned", value: `\u00a3${revenueEarned.toLocaleString()}` },
-        { label: "QR Scans", value: "0" },
+        { label: "QR Scans", value: String(qrScans) },
       ]);
 
       // Build onboarding checklist
