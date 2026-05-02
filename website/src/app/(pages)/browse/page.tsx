@@ -473,24 +473,6 @@ function BrowsePortfoliosPageInner() {
     );
   }, [updateLocationCoords]);
 
-  function handleModeChange(newMode: "local" | "global") {
-    setFilter("mode", newMode);
-    if (newMode === "local" && !userCoords && !geoRequesting) {
-      requestGeolocation();
-    }
-  }
-
-  async function handlePostcodeSubmit() {
-    if (!postcodeInput.trim()) return;
-    const coords = await geocodePostcode(postcodeInput);
-    if (coords) {
-      updateLocationCoords(coords, postcodeInput);
-      setPostcodeError(false);
-    } else {
-      setPostcodeError(true);
-    }
-  }
-
   const hasActiveFilters =
     // mode is permanently "local" now (toggle removed); the actual
     // signal of "user has applied a location filter" is whether
