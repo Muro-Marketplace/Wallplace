@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { authFetch } from "@/lib/api-client";
 
+const NOTE_MAX = 600;
+
 /**
  * Modal counter-offer form. Opens inline so the user doesn't have to
  * navigate away from the placements list or the messages view to adjust
@@ -101,7 +103,16 @@ export default function CounterPlacementDialog({ placementId, currentUserId, ini
         senderUserId: currentUserId ?? null,
       };
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { ...result, action: "counter" } }));
+        try {
+          window.dispatchEvent(
+            new CustomEvent("wallplace:placement-changed", {
+              detail: { ...result, action: "counter" },
+            }),
+          );
+        } catch (err) {
+          // Listener errors must not stomp on the modal close — log and continue.
+          console.warn("[counter-dialog] event listener error:", err);
+        }
       }
       onSuccess?.(result);
       onClose();
@@ -189,23 +200,27 @@ export default function CounterPlacementDialog({ placementId, currentUserId, ini
             </button>
           </label>
           {qr && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted flex-1">{paidLoan ? "Share on QR sales" : "Revenue share"}</span>
-              <input
-                type="number"
-                min={0}
-                max={50}
-                value={revShare}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === "") { setRevShare(""); return; }
-                  const n = Number(v);
-                  if (!Number.isNaN(n)) setRevShare(n);
-                }}
-                placeholder="e.g. 15"
-                className="w-16 px-2 py-2 bg-surface border border-border rounded-sm text-sm text-center focus:outline-none focus:border-accent/50"
-              />
-              <span className="text-xs text-muted">%</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted flex-1">{paidLoan ? "Share on QR sales" : "Revenue share"}</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  step={1}
+                  value={revShare}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "") { setRevShare(""); return; }
+                    const n = Number(v);
+                    if (!Number.isNaN(n)) setRevShare(Math.min(50, Math.max(0, n)));
+                  }}
+                  placeholder="e.g. 15"
+                  className="w-16 px-2 py-2 bg-surface border border-border rounded-sm text-sm text-center focus:outline-none focus:border-accent/50"
+                />
+                <span className="text-xs text-muted">%</span>
+              </div>
+              <p className="text-[11px] text-muted mt-1">Max 50% to the venue.</p>
             </div>
           )}
 
@@ -213,13 +228,19 @@ export default function CounterPlacementDialog({ placementId, currentUserId, ini
             <p className="text-[11px] text-muted italic">Neither option selected, sending as a free display.</p>
           )}
 
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Add a note (optional)"
-            rows={2}
-            className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50 resize-none"
-          />
+          <div>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value.slice(0, NOTE_MAX))}
+              placeholder="Add a note (optional)"
+              rows={4}
+              maxLength={NOTE_MAX}
+              className="w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50 resize-y max-h-40"
+            />
+            <p className="text-[11px] text-muted mt-1 text-right">
+              {note.length} / {NOTE_MAX}
+            </p>
+          </div>
 
           {error && <p className="text-xs text-red-600">{error}</p>}
 
