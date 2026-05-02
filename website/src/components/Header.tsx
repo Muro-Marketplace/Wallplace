@@ -49,6 +49,7 @@ type NavLink = { label: string; href: string; subLinks?: { label: string; href: 
 const publicNavLinks: NavLink[] = [
   { label: "Marketplace", href: "/browse" },
   { label: "How It Works", href: "/how-it-works" },
+  { label: "For Venues", href: "/venues" },
   { label: "Blog", href: "/blog" },
   { label: "Spaces", href: "/spaces-looking-for-art" },
   // Waitlist (#18), page kept live for warm prospects we already
