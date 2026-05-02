@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase";
 import { isFlagOn } from "@/lib/feature-flags";
 import { safeRedirect } from "@/lib/safe-redirect";
@@ -13,10 +14,12 @@ import { portalPathForRole } from "@/lib/auth-roles";
 export default function LoginPage() {
   const router = useRouter();
   const { signIn, user, userType, loading: authLoading } = useAuth();
+  const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const toastFired = useRef(false);
 
   // Redirect if already logged in. Honours ?next= so a deep link that
   // bounced the user through /login lands them back where they started.
@@ -25,12 +28,16 @@ export default function LoginPage() {
   // portalPathForRole come from Plan A's auth-roles refactor.
   useEffect(() => {
     if (authLoading || !user) return;
+    if (!toastFired.current) {
+      toastFired.current = true;
+      showToast("You're already signed in. Redirecting…", { durationMs: 2500 });
+    }
     const next =
       typeof window === "undefined"
         ? null
         : new URLSearchParams(window.location.search).get("next");
     router.replace(safeRedirect(next, portalPathForRole(userType)));
-  }, [authLoading, user, userType, router]);
+  }, [authLoading, user, userType, router, showToast]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
