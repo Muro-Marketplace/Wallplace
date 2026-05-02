@@ -305,25 +305,17 @@ export default function AnalyticsPage() {
             </div>
           )
         ) : (
-          <div className="px-6 py-8 text-center relative">
-            {/* Blurred preview */}
-            <div className="space-y-3 opacity-30 blur-sm pointer-events-none select-none">
-              <div className="flex items-center justify-between"><span className="text-sm">The Coffee House</span><span className="text-xs text-muted">2 Apr</span></div>
-              <div className="flex items-center justify-between"><span className="text-sm">Bloom Hotel</span><span className="text-xs text-muted">28 Mar</span></div>
-              <div className="flex items-center justify-between"><span className="text-sm">Studio Works</span><span className="text-xs text-muted">25 Mar</span></div>
-            </div>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <p className="text-sm text-foreground font-medium mb-1">
-                {analytics?.venue_viewer_count ?? 0} venue{(analytics?.venue_viewer_count ?? 0) !== 1 ? "s" : ""} viewed your profile
-              </p>
-              <p className="text-xs text-muted mb-3">Upgrade to Premium to see which venues are looking at your work</p>
-              <Link
-                href="/artist-portal/billing"
-                className="px-4 py-2 text-xs font-medium text-white bg-accent rounded-sm hover:bg-accent/90 transition-colors"
-              >
-                Upgrade to Premium
-              </Link>
-            </div>
+          <div className="px-6 py-8 text-center">
+            <p className="text-sm text-foreground font-medium mb-1">
+              {analytics?.venue_viewer_count ?? 0} venue{(analytics?.venue_viewer_count ?? 0) !== 1 ? "s" : ""} viewed your profile
+            </p>
+            <p className="text-xs text-muted mb-3">Upgrade to Premium to see which venues are looking at your work</p>
+            <Link
+              href="/artist-portal/billing"
+              className="px-4 py-2 text-xs font-medium text-white bg-accent rounded-sm hover:bg-accent/90 transition-colors inline-block"
+            >
+              Upgrade to Premium
+            </Link>
           </div>
         )}
       </div>
