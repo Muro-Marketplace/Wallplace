@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import type { ShippingInfo } from "@/lib/types";
+import { COUNTRIES, regionForCountry } from "@/lib/iso-countries";
 import { SIGNATURE_THRESHOLD_GBP } from "@/lib/shipping-calculator";
 import { calculateOrderShipping } from "@/lib/shipping-checkout";
 import { formatSizeLabelForDisplay } from "@/lib/format-size-label";
@@ -21,7 +22,7 @@ export default function CheckoutPage() {
     addressLine2: "",
     city: "",
     postcode: "",
-    country: "United Kingdom",
+    country: "GB",
     notes: "",
   });
   const [errors, setErrors] = useState<Record<string, boolean>>({});
@@ -45,8 +46,7 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  const region: "uk" | "international" =
-    shipping.country !== "United Kingdom" && shipping.country !== "" ? "international" : "uk";
+  const region = regionForCountry(shipping.country);
 
   // Single source of truth for cart-level shipping, same helper the
   // /api/checkout route uses, so the displayed total can never drift
@@ -293,13 +293,17 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {renderInput("city", "City *")}
                     {renderInput("postcode", "Postcode *")}
-                    <input
-                      type="text"
-                      placeholder="Country"
+                    <select
                       value={shipping.country}
                       onChange={(e) => updateField("country", e.target.value)}
                       className={inputClass("country")}
-                    />
+                    >
+                      {COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <textarea
                     placeholder="Delivery notes (optional)"
