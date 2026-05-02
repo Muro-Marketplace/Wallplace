@@ -140,9 +140,21 @@ export default function CustomerSignUpPage() {
                   <button
                     type="button"
                     onClick={async () => {
+                      let state = "";
+                      try {
+                        const r = await fetch("/api/auth/oauth-sign-state", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ role: "customer", next: "/browse" }),
+                        });
+                        if (r.ok) state = (await r.json()).state || "";
+                      } catch { /* fall through */ }
                       await supabase.auth.signInWithOAuth({
                         provider: "google",
-                        options: { redirectTo: `${window.location.origin}/auth/callback?role=customer&next=%2Fbrowse`, queryParams: { access_type: "offline", prompt: "consent" } },
+                        options: {
+                          redirectTo: `${window.location.origin}/auth/callback`,
+                          queryParams: { access_type: "offline", prompt: "consent", state },
+                        },
                       });
                     }}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-sm text-sm font-medium text-foreground hover:bg-background transition-colors"
@@ -153,9 +165,21 @@ export default function CustomerSignUpPage() {
                   <button
                     type="button"
                     onClick={async () => {
+                      let state = "";
+                      try {
+                        const r = await fetch("/api/auth/oauth-sign-state", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ role: "customer", next: "/browse" }),
+                        });
+                        if (r.ok) state = (await r.json()).state || "";
+                      } catch { /* fall through */ }
                       await supabase.auth.signInWithOAuth({
                         provider: "apple",
-                        options: { redirectTo: `${window.location.origin}/auth/callback?role=customer&next=%2Fbrowse` },
+                        options: {
+                          redirectTo: `${window.location.origin}/auth/callback`,
+                          queryParams: { state },
+                        },
                       });
                     }}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-sm text-sm font-medium text-foreground hover:bg-background transition-colors"

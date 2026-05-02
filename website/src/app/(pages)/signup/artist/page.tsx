@@ -182,13 +182,28 @@ export default function ArtistSignUpPage() {
                   <button
                     type="button"
                     onClick={async () => {
+                      // Mint signed state so /auth/callback can prove which
+                      // role the user chose. If the endpoint isn't available
+                      // (e.g. dev without OAUTH_STATE_SECRET) we fall through
+                      // with an empty state — finalize will refuse and the
+                      // user is redirected to /browse by default.
+                      let state = "";
+                      try {
+                        const r = await fetch("/api/auth/oauth-sign-state", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ role: "artist", next: "/apply" }),
+                        });
+                        if (r.ok) state = (await r.json()).state || "";
+                      } catch { /* fall through */ }
                       await supabase.auth.signInWithOAuth({
                         provider: "google",
                         options: {
-                          redirectTo: `${window.location.origin}/auth/callback?role=artist&next=%2Fapply`,
+                          redirectTo: `${window.location.origin}/auth/callback`,
                           queryParams: {
                             access_type: "offline",
                             prompt: "consent",
+                            state,
                           },
                         },
                       });
@@ -201,10 +216,20 @@ export default function ArtistSignUpPage() {
                   <button
                     type="button"
                     onClick={async () => {
+                      let state = "";
+                      try {
+                        const r = await fetch("/api/auth/oauth-sign-state", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ role: "artist", next: "/apply" }),
+                        });
+                        if (r.ok) state = (await r.json()).state || "";
+                      } catch { /* fall through */ }
                       await supabase.auth.signInWithOAuth({
                         provider: "apple",
                         options: {
-                          redirectTo: `${window.location.origin}/auth/callback?role=artist&next=%2Fapply`,
+                          redirectTo: `${window.location.origin}/auth/callback`,
+                          queryParams: { state },
                         },
                       });
                     }}
