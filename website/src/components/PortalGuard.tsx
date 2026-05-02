@@ -4,17 +4,27 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import { authFetch } from "@/lib/api-client";
+import { portalPathForRole, parseRole } from "@/lib/auth-roles";
 
 interface PortalGuardProps {
   allowedType: "artist" | "venue" | "admin";
   children: React.ReactNode;
 }
 
+const PORTAL_LABELS: Record<string, string> = {
+  artist: "artist",
+  venue: "venue",
+  customer: "customer",
+  admin: "admin",
+};
+
 export default function PortalGuard({ allowedType, children }: PortalGuardProps) {
   const { user, loading, userType } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { showToast } = useToast();
   const [subscriptionChecked, setSubscriptionChecked] = useState(false);
   const [subscriptionOk, setSubscriptionOk] = useState(true);
   const [reviewStatus, setReviewStatus] = useState<"approved" | "pending" | "rejected" | null>(null);
@@ -23,13 +33,14 @@ export default function PortalGuard({ allowedType, children }: PortalGuardProps)
     if (!loading && !user) {
       router.replace("/login");
     } else if (!loading && user && userType && userType !== allowedType) {
-      router.replace(
-        userType === "admin" ? "/admin" :
-        userType === "artist" ? "/artist-portal" :
-        "/venue-portal"
+      const theirRole = PORTAL_LABELS[userType] ?? userType;
+      showToast(
+        `This is the ${allowedType} portal. Redirecting to your ${theirRole} portal.`,
+        { variant: "info", durationMs: 4000 },
       );
+      router.replace(portalPathForRole(parseRole(userType)));
     }
-  }, [user, loading, userType, allowedType, router]);
+  }, [user, loading, userType, allowedType, router, showToast]);
 
   // Check subscription for artists
   useEffect(() => {
