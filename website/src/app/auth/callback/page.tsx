@@ -27,8 +27,8 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     let cancelled = false;
     const params = new URLSearchParams(window.location.search);
-    const role = params.get("role");
-    const next = params.get("next") || "/browse";
+    const state = params.get("state") || "";
+    const fallbackNext = params.get("next") || "/browse";
 
     async function waitForSession() {
       // The SDK may still be exchanging the code on first mount; retry
@@ -49,19 +49,26 @@ export default function AuthCallbackPage() {
         return;
       }
 
-      if (role) {
+      // The signed `state` param is what the OAuth provider rounds-trips
+      // back. We send it to oauth-finalize, which verifies the HMAC and
+      // returns the role+next that were bound to that flow. If state is
+      // missing (legacy flow / SSO without our signup pages), skip
+      // finalize — the user is signed in regardless.
+      let nextHref = fallbackNext;
+      if (state) {
         try {
-          await authFetch("/api/auth/oauth-finalize", {
+          const res = await authFetch("/api/auth/oauth-finalize", {
             method: "POST",
-            body: JSON.stringify({ role }),
+            body: JSON.stringify({ state }),
           });
+          const data = await res.json().catch(() => ({}));
+          if (data.next) nextHref = data.next;
         } catch (err) {
-          // Non-fatal: the user is signed in, the rest of the app can still load.
           console.error("[auth/callback] oauth-finalize failed:", err);
         }
       }
 
-      if (!cancelled) window.location.replace(next);
+      if (!cancelled) window.location.replace(nextHref);
     })();
 
     return () => {

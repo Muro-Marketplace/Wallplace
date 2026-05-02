@@ -1,8 +1,24 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { stripeCreate, canArtistAcceptOrdersMock } = vi.hoisted(() => ({
+// vi.hoisted runs before vi.mock factories so refs in the factories
+// below are initialised when the factory is evaluated.
+const { stripeCreate, fromMock, canArtistAcceptOrdersMock } = vi.hoisted(() => ({
   stripeCreate: vi.fn(async () => ({ url: "https://stripe.example/session" })),
+  fromMock: vi.fn(),
   canArtistAcceptOrdersMock: vi.fn(async () => true),
+}));
+
+vi.mock("@/lib/api-auth", () => ({
+  getAuthenticatedUser: vi.fn(async (req: Request) => {
+    if (req.headers.get("authorization") === "Bearer artist-alice") {
+      return { user: { id: "u-alice", email: "alice@x.com" }, error: null };
+    }
+    return { user: null, error: null };
+  }),
+}));
+
+vi.mock("@/lib/supabase-admin", () => ({
+  getSupabaseAdmin: () => ({ from: fromMock }),
 }));
 
 vi.mock("@/lib/stripe", () => ({
@@ -31,16 +47,15 @@ import { POST } from "./route";
 
 beforeEach(() => {
   stripeCreate.mockClear();
+  fromMock.mockReset();
   canArtistAcceptOrdersMock.mockReset();
   canArtistAcceptOrdersMock.mockResolvedValue(true);
 });
 
-function req(body: unknown): Request {
-  return new Request("http://localhost/api/checkout", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
+function req(body: unknown, auth: string | null = null): Request {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (auth) headers.authorization = auth;
+  return new Request("http://localhost/api/checkout", { method: "POST", headers, body: JSON.stringify(body) });
 }
 
 const baseShipping = {
@@ -68,6 +83,49 @@ const baseItem = {
   framed: false,
 };
 
+// Plan A Task 11 — self-purchase guard (Bearer auth + cart slug match → 403).
+describe("POST /api/checkout self-purchase guard", () => {
+  it("rejects when authenticated artist's slug matches a cart item", async () => {
+    fromMock.mockImplementation(() => ({
+      select: () => ({
+        eq: () => ({ single: async () => ({ data: { slug: "alice", user_id: "u-alice" } }) }),
+      }),
+    }));
+    const res = await POST(req({
+      items: [baseItem],
+      shipping: { ...baseShipping, country: "GB" },
+    }, "Bearer artist-alice"));
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toMatch(/own work/i);
+    expect(stripeCreate).not.toHaveBeenCalled();
+  });
+
+  it("permits a guest checkout (no auth)", async () => {
+    const res = await POST(req({
+      items: [baseItem],
+      shipping: { ...baseShipping, country: "GB" },
+    }));
+    expect(res.status).toBe(200);
+    expect(stripeCreate).toHaveBeenCalled();
+  });
+
+  it("permits an artist buying a different artist's work", async () => {
+    fromMock.mockImplementation(() => ({
+      select: () => ({
+        eq: () => ({ single: async () => ({ data: { slug: "alice", user_id: "u-alice" } }) }),
+      }),
+    }));
+    const res = await POST(req({
+      items: [{ ...baseItem, artistSlug: "bob" }],
+      shipping: { ...baseShipping, country: "GB" },
+    }, "Bearer artist-alice"));
+    expect(res.status).toBe(200);
+    expect(stripeCreate).toHaveBeenCalled();
+  });
+});
+
+// Plan B Task 3 — ISO country guard.
 describe("POST /api/checkout country guard", () => {
   it("rejects an unsupported country with 400", async () => {
     const res = await POST(req({
@@ -114,6 +172,7 @@ describe("POST /api/checkout country guard", () => {
   });
 });
 
+// Plan B Task 8 — Stripe Connect pre-flight.
 describe("POST /api/checkout Stripe Connect pre-flight", () => {
   it("rejects with 422 when an artist isn't charges_enabled", async () => {
     canArtistAcceptOrdersMock.mockResolvedValue(false);

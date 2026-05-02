@@ -41,6 +41,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { isFlagOn } from "@/lib/feature-flags";
 import TermsCheckbox from "@/components/TermsCheckbox";
+import RedirectIfLoggedIn from "@/components/RedirectIfLoggedIn";
 
 export default function ArtistSignUpPage() {
   const router = useRouter();
@@ -56,8 +57,8 @@ export default function ArtistSignUpPage() {
     setError("");
     setLoading(true);
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       setLoading(false);
       return;
     }
@@ -68,6 +69,7 @@ export default function ArtistSignUpPage() {
         password,
         options: {
           data: { user_type: "artist", display_name: name },
+          emailRedirectTo: `${window.location.origin}/login?next=/apply`,
         },
       });
 
@@ -77,23 +79,6 @@ export default function ArtistSignUpPage() {
         return;
       }
 
-      // Sign in immediately so the application form has access to
-      // the authed user, saves a round-trip through the verify
-      // email link before they can apply.
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (signInError) {
-        // Rare case: signUp succeeded but signIn didn't (usually a
-        // policy mismatch). Send them to the login page with a hint
-        // so they don't lose the work they've already typed.
-        router.push("/login?next=/apply");
-        return;
-      }
-
-      // Record terms acceptance (fire-and-forget). Mirrors the
-      // customer signup pattern.
       fetch("/api/terms/accept", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -105,7 +90,7 @@ export default function ArtistSignUpPage() {
         }),
       }).catch(() => {});
 
-      router.push("/apply");
+      router.push("/check-your-inbox");
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
@@ -113,6 +98,7 @@ export default function ArtistSignUpPage() {
   }
 
   return (
+    <RedirectIfLoggedIn>
     <div className="min-h-screen flex items-center justify-center relative">
       <div className="absolute inset-0 -z-10">
         <Image
@@ -173,8 +159,8 @@ export default function ArtistSignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
-                placeholder="At least 6 characters"
+                minLength={8}
+                placeholder="At least 8 characters"
                 className="w-full px-4 py-3 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/60 transition-colors"
               />
             </div>
@@ -196,13 +182,28 @@ export default function ArtistSignUpPage() {
                   <button
                     type="button"
                     onClick={async () => {
+                      // Mint signed state so /auth/callback can prove which
+                      // role the user chose. If the endpoint isn't available
+                      // (e.g. dev without OAUTH_STATE_SECRET) we fall through
+                      // with an empty state — finalize will refuse and the
+                      // user is redirected to /browse by default.
+                      let state = "";
+                      try {
+                        const r = await fetch("/api/auth/oauth-sign-state", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ role: "artist", next: "/apply" }),
+                        });
+                        if (r.ok) state = (await r.json()).state || "";
+                      } catch { /* fall through */ }
                       await supabase.auth.signInWithOAuth({
                         provider: "google",
                         options: {
-                          redirectTo: `${window.location.origin}/auth/callback?role=artist&next=%2Fapply`,
+                          redirectTo: `${window.location.origin}/auth/callback`,
                           queryParams: {
                             access_type: "offline",
                             prompt: "consent",
+                            state,
                           },
                         },
                       });
@@ -215,10 +216,20 @@ export default function ArtistSignUpPage() {
                   <button
                     type="button"
                     onClick={async () => {
+                      let state = "";
+                      try {
+                        const r = await fetch("/api/auth/oauth-sign-state", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ role: "artist", next: "/apply" }),
+                        });
+                        if (r.ok) state = (await r.json()).state || "";
+                      } catch { /* fall through */ }
                       await supabase.auth.signInWithOAuth({
                         provider: "apple",
                         options: {
-                          redirectTo: `${window.location.origin}/auth/callback?role=artist&next=%2Fapply`,
+                          redirectTo: `${window.location.origin}/auth/callback`,
+                          queryParams: { state },
                         },
                       });
                     }}
@@ -272,5 +283,6 @@ export default function ArtistSignUpPage() {
         </p>
       </div>
     </div>
+    </RedirectIfLoggedIn>
   );
 }

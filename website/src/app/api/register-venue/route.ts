@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { registerVenueSchema } from "@/lib/validations";
 import { notifyAdminNewVenue } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { slugify } from "@/lib/slugify";
 import { sendEmail } from "@/lib/email/send";
 import { VenueRegistrationConfirmation } from "@/emails/templates/venue-lifecycle/VenueRegistrationConfirmation";
 
@@ -61,6 +63,35 @@ export async function POST(request: Request) {
       type: d.venueType,
       location: `${d.city}, ${d.postcode}`,
     });
+
+    // Seed venue_profiles so the portal is ready on verified login.
+    // user_id stays NULL until VenuePortalLayout's adoptIfOrphan effect
+    // back-fills it on the first verified visit.
+    const venueSlug = (typeof body.venueSlug === "string" && body.venueSlug)
+      ? body.venueSlug
+      : slugify(d.venueName);
+    const db = getSupabaseAdmin();
+    const { data: existing } = await db
+      .from("venue_profiles")
+      .select("id")
+      .eq("slug", venueSlug)
+      .maybeSingle();
+    if (!existing) {
+      const { error: profileErr } = await db.from("venue_profiles").insert({
+        slug: venueSlug,
+        name: d.venueName,
+        type: d.venueType === "Other" && body.customVenueType ? body.customVenueType : d.venueType,
+        location: d.city,
+        contact_name: d.contactName,
+        email: d.email,
+        phone: d.phone || "",
+        wall_space: d.wallSpace || "",
+        // user_id intentionally omitted — stays NULL until back-filled
+      });
+      if (profileErr) {
+        console.error("[register-venue] venue_profiles insert failed:", profileErr);
+      }
+    }
 
     await sendEmail({
       idempotencyKey: `venue_registration_confirmation:${d.email.toLowerCase()}`,

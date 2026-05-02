@@ -20,6 +20,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { triggerWelcomeIfNeeded } from "@/lib/email/welcome";
+import { verifyOAuthState } from "@/lib/oauth-state";
 
 const ALLOWED_ROLES = ["artist", "customer", "venue"] as const;
 type Role = (typeof ALLOWED_ROLES)[number];
@@ -31,16 +32,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  let body: { role?: string } = {};
+  let body: { state?: string } = {};
   try {
     body = await request.json();
   } catch {
     /* fall through with empty body */
   }
-  const requestedRole = body.role;
-  if (!requestedRole || !ALLOWED_ROLES.includes(requestedRole as Role)) {
-    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  if (!body.state) {
+    return NextResponse.json({ error: "Missing state" }, { status: 400 });
   }
+  let verified: { role: Role; next: string };
+  try {
+    const v = await verifyOAuthState(body.state);
+    verified = { role: v.role as Role, next: v.next };
+  } catch (err) {
+    console.warn("[oauth-finalize] state verify failed:", err);
+    return NextResponse.json({ error: "Invalid or expired state" }, { status: 400 });
+  }
+  const requestedRole = verified.role;
 
   const db = getSupabaseAdmin();
   const { data: userResp, error: userError } = await db.auth.getUser(token);
@@ -128,5 +137,5 @@ export async function POST(request: Request) {
     console.error("[oauth-finalize] welcome trigger failed:", err);
   }
 
-  return NextResponse.json({ ok: true, role: finalRole });
+  return NextResponse.json({ ok: true, role: finalRole, next: verified.next });
 }

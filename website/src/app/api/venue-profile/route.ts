@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/api-auth";
 import { getVenueProfileByUserId, upsertVenueProfile } from "@/lib/db/venue-profiles";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 // GET: fetch the current user's venue profile
 export async function GET(request: Request) {
@@ -25,6 +26,45 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
     }
 
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+}
+
+// PATCH: partial updates — also handles adoptIfOrphan back-fill
+export async function PATCH(request: Request) {
+  const auth = await getAuthenticatedUser(request);
+  if (auth.error) return auth.error;
+
+  const body = await request.json().catch(() => ({}));
+
+  // Short-circuit: back-fill user_id for orphan profiles created at
+  // registration time (before the user verified their email).
+  if (body.adoptIfOrphan) {
+    const db = getSupabaseAdmin();
+    const { data: orphan } = await db
+      .from("venue_profiles")
+      .select("id")
+      .eq("email", auth.user!.email)
+      .is("user_id", null)
+      .maybeSingle();
+    if (orphan) {
+      await db
+        .from("venue_profiles")
+        .update({ user_id: auth.user!.id })
+        .eq("id", orphan.id);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  // General partial update (same semantics as PUT but for PATCH callers)
+  try {
+    const { error } = await upsertVenueProfile(auth.user!.id, body);
+    if (error) {
+      console.error("Venue profile patch error:", error);
+      return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
+    }
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
