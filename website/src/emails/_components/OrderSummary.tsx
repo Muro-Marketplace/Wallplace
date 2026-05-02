@@ -1,5 +1,6 @@
 import { Row, Column, Text, Img } from "@react-email/components";
 import { formatMoney, type Money, type OrderItem } from "@/emails/types/emailTypes";
+import { formatSizeLabelForDisplay } from "@/lib/format-size-label";
 import { theme } from "./theme";
 
 interface Props {
@@ -42,7 +43,7 @@ export function OrderSummary({ items, subtotal, shipping, tax, total }: Props) {
             <Text style={cellTitle}>{item.title}</Text>
             <Text style={cellMeta}>
               {item.artistName}
-              {item.size ? ` · ${item.size}` : ""}
+              {item.size ? ` · ${formatSizeLabelForDisplay(item.size)}` : ""}
               {item.quantity > 1 ? ` · Qty ${item.quantity}` : ""}
             </Text>
           </Column>

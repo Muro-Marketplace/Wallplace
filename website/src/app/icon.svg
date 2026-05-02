@@ -1,0 +1,7 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Wallplace favicon</title>
+  <rect width="512" height="512" fill="transparent"/>
+  <circle cx="256" cy="256" r="224" fill="#050505"/>
+  <path d="M126 168H176L216 337L256 168H302L342 337L382 168H386L344 352H299L256 190L213 352H168L126 168Z" fill="white"/>
+  <path d="M342 168H386V212L342 168Z" fill="white"/>
+</svg>

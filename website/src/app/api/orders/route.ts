@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAuthenticatedUser } from "@/lib/api-auth";
 import { notifyBuyerStatusUpdate } from "@/lib/email";
+import { sendEmail } from "@/lib/email/send";
+import { CustomerShippingConfirmation } from "@/emails/templates/orders/CustomerShippingConfirmation";
+import { CustomerDeliveryConfirmation } from "@/emails/templates/orders/CustomerDeliveryConfirmation";
 import { executeTransfer } from "@/lib/stripe-connect";
 import { canTransition, type OrderStatus, ORDER_STATUSES } from "@/lib/order-state-machine";
+
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://wallplace.co.uk";
 
 // GET: fetch orders for the authenticated user (customer, artist, or venue)
 export async function GET(request: Request) {
@@ -102,7 +107,7 @@ export async function PATCH(request: Request) {
     // aren't locked out of the status transitions.
     const { data: order } = await db
       .from("orders")
-      .select("artist_user_id, artist_slug, buyer_email, status, status_history, placement_id, venue_revenue")
+      .select("artist_user_id, artist_slug, buyer_email, status, status_history, placement_id, venue_revenue, shipping")
       .eq("id", orderId)
       .single();
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -150,14 +155,53 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
     }
 
-    // Notify buyer (fire-and-forget)
+    // Notify buyer. Branded React Email templates for shipped/delivered;
+    // legacy plain notifier for processing/cancelled (no template yet).
     if (order.buyer_email) {
-      notifyBuyerStatusUpdate({
-        email: order.buyer_email,
-        orderId,
-        status,
-        trackingNumber,
-      }).catch((err) => { if (err) console.error("Fire-and-forget error:", err); });
+      const shippingBlob = (order.shipping ?? {}) as { fullName?: string };
+      const firstName = (shippingBlob.fullName || order.buyer_email.split("@")[0]).split(" ")[0];
+      const orderUrl = `${SITE}/customer-portal/orders`;
+
+      if (status === "shipped") {
+        await sendEmail({
+          idempotencyKey: `customer_shipping_confirmation:${orderId}`,
+          template: "customer_shipping_confirmation",
+          category: "orders_and_payouts",
+          to: order.buyer_email,
+          subject: `Your order ${orderId} is on its way`,
+          react: CustomerShippingConfirmation({
+            firstName,
+            orderNumber: orderId,
+            trackingUrl: orderUrl,
+            carrier: trackingNumber ? `tracking ${trackingNumber}` : "the courier",
+            estimatedDelivery: "in the next few days",
+            orderUrl,
+          }),
+          metadata: { trackingNumber: trackingNumber ?? null },
+        });
+      } else if (status === "delivered") {
+        await sendEmail({
+          idempotencyKey: `customer_delivery_confirmation:${orderId}`,
+          template: "customer_delivery_confirmation",
+          category: "orders_and_payouts",
+          to: order.buyer_email,
+          subject: `Your order ${orderId} has arrived`,
+          react: CustomerDeliveryConfirmation({
+            firstName,
+            orderNumber: orderId,
+            deliveredAt: new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" }),
+            careGuideUrl: `${SITE}/care`,
+            reviewUrl: `${SITE}/customer-portal/orders`,
+          }),
+        });
+      } else {
+        notifyBuyerStatusUpdate({
+          email: order.buyer_email,
+          orderId,
+          status,
+          trackingNumber,
+        }).catch((err) => { if (err) console.error("Fire-and-forget error:", err); });
+      }
     }
 
     // On delivery, release pending payouts immediately (instead of waiting 14 days)

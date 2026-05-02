@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
+import { uploadMessageAttachment, type MessageAttachment } from "@/lib/upload";
 import type { ArtistWork } from "@/data/artists";
 import PlacementContextPanel from "@/components/PlacementContextPanel";
 import CounterPlacementDialog from "@/components/CounterPlacementDialog";
@@ -24,6 +25,15 @@ interface Conversation {
   messageCount: number;
 }
 
+interface MessageAttachmentRow {
+  url: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  width?: number;
+  height?: number;
+}
+
 interface Message {
   id: number;
   conversation_id: string;
@@ -36,6 +46,7 @@ interface Message {
   created_at: string;
   message_type?: string;
   metadata?: Record<string, unknown>;
+  attachments?: MessageAttachmentRow[];
   pinned_at?: string | null;
   deleted_at?: string | null;
 }
@@ -69,6 +80,11 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  // Attachments staged for the next reply. Uploaded straight away so
+  // we already have URLs by send time; we just send the metadata array.
+  const [pendingAttachments, setPendingAttachments] = useState<MessageAttachment[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [threadLoading, setThreadLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -384,8 +400,32 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
 
   const selectedConvData = conversations.find((c) => c.conversationId === selectedConv);
 
+  async function handleAttachFile(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setSendError(null);
+    setUploadingAttachment(true);
+    try {
+      const uploads: MessageAttachment[] = [];
+      for (const f of Array.from(files).slice(0, 10 - pendingAttachments.length)) {
+        const meta = await uploadMessageAttachment(f);
+        uploads.push(meta);
+      }
+      setPendingAttachments((prev) => [...prev, ...uploads]);
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingAttachment(false);
+      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+    }
+  }
+
+  function removePendingAttachment(idx: number) {
+    setPendingAttachments((prev) => prev.filter((_, i) => i !== idx));
+  }
+
   async function handleSendReply() {
-    if (!reply.trim() || !selectedConv || !selectedConvData) return;
+    const trimmed = reply.trim();
+    if ((!trimmed && pendingAttachments.length === 0) || !selectedConv || !selectedConvData) return;
     setSending(true);
     setSendError(null);
     try {
@@ -397,7 +437,8 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
           senderName: userSlug,
           senderType: portalType,
           recipientSlug: selectedConvData.otherParty,
-          content: reply.trim(),
+          content: trimmed,
+          attachments: pendingAttachments,
         }),
       });
       if (!res.ok) {
@@ -413,16 +454,19 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
         sender_name: userSlug,
         sender_type: portalType,
         recipient_slug: selectedConvData.otherParty,
-        content: reply.trim(),
+        content: trimmed,
+        attachments: pendingAttachments,
         is_read: false,
         created_at: new Date().toISOString(),
       }]);
+      const previewText = trimmed || (pendingAttachments[0] ? `📎 ${pendingAttachments[0].filename}` : "");
       setConversations((prev) => prev.map((c) =>
         c.conversationId === selectedConv
-          ? { ...c, latestMessage: reply.trim(), lastActivity: new Date().toISOString(), messageCount: c.messageCount + 1 }
+          ? { ...c, latestMessage: previewText, lastActivity: new Date().toISOString(), messageCount: c.messageCount + 1 }
           : c
       ));
       setReply("");
+      setPendingAttachments([]);
     } catch (err) {
       console.error("Failed to send:", err);
     }
@@ -517,6 +561,52 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
     }
   }
 
+  /** Inline Accept/Decline on a purchase_offer card. Hits
+   *  /api/offers/[id] PATCH directly; the API drops a status message
+   *  back into the same thread so the conversation stays cohesive.
+   *  When the actor is the buyer (venue) and the action is "accept",
+   *  the API also bell-redirects them to /venue-portal/offers?pay=…
+   *  for the Stripe handoff — we replicate that here by calling the
+   *  checkout endpoint directly so the venue jumps straight to
+   *  Stripe instead of bouncing through the portal.
+   */
+  async function handleOfferResponse(msg: Message, action: "accept" | "decline") {
+    const meta = (msg.metadata || {}) as Record<string, unknown>;
+    const offerId = meta.offerId as string | undefined;
+    if (!offerId) return;
+    try {
+      const res = await authFetch(`/api/offers/${offerId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "Could not update offer.");
+        return;
+      }
+      // If the actor is the venue (buyer) and they accepted, fire
+      // checkout immediately. The recipient flag here is the message
+      // recipient — i.e. whoever the offer was addressed to.
+      const recipientUserId = meta.recipientUserId as string | undefined;
+      if (action === "accept" && recipientUserId === user?.id) {
+        try {
+          const co = await authFetch(`/api/offers/${offerId}/checkout`, { method: "POST" });
+          const cd = await co.json().catch(() => ({}));
+          if (cd.url) {
+            window.location.href = cd.url;
+            return;
+          }
+        } catch { /* fall through to refresh */ }
+      }
+    } catch (err) {
+      console.error("Offer PATCH failed:", err);
+      alert("Network error. Please try again.");
+      return;
+    }
+    if (selectedConv) loadThread(selectedConv, true);
+    loadConversations(true);
+  }
+
   async function handlePlacementResponse(msg: Message, accept: boolean) {
     if (!selectedConvData) return;
     const placementId = (msg.metadata as Record<string, unknown>)?.placementId as string | undefined;
@@ -542,54 +632,21 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
       }
     }
 
-    try {
-      await authFetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId: selectedConv,
-          senderName: userSlug,
-          senderType: portalType,
-          recipientSlug: selectedConvData.otherParty,
-          content: accept ? "Placement accepted" : "Placement declined",
-          messageType: "placement_response",
-          metadata: { placementId, status: accept ? "active" : "declined" },
-        }),
-      });
-
-      setMessages((prev) => [...prev, {
-        id: Date.now(),
-        conversation_id: selectedConv!,
-        sender_id: user?.id || null,
-        sender_name: userSlug,
-        sender_type: portalType,
-        recipient_slug: selectedConvData.otherParty,
-        content: accept ? "Placement accepted" : "Placement declined",
-        is_read: false,
-        created_at: new Date().toISOString(),
-        message_type: "placement_response",
-        metadata: { placementId, status: accept ? "active" : "declined" },
-      }]);
-      // Reflect the new active placement in the conversation sidebar
-      // immediately, the poll that would otherwise sync it runs every
-      // 15s which is too slow for the "I just clicked accept" moment.
-      if (accept) {
-        setConversations((prev) => prev.map((c) =>
-          c.conversationId === selectedConv ? { ...c, hasActivePlacement: true } : c
-        ));
-      }
-      // Re-fetch conversations + thread in the background so every piece
-      // of state (latest terms, status chip on other party's side, etc.)
-      // matches the server truth without waiting for the next poll.
-      loadConversations(true);
-      if (selectedConv) loadThread(selectedConv, true);
-      // Broadcast so the placement context panel (and any other listener)
-      // refreshes without waiting for its own poll.
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { placementId, action: accept ? "accept" : "decline" } }));
-      }
-    } catch (err) {
-      console.error("Placement response message failed:", err);
+    // Server-side PATCH /api/placements already inserts the
+    // placement_response message into the conversation. We used to also
+    // POST /api/messages here from the client — that double-wrote the
+    // message and rendered two "Placement Accepted" pills in the thread.
+    // Now we only refresh local state and let loadThread pull the
+    // server's single source of truth.
+    if (accept) {
+      setConversations((prev) => prev.map((c) =>
+        c.conversationId === selectedConv ? { ...c, hasActivePlacement: true } : c
+      ));
+    }
+    loadConversations(true);
+    if (selectedConv) loadThread(selectedConv, true);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("wallplace:placement-changed", { detail: { placementId, action: accept ? "accept" : "decline" } }));
     }
   }
 
@@ -937,6 +994,153 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                   );
                 }
 
+                // Purchase offer card — venue/artist negotiating a price
+                // on a work or collection. Renders the artwork(s), the
+                // headline price + size, an optional note, and inline
+                // Accept / Counter / Decline buttons for whoever is the
+                // recipient. Once acted on, the conversation gets a
+                // matching purchase_offer_status pill (further down) so
+                // the thread reads as one negotiation timeline.
+                if (msg.message_type === "purchase_offer") {
+                  const offerId = meta.offerId as string | undefined;
+                  const senderUserId = meta.senderUserId as string | undefined;
+                  const recipientUserId = meta.recipientUserId as string | undefined;
+                  const formattedAmount = (meta.formattedAmount as string | undefined) || "";
+                  const isCounter = meta.isCounter === true;
+                  const primaryImage = meta.primaryImage as string | null | undefined;
+                  const primaryTitle = (meta.primaryTitle as string | undefined) || "Artwork";
+                  const primaryDimensions = meta.primaryDimensions as string | null | undefined;
+                  const primaryMedium = meta.primaryMedium as string | null | undefined;
+                  const sizeLabel = meta.sizeLabel as string | null | undefined;
+                  const note = meta.note as string | null | undefined;
+                  const workCount = Array.isArray(meta.workIds) ? (meta.workIds as unknown[]).length : 0;
+
+                  // Has a later status message superseded this offer?
+                  // We look forward in the thread for any
+                  // purchase_offer_status carrying the same offerId.
+                  const statusUpdate = messages.find(
+                    (m) =>
+                      m.message_type === "purchase_offer_status" &&
+                      (m.metadata as Record<string, unknown> | undefined)?.offerId === offerId &&
+                      new Date(m.created_at).getTime() >= new Date(msg.created_at).getTime(),
+                  );
+                  const finalStatus = (statusUpdate?.metadata as Record<string, unknown> | undefined)?.offerStatus as string | undefined;
+
+                  const iAmRecipient = recipientUserId === user?.id;
+                  const iAmSender = senderUserId === user?.id;
+                  const open = !finalStatus || finalStatus === "pending" || finalStatus === "countered";
+
+                  // Where the Counter button should land. Errs to the
+                  // venue portal if we can't resolve it from metadata.
+                  const portalLink = recipientUserId === senderUserId
+                    ? "/venue-portal/offers"
+                    : "/artist-portal/offers";
+
+                  return (
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[80%] border rounded-lg overflow-hidden bg-white ${isCounter ? "border-amber-400" : "border-accent/30"}`}>
+                        <div className={`px-3.5 py-2 border-b flex items-center gap-1.5 ${isCounter ? "bg-amber-50 border-amber-200" : "bg-accent/5 border-accent/20"}`}>
+                          {isCounter && (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-700">
+                              <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" />
+                            </svg>
+                          )}
+                          <p className={`text-[10px] font-medium uppercase tracking-wider ${isCounter ? "text-amber-800" : "text-accent"}`}>
+                            {isCounter ? "Counter offer" : "Purchase offer"}
+                          </p>
+                          <span className="ml-auto text-[10px] text-muted">{formattedAmount}</span>
+                        </div>
+                        <div className="px-3.5 py-3 space-y-1.5">
+                          {primaryImage && (
+                            <div className="w-full h-24 relative rounded-md overflow-hidden mb-2">
+                              <Image src={primaryImage} alt="" fill className="object-cover" sizes="300px" />
+                              {workCount > 1 && (
+                                <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 bg-black/65 text-white rounded-sm text-[10px]">
+                                  +{workCount - 1}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <p className="text-sm font-medium text-foreground">{primaryTitle}</p>
+                          {(primaryDimensions || primaryMedium || sizeLabel) && (
+                            <p className="text-xs text-muted">
+                              {[sizeLabel, primaryDimensions, primaryMedium].filter(Boolean).join(" · ")}
+                            </p>
+                          )}
+                          {note && <p className="text-xs text-muted whitespace-pre-wrap">&ldquo;{note}&rdquo;</p>}
+                        </div>
+                        {open && iAmRecipient && (
+                          <div className="px-3.5 py-2 border-t border-border flex gap-2 flex-wrap">
+                            <button
+                              onClick={() => handleOfferResponse(msg, "accept")}
+                              className="px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-full transition-colors"
+                            >
+                              Accept
+                            </button>
+                            <Link
+                              href={portalLink || (recipientUserId === senderUserId ? "/venue-portal/offers" : "/artist-portal/offers")}
+                              className="px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-full transition-colors"
+                            >
+                              Counter
+                            </Link>
+                            <button
+                              onClick={() => handleOfferResponse(msg, "decline")}
+                              className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-full transition-colors"
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        )}
+                        {open && iAmSender && (
+                          <div className="px-3.5 py-2 border-t border-border">
+                            <p className="text-[11px] text-muted">Awaiting response…</p>
+                          </div>
+                        )}
+                        {!open && finalStatus && (
+                          <div className={`px-3.5 py-2 border-t ${
+                            finalStatus === "accepted" || finalStatus === "paid"
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                              : "bg-foreground/5 border-border text-muted"
+                          }`}>
+                            <p className="text-xs font-medium capitalize">
+                              {finalStatus === "paid" ? "Paid" : finalStatus}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Purchase offer status pill (accepted/declined/withdrawn).
+                // We only render it standalone if the parent offer card
+                // isn't already in the rendered window (would be unusual
+                // — but safer than dropping it).
+                if (msg.message_type === "purchase_offer_status") {
+                  const offerId = meta.offerId as string | undefined;
+                  const offerStatus = meta.offerStatus as string | undefined;
+                  const formattedAmount = (meta.formattedAmount as string | undefined) || "";
+                  const hasParentCard = messages.some(
+                    (m) =>
+                      m.message_type === "purchase_offer" &&
+                      (m.metadata as Record<string, unknown> | undefined)?.offerId === offerId,
+                  );
+                  if (hasParentCard) return null;
+                  const tone =
+                    offerStatus === "accepted" || offerStatus === "paid"
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                      : "bg-foreground/5 border-border text-muted";
+                  return (
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[80%] px-3.5 py-2 rounded-lg border ${tone}`}>
+                        <p className="text-xs font-medium capitalize">
+                          Offer {offerStatus} {formattedAmount && `· ${formattedAmount}`}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
                 // Placement request / counter card. Counter offers come
                 // through the same message_type but with metadata.counter === true
                 // so the thread can visually distinguish the new terms from the
@@ -1151,7 +1355,24 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                         ? "bg-accent text-white rounded-br-none"
                         : "bg-[#FAF8F5] border border-border text-foreground rounded-bl-none"
                     } ${isPinned ? "ring-1 ring-amber-300" : ""}`}>
-                      <p className="leading-relaxed">{msg.content}</p>
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-1.5">
+                          {msg.attachments.map((a, i) => (
+                            a.mimeType.startsWith("image/") ? (
+                              <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" className="block">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={a.url} alt={a.filename} className="max-w-[220px] max-h-[220px] rounded-sm object-cover border border-black/5" />
+                              </a>
+                            ) : (
+                              <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm border ${isMe ? "bg-white/10 border-white/20 text-white" : "bg-white border-border text-foreground"}`}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                                <span className="text-[11px] truncate max-w-[160px]">{a.filename}</span>
+                              </a>
+                            )
+                          ))}
+                        </div>
+                      )}
+                      {msg.content && <p className="leading-relaxed">{msg.content}</p>}
                       <p className={`text-[9px] mt-1 ${isMe ? "text-white/50" : "text-muted"} flex items-center gap-1`}>
                         {isPinned && (
                           <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="17" x2="12" y2="22" /><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24z" /></svg>
@@ -1188,9 +1409,55 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                   </button>
                 </div>
               )}
-              <div className="flex gap-2">
+              {/* Attachment previews — small thumbs above the input */}
+              {pendingAttachments.length > 0 && (
+                <div className="flex gap-2 flex-wrap mb-2">
+                  {pendingAttachments.map((a, i) => (
+                    <div key={i} className="relative group">
+                      {a.mimeType.startsWith("image/") ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={a.url} alt={a.filename} className="w-14 h-14 object-cover rounded-sm border border-border" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-sm border border-border bg-surface flex items-center justify-center text-[9px] text-muted px-1 text-center leading-tight">
+                          {a.filename.slice(0, 18)}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removePendingAttachment(i)}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-foreground text-white rounded-full flex items-center justify-center hover:bg-red-500 transition-colors"
+                        aria-label={`Remove ${a.filename}`}
+                      >
+                        <svg width="8" height="8" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-2 items-center">
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif,application/pdf"
+                  multiple
+                  onChange={(e) => handleAttachFile(e.target.files)}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => attachmentInputRef.current?.click()}
+                  disabled={uploadingAttachment || pendingAttachments.length >= 10}
+                  title="Attach file"
+                  className="p-2 text-muted hover:text-accent transition-colors disabled:opacity-40"
+                >
+                  {uploadingAttachment ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                  )}
+                </button>
                 <input type="text" value={reply} onChange={(e) => { setReply(e.target.value); if (sendError) setSendError(null); }} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }} maxLength={5000} placeholder="Type a message..." className="flex-1 px-3 py-2.5 bg-background border border-border rounded-full text-sm focus:outline-none focus:border-accent/50" />
-                <button onClick={handleSendReply} disabled={!reply.trim() || sending || reply.length > 5000} className="px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-full hover:bg-accent-hover transition-colors disabled:opacity-40">
+                <button onClick={handleSendReply} disabled={(!reply.trim() && pendingAttachments.length === 0) || sending || reply.length > 5000} className="px-4 py-2.5 bg-accent text-white text-sm font-medium rounded-full hover:bg-accent-hover transition-colors disabled:opacity-40">
                   {sending ? "..." : "Send"}
                 </button>
               </div>

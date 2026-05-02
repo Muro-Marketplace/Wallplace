@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
 import { uploadImage } from "@/lib/upload";
+import { formatSizeLabelForDisplay } from "@/lib/format-size-label";
 import PlacementLoanForm from "./PlacementLoanForm";
 import CounterPlacementDialog from "@/components/CounterPlacementDialog";
 import PlacementNegotiationLog from "@/components/PlacementNegotiationLog";
@@ -124,6 +125,8 @@ export default function PlacementDetailClient({ placementId }: Props) {
   // actual install date.
   const [schedulePickerOpen, setSchedulePickerOpen] = useState(false);
   const [scheduleDraft, setScheduleDraft] = useState<string>("");
+  // Time-of-day for the install. Defaults to 12:00 if the user doesn't pick.
+  const [scheduleTimeDraft, setScheduleTimeDraft] = useState<string>("12:00");
   const [advanceBusy, setAdvanceBusy] = useState<
     "scheduled" | "installed" | "live" | "collected" | null
   >(null);
@@ -248,7 +251,8 @@ export default function PlacementDetailClient({ placementId }: Props) {
    */
   async function confirmSchedule() {
     if (!scheduleDraft) return;
-    const iso = new Date(`${scheduleDraft}T12:00:00`).toISOString();
+    const time = scheduleTimeDraft || "12:00";
+    const iso = new Date(`${scheduleDraft}T${time}:00`).toISOString();
     await handleAdvance("scheduled", iso);
   }
 
@@ -261,7 +265,10 @@ export default function PlacementDetailClient({ placementId }: Props) {
         const y = d.getFullYear();
         const m = String(d.getMonth() + 1).padStart(2, "0");
         const day = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
         setScheduleDraft(`${y}-${m}-${day}`);
+        setScheduleTimeDraft(`${hh}:${mm}`);
       }
     } else {
       // Default to today.
@@ -270,6 +277,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
       const m = String(now.getMonth() + 1).padStart(2, "0");
       const day = String(now.getDate()).padStart(2, "0");
       setScheduleDraft(`${y}-${m}-${day}`);
+      setScheduleTimeDraft("12:00");
     }
     setSchedulePickerOpen(true);
   }
@@ -622,12 +630,18 @@ export default function PlacementDetailClient({ placementId }: Props) {
                         consistent. */}
                     {schedulePickerOpen && (
                       <div className="mt-2 flex items-center gap-2 flex-wrap bg-surface border border-border rounded-sm px-3 py-2">
-                        <label className="text-xs text-muted">Install date</label>
+                        <label className="text-xs text-muted">Install</label>
                         <input
                           type="date"
                           value={scheduleDraft}
                           onChange={(e) => setScheduleDraft(e.target.value)}
                           min={new Date().toISOString().slice(0, 10)}
+                          className="px-2 py-1 bg-background border border-border rounded-sm text-xs focus:outline-none focus:border-accent/60"
+                        />
+                        <input
+                          type="time"
+                          value={scheduleTimeDraft}
+                          onChange={(e) => setScheduleTimeDraft(e.target.value)}
                           className="px-2 py-1 bg-background border border-border rounded-sm text-xs focus:outline-none focus:border-accent/60"
                         />
                         <button
@@ -639,7 +653,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
                           {advanceBusy === "scheduled"
                             ? "Saving…"
                             : placement.scheduled_for
-                              ? "Update date"
+                              ? "Update"
                               : "Confirm"}
                         </button>
                         <button
@@ -872,7 +886,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
               </div>
               <div className="p-2.5">
                 <p className="text-xs font-medium text-foreground truncate">{placement.work_title}</p>
-                {placement.work_size && <p className="text-[10px] text-muted truncate">{placement.work_size}</p>}
+                {placement.work_size && <p className="text-[10px] text-muted truncate">{formatSizeLabelForDisplay(placement.work_size)}</p>}
               </div>
             </div>
             {placement.extra_works.map((w, i) => (
@@ -884,7 +898,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
                 </div>
                 <div className="p-2.5">
                   <p className="text-xs font-medium text-foreground truncate">{w.title}</p>
-                  {w.size && <p className="text-[10px] text-muted truncate">{w.size}</p>}
+                  {w.size && <p className="text-[10px] text-muted truncate">{formatSizeLabelForDisplay(w.size)}</p>}
                 </div>
               </div>
             ))}

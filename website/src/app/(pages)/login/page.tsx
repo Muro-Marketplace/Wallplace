@@ -20,6 +20,9 @@ export default function LoginPage() {
 
   // Redirect if already logged in. Honours ?next= so a deep link that
   // bounced the user through /login lands them back where they started.
+  // We read window.location directly (no useSearchParams) so the page
+  // doesn't need a Suspense boundary at prerender time. safeRedirect +
+  // portalPathForRole come from Plan A's auth-roles refactor.
   useEffect(() => {
     if (authLoading || !user) return;
     const next =

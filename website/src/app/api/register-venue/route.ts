@@ -5,6 +5,8 @@ import { registerVenueSchema } from "@/lib/validations";
 import { notifyAdminNewVenue } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { slugify } from "@/lib/slugify";
+import { sendEmail } from "@/lib/email/send";
+import { VenueRegistrationConfirmation } from "@/emails/templates/venue-lifecycle/VenueRegistrationConfirmation";
 
 export async function POST(request: Request) {
   const limited = await checkRateLimit(request, 5, 60000);
@@ -90,6 +92,19 @@ export async function POST(request: Request) {
         console.error("[register-venue] venue_profiles insert failed:", profileErr);
       }
     }
+
+    await sendEmail({
+      idempotencyKey: `venue_registration_confirmation:${d.email.toLowerCase()}`,
+      template: "venue_registration_confirmation",
+      category: "security",
+      to: d.email,
+      subject: "We've received your Wallplace application",
+      react: VenueRegistrationConfirmation({
+        contactFirstName: (d.contactName || "there").split(" ")[0],
+        venueName: d.venueName,
+      }),
+      metadata: { venueType: d.venueType, location: `${d.city}, ${d.postcode}` },
+    });
 
     return NextResponse.json({ success: true });
   } catch {
