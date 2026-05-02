@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { slugify } from "@/lib/slugify";
 import TermsCheckbox from "@/components/TermsCheckbox";
 import Dropdown from "@/components/Dropdown";
+import RedirectIfLoggedIn from "@/components/RedirectIfLoggedIn";
 
 const venueTypes = [
   "Café / Coffee Shop",
@@ -112,8 +113,8 @@ export default function RegisterVenuePage() {
     setSubmitting(true);
     setError("");
 
-    if (form.password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters");
       setSubmitting(false);
       return;
     }
@@ -124,67 +125,40 @@ export default function RegisterVenuePage() {
     }
 
     try {
-      // Save registration record (for admin reference)
-      await fetch("/api/register-venue", {
+      const venueSlug = slugify(form.venueName);
+
+      // Persist the registration record AND seed the venue profile
+      // server-side. The endpoint now does both in one call so the
+      // verified login round-trip lands in a working portal.
+      const regRes = await fetch("/api/register-venue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      }).catch(() => {});
+        body: JSON.stringify({ ...form, venueSlug }),
+      });
+      if (!regRes.ok) {
+        const data = await regRes.json().catch(() => ({}));
+        setError(data.error || "Could not create your venue. Please try again.");
+        setSubmitting(false);
+        return;
+      }
 
       // Create auth account
-      const venueSlug = slugify(form.venueName);
       const { error: authError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
           data: { user_type: "venue", display_name: form.contactName, venue_slug: venueSlug },
+          emailRedirectTo: `${window.location.origin}/login?next=/venue-portal`,
         },
       });
 
       if (authError) {
-        console.error("Auth signup error:", authError);
         setError(authError.message || "Could not create account. Please try again.");
         setSubmitting(false);
         return;
       }
 
-      // Sign in immediately
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: form.email,
-        password: form.password,
-      });
-
-      if (signInError) {
-        console.error("Auto sign-in error:", signInError);
-        // Account created but auto-login failed, send to login page
-        setError("Account created! Please sign in with your credentials.");
-        setSubmitting(false);
-        return;
-      }
-
-      // Create venue profile so portal works immediately
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        await fetch("/api/venue-profile", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            name: form.venueName,
-            slug: venueSlug,
-            type: form.venueType === "Other" && form.customVenueType ? form.customVenueType : form.venueType,
-            location: form.city,
-            contactName: form.contactName,
-            email: form.email,
-            phone: form.phone,
-            wallSpace: form.wallSpace,
-          }),
-        }).catch((err) => console.error("Venue profile creation error:", err));
-      }
-
-      // Record terms acceptances (fire-and-forget)
+      // Terms (fire-and-forget, both flavours)
       const termsPayload = {
         userEmail: form.email,
         userType: "venue",
@@ -201,8 +175,7 @@ export default function RegisterVenuePage() {
         body: JSON.stringify({ ...termsPayload, termsType: "venue_agreement" }),
       }).catch(() => {});
 
-      // Redirect straight to browse
-      router.push("/browse");
+      router.push("/check-your-inbox");
     } catch {
       setError("Network error. Please try again.");
       setSubmitting(false);
@@ -240,6 +213,7 @@ export default function RegisterVenuePage() {
   }
 
   return (
+    <RedirectIfLoggedIn>
     <div className="bg-background">
       {/* Hero */}
       <section className="py-20 lg:py-24 bg-foreground text-white">
@@ -342,7 +316,7 @@ export default function RegisterVenuePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Password <span className="text-accent">*</span></label>
-                    <input type="password" value={form.password} onChange={(e) => updateField("password", e.target.value)} required minLength={6} placeholder="At least 6 characters" className={inputClass} />
+                    <input type="password" value={form.password} onChange={(e) => updateField("password", e.target.value)} required minLength={8} placeholder="At least 8 characters" className={inputClass} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">Confirm Password <span className="text-accent">*</span></label>
@@ -460,5 +434,6 @@ export default function RegisterVenuePage() {
         </div>
       </section>
     </div>
+    </RedirectIfLoggedIn>
   );
 }

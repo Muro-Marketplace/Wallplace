@@ -98,6 +98,20 @@ export default function PortalGuard({ allowedType, children }: PortalGuardProps)
 
   if (!user) return null;
 
+  if (user && !user.email_confirmed_at) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="max-w-md text-center px-6">
+          <h2 className="text-xl font-serif mb-3">Verify your email</h2>
+          <p className="text-sm text-muted mb-6">
+            We sent a confirmation link to <span className="font-medium">{user.email}</span>.
+            Click it to finish setting up your account, then come back and sign in.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Subscription gate for artists
   if (allowedType === "artist" && !subscriptionOk) {
     return (

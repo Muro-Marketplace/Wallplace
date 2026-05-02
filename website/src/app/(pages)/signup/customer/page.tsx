@@ -7,6 +7,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { isFlagOn } from "@/lib/feature-flags";
 import TermsCheckbox from "@/components/TermsCheckbox";
+import RedirectIfLoggedIn from "@/components/RedirectIfLoggedIn";
 
 export default function CustomerSignUpPage() {
   const router = useRouter();
@@ -22,8 +23,8 @@ export default function CustomerSignUpPage() {
     setError("");
     setLoading(true);
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       setLoading(false);
       return;
     }
@@ -34,6 +35,7 @@ export default function CustomerSignUpPage() {
         password,
         options: {
           data: { user_type: "customer", display_name: name },
+          emailRedirectTo: `${window.location.origin}/login?next=/browse`,
         },
       });
 
@@ -43,15 +45,9 @@ export default function CustomerSignUpPage() {
         return;
       }
 
-      // Sign in immediately
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) {
-        setError("Account created! Please sign in.");
-        setLoading(false);
-        return;
-      }
-
-      // Record terms acceptance (fire-and-forget)
+      // Best-effort: record terms acceptance. Don't await — the user
+      // doesn't need to wait on it, and it's fine if it lands a moment
+      // later.
       fetch("/api/terms/accept", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,7 +59,7 @@ export default function CustomerSignUpPage() {
         }),
       }).catch(() => {});
 
-      router.push("/browse");
+      router.push("/check-your-inbox");
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
@@ -71,6 +67,7 @@ export default function CustomerSignUpPage() {
   }
 
   return (
+    <RedirectIfLoggedIn>
     <div className="min-h-screen flex items-center justify-center relative">
       <div className="absolute inset-0 -z-10">
         <Image
@@ -120,8 +117,8 @@ export default function CustomerSignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
-                placeholder="At least 6 characters"
+                minLength={8}
+                placeholder="At least 8 characters"
                 className="w-full px-4 py-3 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/60 transition-colors"
               />
             </div>
@@ -143,9 +140,21 @@ export default function CustomerSignUpPage() {
                   <button
                     type="button"
                     onClick={async () => {
+                      let state = "";
+                      try {
+                        const r = await fetch("/api/auth/oauth-sign-state", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ role: "customer", next: "/browse" }),
+                        });
+                        if (r.ok) state = (await r.json()).state || "";
+                      } catch { /* fall through */ }
                       await supabase.auth.signInWithOAuth({
                         provider: "google",
-                        options: { redirectTo: `${window.location.origin}/auth/callback?role=customer&next=%2Fbrowse`, queryParams: { access_type: "offline", prompt: "consent" } },
+                        options: {
+                          redirectTo: `${window.location.origin}/auth/callback`,
+                          queryParams: { access_type: "offline", prompt: "consent", state },
+                        },
                       });
                     }}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-sm text-sm font-medium text-foreground hover:bg-background transition-colors"
@@ -156,9 +165,21 @@ export default function CustomerSignUpPage() {
                   <button
                     type="button"
                     onClick={async () => {
+                      let state = "";
+                      try {
+                        const r = await fetch("/api/auth/oauth-sign-state", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ role: "customer", next: "/browse" }),
+                        });
+                        if (r.ok) state = (await r.json()).state || "";
+                      } catch { /* fall through */ }
                       await supabase.auth.signInWithOAuth({
                         provider: "apple",
-                        options: { redirectTo: `${window.location.origin}/auth/callback?role=customer&next=%2Fbrowse` },
+                        options: {
+                          redirectTo: `${window.location.origin}/auth/callback`,
+                          queryParams: { state },
+                        },
                       });
                     }}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-sm text-sm font-medium text-foreground hover:bg-background transition-colors"
@@ -196,5 +217,6 @@ export default function CustomerSignUpPage() {
         </p>
       </div>
     </div>
+    </RedirectIfLoggedIn>
   );
 }

@@ -6,6 +6,7 @@ import { sendEmail } from "@/lib/email/send";
 import { CustomerShippingConfirmation } from "@/emails/templates/orders/CustomerShippingConfirmation";
 import { CustomerDeliveryConfirmation } from "@/emails/templates/orders/CustomerDeliveryConfirmation";
 import { executeTransfer } from "@/lib/stripe-connect";
+import { canTransition, type OrderStatus, ORDER_STATUSES } from "@/lib/order-state-machine";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://wallplace.co.uk";
 
@@ -94,8 +95,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Order ID and status required" }, { status: 400 });
     }
 
-    const validStatuses = ["processing", "shipped", "delivered", "cancelled"];
-    if (!validStatuses.includes(status)) {
+    if (!ORDER_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
@@ -107,7 +107,7 @@ export async function PATCH(request: Request) {
     // aren't locked out of the status transitions.
     const { data: order } = await db
       .from("orders")
-      .select("artist_user_id, artist_slug, buyer_email, status_history, placement_id, venue_revenue, shipping")
+      .select("artist_user_id, artist_slug, buyer_email, status, status_history, placement_id, venue_revenue, shipping")
       .eq("id", orderId)
       .single();
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -127,6 +127,11 @@ export async function PATCH(request: Request) {
       }
     }
     if (!authorised) return NextResponse.json({ error: "Not authorised" }, { status: 403 });
+
+    const transition = canTransition(order.status as OrderStatus, status as OrderStatus);
+    if (!transition.ok) {
+      return NextResponse.json({ error: transition.reason }, { status: 422 });
+    }
 
     // Append to status history. status_history is JSONB, pass the actual
     // array, never JSON.stringify'd, otherwise the column stores a string

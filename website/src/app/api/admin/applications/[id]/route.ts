@@ -39,8 +39,8 @@ export async function PUT(
 
     if (app.status !== "pending") {
       return NextResponse.json(
-        { error: `Application already ${app.status}` },
-        { status: 400 }
+        { error: `Application is already ${app.status}.` },
+        { status: 409 }
       );
     }
 

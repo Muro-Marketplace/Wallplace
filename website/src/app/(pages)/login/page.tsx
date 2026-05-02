@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { isFlagOn } from "@/lib/feature-flags";
+import { safeRedirect } from "@/lib/safe-redirect";
+import { portalPathForRole } from "@/lib/auth-roles";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,32 +18,19 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Honour ?next= so an email CTA can deep-link into a portal page.
-  // We read window.location directly rather than useSearchParams() to
-  // avoid forcing this whole page behind a <Suspense> boundary —
-  // Next.js fails the prerender otherwise. Same-origin only so we
-  // can't be tricked into bouncing users to a third-party domain.
-  const [safeNext, setSafeNext] = useState<string | null>(null);
+  // Redirect if already logged in. Honours ?next= so a deep link that
+  // bounced the user through /login lands them back where they started.
+  // We read window.location directly (no useSearchParams) so the page
+  // doesn't need a Suspense boundary at prerender time. safeRedirect +
+  // portalPathForRole come from Plan A's auth-roles refactor.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const sp = new URLSearchParams(window.location.search);
-    const raw = sp.get("next");
-    if (raw && raw.startsWith("/") && !raw.startsWith("//")) {
-      setSafeNext(raw);
-    }
-  }, []);
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (!authLoading && user) {
-      const fallback =
-        userType === "admin" ? "/admin" :
-        userType === "venue" ? "/venue-portal" :
-        userType === "customer" ? "/customer-portal" :
-        "/artist-portal";
-      router.replace(safeNext || fallback);
-    }
-  }, [authLoading, user, userType, router, safeNext]);
+    if (authLoading || !user) return;
+    const next =
+      typeof window === "undefined"
+        ? null
+        : new URLSearchParams(window.location.search).get("next");
+    router.replace(safeRedirect(next, portalPathForRole(userType)));
+  }, [authLoading, user, userType, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -163,9 +152,29 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={async () => {
+                    // Login doesn't know the user's role yet; default to
+                    // "customer". oauth-finalize never overwrites an
+                    // existing user_type, so a returning artist still
+                    // lands in the artist portal.
+                    const next = safeRedirect(
+                      new URLSearchParams(window.location.search).get("next"),
+                      "/browse",
+                    );
+                    let state = "";
+                    try {
+                      const r = await fetch("/api/auth/oauth-sign-state", {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ role: "customer", next }),
+                      });
+                      if (r.ok) state = (await r.json()).state || "";
+                    } catch { /* fall through */ }
                     await supabase.auth.signInWithOAuth({
                       provider: "google",
-                      options: { redirectTo: `${window.location.origin}/browse` },
+                      options: {
+                        redirectTo: `${window.location.origin}/auth/callback`,
+                        queryParams: { access_type: "offline", prompt: "consent", state },
+                      },
                     });
                   }}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-sm text-sm font-medium text-foreground hover:bg-background transition-colors"
@@ -176,9 +185,25 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={async () => {
+                    const next = safeRedirect(
+                      new URLSearchParams(window.location.search).get("next"),
+                      "/browse",
+                    );
+                    let state = "";
+                    try {
+                      const r = await fetch("/api/auth/oauth-sign-state", {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ role: "customer", next }),
+                      });
+                      if (r.ok) state = (await r.json()).state || "";
+                    } catch { /* fall through */ }
                     await supabase.auth.signInWithOAuth({
                       provider: "apple",
-                      options: { redirectTo: `${window.location.origin}/browse` },
+                      options: {
+                        redirectTo: `${window.location.origin}/auth/callback`,
+                        queryParams: { state },
+                      },
                     });
                   }}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-sm text-sm font-medium text-foreground hover:bg-background transition-colors"

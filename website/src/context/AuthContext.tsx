@@ -3,12 +3,13 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
+import { parseRole, type UserRole } from "@/lib/auth-roles";
 
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  userType: "artist" | "venue" | "customer" | "admin" | null;
+  userType: UserRole | null;
   displayName: string | null;
   subscriptionStatus: string | null;
   subscriptionPlan: string | null;
@@ -16,7 +17,7 @@ interface AuthContextValue {
   signUp: (
     email: string,
     password: string,
-    metadata: { user_type: "artist" | "venue" | "admin"; display_name: string }
+    metadata: { user_type: UserRole; display_name: string },
   ) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
@@ -101,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (
       email: string,
       password: string,
-      metadata: { user_type: "artist" | "venue" | "customer" | "admin"; display_name: string }
+      metadata: { user_type: UserRole; display_name: string },
     ) => {
       const { error } = await supabase.auth.signUp({
         email,
@@ -117,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
-  const userType = (user?.user_metadata?.user_type as "artist" | "venue" | "customer" | "admin") ?? null;
+  const userType = parseRole(user?.user_metadata?.user_type);
   const displayName = (user?.user_metadata?.display_name as string) ?? null;
 
   return (

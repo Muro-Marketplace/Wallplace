@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { authFetch } from "@/lib/api-client";
 
 // Nav order: Dashboard → Profile → Messages → Placements → rest (plan #8).
 const navItems = [
@@ -42,6 +43,17 @@ export default function VenuePortalLayout({
       router.replace("/login");
     }
   }, [loading, user, userType, router]);
+
+  // One-time back-fill for venues registered after the email-verification
+  // gate landed: the profile was created server-side without a user_id
+  // because the user wasn't signed in yet.
+  useEffect(() => {
+    if (!user || !user.email_confirmed_at) return;
+    authFetch("/api/venue-profile", {
+      method: "PATCH",
+      body: JSON.stringify({ adoptIfOrphan: true }),
+    }).catch(() => {});
+  }, [user]);
 
   if (loading) {
     return (
