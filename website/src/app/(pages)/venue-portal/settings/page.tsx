@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
+import AccountDangerZone from "@/components/AccountDangerZone";
 import { useCurrentVenue } from "@/hooks/useCurrentVenue";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch } from "@/lib/api-client";
@@ -98,7 +99,6 @@ export default function VenueSettingsPage() {
   const { user } = useAuth();
   const [notifs, setNotifs] = useState<NotifPref[]>(defaultNotifs);
   const [saved, setSaved] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [messageNotifsEnabled, setMessageNotifsEnabled] = useState(true);
   const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
   const [connectLoading, setConnectLoading] = useState(true);
@@ -359,48 +359,7 @@ export default function VenueSettingsPage() {
           )}
         </div>
 
-        {/* Danger zone */}
-        <div className="bg-white border border-red-100 rounded-sm">
-          <div className="px-5 py-4 border-b border-red-100">
-            <h2 className="font-serif text-base text-red-700">Danger Zone</h2>
-          </div>
-          <div className="p-5">
-            <p className="text-sm text-muted mb-4">
-              Permanently delete your account and all associated data. This
-              action cannot be undone.
-            </p>
-            {!showDeleteConfirm ? (
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="px-5 py-2 border border-red-300 text-red-600 text-sm rounded-sm hover:bg-red-50 transition-colors cursor-pointer"
-              >
-                Delete Account
-              </button>
-            ) : (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-sm">
-                <p className="text-sm font-medium text-red-700 mb-3">
-                  Are you sure? This will permanently delete your account.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-red-600 text-white text-sm rounded-sm hover:bg-red-700 transition-colors cursor-pointer"
-                  >
-                    Yes, delete my account
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="px-4 py-2 border border-border text-muted text-sm rounded-sm hover:text-foreground transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <AccountDangerZone />
       </div>
     </VenuePortalLayout>
   );

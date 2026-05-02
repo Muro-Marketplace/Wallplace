@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import ArtistPortalLayout from "@/components/ArtistPortalLayout";
+import AccountDangerZone from "@/components/AccountDangerZone";
 import Button from "@/components/Button";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -39,7 +40,6 @@ export default function SettingsPage() {
   });
   const [notifSaved, setNotifSaved] = useState(false);
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [messageNotifsEnabled, setMessageNotifsEnabled] = useState(true);
 
   // Load message notification preference from DB
@@ -239,32 +239,7 @@ export default function SettingsPage() {
         </form>
       </div>
 
-      {/* Danger zone */}
-      <div className="bg-surface border border-red-200 rounded-sm p-6">
-        <h2 className="text-base font-medium text-red-700 mb-2">Danger Zone</h2>
-        <p className="text-sm text-muted mb-5 max-w-md">
-          Permanently delete your account and all associated data. This action cannot be undone.
-        </p>
-        {!showDeleteConfirm ? (
-          <button type="button" onClick={() => setShowDeleteConfirm(true)}
-            className="text-sm font-medium text-red-600 border border-red-200 rounded-sm px-4 py-2 hover:bg-red-50 transition-colors">
-            Delete Account
-          </button>
-        ) : (
-          <div className="max-w-sm border border-red-200 rounded-sm p-4 bg-red-50">
-            <p className="text-sm font-medium text-red-700 mb-3">Are you sure? This cannot be undone.</p>
-            <div className="flex gap-3">
-              <button type="button" className="text-sm font-medium text-white bg-red-600 rounded-sm px-4 py-2 hover:bg-red-700 transition-colors">
-                Yes, delete my account
-              </button>
-              <button type="button" onClick={() => setShowDeleteConfirm(false)}
-                className="text-sm font-medium text-foreground border border-border rounded-sm px-4 py-2 hover:bg-background transition-colors">
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      <AccountDangerZone />
     </ArtistPortalLayout>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import CustomerPortalLayout from "@/components/CustomerPortalLayout";
+import AccountDangerZone from "@/components/AccountDangerZone";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 
@@ -115,18 +116,7 @@ export default function CustomerSettingsPage() {
           </div>
         </div>
 
-        {/* Danger Zone */}
-        <div className="bg-surface border border-red-200 rounded-sm p-6">
-          <h2 className="text-base font-medium text-red-700 mb-2">Danger Zone</h2>
-          <p className="text-sm text-foreground mb-1">Delete my account</p>
-          <p className="text-sm text-muted">
-            Contact{" "}
-            <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:text-accent-hover transition-colors">
-              hello@wallplace.co.uk
-            </a>{" "}
-            to delete your account. This action is permanent and cannot be undone.
-          </p>
-        </div>
+        <AccountDangerZone />
       </div>
     </CustomerPortalLayout>
   );
