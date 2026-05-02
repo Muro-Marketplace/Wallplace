@@ -194,7 +194,11 @@ export async function POST(request: Request) {
       .from("orders")
       .update({
         status: newStatus,
-        status_history: JSON.stringify(history),
+        // status_history is jsonb — pass the array raw, not stringified.
+        // Stringifying here results in a quoted JSON string in Postgres,
+        // which subsequent code paths trying to read history.length on
+        // an Array will silently see 0 entries.
+        status_history: history,
       })
       .eq("id", order.id);
 

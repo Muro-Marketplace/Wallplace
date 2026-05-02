@@ -140,7 +140,8 @@ export async function POST(request: Request) {
           shipping_cost: 0,
           total: (session.amount_total || 0) / 100,
           status: "confirmed",
-          status_history: JSON.stringify([{ status: "confirmed", timestamp: new Date().toISOString() }]),
+          // jsonb column — store the array raw (Plan B Task 13).
+          status_history: [{ status: "confirmed", timestamp: new Date().toISOString() }],
           source: "purchase_offer",
           artist_slug: session.metadata.offer_artist_slug || null,
           artist_user_id: session.metadata.offer_artist_user_id || null,
@@ -247,7 +248,8 @@ export async function POST(request: Request) {
           shipping_cost: shippingCost,
           total,
           status: "confirmed",
-          status_history: JSON.stringify([{ status: "confirmed", timestamp: new Date().toISOString() }]),
+          // jsonb column — store the array raw (Plan B Task 13).
+          status_history: [{ status: "confirmed", timestamp: new Date().toISOString() }],
           source,
           artist_slug: firstArtistSlug || null,
           artist_user_id: artistUserId,
