@@ -11,8 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import SaveButton from "@/components/SaveButton";
 import MakeOfferModal from "@/components/offers/MakeOfferModal";
 import { formatDimensionsForDisplay } from "@/lib/format-dimensions";
-import { SIZE_BANDS, bandForCm, type SizeBandKey } from "@/components/browse/SizeBands";
-import { parseDimensions } from "@/lib/shipping-calculator";
+import { SIZE_BANDS, bandsForWork, type SizeBandKey } from "@/components/browse/SizeBands";
 
 type CollectionWork = ArtistWork & {
   selectedSize?: string;
@@ -218,12 +217,21 @@ export default function CollectionDetailPage() {
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {(() => {
+                // Match the /browse surface: a work passes if ANY of
+                // its sizes (work-level dimensions, the artist-selected
+                // collection size, or any pricing tier label) lands in
+                // an active band. Previously this page only inspected
+                // `w.dimensions` and a collection where the artist
+                // had set per-bundle sizes but left dimensions blank
+                // would render an empty grid under any active filter.
                 const visible = activeSizes.size === 0
                   ? works
                   : works.filter((w) => {
-                      const dims = parseDimensions(w.dimensions);
-                      if (!dims) return false;
-                      return activeSizes.has(bandForCm(Math.max(dims.widthCm, dims.heightCm)));
+                      const bands = bandsForWork(w);
+                      for (const b of bands) {
+                        if (activeSizes.has(b)) return true;
+                      }
+                      return false;
                     });
                 if (visible.length === 0) {
                   return (

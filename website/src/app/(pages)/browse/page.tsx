@@ -11,46 +11,13 @@ import { collections as staticCollections, type ArtistCollection } from "@/data/
 import { DISCIPLINES, formatSubStyleLabel, getDisciplineById, resolveDiscipline, disciplineLabel } from "@/data/categories";
 import { slugify } from "@/lib/slugify";
 import { geocodePostcode } from "@/lib/geocode";
-import { parseDimensions } from "@/lib/shipping-calculator";
+import { bandsForWork } from "@/components/browse/SizeBands";
 import Button from "@/components/Button";
 import BrowseArtistCard from "@/components/BrowseArtistCard";
 import CollectionCard from "@/components/CollectionCard";
 import ArtworkThumb from "@/components/ArtworkThumb";
 import SearchBar from "@/components/SearchBar";
 import PostcodeInput, { readPersistedCoords, clearPersistedLocation } from "@/components/PostcodeInput";
-
-/** Map the largest dimension in cm to a size band id. */
-function bandForCm(largestCm: number): "small" | "medium" | "large" | "xl" {
-  if (largestCm <= 30) return "small";
-  if (largestCm <= 60) return "medium";
-  if (largestCm <= 100) return "large";
-  return "xl";
-}
-
-/** Return the set of size bands a work matches across ALL of its
- *  pricing options + the work-level dimensions. A work that ships in
- *  A4, A2, A0 should match Small, Medium AND Extra-large filters,
- *  not just whichever size happens to be biggest. Work-level
- *  dimensions are also added so legacy single-size works still
- *  classify correctly. Empty result = unparseable, falls back to
- *  "medium" (matches just the medium filter, generous default).
- */
-function bandsForWork(work: { dimensions: string; pricing: { label: string }[] }): Set<"small" | "medium" | "large" | "xl"> {
-  const bands = new Set<"small" | "medium" | "large" | "xl">();
-  const candidates: string[] = [];
-  if (work.dimensions) candidates.push(work.dimensions);
-  for (const p of work.pricing || []) {
-    if (p?.label) candidates.push(p.label);
-  }
-  for (const c of candidates) {
-    const d = parseDimensions(c);
-    if (!d) continue;
-    const largest = Math.max(d.widthCm, d.heightCm);
-    bands.add(bandForCm(largest));
-  }
-  if (bands.size === 0) bands.add("medium");
-  return bands;
-}
 
 /** Haversine great-circle distance in miles */
 function calcDistance(
