@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { checkoutSchema } from "@/lib/validations";
 import { calculateOrderShipping } from "@/lib/shipping-checkout";
+import { regionForCountry, isSupportedCountry } from "@/lib/iso-countries";
 
 export async function POST(request: Request) {
   try {
@@ -44,8 +45,13 @@ export async function POST(request: Request) {
     // Stripe charges to the card. Before this, the API used a flat
     // (item.shippingPrice ?? 9.95) * quantity calc and could produce a
     // different total, the £80.49 vs £79.94 mismatch.
-    const region: "uk" | "international" =
-      shipping.country && shipping.country !== "United Kingdom" ? "international" : "uk";
+    if (!isSupportedCountry(shipping.country)) {
+      return NextResponse.json(
+        { error: `We don't ship to ${shipping.country} yet.` },
+        { status: 400 },
+      );
+    }
+    const region = regionForCountry(shipping.country);
     const { totalShipping } = calculateOrderShipping(
       items.map((it) => ({
         artistSlug: it.artistSlug || "",
@@ -111,7 +117,7 @@ export async function POST(request: Request) {
         shipping_address2: shipping.addressLine2 || "",
         shipping_city: shipping.city,
         shipping_postcode: shipping.postcode,
-        shipping_country: shipping.country || "United Kingdom",
+        shipping_country: shipping.country,
         shipping_notes: shipping.notes || "",
         cart_items: JSON.stringify(items.map(i => ({ title: i.title, qty: i.quantity, price: i.price, artistSlug: i.artistSlug || "" }))).slice(0, 500),
         // Images split into a parallel array (indexed by cart_items)

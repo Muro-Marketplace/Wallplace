@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { labelForCountry } from "@/lib/iso-countries";
 
 interface StripeOrder {
   id: string;
@@ -157,7 +158,7 @@ function ConfirmationContent() {
             {order.metadata.shipping_address1}<br />
             {order.metadata.shipping_address2 && <>{order.metadata.shipping_address2}<br /></>}
             {order.metadata.shipping_city}, {order.metadata.shipping_postcode}<br />
-            {order.metadata.shipping_country}
+            {labelForCountry(order.metadata.shipping_country)}
           </p>
         </div>
       )}
