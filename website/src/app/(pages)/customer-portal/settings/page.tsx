@@ -1,47 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import CustomerPortalLayout from "@/components/CustomerPortalLayout";
 import AccountDangerZone from "@/components/AccountDangerZone";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { useNotificationPrefs } from "@/lib/use-notification-prefs";
 
-const PREFS_KEY = "wallplace-notification-prefs";
-
-interface NotificationPrefs {
-  orderUpdates: boolean;
-  newArtwork: boolean;
-  newsletter: boolean;
-}
-
-const defaultPrefs: NotificationPrefs = {
-  orderUpdates: true,
-  newArtwork: false,
-  newsletter: false,
-};
+const PREF_LABELS: { key: "order_notifications_enabled" | "message_notifications_enabled" | "email_digest_enabled"; label: string }[] = [
+  { key: "order_notifications_enabled", label: "Order updates" },
+  { key: "message_notifications_enabled", label: "Messages from artists & venues" },
+  { key: "email_digest_enabled", label: "Newsletter & digest" },
+];
 
 export default function CustomerSettingsPage() {
   const { user, displayName } = useAuth();
-  const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
+  const { prefs, togglePref, error: prefsError } = useNotificationPrefs(user);
   const [resetSent, setResetSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(PREFS_KEY);
-    if (stored) {
-      try {
-        setPrefs({ ...defaultPrefs, ...JSON.parse(stored) });
-      } catch {
-        /* ignore */
-      }
-    }
-  }, []);
-
-  function updatePref(key: keyof NotificationPrefs, value: boolean) {
-    const next = { ...prefs, [key]: value };
-    setPrefs(next);
-    localStorage.setItem(PREFS_KEY, JSON.stringify(next));
-  }
 
   async function handlePasswordReset() {
     if (!user?.email) return;
@@ -98,22 +74,21 @@ export default function CustomerSettingsPage() {
         <div className="bg-surface border border-border rounded-sm p-6">
           <h2 className="text-base font-medium mb-4">Notification Preferences</h2>
           <div className="space-y-3">
-            {([
-              { key: "orderUpdates" as const, label: "Order updates" },
-              { key: "newArtwork" as const, label: "New artwork from saved artists" },
-              { key: "newsletter" as const, label: "Newsletter" },
-            ]).map(({ key, label }) => (
+            {PREF_LABELS.map(({ key, label }) => (
               <label key={key} className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={prefs[key]}
-                  onChange={(e) => updatePref(key, e.target.checked)}
+                  onChange={() => togglePref(key)}
                   className="w-4 h-4 rounded border-border text-accent focus:ring-accent/30"
                 />
                 <span className="text-sm text-foreground">{label}</span>
               </label>
             ))}
           </div>
+          {prefsError && (
+            <p className="text-xs text-red-500 mt-3">{prefsError}</p>
+          )}
         </div>
 
         <AccountDangerZone />
