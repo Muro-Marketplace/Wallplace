@@ -69,8 +69,17 @@ export default function RootLayout({
       className={`${dmSans.variable} ${dmSerifDisplay.variable}`}
     >
       <body className="antialiased">
+        {/* Skip-to-content. First focusable element in the document so
+            keyboard users can bypass the header. The <main> below owns
+            the matching id so this works for every route, including
+            ones rendered outside the (pages) route group. */}
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
         <Providers>
-          {children}
+          <main id="main-content" tabIndex={-1} className="focus:outline-none">
+            {children}
+          </main>
           <CookieBanner />
         </Providers>
       </body>

@@ -139,7 +139,7 @@ export default function SettingsPage() {
         </div>
         <div className="space-y-4">
           {NOTIF_ROWS.map((notif) => (
-            <div key={notif.id} className="flex items-start justify-between gap-4 py-1">
+            <div key={notif.id} className="flex items-center justify-between gap-4 min-h-[44px]">
               <div>
                 <p className="text-sm font-medium text-foreground leading-snug">{notif.label}</p>
                 <p className="text-xs text-muted mt-0.5">{notif.description}</p>
@@ -147,15 +147,20 @@ export default function SettingsPage() {
               <button
                 type="button"
                 role="switch"
+                aria-label={notif.label}
                 aria-checked={prefs[notif.id]}
                 onClick={() => togglePref(notif.id)}
-                className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full transition-colors duration-200 focus:outline-none mt-0.5 ${
-                  prefs[notif.id] ? "bg-accent" : "bg-border"
+                className={`relative inline-flex items-center h-11 w-11 justify-center flex-shrink-0 transition-colors duration-200 focus:outline-none ${
+                  prefs[notif.id] ? "" : ""
                 }`}
               >
-                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 mt-0.5 ${
-                  prefs[notif.id] ? "translate-x-4" : "translate-x-0.5"
-                }`} />
+                <span className={`relative inline-flex h-5 w-9 rounded-full transition-colors duration-200 ${
+                  prefs[notif.id] ? "bg-accent" : "bg-border"
+                }`}>
+                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 mt-0.5 ${
+                    prefs[notif.id] ? "translate-x-4" : "translate-x-0.5"
+                  }`} />
+                </span>
               </button>
             </div>
           ))}

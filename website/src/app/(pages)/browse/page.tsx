@@ -1385,7 +1385,7 @@ function BrowsePortfoliosPageInner() {
                     )}
                   </div>
                 ) : viewMode === "compact" ? (
-                  <div className={`grid ${mobileGrid === 2 ? "grid-cols-2" : "grid-cols-1"} sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-5`}>
+                  <div className={`grid ${mobileGrid === 2 ? "grid-cols-2" : "grid-cols-1"} sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5`}>
                     {filteredArtists.slice(0, loadedArtists).map((artist) => {
                       const distance =
                         userCoords && artist.coordinates
@@ -2339,7 +2339,7 @@ function BrowsePortfoliosPageInner() {
             </div>
             {filteredCollections.length > 0 ? (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-5">
                   {filteredCollections.slice(0, loadedCollections).map((col) => {
                     const collectionArtist = artists.find((a) => a.slug === col.artistSlug);
                     const colDistance = userCoords && collectionArtist?.coordinates

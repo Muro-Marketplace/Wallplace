@@ -12,6 +12,65 @@
   --font-serif: var(--font-dm-serif-display);
 }
 
+:root {
+  /* Stacking layers. Use these (via the .z-* utilities below) instead
+     of arbitrary z-{n} values so layers stay consistent across drawers,
+     dropdowns, modals, and toasts. Higher number = more on top.
+     Generous gaps so mid-layer additions can slot in without renumbering. */
+  --z-base: 0;
+  --z-sticky: 10;       /* sticky breadcrumbs, sticky portal sub-headers */
+  --z-header: 100;      /* fixed top site header + its dropdowns */
+  --z-drawer: 200;      /* mobile slide-out menus, portal sidebars on mobile */
+  --z-overlay: 300;     /* full-screen scrims, lightboxes, fullscreen panes */
+  --z-modal: 400;       /* confirm dialogs, modal forms */
+  --z-toast: 500;       /* must always sit above modals */
+}
+
+@layer utilities {
+  .z-sticky { z-index: var(--z-sticky); }
+  .z-header { z-index: var(--z-header); }
+  .z-drawer { z-index: var(--z-drawer); }
+  .z-overlay { z-index: var(--z-overlay); }
+  .z-modal { z-index: var(--z-modal); }
+  .z-toast { z-index: var(--z-toast); }
+}
+
+@layer base {
+  /* Global focus indicator. Applies to every interactive element by
+     default. Components can opt out with `focus-visible:outline-none`
+     if they ship a bespoke focus style, but the baseline must always
+     be reachable for keyboard users. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent, #c17c5a);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Mouse users keep the silent default; only keyboard focus rings show. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+/* Skip-to-content link. Visually hidden until focused, then anchors
+   to the top-left at the toast layer so it sits above every other
+   surface (header, drawers, modals). Used by the skip link in
+   src/app/(pages)/layout.tsx — see Plan E Task 3. */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-foreground, #1a1a1a);
+  color: var(--color-background, #fff);
+  padding: 8px 16px;
+  z-index: var(--z-toast);
+  text-decoration: none;
+  font-size: 14px;
+}
+.skip-link:focus {
+  top: 0;
+}
+
 html {
   scroll-behavior: smooth;
 }

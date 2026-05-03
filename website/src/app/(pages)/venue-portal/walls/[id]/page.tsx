@@ -23,6 +23,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useModalKeys } from "@/lib/use-modal-keys";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { isFlagOn } from "@/lib/feature-flags";
@@ -60,6 +61,14 @@ export default function VenueWallEditorPage({
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Esc closes the delete confirm; Enter submits it. Hook enabled
+  // only while the dialog is open so it doesn't intercept page-level
+  // keystrokes the rest of the time.
+  const deleteRef = useModalKeys<HTMLDivElement>({
+    enabled: deleteOpen,
+    onClose: () => { if (!deleting) setDeleteOpen(false); },
+    onSubmit: () => { if (!deleting && deleteOpen) handleDelete(); },
+  });
 
   const flagOn = isFlagOn("WALL_VISUALIZER_V1");
 
@@ -245,8 +254,10 @@ export default function VenueWallEditorPage({
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)] bg-stone-50">
-      {/* Top bar */}
-      <div className="flex items-center justify-between gap-3 px-3 sm:px-4 py-2 border-b border-border bg-white">
+      {/* Top bar — stacks vertically on small screens so the wall name
+          + dimensions don't compete with the show-on-profile toggle and
+          the Delete button for horizontal space. */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 border-b border-border bg-white">
         <div className="flex items-center gap-2 min-w-0">
           <Link
             href="/venue-portal/walls"
@@ -259,12 +270,12 @@ export default function VenueWallEditorPage({
             {ready ? state.wall.name : "Loading…"}
           </p>
           {ready && (
-            <span className="text-xs text-muted tabular-nums shrink-0">
+            <span className="hidden sm:inline text-xs text-muted tabular-nums shrink-0">
               · {state.wall.width_cm}×{state.wall.height_cm} cm
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
           {/* Show on public profile, venue-side only. Optimistic
               toggle: flip locally, fire PATCH, revert on failure.
               Off by default per migration 037 so a venue's wall
@@ -338,7 +349,8 @@ export default function VenueWallEditorPage({
           <button
             type="button"
             onClick={() => setDeleteOpen(true)}
-            className="text-xs text-stone-500 hover:text-red-600 px-2 py-1"
+            aria-label="Delete wall"
+            className="text-sm text-stone-500 hover:text-red-600 px-3 py-2 min-h-[44px] inline-flex items-center"
           >
             Delete
           </button>
@@ -368,10 +380,11 @@ export default function VenueWallEditorPage({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-modal grid place-items-center bg-black/40 backdrop-blur-sm p-4"
           onClick={() => !deleting && setDeleteOpen(false)}
         >
           <div
+            ref={deleteRef}
             className="w-full max-w-sm rounded-2xl bg-white shadow-xl border border-black/5 p-6"
             onClick={(e) => e.stopPropagation()}
           >

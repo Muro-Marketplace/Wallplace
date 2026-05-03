@@ -111,7 +111,7 @@ export default function UpgradeModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="upgrade-modal-title"
-      className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-modal grid place-items-center bg-black/40 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div

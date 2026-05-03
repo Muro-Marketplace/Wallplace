@@ -224,7 +224,7 @@ export default function CollectionDetailPage() {
                 )}
               </div>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {(() => {
                 // Match the /browse surface: a work passes if ANY of
                 // its sizes (work-level dimensions, the artist-selected

@@ -61,7 +61,7 @@ export default function CustomerSettingsPage() {
                 <button
                   onClick={handlePasswordReset}
                   disabled={resetLoading}
-                  className="text-sm text-accent hover:text-accent-hover transition-colors disabled:opacity-50"
+                  className="text-sm min-h-[44px] inline-flex items-center text-accent hover:text-accent-hover transition-colors disabled:opacity-50"
                 >
                   {resetLoading ? "Sending..." : "Change Password"}
                 </button>
@@ -75,12 +75,12 @@ export default function CustomerSettingsPage() {
           <h2 className="text-base font-medium mb-4">Notification Preferences</h2>
           <div className="space-y-3">
             {PREF_LABELS.map(({ key, label }) => (
-              <label key={key} className="flex items-center gap-3 cursor-pointer">
+              <label key={key} className="flex items-center gap-3 min-h-[44px] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={prefs[key]}
                   onChange={() => togglePref(key)}
-                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent/30"
+                  className="w-5 h-5 rounded border-border text-accent focus:ring-accent/30"
                 />
                 <span className="text-sm text-foreground">{label}</span>
               </label>

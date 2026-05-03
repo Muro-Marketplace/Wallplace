@@ -95,7 +95,7 @@ export default function ArtistPortalLayout({
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/30 z-20 lg:hidden"
+          className="fixed inset-0 bg-black/30 z-overlay lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -104,7 +104,7 @@ export default function ArtistPortalLayout({
       <aside
         className={`
           fixed top-14 lg:top-16 left-0 bottom-0
-          w-56 bg-[#F5F3F0] border-r border-border z-30
+          w-56 bg-[#F5F3F0] border-r border-border z-drawer
           flex flex-col
           transition-transform duration-200
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -184,11 +184,12 @@ export default function ArtistPortalLayout({
       {/* Main content */}
       <div className="flex-1 lg:ml-56 min-w-0">
         {/* Mobile top bar with hamburger */}
-        <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-background sticky top-14 z-10">
+        <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-background sticky top-14 z-sticky">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 -ml-1.5 text-foreground/70 hover:text-foreground transition-colors"
+            className="p-3 -ml-3 inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-foreground/70 hover:text-foreground transition-colors"
             aria-label="Toggle menu"
+            aria-expanded={sidebarOpen}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <line x1="3" y1="6" x2="21" y2="6" />

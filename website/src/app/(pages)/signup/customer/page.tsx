@@ -77,7 +77,7 @@ export default function CustomerSignUpPage() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-black/70 sm:bg-black/55" />
       </div>
 
       <div className="w-full max-w-md px-6 py-16">

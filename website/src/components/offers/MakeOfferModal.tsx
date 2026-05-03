@@ -65,7 +65,7 @@ function MakeOfferModalBody({
   // Auth-required state — push to login with a return path.
   if (!authLoading && !user) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+      <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/50 p-4">
         <div className="bg-background rounded-sm w-full max-w-md p-6">
           <h2 className="text-lg font-medium mb-2">Sign in to make an offer</h2>
           <p className="text-sm text-muted mb-5">Offers are sent through your Wallplace account so the artist can respond, counter, or accept.</p>
@@ -89,7 +89,7 @@ function MakeOfferModalBody({
   // Non-venue gate.
   if (!authLoading && user && userType !== "venue") {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+      <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/50 p-4">
         <div className="bg-background rounded-sm w-full max-w-md p-6">
           <h2 className="text-lg font-medium mb-2">Offers are venue-only</h2>
           <p className="text-sm text-muted mb-5 leading-relaxed">
@@ -148,7 +148,7 @@ function MakeOfferModalBody({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/50 p-4">
       <div className="bg-background rounded-sm w-full max-w-md p-6">
         {submitted ? (
           <div className="text-center py-6">

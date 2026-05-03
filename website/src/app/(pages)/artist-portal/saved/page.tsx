@@ -143,7 +143,11 @@ export default function ArtistSavedPage() {
           <span className="text-[10px] text-muted hidden sm:inline">
             {new Date(item.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
           </span>
-          <button onClick={() => handleRemove(item)} disabled={removing === item.id} className="text-xs text-muted hover:text-red-600 transition-colors disabled:opacity-50">
+          <button
+            onClick={() => handleRemove(item)}
+            disabled={removing === item.id}
+            className="text-sm px-3 py-2 min-h-[44px] inline-flex items-center text-muted hover:text-red-600 transition-colors disabled:opacity-50"
+          >
             {removing === item.id ? "Removing..." : "Remove"}
           </button>
         </div>
@@ -182,7 +186,11 @@ export default function ArtistSavedPage() {
           <span className="text-[10px] text-muted hidden sm:inline">
             {new Date(item.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
           </span>
-          <button onClick={() => handleRemove(item)} disabled={removing === item.id} className="text-xs text-muted hover:text-red-600 transition-colors disabled:opacity-50">
+          <button
+            onClick={() => handleRemove(item)}
+            disabled={removing === item.id}
+            className="text-sm px-3 py-2 min-h-[44px] inline-flex items-center text-muted hover:text-red-600 transition-colors disabled:opacity-50"
+          >
             {removing === item.id ? "Removing..." : "Remove"}
           </button>
         </div>
@@ -210,7 +218,11 @@ export default function ArtistSavedPage() {
           <span className="text-[10px] text-muted hidden sm:inline">
             {new Date(item.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
           </span>
-          <button onClick={() => handleRemove(item)} disabled={removing === item.id} className="text-xs text-muted hover:text-red-600 transition-colors disabled:opacity-50">
+          <button
+            onClick={() => handleRemove(item)}
+            disabled={removing === item.id}
+            className="text-sm px-3 py-2 min-h-[44px] inline-flex items-center text-muted hover:text-red-600 transition-colors disabled:opacity-50"
+          >
             {removing === item.id ? "Removing..." : "Remove"}
           </button>
         </div>

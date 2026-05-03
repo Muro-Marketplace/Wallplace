@@ -670,7 +670,7 @@ export default function ArtworkPageClient({
         />
       )}
       {wallVizOpen && !useNewVisualizer && (
-        <div className="fixed inset-0 z-[120] bg-black/50 flex items-center justify-center p-4" onClick={() => setWallVizOpen(false)}>
+        <div className="fixed inset-0 z-modal bg-black/50 flex items-center justify-center p-4" onClick={() => setWallVizOpen(false)}>
           <div className="bg-background rounded-sm max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-border">
               <p className="text-sm font-medium text-foreground">View on your wall</p>
