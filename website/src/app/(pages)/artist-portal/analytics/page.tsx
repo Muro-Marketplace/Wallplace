@@ -509,17 +509,23 @@ function ViewsChart({ data }: { data: { date: string; profile_views: number; art
   const labelEvery = Math.max(1, Math.ceil(data.length / 14));
 
   return (
-    <div ref={containerRef} className="w-full">
-      {/* Legend */}
-      <div className="flex items-center gap-4 mb-3">
-        {lines.map((line) => (
-          <div key={line.key} className="flex items-center gap-1.5">
-            <div className="w-3 h-[2px] rounded-full" style={{ backgroundColor: line.color }} />
-            <span className="text-[10px] text-muted">{line.label}</span>
-          </div>
-        ))}
-      </div>
-      <svg width={width} height={chartHeight}>
+    // Plan F #13: scroll horizontally if the viewport is narrower
+    // than the minimum legible chart width (400px). Inside the scroll
+    // wrapper the SVG keeps its measured-width responsive behaviour;
+    // the min-width clamp on the inner div prevents legend collapse
+    // and unreadable axis labels on iPhone SE-sized screens.
+    <div className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div ref={containerRef} className="min-w-[400px]">
+        {/* Legend */}
+        <div className="flex items-center gap-4 mb-3">
+          {lines.map((line) => (
+            <div key={line.key} className="flex items-center gap-1.5">
+              <div className="w-3 h-[2px] rounded-full" style={{ backgroundColor: line.color }} />
+              <span className="text-[10px] text-muted">{line.label}</span>
+            </div>
+          ))}
+        </div>
+        <svg width={width} height={chartHeight}>
         {yTicks.map((tick) => {
           const y = padding.top + innerHeight - (tick / maxVal) * innerHeight;
           return (
@@ -588,7 +594,8 @@ function ViewsChart({ data }: { data: { date: string; profile_views: number; art
             </g>
           );
         })}
-      </svg>
+        </svg>
+      </div>
     </div>
   );
 }
@@ -645,8 +652,11 @@ function EarningsChart({ data }: { data: { month: string; earnings: number; sale
   const yTicks = [0, maxEarnings * 0.25, maxEarnings * 0.5, maxEarnings * 0.75, maxEarnings];
 
   return (
-    <div ref={containerRef} className="w-full">
-      <svg width={width} height={chartHeight}>
+    // Plan F #13: same horizontal-scroll pattern as the views chart so
+    // the earnings line stays legible on phones.
+    <div className="w-full overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div ref={containerRef} className="min-w-[400px]">
+        <svg width={width} height={chartHeight}>
         {yTicks.map((tick) => {
           const y = padding.top + innerHeight - (tick / maxEarnings) * innerHeight;
           return (
@@ -687,7 +697,8 @@ function EarningsChart({ data }: { data: { month: string; earnings: number; sale
             </text>
           </g>
         ))}
-      </svg>
+        </svg>
+      </div>
     </div>
   );
 }
