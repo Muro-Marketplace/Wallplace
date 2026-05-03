@@ -371,6 +371,492 @@ git commit --allow-empty -m "chore(placements): verified loan acceptances create
 
 ---
 
+### Task 6a: Public artwork-requests surface
+
+**Assessment:** Net new. Folds in part of the structural redesign that was originally chipped in Task 16. Three changes ship together:
+1. New page `/artwork-requests` listing all open venue-posted requests
+2. New "Open requests" tab on `/spaces-looking-for-art` (alongside the existing "Walls" tab)
+3. Header / footer link so the page is reachable
+
+**Files:**
+- Create: `src/app/(pages)/artwork-requests/page.tsx`
+- Modify: `src/app/(pages)/spaces-looking-for-art/page.tsx`
+- Modify: `src/app/api/placements/route.ts` (or create `src/app/api/placements/public/route.ts`)
+- Modify: `src/components/Header.tsx`
+- Modify: `src/components/Footer.tsx`
+
+- [ ] **Step 1: Public-listing API endpoint**
+
+The existing `GET /api/placements` is auth-gated and scoped to the caller. We need a separate, unauth-friendly endpoint that returns only:
+- Rows where `requester_user_id` belongs to a `venue_profile`
+- `status === "pending"` (i.e. open / not yet engaged)
+- A subset of safe fields: id, venue_slug, venue_name (joined), brief, monthly_fee_gbp, revenue_share_percent, qr_enabled, arrangement_type, created_at
+
+```typescript
+// src/app/api/placements/public/route.ts
+import { NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
+
+export async function GET() {
+  const db = getSupabaseAdmin();
+  const { data } = await db
+    .from("placements")
+    .select(`
+      id,
+      brief,
+      arrangement_type,
+      monthly_fee_gbp,
+      revenue_share_percent,
+      qr_enabled,
+      created_at,
+      venue_profile:venue_profiles!venue_user_id ( name, slug )
+    `)
+    .eq("status", "pending")
+    .not("venue_user_id", "is", null) // venue-initiated only
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  return NextResponse.json({
+    requests: (data || []).map((r) => ({
+      id: r.id,
+      brief: r.brief,
+      arrangement_type: r.arrangement_type,
+      monthly_fee_gbp: r.monthly_fee_gbp,
+      revenue_share_percent: r.revenue_share_percent,
+      qr_enabled: r.qr_enabled,
+      created_at: r.created_at,
+      venue_name: r.venue_profile?.name ?? "Venue",
+      venue_slug: r.venue_profile?.slug ?? null,
+    })),
+  });
+}
+```
+
+- [ ] **Step 2: New `/artwork-requests` page**
+
+```tsx
+// src/app/(pages)/artwork-requests/page.tsx
+import type { Metadata } from "next";
+import ArtworkRequestsClient from "./ArtworkRequestsClient";
+
+export const metadata: Metadata = {
+  title: "Artwork requests — Wallplace",
+  description: "Venues posting open calls for art. Submit your work to be considered.",
+};
+
+export default function ArtworkRequestsPage() {
+  return <ArtworkRequestsClient />;
+}
+```
+
+`ArtworkRequestsClient.tsx` is a `"use client"` component that fetches `/api/placements/public`, renders each request as a card showing venue name, brief, arrangement summary, and a "View" CTA. Use `<EmptyState>` (Plan D Task 2) when zero results. Apply `<Breadcrumbs>` (Plan D Task 1) at the top: `Home › Artwork requests`.
+
+- [ ] **Step 3: Spaces page — "Open requests" tab**
+
+`/spaces-looking-for-art/page.tsx` currently lists venue walls. Add a tab toggle at the top:
+
+```tsx
+const view = searchParams.get("view") || "walls";
+
+<div className="flex gap-2 border-b border-border mb-6">
+  <Link
+    href="/spaces-looking-for-art"
+    className={view === "walls" ? "font-medium border-b-2 border-accent pb-2" : "text-muted pb-2"}
+  >
+    Walls
+  </Link>
+  <Link
+    href="/spaces-looking-for-art?view=requests"
+    className={view === "requests" ? "font-medium border-b-2 border-accent pb-2" : "text-muted pb-2"}
+  >
+    Open requests
+  </Link>
+</div>
+
+{view === "requests" ? <ArtworkRequestsList /> : <ExistingWallsList />}
+```
+
+Reuse the same `ArtworkRequestsClient` component (or factor a shared `<ArtworkRequestsList>` for both surfaces).
+
+- [ ] **Step 4: Nav link**
+
+In `Header.tsx`, add to the marketplace tabs (the inline tabs shown when inside `/browse` or `/spaces-looking-for-art`):
+
+```tsx
+const marketplaceTabs = [
+  { label: "Galleries", href: "/browse" },
+  { label: "Portfolios", href: "/browse?view=portfolios" },
+  { label: "Collections", href: "/browse?view=collections" },
+  { label: "Spaces", href: "/spaces-looking-for-art" },
+  { label: "Open requests", href: "/spaces-looking-for-art?view=requests" }, // NEW
+];
+```
+
+In `Footer.tsx`'s "For Artists" column add: `{ label: "Artwork Requests", href: "/artwork-requests" }`.
+
+- [ ] **Step 5: Smoke**
+
+Sign out. Visit `/artwork-requests` — list of open requests with venue names. Visit `/spaces-looking-for-art?view=requests` — same list inline. Header has the new tab while inside marketplace pages.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/app/api/placements/public/route.ts \
+        "src/app/(pages)/artwork-requests/page.tsx" \
+        "src/app/(pages)/artwork-requests/ArtworkRequestsClient.tsx" \
+        "src/app/(pages)/spaces-looking-for-art/page.tsx" \
+        src/components/Header.tsx src/components/Footer.tsx
+git commit -m "feat(requests): public /artwork-requests surface + spaces tab"
+```
+
+---
+
+### Task 6b: Venue profile surfaces their open artwork requests
+
+**Files:**
+- Modify: `src/app/(pages)/venues/[slug]/page.tsx`
+
+- [ ] **Step 1: Section below the walls list**
+
+After the existing walls section, add an "Open requests from this venue" block:
+
+```tsx
+const { data: requests } = await db
+  .from("placements")
+  .select("id, brief, arrangement_type, monthly_fee_gbp, revenue_share_percent, created_at")
+  .eq("venue_user_id", venue.user_id)
+  .eq("status", "pending")
+  .is("artist_user_id", null) // open / not yet directed at a specific artist
+  .order("created_at", { ascending: false });
+
+// In render, only when requests.length > 0:
+<section className="mt-10">
+  <h2 className="text-xl font-medium mb-4">Open artwork requests</h2>
+  <ul className="space-y-3">
+    {requests.map((r) => (
+      <li key={r.id} className="border border-border rounded-sm p-4">
+        <p className="text-sm">{r.brief}</p>
+        <p className="text-xs text-muted mt-1">
+          {summariseArrangement(r)} · Posted {new Date(r.created_at).toLocaleDateString("en-GB")}
+        </p>
+        {/* "Submit your work" button if viewer is an artist — see Task 15 */}
+      </li>
+    ))}
+  </ul>
+</section>
+```
+
+(`summariseArrangement` is a one-liner helper — `"Paid loan £${monthly_fee_gbp}/mo"` / `"Rev share ${revenue_share_percent}%"` / etc.)
+
+- [ ] **Step 2: Smoke**
+
+Post an open request from a venue. Visit that venue's public profile. The request appears in the new section. If no open requests, the section is hidden entirely.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add "src/app/(pages)/venues/[slug]/page.tsx"
+git commit -m "feat(venues): public profile surfaces venue's open artwork requests"
+```
+
+---
+
+### Task 6c: Artist portal — only show engaged-with requests
+
+**Assessment:** Net new. Currently `/artist-portal/placements` shows every incoming request, including ones the artist has never opened. Per the user's brief: only requests the artist has engaged with belong in the portal; discovery happens on the public surfaces (Tasks 6a / 6b).
+
+**Files:**
+- Modify: `src/app/(pages)/artist-portal/placements/page.tsx`
+- Modify: `src/app/api/placements/route.ts` (the GET branch) — add an `?engaged=true` filter
+
+- [ ] **Step 1: Define "engaged"**
+
+A placement counts as engaged for the artist when ANY is true:
+- `status` ∈ (`"active"`, `"declined"`, `"completed"`, `"sold"`, `"cancelled"`) — non-pending
+- `requester_user_id === artist's user_id` — the artist initiated
+- The artist has sent at least one message into the placement's conversation thread (counter-offer, decline note, accept note)
+
+The first two are easy SQL filters. The third needs a join to `messages`:
+
+```sql
+WHERE artist_user_id = $1
+  AND (
+    status <> 'pending'
+    OR requester_user_id = $1
+    OR EXISTS (
+      SELECT 1 FROM messages m
+      WHERE m.metadata->>'placementId' = placements.id::text
+        AND m.sender_id = $1
+    )
+  )
+```
+
+- [ ] **Step 2: Add `?engaged=true` to the API**
+
+```typescript
+// In src/app/api/placements/route.ts GET:
+const url = new URL(request.url);
+const engagedOnly = url.searchParams.get("engaged") === "true";
+
+// Build the query, then if engagedOnly add the message-existence filter via .or() / a custom SQL view.
+// Supabase's PostgREST doesn't support correlated EXISTS easily — easiest is to pre-fetch the placement IDs
+// where the artist has sent a message, then `.in("id", engagedIds)` on the placements query.
+
+let engagedIds: Set<string> | null = null;
+if (engagedOnly) {
+  const { data: messages } = await db
+    .from("messages")
+    .select("metadata")
+    .eq("sender_id", auth.user!.id)
+    .not("metadata->placementId", "is", null);
+  engagedIds = new Set((messages || []).map((m) => m.metadata?.placementId).filter(Boolean));
+}
+
+let query = db.from("placements").select("...").eq("artist_user_id", auth.user!.id);
+if (engagedOnly) {
+  query = query.or(
+    `status.neq.pending,requester_user_id.eq.${auth.user!.id}`
+      + (engagedIds && engagedIds.size > 0 ? `,id.in.(${[...engagedIds].join(",")})` : "")
+  );
+}
+```
+
+- [ ] **Step 3: Default the artist portal to `?engaged=true`**
+
+In `artist-portal/placements/page.tsx`, change the fetch URL to `/api/placements?engaged=true`. Optionally add a small "Show all" link for an opt-out:
+
+```tsx
+<Link href="?all=1" className="text-xs text-muted">Show all incoming requests</Link>
+```
+
+- [ ] **Step 4: Smoke**
+
+Sign in as a fresh artist. Visit `/artist-portal/placements` — empty. From `/artwork-requests`, click a request, send a counter — back to portal, the request now appears.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/app/api/placements/route.ts \
+        "src/app/(pages)/artist-portal/placements/page.tsx"
+git commit -m "fix(artist-portal): placements list shows only engaged-with requests"
+```
+
+---
+
+### Task 6d: Submission form — four action types
+
+**Assessment:** Net new. Replaces the existing "select existing works" primary entry with four action paths. Significant UX restructure.
+
+**Files:**
+- Modify: `src/components/SpacesPlacementRequestForm.tsx`
+- Possibly extract sub-components for clarity
+
+The four action types:
+
+1. **Quote a price** — artist names a price for an existing work or a new commission.
+2. **Request a placement** — artist proposes their work for the venue's wall under a specific arrangement (paid loan / free loan / rev share / QR).
+3. **Suggest a commission** — artist proposes creating a new piece tailored to the venue.
+4. **Just a message** — opens a normal message thread with no structured proposal.
+
+- [ ] **Step 1: Top-level action picker**
+
+```tsx
+type Action = "quote" | "placement" | "commission" | "message";
+const [action, setAction] = useState<Action>("placement");
+
+<fieldset className="space-y-2">
+  <legend className="text-sm font-medium mb-2">What do you want to send?</legend>
+  {[
+    { v: "placement",  label: "Request a placement", hint: "Propose your work for their wall under a specific arrangement." },
+    { v: "quote",      label: "Quote a price",       hint: "For an existing work or a fixed commission price." },
+    { v: "commission", label: "Suggest a commission",hint: "Propose creating something new tailored to their space." },
+    { v: "message",    label: "Just a message",      hint: "Open a thread without a formal proposal." },
+  ].map((a) => (
+    <label key={a.v} className="flex items-start gap-3 p-3 border border-border rounded-sm cursor-pointer hover:bg-surface">
+      <input
+        type="radio"
+        name="action"
+        value={a.v}
+        checked={action === a.v}
+        onChange={() => setAction(a.v as Action)}
+        className="mt-1"
+      />
+      <div>
+        <p className="text-sm font-medium">{a.label}</p>
+        <p className="text-xs text-muted">{a.hint}</p>
+      </div>
+    </label>
+  ))}
+</fieldset>
+```
+
+- [ ] **Step 2: Action-specific sub-form for "Request a placement"**
+
+```tsx
+{action === "placement" && (
+  <div className="space-y-3">
+    <div className="grid grid-cols-2 gap-2">
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={paidLoan} onChange={(e) => setPaidLoan(e.target.checked)} />
+        <span className="text-sm">Paid loan</span>
+      </label>
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={qrEnabled} onChange={(e) => setQrEnabled(e.target.checked)} />
+        <span className="text-sm">QR-enabled</span>
+      </label>
+    </div>
+
+    {paidLoan && (
+      <div>
+        <label className="text-xs text-muted">Monthly fee (£)</label>
+        <input
+          type="number"
+          min={0}
+          value={monthlyFee}
+          onChange={(e) => setMonthlyFee(e.target.value === "" ? "" : Number(e.target.value))}
+          className="w-full px-3 py-2 border border-border rounded-sm text-sm"
+        />
+      </div>
+    )}
+
+    {qrEnabled && (
+      <div>
+        <label className="text-xs text-muted">Revenue share to the venue (%)</label>
+        <input
+          type="number"
+          min={0}
+          max={50}
+          value={revShare}
+          onChange={(e) => setRevShare(e.target.value === "" ? "" : Number(e.target.value))}
+          className="w-full px-3 py-2 border border-border rounded-sm text-sm"
+        />
+        <p className="text-[11px] text-muted mt-1">Max 50% to the venue.</p>
+      </div>
+    )}
+
+    {/* Multi-select work picker stays — but only inside the placement sub-form, not as a top-level entry */}
+    <WorkPicker selectedIds={workIds} onChange={setWorkIds} />
+  </div>
+)}
+```
+
+- [ ] **Step 3: Action-specific sub-forms for the other three**
+
+- "Quote a price": single-work picker + price input + optional message
+- "Suggest a commission": price input + commission brief textarea + optional reference images
+- "Just a message": message textarea only
+
+Keep each sub-form to its minimum required fields; don't ask for things the action doesn't need.
+
+- [ ] **Step 4: Submit dispatcher**
+
+The existing submit handler probably calls one endpoint. Now it dispatches by action:
+
+```tsx
+async function submit() {
+  if (action === "message") {
+    await authFetch("/api/messages", {
+      method: "POST",
+      body: JSON.stringify({ recipientSlug: venueSlug, content: message }),
+    });
+  } else {
+    // placement / quote / commission all create a placement row, with arrangement_type set per action
+    const arrangementType =
+      action === "placement"  ? (paidLoan ? "paid_loan" : qrEnabled ? "revenue_share" : "free_loan") :
+      action === "quote"      ? "purchase" :
+      /* commission */          "commission";
+
+    await authFetch("/api/placements", {
+      method: "POST",
+      body: JSON.stringify({
+        venueSlug,
+        wallId: wallId || null,
+        arrangementType,
+        monthlyFeeGbp: paidLoan ? monthlyFee : null,
+        revenueSharePercent: qrEnabled ? revShare : null,
+        qrEnabled,
+        extraWorks: workIds.map((id) => ({ work_id: id })),
+        message: message.trim() || null,
+      }),
+    });
+  }
+}
+```
+
+(`commission` may need a small migration to introduce as a new `arrangement_type` value — mirror Plan C Task 14's pattern. If the timeline doesn't support a new migration in this PR, ship `purchase` for both quote and commission and add a follow-up chip.)
+
+- [ ] **Step 5: Smoke**
+
+Sign in as Maya Chen. Open the form via the "Submit your work" button on Copper Kettle's profile (Task 15 wires that up). Try each of the four action types end-to-end. Each lands in `/venue-portal/placements` (or `/venue-portal/messages` for "Just a message") with the right shape.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/components/SpacesPlacementRequestForm.tsx
+git commit -m "feat(requests): submission form has four action types (placement/quote/commission/message)"
+```
+
+---
+
+### Task 6e: "Request sent" optimistic feedback
+
+**Files:**
+- Modify: `src/components/SpacesPlacementRequestForm.tsx`
+
+- [ ] **Step 1: After successful submit, lock the form into a "sent" state**
+
+```tsx
+const [sent, setSent] = useState(false);
+
+async function submit() {
+  // ...existing submit logic...
+  if (res.ok) {
+    setSent(true);
+    showToast("Request sent", { variant: "info", durationMs: 3000 }); // Plan D's toast
+    setTimeout(() => onSuccess?.(), 1500); // close the modal after 1.5s
+  }
+}
+
+// In render, when sent:
+{sent && (
+  <div className="text-center py-6">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="2" className="mx-auto mb-3">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+    <p className="text-sm font-medium">Request sent</p>
+    <p className="text-xs text-muted mt-1">The venue will see this in their inbox.</p>
+  </div>
+)}
+```
+
+When `sent`, the entire form (action picker + sub-forms + submit button) is replaced by the success block.
+
+- [ ] **Step 2: Idempotency at the row level**
+
+If the form is opened a second time for the same wall and the artist has already submitted a request, the form should detect that and pre-set `sent=true` rather than creating a duplicate. Server-side: the `/api/placements` POST already deduplicates on `(artist_user_id, venue_user_id, wall_id, status='pending')` — verify by reading the existing logic. Client-side: pre-flight a quick GET to `/api/placements?artistVenueWall=...&pending=1` and if a row exists, render `sent=true` immediately.
+
+If the existing API doesn't dedup, add a unique partial index in a quick migration:
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS placements_pending_unique_pair
+  ON placements (artist_user_id, venue_user_id, COALESCE(wall_id, '00000000-0000-0000-0000-000000000000'::uuid))
+  WHERE status = 'pending';
+```
+
+- [ ] **Step 3: Smoke**
+
+Submit a request for the first time → success block + auto-close. Re-open the form for the same wall → already in "sent" state. No duplicates created in the DB.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/components/SpacesPlacementRequestForm.tsx \
+        supabase/migrations/0XX_placements_pending_unique.sql # if added
+git commit -m "feat(requests): optimistic 'request sent' state + dedup index"
+```
+
+---
+
 ## Phase 3 — QR labels
 
 ### Task 7: Venue QR label style picker
@@ -973,30 +1459,24 @@ git commit -m "feat(placements): artists submit work to a venue's wall from the 
 
 ## Phase 9 — Spawned chips for structural redesigns
 
-### Task 16: Spawn task chips for design-led work
+### Task 16: Spawn task chip for design-led work
 
-Two of the user's items genuinely need design / brainstorming before implementation. Don't try to ship them inside Plan G; spawn task chips.
+Originally Plan G chipped two design-led follow-ups; the artwork-requests one is now folded directly into Tasks 6a–6e, so only the Curated brief remains as a chip.
 
-- [ ] **Step 1: "Move artwork requests out of portal" structural redesign**
-
-Title: `Restructure artwork requests surface — nav vs portal vs spaces page`
-
-Summary: The user proposed surfacing artwork-requests outside the portal — either in the top nav, in `/spaces-looking-for-art`, or on venue profiles. Plan G Tasks 3–5 fixed the immediate display + counter bugs but kept the existing portal location. A separate brainstorm should decide whether artwork-requests deserve a top-level surface and what that means for navigation IA. Output: a wireframe + one-page brief.
-
-- [ ] **Step 2: "Curated visual brief" pre-Task-12**
+- [ ] **Step 1: "Curated visual brief" pre-Task-12**
 
 Title: `Wallplace Curated brief — hero / pricing / testimonials`
 
 Summary: Plan G Task 12 ("Curated visual upgrade") explicitly blocks on a brief landing first. Spawn a task to produce that brief: 1-page wireframe, copy decisions, hero treatment direction.
 
-- [ ] **Step 3: Use the spawn-task chip mechanism**
+- [ ] **Step 2: Use the spawn-task chip mechanism**
 
 (In a Claude Code session, this is the `mcp__ccd_session__spawn_task` chip. Outside that context, file the same as a GitHub issue.)
 
-This task itself produces no code change; just records the spawned chips so future executors don't re-do this scoping.
+This task itself produces no code change; just records the spawned chip so future executors don't re-do this scoping.
 
 ```bash
-git commit --allow-empty -m "chore(plans): spawned chips for two design-led follow-ups (Plan G §16)"
+git commit --allow-empty -m "chore(plans): spawned chip for Curated visual brief (Plan G §16)"
 ```
 
 ---
@@ -1009,7 +1489,7 @@ git commit --allow-empty -m "chore(plans): spawned chips for two design-led foll
 
 - [ ] **Step 2: `npm run build`** — clean.
 
-- [ ] **Step 3: 14-point smoke**
+- [ ] **Step 3: 19-point smoke**
 
 Demo accounts: Maya Chen (artist), Copper Kettle (venue), a customer.
 
@@ -1019,14 +1499,24 @@ Demo accounts: Maya Chen (artist), Copper Kettle (venue), a customer.
 4. As Copper Kettle, view incoming artist offers — artist NAME + image thumbnails.
 5. Counter button visible on artwork-request rows for the side that didn't last respond.
 6. Accept a paid_loan offer → it appears in `/artist-portal/placements` and `/venue-portal/placements`.
-7. Sign in as Copper Kettle, open `/venue-portal/labels` — style picker is visible, parity with the artist version.
-8. Toggle a per-row visibility tick on the venue label editor — turns off cleanly. Size column visible.
-9. View Maya Chen on `/browse/maya-chen` — every work has a plausible price, no `£0` or `£NaN`.
-10. On `/browse`, scroll within the filter sidebar — when it hits its bottom, the page continues scrolling.
-11. Hover an artwork card on desktop — heart fades in. Click it — toast "Saved", no navigation.
-12. `/curated` looks like a marketing page (per the brief).
-13. `/login` and `/signup/artist` heroes show the new generated imagery, not Unsplash.
-14. iOS Safari: open a wall in `/venue-portal/walls/[id]` — pinch zoom works, drag pans, tap-to-place opens the picker, bottom toolbar visible.
+7. Visit `/artwork-requests` (signed out) — public list of open venue requests, each with venue name.
+8. Visit `/spaces-looking-for-art?view=requests` — same list inline as the "Open requests" tab.
+9. View Copper Kettle's public profile — open requests section appears below walls.
+10. Sign in as a fresh artist with no engagement history — `/artist-portal/placements` is empty. Submit a request via the new four-action form. Refresh — the request now appears.
+11. Open the submission form: action picker shows "Request a placement / Quote a price / Suggest a commission / Just a message". The "select existing works" entry is gone from the top level.
+12. Select "Request a placement" — paid loan / monthly fee / QR / rev share / work picker all visible.
+13. Submit — form swaps to "Request sent" success block + auto-closes after 1.5s with a toast.
+14. Re-open the form for the same wall — already in the "sent" state; no duplicate row created in DB.
+15. Sign in as Copper Kettle, open `/venue-portal/labels` — style picker is visible, parity with the artist version.
+16. Toggle a per-row visibility tick on the venue label editor — turns off cleanly. Size column visible.
+17. View Maya Chen on `/browse/maya-chen` — every work has a plausible price, no `£0` or `£NaN`.
+18. On `/browse`, scroll within the filter sidebar — when it hits its bottom, the page continues scrolling.
+19. Hover an artwork card on desktop — heart fades in. Click it — toast "Saved", no navigation.
+
+Plus the design-led checks (only if the prerequisites have landed):
+- `/curated` looks like a marketing page (per the brief).
+- `/login` and `/signup/artist` heroes show the new generated imagery, not Unsplash.
+- iOS Safari: open a wall in `/venue-portal/walls/[id]` — pinch zoom works, drag pans, tap-to-place opens the picker, bottom toolbar visible.
 
 - [ ] **Step 4: Open PR**
 
@@ -1043,6 +1533,11 @@ Closes a fresh batch of bugs, UX gaps, and small features surfaced after Plans A
 - Outgoing offers show selected work thumbnails
 - Counter button on artwork-request rows
 - Loan acceptances surface in placements lists
+- Public /artwork-requests page + "Open requests" tab on /spaces-looking-for-art
+- Venue profile surfaces their open requests
+- Artist portal /placements only shows engaged-with rows (discovery moves to public surfaces)
+- Submission form: four action types (placement / quote / commission / message); "select existing works" no longer top-level
+- "Request sent" optimistic feedback + dedup index
 - Venue QR label style picker (parity with artist)
 - Venue label toggles deselect; size column visible
 - Maya Chen demo prices fixed
@@ -1062,7 +1557,6 @@ Closes a fresh batch of bugs, UX gaps, and small features surfaced after Plans A
 
 ## Spawned follow-ups (out of scope)
 
-- Restructure artwork-requests surface (nav vs portal vs spaces page)
 - Curated visual brief — hero / pricing / testimonials direction
 EOF
 )"
@@ -1077,7 +1571,7 @@ EOF
 | # | Item | Already in plan? | Plan G task |
 |---|---|---|---|
 | 1 | Checkout-back after offer-accept 404s | No | Task 1 |
-| 2 | Venue of artwork request shown as id | No | Task 3 (display fix) + Task 16 chip (structural redesign) |
+| 2 | Venue of artwork request shown as id | No | Task 3 (display fix) — structural piece folded into Tasks 6a–6c |
 | 3 | Offer from artist: no images, artist id, no counter | No | Tasks 4 (display) + 5 (counter) |
 | 4 | Loan acceptance creates placement row | No | Task 6 |
 | 5 | QR label style picker only on artist side | No | Task 7 |
@@ -1090,8 +1584,15 @@ EOF
 | 12 | Use AI imagery instead of Unsplash | No | Task 13 |
 | 13 | Mobile wall viz UX | Plan E covered general mobile but not visualizer | Task 14 |
 | 14 | Send venue artists' works to walls | No | Task 15 |
+| 15 | Venue-posted artwork requests linked to spaces page + own page | No | Task 6a |
+| 16 | Engaged-only filter on artist portal | No | Task 6c |
+| 17 | "Request sent" optimistic feedback to sender | No | Task 6e |
+| 18 | Agreed placement / loan goes to My Placements | Same as #4 (auditable in Task 6) | Task 6 |
+| 19 | "Request a placement" surfaces loan/fee/QR/rev-share + work picker | No | Task 6d |
+| 20 | Form four-action restructure (drop "select existing works") | No | Task 6d |
+| 21 | Venue making request shows name not id | Same as #2 | Task 3 (and surface contexts in Tasks 6a / 6b) |
 
-All 14 net new for Plan G. Two (items 2's structural piece and 11) are explicitly gated on brainstorming via Task 16.
+All 21 net new for Plan G. One (item 11 / Curated) remains gated on a design brief via Task 16.
 
 **Spec coverage:** every input has a destination — either a Plan G task or a spawned chip. Nothing dropped.
 
