@@ -159,6 +159,16 @@ export default function ArtistProfileClient({
     if (revealClearTimer.current) clearTimeout(revealClearTimer.current);
     revealClearTimer.current = setTimeout(() => setRevealedWorkIndex(null), 6000);
   }, []);
+  // Clear any pending reveal-timer on unmount so a navigation away mid-
+  // timer doesn't fire setState on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (revealClearTimer.current) {
+        clearTimeout(revealClearTimer.current);
+        revealClearTimer.current = null;
+      }
+    };
+  }, []);
   const searchParams = useSearchParams();
 
   const qrSize = searchParams.get("size") || null;
