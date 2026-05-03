@@ -228,7 +228,7 @@ export default function VenueSettingsPage() {
                 type="button"
                 onClick={handleConnectDashboard}
                 disabled={connectRedirecting}
-                className="px-4 py-2 text-sm font-medium bg-foreground text-white rounded-sm hover:bg-foreground/90 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 min-h-[44px] inline-flex items-center text-sm font-medium bg-foreground text-white rounded-sm hover:bg-foreground/90 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {connectRedirecting ? "Opening..." : "Open Stripe Dashboard"}
               </button>
@@ -242,7 +242,7 @@ export default function VenueSettingsPage() {
                 type="button"
                 onClick={handleConnectOnboard}
                 disabled={connectRedirecting}
-                className="px-5 py-2 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-5 py-2 min-h-[44px] inline-flex items-center bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {connectRedirecting ? "Redirecting..." : "Continue Setup"}
               </button>
@@ -256,7 +256,7 @@ export default function VenueSettingsPage() {
                 type="button"
                 onClick={handleConnectOnboard}
                 disabled={connectRedirecting}
-                className="px-5 py-2 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50"
+                className="px-5 py-2 min-h-[44px] inline-flex items-center bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent/90 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {connectRedirecting ? "Redirecting..." : "Set Up Payouts"}
               </button>

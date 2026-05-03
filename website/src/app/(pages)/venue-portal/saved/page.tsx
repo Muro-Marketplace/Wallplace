@@ -118,7 +118,7 @@ export default function SavedPage() {
                       <button
                         type="button"
                         onClick={() => toggleSaved("work", work!.id)}
-                        className="px-3 py-1.5 text-xs border border-border text-muted rounded-sm hover:border-red-300 hover:text-red-500 transition-colors cursor-pointer"
+                        className="px-3 py-2 min-h-[44px] text-sm border border-border text-muted rounded-sm hover:border-red-300 hover:text-red-500 transition-colors cursor-pointer"
                       >
                         Remove
                       </button>
@@ -206,7 +206,7 @@ export default function SavedPage() {
                 <button
                   type="button"
                   onClick={() => toggleSaved("collection", item.id)}
-                  className="text-xs text-muted hover:text-red-600 transition-colors shrink-0"
+                  className="text-sm px-3 py-2 min-h-[44px] inline-flex items-center text-muted hover:text-red-600 transition-colors shrink-0"
                 >
                   Remove
                 </button>
