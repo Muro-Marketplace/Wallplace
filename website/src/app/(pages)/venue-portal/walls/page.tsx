@@ -15,6 +15,7 @@ import Link from "next/link";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
 import EmptyState from "@/components/EmptyState";
 import ImageWithFallback from "@/components/ImageWithFallback";
+import { safeHexBackground } from "@/lib/hex-color";
 import { useAuth } from "@/context/AuthContext";
 import { isFlagOn } from "@/lib/feature-flags";
 import type { Wall } from "@/lib/visualizer/types";
@@ -149,7 +150,7 @@ function WallCard({ wall }: { wall: Wall }) {
           <div
             className="rounded shadow-inner"
             style={{
-              backgroundColor: `#${wall.wall_color_hex}`,
+              backgroundColor: safeHexBackground(wall.wall_color_hex, "#E5E1DA"),
               width: cardWidth,
               height: cardHeight,
               maxWidth: "100%",
