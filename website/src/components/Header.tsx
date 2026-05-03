@@ -723,12 +723,18 @@ export default function Header() {
                     // it's parity). Settings stays at the end so the
                     // visual order matches the sidebar's secondary
                     // section.
+                    // IMPORTANT: keep these arrays in sync with the
+                    // {Artist,Venue,Customer}PortalLayout sidebar
+                    // `navItems` arrays. Plan G #2: there's no automated
+                    // check, so audit when adding portal pages.
                     const links = userType === "venue"
                       ? [
                           { label: "Dashboard", href: "/venue-portal" },
                           { label: "Venue Profile", href: "/venue-portal/profile" },
                           { label: "Messages", href: "/venue-portal/messages" },
                           { label: "Placements", href: "/venue-portal/placements" },
+                          { label: "My Offers", href: "/venue-portal/offers" },
+                          { label: "Artwork Requests", href: "/venue-portal/artwork-requests" },
                           { label: "My Walls", href: "/venue-portal/walls" },
                           { label: "Saved", href: "/venue-portal/saved" },
                           { label: "QR Labels", href: "/venue-portal/labels" },
@@ -750,10 +756,13 @@ export default function Header() {
                             { label: "Showroom", href: "/artist-portal/showroom" },
                             { label: "Messages", href: "/artist-portal/messages" },
                             { label: "Placements", href: "/artist-portal/placements" },
+                            { label: "My Offers", href: "/artist-portal/offers" },
+                            { label: "Artwork Requests", href: "/artist-portal/artwork-requests" },
                             { label: "Collections", href: "/artist-portal/collections" },
                             { label: "Saved", href: "/artist-portal/saved" },
                             { label: "Orders", href: "/artist-portal/orders" },
                             { label: "QR Labels", href: "/artist-portal/labels" },
+                            { label: "Social Posts", href: "/artist-portal/posts" },
                             { label: "Analytics", href: "/artist-portal/analytics" },
                             { label: "Billing", href: "/artist-portal/billing" },
                             { label: "Settings", href: "/artist-portal/settings" },
