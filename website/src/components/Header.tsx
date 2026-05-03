@@ -838,7 +838,7 @@ export default function Header() {
           <div className="lg:hidden flex items-center">
             <button
               type="button"
-              className={`p-2 -mr-2 transition-colors duration-300 ${
+              className={`p-3 -mr-3 inline-flex items-center justify-center min-h-[44px] min-w-[44px] transition-colors duration-300 ${
                 isPortal || !showSolid ? "text-white" : "text-foreground"
               }`}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

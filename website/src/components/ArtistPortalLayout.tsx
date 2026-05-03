@@ -187,8 +187,9 @@ export default function ArtistPortalLayout({
         <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-background sticky top-14 z-sticky">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 -ml-1.5 text-foreground/70 hover:text-foreground transition-colors"
+            className="p-3 -ml-3 inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-foreground/70 hover:text-foreground transition-colors"
             aria-label="Toggle menu"
+            aria-expanded={sidebarOpen}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <line x1="3" y1="6" x2="21" y2="6" />
