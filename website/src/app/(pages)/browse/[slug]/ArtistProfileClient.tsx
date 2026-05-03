@@ -675,6 +675,7 @@ export default function ArtistProfileClient({
                 <button
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
                   className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow-lg transition-colors"
+                  aria-label="Previous image"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                 </button>
@@ -683,6 +684,7 @@ export default function ArtistProfileClient({
                 <button
                   onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow-lg transition-colors"
+                  aria-label="Next image"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
                 </button>
@@ -695,6 +697,7 @@ export default function ArtistProfileClient({
               <button
                 onClick={() => setLightboxIndex(null)}
                 className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-colors"
+                aria-label="Close lightbox"
               >
                 <svg width="16" height="16" viewBox="0 0 14 14" fill="none" stroke="#1A1A1A" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
               </button>
@@ -987,7 +990,11 @@ export default function ArtistProfileClient({
         <div className="fixed inset-0 z-modal flex items-center justify-center" onClick={() => setShowEnquiry(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative z-10 bg-white rounded-sm w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setShowEnquiry(false)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center">
+            <button
+              onClick={() => setShowEnquiry(false)}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center"
+              aria-label="Close enquiry"
+            >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#1A1A1A" strokeWidth="1.5" strokeLinecap="round"><path d="M3 3l8 8M11 3L3 11" /></svg>
             </button>
             {enquirySent ? (

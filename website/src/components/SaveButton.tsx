@@ -39,6 +39,8 @@ export default function SaveButton({ type, itemId, size = "sm", className = "" }
     toggleSaved(type, itemId);
   };
 
+  const label = !user ? "Sign up to save" : saved ? "Remove from saved" : "Save";
+
   return (
     <button
       onClick={handleClick}
@@ -47,7 +49,9 @@ export default function SaveButton({ type, itemId, size = "sm", className = "" }
           ? "bg-accent text-white"
           : "bg-white/80 text-foreground/60 hover:bg-white hover:text-accent backdrop-blur-sm"
       } ${className}`}
-      title={!user ? "Sign up to save" : saved ? "Remove from saved" : "Save"}
+      aria-label={label}
+      aria-pressed={saved}
+      title={label}
     >
       <svg
         width={iconSize}
