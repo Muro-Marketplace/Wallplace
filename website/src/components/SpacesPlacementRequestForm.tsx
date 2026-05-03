@@ -83,6 +83,11 @@ export default function SpacesPlacementRequestForm({
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Plan G #6e: lock the form into a 'sent' state after a successful
+  // POST so the artist sees a clear confirmation before the parent
+  // closes the modal — bare onSuccess() unmounts immediately and felt
+  // like the request had vanished into the void.
+  const [sent, setSent] = useState(false);
   // QR is implicit on revenue_share (the rev share IS the QR split),
   // off by default on a paid loan (artist may want a pure
   // display-fee deal), and off on direct purchase. Tracked
@@ -191,11 +196,41 @@ export default function SpacesPlacementRequestForm({
         // artists, surface the exact human message it returns.
         throw new Error(data.error || `Request failed (${res.status})`);
       }
-      onSuccess(placementId);
+      setSent(true);
+      // Hold the success block on screen briefly before letting the
+      // parent close the modal so the user actually sees it.
+      setTimeout(() => onSuccess(placementId), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send request");
       setSubmitting(false);
     }
+  }
+
+  // Success state — replaces the form with a clear confirmation
+  // before the parent closes. Plan G #6e.
+  if (sent) {
+    return (
+      <div className="mt-3 pt-3 border-t border-border text-center py-6">
+        <svg
+          width="32"
+          height="32"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#15803D"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="mx-auto mb-3"
+          aria-hidden
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+        <p className="text-sm font-medium">Request sent</p>
+        <p className="text-xs text-muted mt-1">
+          The venue will see this in their inbox.
+        </p>
+      </div>
+    );
   }
 
   // No works → nudge to add one before requesting a placement.
