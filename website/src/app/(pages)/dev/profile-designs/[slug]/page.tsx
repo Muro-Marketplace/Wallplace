@@ -67,6 +67,9 @@ export default async function ProfileDesignsPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  // Dev preview routes don't ship to production. Plan A's robots.ts
+  // already blocks indexing; this gate blocks loading too.
+  if (process.env.NODE_ENV === "production") notFound();
   const { slug } = await params;
   const artist = await getArtistBySlug(slug);
   if (!artist) notFound();

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { venues as staticVenues } from "@/data/venues";
 import VenueWallCard from "@/components/VenueWallCard";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
 interface VenueShape {
   slug: string;
@@ -163,6 +164,14 @@ export default async function VenueDetailPage({ params }: { params: Promise<{ sl
 
   return (
     <div className="bg-background min-h-screen">
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-6 pt-5">
+        <Breadcrumbs
+          items={[
+            { label: "Spaces", href: "/spaces-looking-for-art" },
+            { label: venue.name },
+          ]}
+        />
+      </div>
       {/* Hero */}
       <div className="relative h-[280px] sm:h-[360px] bg-border/20">
         {hero && (

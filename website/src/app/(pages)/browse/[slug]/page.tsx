@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { artists } from "@/data/artists";
 import { getDisciplineById, resolveDiscipline, formatSubStyleLabel, disciplineLabel } from "@/data/categories";
 import { getCollectionsByArtistSlug } from "@/lib/db/artist-collections";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import Button from "@/components/Button";
 import CollectionCard from "@/components/CollectionCard";
 import MessageArtistButton from "@/components/MessageArtistButton";
@@ -187,6 +188,12 @@ export default async function ArtistProfilePage({
           desktop renders the three-column grid. */}
       <section className="pt-6 lg:pt-12 pb-2">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
+          <Breadcrumbs
+            items={[
+              { label: "Portfolios", href: "/browse?view=portfolios" },
+              { label: artist.name },
+            ]}
+          />
           <Link
             href="/browse"
             className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-foreground mb-5 lg:mb-8"

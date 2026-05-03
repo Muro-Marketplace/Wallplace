@@ -10,6 +10,7 @@ import { uploadImage } from "@/lib/upload";
 import { formatSizeLabelForDisplay } from "@/lib/format-size-label";
 import PlacementLoanForm from "./PlacementLoanForm";
 import CounterPlacementDialog from "@/components/CounterPlacementDialog";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import PlacementNegotiationLog from "@/components/PlacementNegotiationLog";
 
 interface PlacementRow {
@@ -409,15 +410,20 @@ export default function PlacementDetailClient({ placementId }: Props) {
   };
 
   return (
-    <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-8 lg:py-12">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-xs text-muted mb-6">
-        <Link href={`${portalBase}/placements`} className="hover:text-foreground transition-colors">
-          Placements
-        </Link>
-        <span>/</span>
-        <span className="text-foreground truncate max-w-[200px]">{placement.work_title}</span>
-      </nav>
+    <div>
+      {/* Sticky breadcrumb so the back link is always reachable on long
+          placement records without scrolling to the top. */}
+      <div className="sticky top-14 lg:top-16 bg-background border-b border-border z-10 px-4 sm:px-6 py-2">
+        <div className="max-w-[1100px] mx-auto">
+          <Breadcrumbs
+            items={[
+              { label: "Placements", href: `${portalBase}/placements` },
+              { label: placement.work_title || "Placement" },
+            ]}
+          />
+        </div>
+      </div>
+      <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-8 lg:py-12">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 mb-6">
@@ -1133,6 +1139,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

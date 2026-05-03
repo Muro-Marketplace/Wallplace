@@ -2934,14 +2934,22 @@ export default function PortfolioPage() {
         </div>
 
         {works.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-muted mb-4">No works yet. Add your first piece to get started.</p>
+          <div className="text-center py-16 px-6">
+            <h3 className="text-base font-medium text-foreground mb-2">No works yet</h3>
+            <p className="text-sm text-muted leading-relaxed max-w-sm mx-auto mb-6">
+              Add your first piece — venues find your work through your portfolio.
+            </p>
             <div className="flex items-center justify-center gap-3">
-              <button onClick={() => openAdd()} className="text-sm text-accent hover:text-accent-hover transition-colors">
-                + Add your first work
+              <button
+                onClick={() => openAdd()}
+                className="inline-block px-5 py-2.5 bg-accent text-white text-sm font-medium rounded-sm hover:bg-accent-hover transition-colors"
+              >
+                Add your first work
               </button>
-              <span className="text-border">·</span>
-              <button onClick={openBulkAdd} className="text-sm text-stone-700 hover:text-foreground transition-colors">
+              <button
+                onClick={openBulkAdd}
+                className="text-sm text-stone-700 hover:text-foreground transition-colors"
+              >
                 Bulk add multiple
               </button>
             </div>

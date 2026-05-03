@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -11,6 +11,11 @@ vi.mock("next/navigation", () => ({
 const useAuthMock = vi.fn();
 vi.mock("@/context/AuthContext", () => ({
   useAuth: () => useAuthMock(),
+}));
+
+const showToast = vi.fn();
+vi.mock("@/context/ToastContext", () => ({
+  useToast: () => ({ showToast }),
 }));
 
 vi.mock("@/lib/api-client", () => ({
@@ -24,7 +29,10 @@ import PortalGuard from "./PortalGuard";
 beforeEach(() => {
   replace.mockReset();
   useAuthMock.mockReset();
+  showToast.mockReset();
 });
+
+afterEach(() => cleanup());
 
 describe("<PortalGuard /> email confirmation gate", () => {
   it("blocks access for an unverified artist", async () => {
@@ -54,5 +62,24 @@ describe("<PortalGuard /> email confirmation gate", () => {
       </PortalGuard>,
     );
     await waitFor(() => expect(screen.getByText("portal")).toBeTruthy());
+  });
+});
+
+describe("<PortalGuard /> wrong-role redirect toast", () => {
+  it("toasts before redirecting a customer hitting the artist portal", async () => {
+    useAuthMock.mockReturnValue({
+      user: { id: "u", email_confirmed_at: "2026-01-01T00:00:00Z" },
+      userType: "customer",
+      loading: false,
+    });
+    render(
+      <PortalGuard allowedType="artist">
+        <span>portal</span>
+      </PortalGuard>,
+    );
+    await waitFor(() => expect(showToast).toHaveBeenCalled());
+    expect(showToast.mock.calls[0][0]).toMatch(/artist portal/i);
+    expect(showToast.mock.calls[0][0]).toMatch(/customer portal/i);
+    expect(replace).toHaveBeenCalledWith("/customer-portal");
   });
 });

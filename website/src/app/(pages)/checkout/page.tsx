@@ -433,7 +433,7 @@ export default function CheckoutPage() {
                 <span>{shippingCost === 0 ? "Free" : `£${shippingCost.toFixed(2)}`}</span>
               </div>
               {shippingCost > 0 && (
-                <div className="space-y-1 pl-2">
+                <div className="space-y-2 pl-2">
                   {Object.values(artistGroups).map((group) => (
                     <div key={group.artistName} className="text-[10px] text-muted">
                       <div className="flex justify-between">
@@ -448,6 +448,9 @@ export default function CheckoutPage() {
                           {group.needsSignature ? " · Signed-for" : ""}
                         </p>
                       )}
+                      <p className="text-[11px] text-muted mt-1">
+                        {group.artistName} ships within {group.estimatedDays || "5-7"} working days.
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -461,20 +464,13 @@ export default function CheckoutPage() {
                 <span>Total</span>
                 <span>£{total.toFixed(2)}</span>
               </div>
-              {/* Handling time expectation, artists are expected to dispatch
-                  within 7 days. Sets buyer expectation pre-purchase so they
-                  don't message at day 3 worrying the order is lost. */}
-              <div className="pt-3 mt-2 border-t border-border">
-                <div className="flex items-start gap-2 text-[11px] text-muted">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-accent">
-                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  <div>
-                    <span className="text-foreground font-medium">Dispatched within 7 days.</span>{" "}
-                    Most orders arrive within 5&ndash;10 working days once dispatched. Orders of &pound;{SIGNATURE_THRESHOLD_GBP}+ are sent signed-for.
-                  </div>
-                </div>
-              </div>
+              {/* Per-artist fulfilment time replaces the misleading single
+                  notice. Signature note kept here as it's order-wide. */}
+              {shippingCost > 0 && (
+                <p className="text-[10px] text-muted pt-2 mt-1 border-t border-border">
+                  Orders of &pound;{SIGNATURE_THRESHOLD_GBP}+ are sent signed-for.
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -170,6 +170,11 @@ export default function ArtistSignUpPage() {
             {/* OAuth (Google / Apple), hidden until providers are enabled in
                 Supabase. Flip NEXT_PUBLIC_FLAG_OAUTH_GOOGLE_APPLE=1 in
                 Vercel once both providers are configured. */}
+            {!isFlagOn("OAUTH_GOOGLE_APPLE") && (
+              <p className="text-[11px] text-muted text-center mt-3">
+                Email + password only for now. Google and Apple sign-in coming soon.
+              </p>
+            )}
             {isFlagOn("OAUTH_GOOGLE_APPLE") && (
               <>
                 <div className="flex items-center gap-3 my-2">

@@ -4,8 +4,10 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import VenuePortalLayout from "@/components/VenuePortalLayout";
+import EmptyState from "@/components/EmptyState";
 import OrderStatusTracker from "@/components/OrderStatusTracker";
 import { authFetch } from "@/lib/api-client";
+import { detectCarrierUrl } from "@/lib/carrier-tracking";
 
 interface Order {
   id: string;
@@ -138,9 +140,26 @@ function VenueOrdersContent() {
 
           <OrderStatusTracker currentStatus={selected.status || "confirmed"} statusHistory={selected.status_history || []} />
 
-          {selected.tracking_number && (
-            <p className="text-sm text-muted mt-4">Tracking: <span className="text-foreground font-medium">{selected.tracking_number}</span></p>
-          )}
+          {selected.tracking_number && (() => {
+            const url = detectCarrierUrl(selected.tracking_number);
+            return (
+              <p className="text-sm text-muted mt-4">
+                Tracking:{" "}
+                {url ? (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent font-medium hover:underline"
+                  >
+                    {selected.tracking_number} ↗
+                  </a>
+                ) : (
+                  <span className="text-foreground font-medium">{selected.tracking_number}</span>
+                )}
+              </p>
+            );
+          })()}
 
           <div className="mt-6 space-y-2">
             <p className="text-xs text-muted uppercase tracking-wider">Items</p>
@@ -201,13 +220,15 @@ function VenueOrdersContent() {
       {loading ? (
         <p className="text-muted text-sm py-12 text-center">Loading orders...</p>
       ) : visibleOrders.length === 0 ? (
-        <div className="bg-surface border border-border rounded-sm px-6 py-12 text-center">
-          <p className="text-muted text-sm">
-            {tab === "sales"
-              ? "No placement sales yet. Sales attributed to your venue will appear here."
-              : "You haven't purchased anything yet. Art you buy will appear here."}
-          </p>
-        </div>
+        <EmptyState
+          title={tab === "sales" ? "No placement sales yet" : "Nothing purchased yet"}
+          hint={
+            tab === "sales"
+              ? "Sales attributed to your venue will appear here."
+              : "Art you buy will appear here."
+          }
+          cta={{ label: "Discover art", href: "/browse" }}
+        />
       ) : (
         <div className="space-y-3">
           {visibleOrders.map((order) => (

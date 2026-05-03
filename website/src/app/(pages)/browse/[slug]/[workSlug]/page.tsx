@@ -6,6 +6,7 @@ import { slugify } from "@/lib/slugify";
 import { getArtistBySlug } from "@/lib/db/merged-data";
 import ArtworkPageClient from "./ArtworkPageClient";
 import ArtworkImageViewer from "@/components/ArtworkImageViewer";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import type { Metadata } from "next";
 
 // Static params for seed artists, database artists use dynamic fallback
@@ -143,17 +144,13 @@ export default async function ArtworkPage({
       {/* Breadcrumb */}
       <section className="pt-5 pb-1">
         <div className="max-w-[1240px] mx-auto px-6">
-          <nav className="flex items-center gap-1.5 text-[11px] text-muted uppercase tracking-wider">
-            <Link href="/browse" className="hover:text-foreground transition-colors">
-              Browse
-            </Link>
-            <span className="opacity-50">/</span>
-            <Link href={`/browse/${slug}`} className="hover:text-foreground transition-colors">
-              {artist.name}
-            </Link>
-            <span className="opacity-50">/</span>
-            <span className="text-foreground normal-case tracking-normal font-serif">{work.title}</span>
-          </nav>
+          <Breadcrumbs
+            items={[
+              { label: "Galleries", href: "/browse" },
+              { label: artist.name, href: `/browse/${slug}` },
+              { label: work.title },
+            ]}
+          />
         </div>
       </section>
 
