@@ -604,7 +604,9 @@ function niceMax(val: number): number {
   return 10 * mag;
 }
 
-function formatPounds(val: number): string {
+// Compact format for chart axis labels: "£12k" / "£500". For full
+// currency strings (£12,345.67) use formatPounds from @/lib/format-currency.
+function formatPoundsCompact(val: number): string {
   if (val >= 1000) return `£${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k`;
   return `£${val.toLocaleString()}`;
 }
@@ -651,7 +653,7 @@ function EarningsChart({ data }: { data: { month: string; earnings: number; sale
             <g key={tick}>
               <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke="#E5E2DD" strokeWidth="0.5" />
               <text x={padding.left - 8} y={y + 4} textAnchor="end" className="fill-muted" fontSize="10">
-                {formatPounds(Math.round(tick))}
+                {formatPoundsCompact(Math.round(tick))}
               </text>
             </g>
           );
