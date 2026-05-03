@@ -338,6 +338,20 @@ export default function CheckoutPage() {
             <p className="text-sm text-muted leading-relaxed">
               You&apos;ll be redirected to Stripe&apos;s secure checkout to complete your payment. We never see or store your card details.
             </p>
+            {/* Plan F #20: surface the supported payment methods at a
+                glance so buyers know they can use Apple Pay / Google Pay
+                rather than reaching for a card. Stripe Checkout itself
+                still drives the actual selection. */}
+            <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Supported payment methods">
+              {["Visa", "Mastercard", "Amex", "Apple Pay", "Google Pay"].map((method) => (
+                <span
+                  key={method}
+                  className="inline-flex items-center px-2 py-1 text-[10px] font-medium tracking-wide text-foreground/70 bg-white border border-border rounded-sm"
+                >
+                  {method}
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Artist fulfilment notice */}
