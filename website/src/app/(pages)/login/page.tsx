@@ -97,7 +97,7 @@ export default function LoginPage() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-black/70 sm:bg-black/55" />
       </div>
 
       <div className="w-full max-w-md -mt-[8vh] sm:mt-0">
