@@ -245,8 +245,10 @@ export default function VenueWallEditorPage({
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)] bg-stone-50">
-      {/* Top bar */}
-      <div className="flex items-center justify-between gap-3 px-3 sm:px-4 py-2 border-b border-border bg-white">
+      {/* Top bar — stacks vertically on small screens so the wall name
+          + dimensions don't compete with the show-on-profile toggle and
+          the Delete button for horizontal space. */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 border-b border-border bg-white">
         <div className="flex items-center gap-2 min-w-0">
           <Link
             href="/venue-portal/walls"
@@ -259,12 +261,12 @@ export default function VenueWallEditorPage({
             {ready ? state.wall.name : "Loading…"}
           </p>
           {ready && (
-            <span className="text-xs text-muted tabular-nums shrink-0">
+            <span className="hidden sm:inline text-xs text-muted tabular-nums shrink-0">
               · {state.wall.width_cm}×{state.wall.height_cm} cm
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
           {/* Show on public profile, venue-side only. Optimistic
               toggle: flip locally, fire PATCH, revert on failure.
               Off by default per migration 037 so a venue's wall
@@ -338,7 +340,8 @@ export default function VenueWallEditorPage({
           <button
             type="button"
             onClick={() => setDeleteOpen(true)}
-            className="text-xs text-stone-500 hover:text-red-600 px-2 py-1"
+            aria-label="Delete wall"
+            className="text-sm text-stone-500 hover:text-red-600 px-3 py-2 min-h-[44px] inline-flex items-center"
           >
             Delete
           </button>
