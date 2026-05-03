@@ -23,6 +23,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useModalKeys } from "@/lib/use-modal-keys";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 import { isFlagOn } from "@/lib/feature-flags";
@@ -60,6 +61,14 @@ export default function VenueWallEditorPage({
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Esc closes the delete confirm; Enter submits it. Hook enabled
+  // only while the dialog is open so it doesn't intercept page-level
+  // keystrokes the rest of the time.
+  const deleteRef = useModalKeys<HTMLDivElement>({
+    enabled: deleteOpen,
+    onClose: () => { if (!deleting) setDeleteOpen(false); },
+    onSubmit: () => { if (!deleting && deleteOpen) handleDelete(); },
+  });
 
   const flagOn = isFlagOn("WALL_VISUALIZER_V1");
 
@@ -375,6 +384,7 @@ export default function VenueWallEditorPage({
           onClick={() => !deleting && setDeleteOpen(false)}
         >
           <div
+            ref={deleteRef}
             className="w-full max-w-sm rounded-2xl bg-white shadow-xl border border-black/5 p-6"
             onClick={(e) => e.stopPropagation()}
           >

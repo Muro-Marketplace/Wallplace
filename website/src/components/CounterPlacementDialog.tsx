@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { authFetch } from "@/lib/api-client";
+import { useModalKeys } from "@/lib/use-modal-keys";
 
 const NOTE_MAX = 600;
 
@@ -122,6 +123,12 @@ export default function CounterPlacementDialog({ placementId, currentUserId, ini
     }
   }
 
+  // Esc closes, Enter submits (Enter inside the textarea writes a newline).
+  const dialogRef = useModalKeys<HTMLDivElement>({
+    onClose,
+    onSubmit: () => { if (!busy) submit(); },
+  });
+
   return (
     <div
       className="fixed inset-0 z-modal bg-black/50 flex items-center justify-center p-4"
@@ -130,6 +137,7 @@ export default function CounterPlacementDialog({ placementId, currentUserId, ini
       aria-modal="true"
     >
       <div
+        ref={dialogRef}
         className="bg-background rounded-sm max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
