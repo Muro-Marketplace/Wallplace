@@ -433,7 +433,7 @@ export default function OffersList({ viewerUserId, filter }: Props) {
       })}
 
       {counterFor && (
-        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-modal bg-black/50 flex items-center justify-center p-4">
           <div className="bg-background rounded-sm w-full max-w-md p-6">
             <h2 className="text-lg font-medium mb-2">Counter offer</h2>
             <p className="text-xs text-muted mb-5">

@@ -63,7 +63,7 @@ export default function LabelPreview({
   }
 
   return (
-    <div className="fixed inset-0 z-[110] bg-white flex flex-col">
+    <div className="fixed inset-0 z-overlay bg-white flex flex-col">
       {/* Toolbar */}
       <div className="label-preview-toolbar no-print border-b border-border bg-surface px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3 flex-wrap">

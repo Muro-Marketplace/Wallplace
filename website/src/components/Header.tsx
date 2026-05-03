@@ -305,7 +305,7 @@ export default function Header() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-header transition-all duration-300 ${
         isPortal
           ? "bg-[#1A1A1A]"
           : showSolid
@@ -370,7 +370,7 @@ export default function Header() {
                       </svg>
                     </Link>
                     {isMarketplace && marketplaceDropdownOpen && (
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-50">
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 z-header">
                         <div className="w-64 bg-white border border-border rounded-sm shadow-lg py-2">
                           {link.subLinks.map((sub) => (
                             <Link
@@ -422,7 +422,7 @@ export default function Header() {
                   </svg>
                 </button>
                 {moreDropdownOpen && (
-                  <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-border rounded-sm shadow-lg py-2 z-50">
+                  <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-border rounded-sm shadow-lg py-2 z-header">
                     {moreLinks.map((link) => (
                       <Link
                         key={link.href}
@@ -486,7 +486,7 @@ export default function Header() {
 
                   {/* Dropdown panel */}
                   {msgDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[110]">
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-header">
                       <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-foreground">Messages</p>
                         <div className="flex items-center gap-3">
@@ -578,7 +578,7 @@ export default function Header() {
                   </button>
 
                   {notifDropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[110]">
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-header">
                       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                         <p className="text-sm font-medium text-foreground">Notifications</p>
                         {unreadNotifCount > 0 && (
@@ -759,7 +759,7 @@ export default function Header() {
                             { label: "Settings", href: "/artist-portal/settings" },
                           ];
                     return (
-                      <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-[110]">
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-border rounded-sm shadow-lg overflow-hidden z-header">
                         <ul className="py-1.5">
                           {links.map((l) => (
                             <li key={l.href}>
@@ -874,8 +874,8 @@ export default function Header() {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <>
-        <div className="lg:hidden fixed inset-0 bg-black/20 z-40" onClick={() => setMobileMenuOpen(false)} />
-        <div className="lg:hidden border-t border-border bg-white relative z-50">
+        <div className="lg:hidden fixed inset-0 bg-black/20 z-overlay" onClick={() => setMobileMenuOpen(false)} />
+        <div className="lg:hidden border-t border-border bg-white relative z-drawer">
           <div className="mx-auto max-w-[1400px] px-6 py-6 space-y-6">
             {/* Primary nav links, when inside the marketplace area, swap in
                 the marketplace tabs (Portfolios/Galleries/Collections/Spaces)

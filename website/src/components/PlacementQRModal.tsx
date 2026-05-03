@@ -77,7 +77,7 @@ export default function PlacementQRModal({
 
   return (
     <div
-      className="fixed inset-0 z-[120] bg-black/50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-modal bg-black/50 flex items-center justify-center p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

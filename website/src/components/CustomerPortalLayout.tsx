@@ -31,7 +31,7 @@ export default function CustomerPortalLayout({ children }: { children: React.Rea
       {/* Sidebar */}
       <aside className={`
         fixed top-14 lg:top-16 left-0 h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)]
-        w-56 bg-[#F5F3F0] border-r border-border z-30 flex flex-col
+        w-56 bg-[#F5F3F0] border-r border-border z-drawer flex flex-col
         transition-transform duration-200
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
@@ -80,11 +80,11 @@ export default function CustomerPortalLayout({ children }: { children: React.Rea
         </div>
       </aside>
 
-      {sidebarOpen && <div className="lg:hidden fixed inset-0 z-20 bg-black/30" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && <div className="lg:hidden fixed inset-0 z-overlay bg-black/30" onClick={() => setSidebarOpen(false)} />}
 
       <div className="flex-1 lg:ml-56 min-w-0">
         {/* Mobile top bar with hamburger */}
-        <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-background sticky top-14 z-10">
+        <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-background sticky top-14 z-sticky">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-1.5 -ml-1.5 text-foreground/70 hover:text-foreground transition-colors"

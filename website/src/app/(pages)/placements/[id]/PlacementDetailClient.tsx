@@ -1077,7 +1077,7 @@ export default function PlacementDetailClient({ placementId }: Props) {
           "drag the image off the page" path is gone. */}
       {quickViewIdx !== null && photos[quickViewIdx] && (
         <div
-          className="fixed inset-0 z-[120] bg-black/85 flex items-center justify-center p-4"
+          className="fixed inset-0 z-overlay bg-black/85 flex items-center justify-center p-4"
           onClick={() => setQuickViewIdx(null)}
           onContextMenu={(e) => e.preventDefault()}
           role="dialog"

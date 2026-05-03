@@ -504,7 +504,7 @@ export default function SearchBar({ variant, mode, placeholder: customPlaceholde
           </button>
 
           {mobileOpen && (
-            <div className="fixed inset-0 z-[200] bg-white flex flex-col">
+            <div className="fixed inset-0 z-overlay bg-white flex flex-col">
               {/* Header row */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
                 <div className="flex-1 flex items-center gap-2 rounded-sm border border-border bg-background px-3 py-2">

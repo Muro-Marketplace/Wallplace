@@ -368,7 +368,7 @@ export default function VenueWallEditorPage({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[60] grid place-items-center bg-black/40 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-modal grid place-items-center bg-black/40 backdrop-blur-sm p-4"
           onClick={() => !deleting && setDeleteOpen(false)}
         >
           <div

@@ -1485,10 +1485,10 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
           Used to be always-visible at lg+ which ate horizontal space the
           thread itself benefitted from. The "Placement Status" toggle
           in the thread header opens this on demand. Sits BELOW the
-          site header (fixed, z-[100]) by starting at top-14 / lg:top-16
+          site header (z-header) by starting at top-14 / lg:top-16
           to match the global nav height. */}
       {showPanel && selectedConvData && panelOpen && (
-        <div className="fixed top-14 lg:top-16 left-0 right-0 bottom-0 z-50 flex">
+        <div className="fixed top-14 lg:top-16 left-0 right-0 bottom-0 z-drawer flex">
           <div className="flex-1 bg-black/40" onClick={() => setPanelOpen(false)} />
           <div className="w-[min(420px,90vw)] bg-surface border-l border-border shadow-xl flex flex-col h-full">
             <div className="flex-1 min-h-0 overflow-y-auto">
@@ -1530,7 +1530,7 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
           if it fails the UI falls back to a friendly note. */}
       {flagOpen && selectedConvData && (
         <div
-          className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-modal bg-black/50 flex items-center justify-center p-4"
           onClick={() => setFlagOpen(false)}
         >
           <div

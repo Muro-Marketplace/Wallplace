@@ -51,7 +51,7 @@ export default function AdminPortalLayout({
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/30 z-20 lg:hidden"
+          className="fixed inset-0 bg-black/30 z-overlay lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -60,7 +60,7 @@ export default function AdminPortalLayout({
       <aside
         className={`
           fixed top-14 lg:top-16 left-0 h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-4rem)]
-          w-56 bg-white border-r border-border z-30
+          w-56 bg-white border-r border-border z-drawer
           flex flex-col
           transition-transform duration-200
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}

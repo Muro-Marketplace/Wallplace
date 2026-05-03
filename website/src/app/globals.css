@@ -12,6 +12,29 @@
   --font-serif: var(--font-dm-serif-display);
 }
 
+:root {
+  /* Stacking layers. Use these (via the .z-* utilities below) instead
+     of arbitrary z-{n} values so layers stay consistent across drawers,
+     dropdowns, modals, and toasts. Higher number = more on top.
+     Generous gaps so mid-layer additions can slot in without renumbering. */
+  --z-base: 0;
+  --z-sticky: 10;       /* sticky breadcrumbs, sticky portal sub-headers */
+  --z-header: 100;      /* fixed top site header + its dropdowns */
+  --z-drawer: 200;      /* mobile slide-out menus, portal sidebars on mobile */
+  --z-overlay: 300;     /* full-screen scrims, lightboxes, fullscreen panes */
+  --z-modal: 400;       /* confirm dialogs, modal forms */
+  --z-toast: 500;       /* must always sit above modals */
+}
+
+@layer utilities {
+  .z-sticky { z-index: var(--z-sticky); }
+  .z-header { z-index: var(--z-header); }
+  .z-drawer { z-index: var(--z-drawer); }
+  .z-overlay { z-index: var(--z-overlay); }
+  .z-modal { z-index: var(--z-modal); }
+  .z-toast { z-index: var(--z-toast); }
+}
+
 html {
   scroll-behavior: smooth;
 }

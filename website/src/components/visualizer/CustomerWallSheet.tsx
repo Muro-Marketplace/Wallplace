@@ -72,7 +72,7 @@ export default function CustomerWallSheet({ open, onClose, work }: Props) {
       // pt-14/lg:pt-20 keeps the modal header clear of the global
       // nav bar (which is sticky at h-14 lg:h-16). Without this the
       // sheet's "View on a wall" title gets clipped by the nav.
-      className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-stretch sm:items-start justify-center pt-14 sm:pt-20 sm:px-6 sm:pb-6"
+      className="fixed inset-0 z-modal bg-black/60 backdrop-blur-sm flex items-stretch sm:items-start justify-center pt-14 sm:pt-20 sm:px-6 sm:pb-6"
       onClick={onClose}
     >
       <div

@@ -984,7 +984,7 @@ export default function ArtistProfileClient({
 
       {/* Enquiry modal */}
       {showEnquiry && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={() => setShowEnquiry(false)}>
+        <div className="fixed inset-0 z-modal flex items-center justify-center" onClick={() => setShowEnquiry(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative z-10 bg-white rounded-sm w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setShowEnquiry(false)} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center">

@@ -129,7 +129,7 @@ export default function VenueWallCard({ wall, venue }: VenueWallCardProps) {
           aria-modal="true"
           aria-label={`${wall.name}, wall details`}
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm grid place-items-center p-4 sm:p-8"
+          className="fixed inset-0 z-modal bg-black/70 backdrop-blur-sm grid place-items-center p-4 sm:p-8"
         >
           <div
             onClick={(e) => e.stopPropagation()}

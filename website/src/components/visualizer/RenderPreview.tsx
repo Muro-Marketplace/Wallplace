@@ -99,7 +99,7 @@ export default function RenderPreview({
       role="dialog"
       aria-modal="true"
       aria-label="Render preview"
-      className="fixed inset-0 z-[60] grid place-items-center bg-black/70 backdrop-blur-sm p-4 sm:p-8"
+      className="fixed inset-0 z-overlay grid place-items-center bg-black/70 backdrop-blur-sm p-4 sm:p-8"
       onClick={onClose}
     >
       <div

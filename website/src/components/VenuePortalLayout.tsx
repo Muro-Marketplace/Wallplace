@@ -142,14 +142,14 @@ export default function VenuePortalLayout({
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/30"
+          className="lg:hidden fixed inset-0 z-overlay bg-black/30"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Mobile drawer */}
       <aside
-        className={`lg:hidden fixed top-14 left-0 bottom-0 z-50 w-64 bg-[#F5F3F0] border-r border-border transform transition-transform duration-200 ${
+        className={`lg:hidden fixed top-14 left-0 bottom-0 z-drawer w-64 bg-[#F5F3F0] border-r border-border transform transition-transform duration-200 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -159,7 +159,7 @@ export default function VenuePortalLayout({
       {/* Main content */}
       <div className="flex-1 min-w-0">
         {/* Mobile top bar with hamburger */}
-        <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-background sticky top-14 z-10">
+        <div className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-background sticky top-14 z-sticky">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-1.5 -ml-1.5 text-foreground/70 hover:text-foreground transition-colors"
