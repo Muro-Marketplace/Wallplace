@@ -16,6 +16,7 @@ import Button from "@/components/Button";
 import BrowseArtistCard from "@/components/BrowseArtistCard";
 import CollectionCard from "@/components/CollectionCard";
 import ArtworkThumb from "@/components/ArtworkThumb";
+import SaveButton from "@/components/SaveButton";
 import SearchInput from "@/components/SearchInput";
 import PostcodeInput, { readPersistedCoords, clearPersistedLocation } from "@/components/PostcodeInput";
 import {
@@ -2114,6 +2115,13 @@ function BrowsePortfoliosPageInner() {
                               </span>
                             )}
                             {/* Hover action buttons */}
+                            {/* Plan G #11: hover-revealed save heart on
+                                desktop, always-visible on mobile (since
+                                hover doesn't fire on touch). SaveButton
+                                handles the auth gate + toast. */}
+                            <div className="absolute top-3 left-3 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity duration-200">
+                              <SaveButton type="work" itemId={work.id} size="sm" />
+                            </div>
                             <div className="absolute top-3 right-3 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                               <Link
                                 href={quickLookHref}
