@@ -310,6 +310,7 @@ function BrowsePortfoliosPageInner() {
   /** Drop location entirely. Mirrors the "change postcode" UI. */
   const clearLocation = useCallback(() => {
     setLocation({ coords: null, label: "", maxDistance: DEFAULT_MAX_DISTANCE });
+    setDraftMaxDistance(null);
     clearPersistedLocation();
   }, [setLocation]);
 
@@ -324,6 +325,31 @@ function BrowsePortfoliosPageInner() {
     },
     [parsedLocation, setLocation],
   );
+
+  // Slider draft state — fixes a bug where rapid drag events got
+  // "stuck" because the controlled value lives in the URL. Each
+  // input event called router.replace (async transition); React
+  // re-rendered the slider with the stale URL value, forcibly
+  // resetting the DOM thumb back to its previous position. Result:
+  // slider felt frozen during a fast drag, sometimes ending at
+  // whatever value the URL caught up to first (e.g. 0).
+  //
+  // Fix: hold an in-flight value in local state during drag so the
+  // controlled value tracks the user's input at React speed, then
+  // write to URL once on commit (mouseup / touchend / blur / Enter).
+  // `null` means "no drag in progress, defer to URL".
+  const [draftMaxDistance, setDraftMaxDistance] = useState<number | null>(null);
+  const displayMaxDistance = draftMaxDistance ?? maxDistance;
+  const commitMaxDistance = useCallback(() => {
+    // Read draft from closure (NOT a functional updater), since
+    // setMaxDistance ultimately calls router.replace, and React forbids
+    // triggering another component's state update from inside a setState
+    // updater. The dep array refreshes this callback whenever draft changes,
+    // so onMouseUp / onBlur etc. always see the latest value.
+    if (draftMaxDistance == null) return;
+    setMaxDistance(draftMaxDistance);
+    setDraftMaxDistance(null);
+  }, [draftMaxDistance, setMaxDistance]);
 
   // Hydrate from localStorage on first mount when the URL itself is
   // location-less. This keeps the existing UX where a returning
@@ -451,6 +477,7 @@ function BrowsePortfoliosPageInner() {
     if (parsedLocation.coords && parsedLocation.maxDistance !== DEFAULT_MAX_DISTANCE) {
       setMaxDistance(DEFAULT_MAX_DISTANCE);
     }
+    setDraftMaxDistance(null);
   };
 
   const requestGeolocation = useCallback(() => {
@@ -848,7 +875,7 @@ function BrowsePortfoliosPageInner() {
             {userCoords && (
               <div>
                 <p className="text-xs text-muted mb-2">
-                  Within {maxDistance >= 9999 ? "any distance" : `${maxDistance} mi`}
+                  Within {displayMaxDistance >= 9999 ? "any distance" : `${displayMaxDistance} mi`}
                 </p>
                 <div className="space-y-2.5">
                   <input
@@ -856,11 +883,14 @@ function BrowsePortfoliosPageInner() {
                     min={0}
                     max={200}
                     step={1}
-                    value={maxDistance >= 9999 ? 200 : maxDistance}
+                    value={displayMaxDistance >= 9999 ? 200 : displayMaxDistance}
                     onChange={(e) => {
                       const v = Number(e.target.value);
-                      setMaxDistance(v >= 200 ? ANY_DISTANCE : v);
+                      setDraftMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                     }}
+                    onMouseUp={commitMaxDistance}
+                    onTouchEnd={commitMaxDistance}
+                    onKeyUp={commitMaxDistance}
                     className="w-full accent-accent h-1.5 cursor-pointer"
                   />
                   <div className="flex items-center gap-2">
@@ -868,13 +898,15 @@ function BrowsePortfoliosPageInner() {
                       type="number"
                       min={0}
                       max={9999}
-                      value={maxDistance >= 9999 ? "" : maxDistance}
+                      value={displayMaxDistance >= 9999 ? "" : displayMaxDistance}
                       placeholder="Any"
                       onChange={(e) => {
                         const raw = e.target.value;
-                        if (raw === "") { setMaxDistance(ANY_DISTANCE); return; }
-                        setMaxDistance(Math.max(0, Number(raw) || 0));
+                        if (raw === "") { setDraftMaxDistance(ANY_DISTANCE); return; }
+                        setDraftMaxDistance(Math.max(0, Number(raw) || 0));
                       }}
+                      onBlur={commitMaxDistance}
+                      onKeyDown={(e) => { if (e.key === "Enter") commitMaxDistance(); }}
                       className="w-20 px-2 py-1 text-xs bg-surface border border-border rounded-sm text-foreground focus:outline-none focus:border-accent/50"
                     />
                     <span className="text-xs text-muted">mi</span>
@@ -1519,7 +1551,7 @@ function BrowsePortfoliosPageInner() {
                     {userCoords && (
                       <div>
                         <p className="text-xs text-muted mb-2">
-                          Within {maxDistance >= 9999 ? "any distance" : `${maxDistance} mi`}
+                          Within {displayMaxDistance >= 9999 ? "any distance" : `${displayMaxDistance} mi`}
                         </p>
                         <div className="space-y-2.5">
                           <input
@@ -1527,11 +1559,14 @@ function BrowsePortfoliosPageInner() {
                             min={0}
                             max={200}
                             step={1}
-                            value={maxDistance >= 9999 ? 200 : maxDistance}
+                            value={displayMaxDistance >= 9999 ? 200 : displayMaxDistance}
                             onChange={(e) => {
                               const v = Number(e.target.value);
-                              setMaxDistance(v >= 200 ? ANY_DISTANCE : v);
+                              setDraftMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                             }}
+                            onMouseUp={commitMaxDistance}
+                            onTouchEnd={commitMaxDistance}
+                            onKeyUp={commitMaxDistance}
                             className="w-full accent-accent h-1.5 cursor-pointer"
                           />
                           <div className="flex items-center justify-between gap-2">
@@ -1539,13 +1574,15 @@ function BrowsePortfoliosPageInner() {
                               type="number"
                               min={0}
                               max={9999}
-                              value={maxDistance >= 9999 ? "" : maxDistance}
+                              value={displayMaxDistance >= 9999 ? "" : displayMaxDistance}
                               placeholder="Any"
                               onChange={(e) => {
                                 const raw = e.target.value;
-                                if (raw === "") { setMaxDistance(ANY_DISTANCE); return; }
-                                setMaxDistance(Math.max(0, Number(raw) || 0));
+                                if (raw === "") { setDraftMaxDistance(ANY_DISTANCE); return; }
+                                setDraftMaxDistance(Math.max(0, Number(raw) || 0));
                               }}
+                              onBlur={commitMaxDistance}
+                              onKeyDown={(e) => { if (e.key === "Enter") commitMaxDistance(); }}
                               className="w-20 px-2 py-1 text-xs bg-surface border border-border rounded-sm text-foreground focus:outline-none focus:border-accent/50"
                             />
                             <button
@@ -1809,18 +1846,21 @@ function BrowsePortfoliosPageInner() {
                             </button>
                           </p>
                           <p className="text-[10px] text-muted mb-1.5">
-                            Within {maxDistance >= 9999 ? "any distance" : `${maxDistance} mi`}
+                            Within {displayMaxDistance >= 9999 ? "any distance" : `${displayMaxDistance} mi`}
                           </p>
                           <input
                             type="range"
                             min={0}
                             max={200}
                             step={1}
-                            value={maxDistance >= 9999 ? 200 : maxDistance}
+                            value={displayMaxDistance >= 9999 ? 200 : displayMaxDistance}
                             onChange={(e) => {
                               const v = Number(e.target.value);
-                              setMaxDistance(v >= 200 ? ANY_DISTANCE : v);
+                              setDraftMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                             }}
+                            onMouseUp={commitMaxDistance}
+                            onTouchEnd={commitMaxDistance}
+                            onKeyUp={commitMaxDistance}
                             className="w-full accent-accent h-1.5 cursor-pointer"
                           />
                         </>
@@ -2192,18 +2232,21 @@ function BrowsePortfoliosPageInner() {
                   </p>
                   <div>
                     <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">
-                      Within {maxDistance >= 9999 ? "any distance" : `${maxDistance} mi`}
+                      Within {displayMaxDistance >= 9999 ? "any distance" : `${displayMaxDistance} mi`}
                     </p>
                     <input
                       type="range"
                       min={0}
                       max={200}
                       step={1}
-                      value={maxDistance >= 9999 ? 200 : maxDistance}
+                      value={displayMaxDistance >= 9999 ? 200 : displayMaxDistance}
                       onChange={(e) => {
                         const v = Number(e.target.value);
-                        setMaxDistance(v >= 200 ? ANY_DISTANCE : v);
+                        setDraftMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                       }}
+                      onMouseUp={commitMaxDistance}
+                      onTouchEnd={commitMaxDistance}
+                      onKeyUp={commitMaxDistance}
                       className="w-full accent-accent h-1.5 cursor-pointer"
                     />
                   </div>
@@ -2252,18 +2295,21 @@ function BrowsePortfoliosPageInner() {
                 {userCoords && (
                   <div className="hidden lg:block min-w-[180px]">
                     <p className="text-[10px] font-medium uppercase tracking-widest text-muted mb-1.5">
-                      Within {maxDistance >= 9999 ? "any" : `${maxDistance} mi`}
+                      Within {displayMaxDistance >= 9999 ? "any" : `${displayMaxDistance} mi`}
                     </p>
                     <input
                       type="range"
                       min={0}
                       max={200}
                       step={1}
-                      value={maxDistance >= 9999 ? 200 : maxDistance}
+                      value={displayMaxDistance >= 9999 ? 200 : displayMaxDistance}
                       onChange={(e) => {
                         const v = Number(e.target.value);
-                        setMaxDistance(v >= 200 ? ANY_DISTANCE : v);
+                        setDraftMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                       }}
+                      onMouseUp={commitMaxDistance}
+                      onTouchEnd={commitMaxDistance}
+                      onKeyUp={commitMaxDistance}
                       className="w-full accent-accent h-1.5 cursor-pointer"
                     />
                   </div>
