@@ -336,19 +336,20 @@ function BrowsePortfoliosPageInner() {
   //
   // Fix: hold an in-flight value in local state during drag so the
   // controlled value tracks the user's input at React speed, then
-  // write to URL once on commit (mouseup / touchend / blur / Enter).
-  // `null` means "no drag in progress, defer to URL".
+  // commit to URL after a short pause. The timer-based commit
+  // catches every release scenario including "user dragged the
+  // thumb and released the mouse OUTSIDE the slider" — onMouseUp
+  // alone misses that case, leaving the draft stuck and the URL
+  // (and filter) never updating.
   const [draftMaxDistance, setDraftMaxDistance] = useState<number | null>(null);
   const displayMaxDistance = draftMaxDistance ?? maxDistance;
-  const commitMaxDistance = useCallback(() => {
-    // Read draft from closure (NOT a functional updater), since
-    // setMaxDistance ultimately calls router.replace, and React forbids
-    // triggering another component's state update from inside a setState
-    // updater. The dep array refreshes this callback whenever draft changes,
-    // so onMouseUp / onBlur etc. always see the latest value.
+  useEffect(() => {
     if (draftMaxDistance == null) return;
-    setMaxDistance(draftMaxDistance);
-    setDraftMaxDistance(null);
+    const t = setTimeout(() => {
+      setMaxDistance(draftMaxDistance);
+      setDraftMaxDistance(null);
+    }, 250);
+    return () => clearTimeout(t);
   }, [draftMaxDistance, setMaxDistance]);
 
   // Hydrate from localStorage on first mount when the URL itself is
@@ -888,9 +889,6 @@ function BrowsePortfoliosPageInner() {
                       const v = Number(e.target.value);
                       setDraftMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                     }}
-                    onMouseUp={commitMaxDistance}
-                    onTouchEnd={commitMaxDistance}
-                    onKeyUp={commitMaxDistance}
                     className="w-full accent-accent h-1.5 cursor-pointer"
                   />
                   <div className="flex items-center gap-2">
@@ -905,8 +903,6 @@ function BrowsePortfoliosPageInner() {
                         if (raw === "") { setDraftMaxDistance(ANY_DISTANCE); return; }
                         setDraftMaxDistance(Math.max(0, Number(raw) || 0));
                       }}
-                      onBlur={commitMaxDistance}
-                      onKeyDown={(e) => { if (e.key === "Enter") commitMaxDistance(); }}
                       className="w-20 px-2 py-1 text-xs bg-surface border border-border rounded-sm text-foreground focus:outline-none focus:border-accent/50"
                     />
                     <span className="text-xs text-muted">mi</span>
@@ -1564,9 +1560,6 @@ function BrowsePortfoliosPageInner() {
                               const v = Number(e.target.value);
                               setDraftMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                             }}
-                            onMouseUp={commitMaxDistance}
-                            onTouchEnd={commitMaxDistance}
-                            onKeyUp={commitMaxDistance}
                             className="w-full accent-accent h-1.5 cursor-pointer"
                           />
                           <div className="flex items-center justify-between gap-2">
@@ -1581,8 +1574,6 @@ function BrowsePortfoliosPageInner() {
                                 if (raw === "") { setDraftMaxDistance(ANY_DISTANCE); return; }
                                 setDraftMaxDistance(Math.max(0, Number(raw) || 0));
                               }}
-                              onBlur={commitMaxDistance}
-                              onKeyDown={(e) => { if (e.key === "Enter") commitMaxDistance(); }}
                               className="w-20 px-2 py-1 text-xs bg-surface border border-border rounded-sm text-foreground focus:outline-none focus:border-accent/50"
                             />
                             <button
@@ -1858,9 +1849,6 @@ function BrowsePortfoliosPageInner() {
                               const v = Number(e.target.value);
                               setDraftMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                             }}
-                            onMouseUp={commitMaxDistance}
-                            onTouchEnd={commitMaxDistance}
-                            onKeyUp={commitMaxDistance}
                             className="w-full accent-accent h-1.5 cursor-pointer"
                           />
                         </>
@@ -2244,9 +2232,6 @@ function BrowsePortfoliosPageInner() {
                         const v = Number(e.target.value);
                         setDraftMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                       }}
-                      onMouseUp={commitMaxDistance}
-                      onTouchEnd={commitMaxDistance}
-                      onKeyUp={commitMaxDistance}
                       className="w-full accent-accent h-1.5 cursor-pointer"
                     />
                   </div>
@@ -2307,9 +2292,6 @@ function BrowsePortfoliosPageInner() {
                         const v = Number(e.target.value);
                         setDraftMaxDistance(v >= 200 ? ANY_DISTANCE : v);
                       }}
-                      onMouseUp={commitMaxDistance}
-                      onTouchEnd={commitMaxDistance}
-                      onKeyUp={commitMaxDistance}
                       className="w-full accent-accent h-1.5 cursor-pointer"
                     />
                   </div>
