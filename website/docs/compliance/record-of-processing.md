@@ -61,12 +61,12 @@ Four activities rely on Art 6(1)(f). Each has been balanced rather than asserted
 | Recipient | Where | Mechanism | Assessed |
 |---|---|---|---|
 | Supabase | Ireland (EEA), with US support access | UK adequacy regulations for the EEA. US support access under the processor's DPA, incorporating the UK IDTA Addendum | Yes |
-| Vercel | **United States** | UK IDTA Addendum to the EU SCCs, under Vercel's DPA | **Owner action: confirm the DPA is executed and record the transfer risk assessment** |
+| Vercel | Ireland (EEA) for function execution, verified live on 10 September 2026 via `x-vercel-id: lhr1::dub1::`. US company, so support access from the US | UK adequacy for the EEA covers the processing location. Vercel's DPA with the UK IDTA Addendum covers US support access | **Owner action: confirm the DPA is executed** |
 | Stripe | Ireland and United States | Stripe's DPA with the UK Addendum | Yes |
 | Resend | United States | Resend's DPA with the UK Addendum | **Owner action: confirm the DPA is executed** |
 | postcodes.io | United Kingdom | No transfer | Not applicable |
 
-The Vercel row is the material one. The production deployment runs in region `iad1` (Washington DC) despite `vercel.json` declaring `dub1`, which means every serverless function execution, and therefore every request that touches personal data, happens in the United States. Two ways to resolve it, and the owner has to pick: move the functions to a UK or Irish region and verify it took effect, or keep them where they are and complete the paperwork above.
+A correction worth recording, because it changes the answer. The 10 September audit reported that functions ran in `iad1` (Washington DC), relying on a configuration snapshot taken on 5 September from a deployment built on 4 September. Commit `687f658a`, later on 5 September, moved them to `dub1`, and the live headers confirm it: `x-vercel-id: lhr1::dub1::`, meaning the request lands at the London edge and executes in Dublin. So there is no routine US transfer of the compute layer, and the remaining US exposure is the email provider and support access by two US companies to data held in Ireland. Both are ordinary and both are covered by the mechanism above.
 
 ## 5. Technical and organisational measures
 
@@ -88,8 +88,7 @@ Summarised; the detail is in the codebase and in `docs/security/`.
 These cannot be completed in code and are the controller's to do:
 
 1. **Register with the ICO and pay the data protection fee.** Tier 1, £52 a year, on turnover under £632,000 and fewer than 10 staff. No exemption applies: the processing is for commerce and marketing, not solely core business administration.
-2. **Resolve the Vercel region question** and record the outcome in section 4.
-3. **Confirm the Vercel and Resend DPAs are executed**, and file them.
-4. **Confirm the Supabase plan tier**, and with it whether point-in-time recovery is enabled. Availability is an Article 32(1)(c) measure and the answer is currently unknown.
-5. **Enable Supabase leaked-password protection**, a single dashboard toggle, and enrol MFA on the administrator account.
-6. **Set the missing production environment variables**: Upstash (rate limiting is otherwise per-instance and provides no protection on serverless), Turnstile (the bot challenge otherwise never renders), and the Resend webhook secret (without it nothing records a spam complaint or a hard bounce).
+2. **Confirm the Vercel and Resend DPAs are executed**, and file them. The region question is resolved: functions run in Dublin, verified 10 September 2026.
+3. **Confirm the Supabase plan tier**, and with it whether point-in-time recovery is enabled. Availability is an Article 32(1)(c) measure and the answer is currently unknown.
+4. **Enable Supabase leaked-password protection**, a single dashboard toggle, and enrol MFA on the administrator account.
+5. **Set the missing production environment variables**: Upstash (rate limiting is otherwise per-instance and provides no protection on serverless), Turnstile (the bot challenge otherwise never renders), and the Resend webhook secret (without it nothing records a spam complaint or a hard bounce).

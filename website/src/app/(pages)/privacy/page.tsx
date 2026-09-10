@@ -15,10 +15,16 @@ export const metadata: Metadata = {
 // messaging, artwork uploads, Stripe, Stripe Connect, payouts, venue
 // photographs, QR scan tracking, IP hashing, postcode lookup, referrals,
 // moderation records or admin audit logs. It named no processor, had no
-// international transfers section at all while the serverless functions run in
-// the United States, gave one blanket retention period, and told the reader
-// that technical data "is collected via cookies", which the Cookie Policy
-// correctly denies.
+// international transfers section at all, gave one blanket retention period,
+// and told the reader that technical data "is collected via cookies", which
+// the Cookie Policy correctly denies.
+//
+// A correction to the audit itself, recorded here because it changes what this
+// page says: the audit reported that serverless functions ran in iad1
+// (Washington DC), from a configuration snapshot taken on 5 September of a
+// deployment built on 4 September. Commit 687f658a, later on 5 September, moved
+// them to dub1, and the live headers confirm it (x-vercel-id: lhr1::dub1::).
+// So the compute layer is in Ireland and the transfers section says so.
 //
 // This rewrite is built from the data map in the audit rather than from the
 // old text. The tables below are the honest answer to "what do you actually
@@ -115,7 +121,7 @@ const PROCESSORS = [
   {
     name: "Vercel",
     role: "Hosting, and the servers that run the site's code",
-    where: "United States",
+    where: "Ireland (EU). Vercel is a US company and its staff can access support data",
   },
   {
     name: "Stripe",
@@ -298,18 +304,20 @@ export default function PrivacyPage() {
                     it is a real thing that happens to your data.
                   </p>
                   <p>
-                    <strong className="text-foreground">Ireland and the EEA.</strong> Our database and
-                    file storage sit in Ireland. The UK government recognises the EEA as providing an
-                    adequate level of protection, so no additional safeguard is needed for those
-                    transfers.
+                    <strong className="text-foreground">Ireland and the EEA.</strong> Our database,
+                    our file storage and the servers that run the site&rsquo;s code all sit in
+                    Ireland. The UK government recognises the EEA as providing an adequate level of
+                    protection, so no additional safeguard is needed for those transfers.
                   </p>
                   <p>
-                    <strong className="text-foreground">The United States.</strong> The servers that
-                    run the site&rsquo;s code, and the service that sends our email, are based in the
-                    United States. Those transfers are covered by the UK International Data Transfer
-                    Addendum to the European Commission&rsquo;s standard contractual clauses, which is
-                    the mechanism UK law provides for exactly this. We have assessed the risk of each
-                    transfer and keep that assessment under review.
+                    <strong className="text-foreground">The United States.</strong> Two things reach
+                    the US. Our email provider is based there, so an email address and the contents
+                    of an email we send you are processed there. And two of our providers are US
+                    companies whose support staff can reach data held in Ireland when they are
+                    helping us with a fault. Both are covered by the UK International Data Transfer
+                    Addendum to the European Commission&rsquo;s standard contractual clauses, which
+                    is the mechanism UK law provides for exactly this. We have assessed the risk and
+                    keep that assessment under review.
                   </p>
                   <p>
                     If you want to see the safeguards for a particular transfer, email{" "}
