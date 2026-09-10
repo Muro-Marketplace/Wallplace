@@ -12,6 +12,13 @@ export const metadata: Metadata = {
 // wallplace-cookie-consent, with no expiry). It now describes the
 // browser local storage the site really uses. Wallplace itself sets no
 // cookies; keep this table in step with the code if that ever changes.
+//
+// UK compliance audit, 10 September 2026: the consent key became
+// wallplace-storage-notice-dismissed, because it records a dismissal and
+// never recorded a consent. The banner offered Accept and Decline over
+// storage that is entirely strictly necessary, and nothing in the codebase
+// read the answer. This page was already accurate about there being no
+// cookies and no third-party tags; the banner is now accurate too.
 const storageEntries = [
   {
     name: "sb-...-auth-token (local storage)",
@@ -22,10 +29,10 @@ const storageEntries = [
     provider: "Wallplace",
   },
   {
-    name: "wallplace-cookie-consent (local storage)",
+    name: "wallplace-storage-notice-dismissed (local storage)",
     category: "Strictly Necessary",
     purpose:
-      "Stores your consent-banner choice so we do not ask you repeatedly. Storing this preference is exempt from the consent requirement under PECR regulation 6(4).",
+      "Records that you have seen the notice at the bottom of the page, so we do not show it again. Storing this is exempt from the consent requirement under PECR regulation 6(4).",
     duration: "Until you clear your browser data",
     provider: "Wallplace",
   },

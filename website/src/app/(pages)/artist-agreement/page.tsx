@@ -83,9 +83,13 @@ export default function ArtistAgreementPage() {
                   <ul className="list-disc pl-6 space-y-1">
                     <li>Platform display, search results, and venue catalogues</li>
                     <li>Marketing and promotion, including social media, newsletters, press, and advertising</li>
-                    <li>Thumbnails, previews, and printed materials</li>
+                    <li>Thumbnails, previews, QR labels, and printed materials</li>
+                    <li>Composite previews in our wall visualiser, where an image of your work is placed into a photograph of a venue&rsquo;s wall so the venue can see how it would hang. The composite is a preview of your work in a room, never a new work, and it always carries your name</li>
                   </ul>
-                  <p>This licence does not transfer ownership. You retain full copyright at all times. The licence continues while your artwork is listed on the Platform, plus a 90-day wind-down period after removal to allow for cache clearing and marketing material updates.</p>
+                  <p><strong className="text-foreground">Sub-licensing to venues.</strong> Wallplace may pass these rights on to a venue displaying or considering your work, on the same terms and only for that purpose: showing the piece in their space, in their own catalogue or listing of what they have on the wall, and photographing their premises with your work in it. A venue gets no right to sell, print or license your work, and no right to use it once it is no longer with them.</p>
+                  <p><strong className="text-foreground">What this licence is not.</strong> It does not transfer ownership. You retain full copyright at all times. It gives nobody the right to sell prints or reproductions of your work, to license it to anyone else, or to use it in a way that suggests you endorse a product or a business.</p>
+                  <p><strong className="text-foreground">How long it lasts.</strong> The licence continues while your artwork is listed on the Platform, plus a 90-day wind-down period after removal to allow for cache clearing and marketing material updates. Two things survive that wind-down, and only these two: printed material already produced and distributed before removal may be used up rather than destroyed, and copies held in backups or in records we must keep for legal or accounting reasons stay until those records are deleted on their normal schedule. Neither is a licence to make anything new.</p>
+                  <p>If you want your work removed from a specific piece of marketing sooner than the wind-down allows, email <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">hello@wallplace.co.uk</a> and we will take it down. We would rather do that than argue about a clause.</p>
                 </div>
               </div>
 
