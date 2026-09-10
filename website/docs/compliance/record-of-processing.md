@@ -4,6 +4,7 @@
 **Contact:** privacy@wallplace.co.uk
 **Data protection officer:** none appointed, and none required
 **ICO registration:** to be confirmed by the owner. See section 6.
+**Schema state:** migrations 139 to 144 applied 10 September 2026; migration 145 pending the branch deploy.
 **Written:** 10 September 2026
 **Next review:** 10 September 2027, or whenever a new feature starts collecting a category not listed here
 

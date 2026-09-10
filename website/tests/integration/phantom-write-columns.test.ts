@@ -76,16 +76,10 @@ const GRANDFATHERED: Array<{ file: string; table: string; phantom: string; why: 
  * snapshot refreshed, the entry is dead weight to delete.
  */
 const PENDING_MIGRATION: Array<{ table: string; column: string; migration: string }> = [
-  {
-    table: "terms_acceptances",
-    column: "age_confirmed",
-    migration: "142_age_confirmation.sql",
-  },
-  {
-    table: "artist_profiles",
-    column: "trader_status",
-    migration: "144_artist_trader_status.sql",
-  },
+  // EMPTY. Both entries that lived here (terms_acceptances.age_confirmed and
+  // artist_profiles.trader_status) were applied to production on 10 September
+  // 2026 and the snapshot was regenerated in the same commit, which is what
+  // the list's own rule says to do. Shrink it, never grow it.
 ];
 
 const MIGRATIONS_DIR = path.resolve(__dirname, "../../supabase/migrations");

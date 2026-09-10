@@ -33,8 +33,9 @@
 -- on the understanding it was private, and the visualiser republished that
 -- photograph inside every render at a public URL.
 --
--- Reads for both now go through short-lived signed URLs, minted only after the
--- reader's entitlement has been checked. See src/lib/messages/attachment-urls.ts
+-- Reads for both go through short-lived signed URLs, minted only after the
+-- reader's entitlement has been checked. That code ships with migration 145,
+-- which is where the buckets actually become private. See src/lib/messages/attachment-urls.ts
 -- (signed inside GET /api/messages/[conversationId], after
 -- assertConversationParticipant) and src/lib/visualizer/renders-db.ts.
 --
@@ -79,10 +80,17 @@ update storage.buckets
        ]
  where id = 'contracts';
 
--- ── Private the two leaking buckets ─────────────────────────────────────
-update storage.buckets
-   set public = false
- where id in ('message-attachments', 'wall-renders');
+-- ── Privatising the two leaking buckets lives in 145, NOT here ─────────
+--
+-- Everything in this file is safe to apply against a deployment that does not
+-- yet carry the new code. Flipping `public` is not: production reads renders
+-- and message attachments through getPublicUrl(), so the moment those buckets
+-- go private the visualiser previews and that one attachment 404 for real
+-- users, and they stay broken until the signing code deploys.
+--
+-- So the flip is its own migration, 145_private_buckets.sql, to be applied in
+-- the same window as the deploy. Splitting it is the difference between a
+-- migration you can run now and one you have to coordinate.
 
 -- ── Folder ownership on every client-writable bucket ────────────────────
 -- The path convention everywhere in src/lib/upload.ts is `${user.id}/<file>`,

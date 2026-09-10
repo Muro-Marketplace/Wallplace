@@ -541,11 +541,49 @@ Add: `harassment_or_threats`, `hate_or_discrimination`, `illegal_or_harmful_sexu
 
 ---
 
+## What was applied to production, 10 September 2026
+
+Migrations 139, 140, 141, 142, 143 and 144 are **applied**. Verified after the
+fact against the live schema rather than trusting the success flags: preference
+defaults are false and both existing rows were corrected (the one genuine
+double opt-in on `newsletter_enabled` is untouched), `terms_acceptances.age_confirmed`
+and `artist_profiles.trader_status` exist, the collections foreign key reads
+CASCADE, coordinates are rounded to 2dp with the trigger in place, `reports`
+holds no client grants, the six venue PII and Stripe-identifier columns are
+revoked from `anon` and `authenticated`, and every bucket carries a size and
+MIME cap with folder-owned upload policies.
+
+A pre-migration snapshot of everything they touch is in the session scratchpad
+at `backup-2026-09-10/`.
+
+Two things came out of doing it that were not in the plan:
+
+**The four anon-insert routes.** `api/waitlist`, `api/contact`,
+`api/register-venue` and `api/enquiry` each performed their insert with the
+ANON client, which is precisely why those tables carried always-true INSERT
+policies for anon. Dropping the policies as originally written in 143 would
+have taken the waitlist, the contact form, venue registration and artist
+enquiries offline. All four are switched to the service-role client, and the
+drops moved to 145.
+
+**Migration 145 is the post-deploy step.** It holds the two things that break
+production if applied before the branch is live: privatising
+`message-attachments` and `wall-renders`, and dropping those four INSERT
+policies. Everything in 139 to 144 is safe against either version of the code,
+which is the property the split was for.
+
+**`artist_profiles.trader_status` already existed** at ordinal 73, added out of
+band alongside `business_name`, `vat_number` and `hear_about`. The migration's
+`add column if not exists` was a no-op on the column; what it actually did was
+add the CHECK constraint and run the backfill. The committed schema snapshot
+had drifted by six columns on that table and one on `terms_acceptances`, and is
+now regenerated.
+
 ## Owner actions this plan cannot do
 
 | Action | Why the code cannot |
 |---|---|
-| Apply migrations 140 to 144 to production | Needs the owner's decision and a backup |
+| ~~Apply migrations 139 to 144~~ | **Done, 10 September 2026.** Migration **145** is the one still to run, and it must go AFTER the deploy |
 | Set `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Vercel environment |
 | Set `RESEND_WEBHOOK_SECRET` and configure the Resend endpoint | Vercel and Resend dashboards |
 | Set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | Vercel and Cloudflare |

@@ -94,26 +94,18 @@ begin
   end loop;
 end $$;
 
--- ── 3. Close the four direct-insert paths ───────────────────────────────
-drop policy if exists "Allow public inserts" on public.contact_submissions;
-drop policy if exists "Anyone can insert contact" on public.contact_submissions;
-
-drop policy if exists "Allow public inserts" on public.enquiries;
-drop policy if exists "Allow authenticated inserts" on public.enquiries;
-drop policy if exists "Anyone can insert enquiry" on public.enquiries;
-
-drop policy if exists "Allow public inserts" on public.venue_registrations;
-drop policy if exists "Anyone can insert venue reg" on public.venue_registrations;
-
-drop policy if exists "Allow public inserts" on public.waitlist_signups;
-drop policy if exists "Anyone can insert waitlist" on public.waitlist_signups;
-
--- Belt and braces: RLS only bites where a grant exists, and Supabase grants
--- anon and authenticated explicitly rather than through PUBLIC.
-revoke insert on public.contact_submissions from anon, authenticated;
-revoke insert on public.enquiries from anon, authenticated;
-revoke insert on public.venue_registrations from anon, authenticated;
-revoke insert on public.waitlist_signups from anon, authenticated;
+-- ── 3. Closing the four direct-insert paths lives in 145, NOT here ─────
+--
+-- The drops themselves are trivial. The reason they are not in this file is
+-- that four live routes (api/waitlist, api/contact, api/register-venue and
+-- api/enquiry) performed their insert with the ANON client, which is exactly
+-- why those always-true policies existed. Dropping the policies while
+-- production still runs the anon path takes the waitlist, the contact form,
+-- venue registration and artist enquiries offline.
+--
+-- The routes are switched to the service-role client in the same change as
+-- this migration, so the drops belong with the deploy. See
+-- 145_post_deploy_lockdown.sql.
 
 -- `enquiries` keeps its SELECT policy, which lets a signed-in sender read
 -- their own. Wrapped so it evaluates once per query rather than once per row

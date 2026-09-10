@@ -15,19 +15,23 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { anonFrom, insertMock, adminMock, notifyMock, sendEmailMock, rateLimitMock } = vi.hoisted(
+const { dbFrom, insertMock, notifyMock, sendEmailMock, rateLimitMock } = vi.hoisted(
   () => ({
-    anonFrom: vi.fn(),
+    dbFrom: vi.fn(),
     insertMock: vi.fn(),
-    adminMock: vi.fn(),
     notifyMock: vi.fn(),
     sendEmailMock: vi.fn(),
     rateLimitMock: vi.fn(),
   }),
 );
 
-vi.mock("@/lib/supabase", () => ({ supabase: { from: anonFrom } }));
-vi.mock("@/lib/supabase-admin", () => ({ getSupabaseAdmin: adminMock }));
+// DP-16: the insert moved off the anon client onto the service-role client,
+// because the anon path was the reason venue_registrations carried an
+// always-true INSERT policy for anon. `dbFrom` is the .from() the route calls;
+// E34's invariant is unchanged and is asserted below against the TABLES
+// written, which is what "no orphan factory" actually means. Asserting that
+// the admin client was never opened was only ever a proxy for it.
+vi.mock("@/lib/supabase-admin", () => ({ getSupabaseAdmin: () => ({ from: dbFrom }) }));
 // K1: the admin ping goes through the one pipeline now.
 vi.mock("@/lib/email/admin-alert", () => ({ sendAdminAlert: notifyMock }));
 vi.mock("@/lib/email/send", () => ({ sendEmail: sendEmailMock }));
@@ -66,9 +70,8 @@ function post(body: unknown): Request {
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 beforeEach(() => {
-  anonFrom.mockReset();
+  dbFrom.mockReset();
   insertMock.mockReset();
-  adminMock.mockReset();
   notifyMock.mockReset();
   sendEmailMock.mockReset();
   rateLimitMock.mockReset();
@@ -79,7 +82,7 @@ beforeEach(() => {
   // (email audit fix 5). insertMock still records the written row and still
   // decides the outcome, so every assertion above it is unchanged.
   insertMock.mockResolvedValue({ data: { id: "reg-1" }, error: null });
-  anonFrom.mockReturnValue({
+  dbFrom.mockReturnValue({
     insert: (row: unknown) => {
       const result = insertMock(row);
       return { select: () => ({ maybeSingle: async () => await result }) };
@@ -87,25 +90,19 @@ beforeEach(() => {
   });
   notifyMock.mockResolvedValue({ ok: true, skipped: false, messageId: "m" });
   sendEmailMock.mockResolvedValue(undefined);
-  adminMock.mockImplementation(() => {
-    throw new Error("register-venue must not touch the service-role client");
-  });
 });
 
 describe("POST /api/register-venue (E34: no orphan factory)", () => {
-  it("never opens a service-role client", async () => {
+  it("writes only the registration record, never venue_profiles", async () => {
+    // THE E34 invariant. The orphan factory was a venue_profiles insert here,
+    // and what stops it coming back is that this route touches exactly one
+    // table. Which client it opens is not the point and never was.
     const res = await POST(post(VALID));
 
     expect(res.status).toBe(200);
-    expect(adminMock, "the service-role client is the orphan factory").not.toHaveBeenCalled();
-  });
-
-  it("writes only the registration record, never venue_profiles", async () => {
-    await POST(post(VALID));
-
-    const tables = anonFrom.mock.calls.map((c) => c[0]);
+    const tables = dbFrom.mock.calls.map((c) => c[0]);
     expect(tables).toEqual(["venue_registrations"]);
-    expect(tables).not.toContain("venue_profiles");
+    expect(tables, "venue_profiles here is the orphan factory").not.toContain("venue_profiles");
   });
 
   it("ignores a venueSlug smuggled in on the raw body", async () => {
@@ -114,7 +111,7 @@ describe("POST /api/register-venue (E34: no orphan factory)", () => {
     const res = await POST(post({ ...VALID, venueSlug: "the-copper-kettle" }));
 
     expect(res.status).toBe(200);
-    expect(adminMock).not.toHaveBeenCalled();
+    expect(dbFrom.mock.calls.map((c) => c[0])).toEqual(["venue_registrations"]);
     const written = insertMock.mock.calls[0][0] as Record<string, unknown>;
     expect(written).not.toHaveProperty("slug");
     expect(JSON.stringify(written)).not.toContain("the-copper-kettle");

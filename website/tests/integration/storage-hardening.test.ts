@@ -14,6 +14,10 @@ import { describe, it, expect } from "vitest";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(here, "../../supabase/migrations");
 const sql = readFileSync(path.join(MIGRATIONS_DIR, "140_storage_hardening.sql"), "utf8");
+// The `public = false` flip lives in its own migration, because it is the only
+// part of the hardening that cannot be applied ahead of the code that signs
+// the reads. See the header of 145 for the ordering.
+const privatiseSql = readFileSync(path.join(MIGRATIONS_DIR, "145_post_deploy_lockdown.sql"), "utf8");
 
 /** Every migration file, so we can check nothing later re-opens what 140 closed. */
 const laterMigrations = readdirSync(MIGRATIONS_DIR)
@@ -31,10 +35,20 @@ const ALL_BUCKETS = [
 ] as const;
 
 describe("140_storage_hardening", () => {
-  it("makes message-attachments and wall-renders private", () => {
-    const block = sql.match(/set\s+public = false[\s\S]{0,200}?;/i)?.[0] ?? "";
+  it("leaves the privatisation to 145, so 140 is safe to apply ahead of the deploy", () => {
+    expect(sql).not.toMatch(/set\s+public = false/i);
+  });
+
+  it("145 makes message-attachments and wall-renders private", () => {
+    const block = privatiseSql.match(/set\s+public = false[\s\S]{0,200}?;/i)?.[0] ?? "";
     expect(block).toContain("message-attachments");
     expect(block).toContain("wall-renders");
+  });
+
+  it("145 says in its own header that it must not run before the deploy", () => {
+    // The ordering is the whole reason the file exists. If a future edit drops
+    // the warning, the file becomes a trap.
+    expect(privatiseSql).toMatch(/APPLY THIS IN THE SAME WINDOW AS THE DEPLOY/i);
   });
 
   it("gives every client-writable bucket a folder-ownership INSERT check", () => {
@@ -64,6 +78,7 @@ describe("140_storage_hardening", () => {
 
   it("never re-opens a bucket in a later migration", () => {
     for (const { name, body } of laterMigrations) {
+      if (name.startsWith("145_")) continue; // 145 is the one that closes them
       const reopens = /set\s+public = true/i.test(body);
       expect(reopens, `${name} sets a bucket back to public; 140 made two of them private on purpose`)
         .toBe(false);

@@ -1,5 +1,18 @@
+// UK compliance audit, 10 September 2026, finding DP-16.
+//
+// This route used the ANON client for its insert, which is why the table
+// carried an always-true `WITH CHECK (true)` INSERT policy for anon. The
+// publishable key ships in the browser bundle, so that policy let anyone write
+// rows straight into a table an admin reads, skipping this route's zod
+// validation, its rate limit and its notification side effects.
+//
+// The route runs server side and has the service-role key, so there was never
+// a reason for the anon path. Switched to the admin client, which is what
+// every other write route here does; migration 143 then drops the policy and
+// revokes the grant behind it. Both halves are needed and the order matters:
+// dropping the policy while this still used the anon client would have taken
+// the form offline.
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
 import { enquirySchema } from "@/lib/validations";
 import { sendAdminAlert } from "@/lib/email/admin-alert";
 import { sendMessageUnreadEmail } from "@/lib/email/notifications";
@@ -181,7 +194,7 @@ export async function POST(request: Request) {
     // Verified against this artist, and the image read server-side.
     const work = await resolveEnquiryWork(workId, artistSlug);
 
-    const { error } = await supabase.from("enquiries").insert({
+    const { error } = await getSupabaseAdmin().from("enquiries").insert({
       // The artist's enquiries page renders this straight to them
       // (artist-portal/enquiries), and nothing ever matches it against a slug,
       // so it holds the name the form collected.
@@ -213,7 +226,7 @@ export async function POST(request: Request) {
     // The slug is the lookup key, not a person's name, and it should never be
     // what a human reads. Resolve the artist's real name, de-slugging only as
     // a fallback for a profile with no name set.
-    const { data: enquiryArtist } = await supabase
+    const { data: enquiryArtist } = await getSupabaseAdmin()
       .from("artist_profiles")
       .select("name")
       .eq("slug", artistSlug)
