@@ -185,3 +185,33 @@ describe("venue orders line totals across both item shapes", () => {
     expect(await screen.findByText(/· Artwork$/)).toBeTruthy();
   });
 });
+
+// Merge guard, 10 September 2026. This fix and main's thumbnail work landed on
+// the same lines: main added WorkThumb to the item row while this branch
+// replaced the raw `price * qty` read. Resolving the conflict meant taking
+// main's presentation and this branch's numbers, and the easy mistake in that
+// resolution is to keep one side whole and silently drop the other. These two
+// assert the presentation half survived, alongside the money assertions above.
+describe("venue orders item rows keep their thumbnail", () => {
+  it("renders the artwork thumbnail with the title as its alt text", async () => {
+    const b = await openBreakdown(ENRICHED_ORDER);
+
+    expect(b.getByRole("img", { name: "Streets of St. Tropez" })).toBeTruthy();
+    // And the money is still right, because the point of the guard is that
+    // both halves of the resolution hold at once.
+    expect(b.getAllByText("£69.99").length).toBe(2);
+  });
+
+  it("renders the placeholder, not a broken frame, when the item has no image", async () => {
+    const b = await openBreakdown({
+      ...ENRICHED_ORDER,
+      id: "WS-NOIMAGE",
+      items: [{ ...ENRICHED_ITEM, image: undefined }],
+    });
+
+    // WorkThumb refuses to hand next/image an empty src, which it rejects.
+    expect(b.queryByRole("img")).toBeNull();
+    expect(b.getByText("Streets of St. Tropez × 1")).toBeTruthy();
+    expect(b.getAllByText("£69.99").length).toBe(2);
+  });
+});
