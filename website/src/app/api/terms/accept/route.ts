@@ -76,6 +76,14 @@ export async function POST(request: Request) {
       user_type: parsed.data.userType,
       terms_version: parsed.data.termsVersion,
       terms_type: parsed.data.termsType,
+      // CHI-1. The 18+ self-declaration made at signup, stored beside the
+      // acceptance it was made alongside so the two are one record. It carries
+      // exactly the weight of the row it sits on, which the block above is
+      // candid about: a pre-auth assertion about an email address is forgeable
+      // by construction. It is a declaration, not a verification, and the
+      // Online Safety Act children's access assessment is the control that
+      // does the real work here.
+      age_confirmed: parsed.data.ageConfirmed ?? null,
       ip_address: ip,
       user_agent: userAgent,
       accepted_at: new Date().toISOString(),

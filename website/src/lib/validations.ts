@@ -278,6 +278,11 @@ export const termsAcceptSchema = z.object({
   userType: z.enum(["artist", "venue", "customer"]),
   termsVersion: safeString(50),
   termsType: safeString(50),
+  // UK compliance audit, finding CHI-1. Optional so an older client (or the
+  // OAuth finalise path, which has its own flow) does not start failing; the
+  // column is nullable for the same reason, and a null reads as "this
+  // acceptance predates the declaration" rather than as a denial.
+  ageConfirmed: z.boolean().optional(),
 });
 
 export const placementUpdateSchema = z.object({

@@ -46,6 +46,7 @@ import { safeRedirect } from "@/lib/safe-redirect";
 import { FOUNDING_OFFER_SHORT } from "@/lib/pricing";
 import { TERMS_VERSION } from "@/lib/terms-version";
 import TermsCheckbox from "@/components/TermsCheckbox";
+import AgeAndMarketingConsent from "@/components/AgeAndMarketingConsent";
 import RedirectIfLoggedIn from "@/components/RedirectIfLoggedIn";
 import Turnstile from "@/components/Turnstile";
 
@@ -57,6 +58,11 @@ export default function ArtistSignUpPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreedToTos, setAgreedToTos] = useState(false);
+  // UK compliance audit, findings CHI-1 and MKT-1. Both unticked, both
+  // travelling on options.data so they land on this account's own metadata
+  // rather than through a pre-auth endpoint anyone could point at anyone.
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   // Read ?next= so a deep-link funnel survives the email-verification hop.
@@ -100,7 +106,12 @@ export default function ArtistSignUpPage() {
         email,
         password,
         options: {
-          data: { user_type: "artist", display_name: name },
+          data: {
+            user_type: "artist",
+            display_name: name,
+            age_confirmed: ageConfirmed,
+            marketing_opt_in: marketingOptIn,
+          },
           emailRedirectTo: `${window.location.origin}/login?next=${encodeURIComponent(postSignupNext)}`,
         },
       });
@@ -117,6 +128,7 @@ export default function ArtistSignUpPage() {
         body: JSON.stringify({
           userEmail: email,
           userType: "artist",
+          ageConfirmed,
           termsVersion: TERMS_VERSION,
           termsType: "platform_tos",
         }),
@@ -286,7 +298,13 @@ export default function ArtistSignUpPage() {
               </>
             )}
 
-            <div className="py-1">
+            <div className="py-1 space-y-3">
+              <AgeAndMarketingConsent
+                ageConfirmed={ageConfirmed}
+                onAgeChange={setAgeConfirmed}
+                marketingOptIn={marketingOptIn}
+                onMarketingChange={setMarketingOptIn}
+              />
               <TermsCheckbox
                 termsType="platform_tos"
                 checked={agreedToTos}
@@ -299,7 +317,7 @@ export default function ArtistSignUpPage() {
 
             <button
               type="submit"
-              disabled={loading || !agreedToTos || !turnstileToken}
+              disabled={loading || !agreedToTos || !ageConfirmed || !turnstileToken}
               className="w-full px-6 py-3 bg-accent text-white text-sm font-semibold uppercase tracking-wider rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-50"
             >
               {loading ? "Creating Account..." : "Create Account"}

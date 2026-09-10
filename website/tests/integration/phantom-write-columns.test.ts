@@ -64,6 +64,31 @@ const GRANDFATHERED: Array<{ file: string; table: string; phantom: string; why: 
 // not-null-writes.test.ts, which asks the other question of the same writes:
 // can the VALUE be null on a NOT NULL column? The doc comments moved with them.
 
+/**
+ * Columns a committed migration adds that the snapshot does not carry yet,
+ * because applying a migration to production is an owner action and the
+ * snapshot is taken FROM production.
+ *
+ * This is not a second grandfather list. Every entry names the migration that
+ * creates the column, and the test below reads that file and fails if it does
+ * not actually add it. So an entry cannot outlive its migration, or be written
+ * for a column nobody ever created; once the migration is applied and the
+ * snapshot refreshed, the entry is dead weight to delete.
+ */
+const PENDING_MIGRATION: Array<{ table: string; column: string; migration: string }> = [
+  {
+    table: "terms_acceptances",
+    column: "age_confirmed",
+    migration: "142_age_confirmation.sql",
+  },
+];
+
+const MIGRATIONS_DIR = path.resolve(__dirname, "../../supabase/migrations");
+
+function addedByPendingMigration(table: string, column: string): boolean {
+  return PENDING_MIGRATION.some((p) => p.table === table && p.column === column);
+}
+
 function scan() {
   const offences: string[] = [];
   let writesChecked = 0;
@@ -81,6 +106,7 @@ function scan() {
       for (const key of w.keys) {
         keysChecked++;
         if (known.includes(key)) continue;
+        if (addedByPendingMigration(w.table, key)) continue;
         if (
           GRANDFATHERED.some(
             (g) => rel.endsWith(g.file) && g.table === w.table && g.phantom === key,
@@ -134,6 +160,23 @@ function tablesNamed(source: string): { table: string; line: number }[] {
 // and `from("applications")`, neither of which is a table (they are
 // `waitlist_signups` and `artist_applications`), so a person's right to erasure
 // silently left their waitlist entry and their whole application in place.
+describe("every pending-migration column is really created by its migration", () => {
+  it("finds the ADD COLUMN in the named file", () => {
+    for (const { table, column, migration } of PENDING_MIGRATION) {
+      const body = readFileSync(path.join(MIGRATIONS_DIR, migration), "utf8");
+      const adds = new RegExp(
+        `alter table (?:public\\.)?${table}[\\s\\S]*?add column (?:if not exists )?${column}\\b`,
+        "i",
+      );
+      expect(
+        adds.test(body),
+        `${migration} is listed as adding ${table}.${column} and does not. An entry ` +
+          "that outlives its migration is a hole in the guard, not an exemption.",
+      ).toBe(true);
+    }
+  });
+});
+
 describe("no .from() names a table the live schema lacks", () => {
   it("names only tables that exist", () => {
     const offences: string[] = [];
