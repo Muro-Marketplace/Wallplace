@@ -81,6 +81,11 @@ const PENDING_MIGRATION: Array<{ table: string; column: string; migration: strin
     column: "age_confirmed",
     migration: "142_age_confirmation.sql",
   },
+  {
+    table: "artist_profiles",
+    column: "trader_status",
+    migration: "144_artist_trader_status.sql",
+  },
 ];
 
 const MIGRATIONS_DIR = path.resolve(__dirname, "../../supabase/migrations");

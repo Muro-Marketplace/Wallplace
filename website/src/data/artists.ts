@@ -138,6 +138,14 @@ export interface Artist {
   internationalShippingPrice?: number | null;
   /** True once the profile has been admin-approved (review_status === "approved"). */
   isVerified?: boolean;
+  /**
+   * Whether the artist sells as a business or as an individual, as declared on
+   * their application. Drives the seller-information block on a listing, where
+   * it changes which consumer rights a buyer actually has. Null means we have
+   * no declaration on file, which is the honest answer for a legacy row and is
+   * rendered as such rather than assumed.
+   */
+  traderStatus?: "consumer" | "business" | null;
   /** Premium+ profile theme id from lib/profile-themes.ts. NULL/absent
    *  → default light theme. Ignored for Core tier at render time. */
   profileTheme?: string;

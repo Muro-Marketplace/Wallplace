@@ -193,6 +193,28 @@ export default function ReportContentButton({
                   ))}
                 </select>
 
+                {/* Copyright has its own process, with evidence requirements, a
+                    takedown SLA and a counter-notice route. A report that lands
+                    in the ordinary queue gets none of that, so the reporter is
+                    pointed at it here rather than finding out afterwards.
+                    (UK compliance audit, finding IP-1.) */}
+                {reason === "not_the_artists_own_work" && (
+                  <div className="mb-4 -mt-2 rounded-sm border border-border bg-background p-3">
+                    <p className="text-xs text-muted leading-relaxed">
+                      If this is your own work being listed by someone else, our{" "}
+                      <Link href="/ip-policy" className="text-accent hover:underline">
+                        Intellectual Property and Takedown Policy
+                      </Link>{" "}
+                      is the faster route: send the evidence it asks for to{" "}
+                      <a href="mailto:legal@wallplace.co.uk" className="text-accent hover:underline">
+                        legal@wallplace.co.uk
+                      </a>{" "}
+                      and we acknowledge within 1 business day and act on a credible claim within
+                      24 hours. Sending this report as well does no harm.
+                    </p>
+                  </div>
+                )}
+
                 <label className="block text-xs uppercase tracking-wide text-muted mb-1.5">
                   Anything else {reason === "other" ? "" : "(optional)"}
                 </label>
