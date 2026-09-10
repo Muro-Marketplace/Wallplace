@@ -39,10 +39,34 @@ const { mockDeleteUser, fromMock, getAuthMock, subsCancelMock, sendEmailMock } =
 // the PostgREST fake below.
 vi.mock("@/lib/email/send", () => ({ sendEmail: sendEmailMock }));
 
+// DP-7: erasure now clears storage as well as rows, so the fake needs a
+// storage surface. `storageObjects` is per-bucket object names under the
+// user's own folder; `storageRemoved` records what the route actually deleted.
+const storageObjects: Record<string, string[]> = {};
+const storageRemoved: Record<string, string[]> = {};
+
 vi.mock("@/lib/supabase-admin", () => ({
   getSupabaseAdmin: () => ({
     auth: { admin: { deleteUser: mockDeleteUser } },
     from: fromMock,
+    storage: {
+      from: (bucket: string) => ({
+        list: async (prefix: string, opts: { limit: number; offset: number }) => {
+          const names = storageObjects[bucket] ?? [];
+          void prefix;
+          return {
+            data: names
+              .slice(opts.offset, opts.offset + opts.limit)
+              .map((name) => ({ name, id: `id-${name}` })),
+            error: null,
+          };
+        },
+        remove: async (paths: string[]) => {
+          storageRemoved[bucket] = [...(storageRemoved[bucket] ?? []), ...paths];
+          return { data: paths, error: null };
+        },
+      }),
+    },
   }),
 }));
 
@@ -66,6 +90,7 @@ interface Write {
 }
 
 let writes: Write[] = [];
+let inFilters: Array<{ table: string; col: string; values: unknown[] }> = [];
 
 /**
  * A fake that behaves like PostgREST: an unknown table, an unknown payload
@@ -75,6 +100,9 @@ let writes: Write[] = [];
  */
 function installDb() {
   writes = [];
+  inFilters = [];
+  for (const k of Object.keys(storageObjects)) delete storageObjects[k];
+  for (const k of Object.keys(storageRemoved)) delete storageRemoved[k];
   fromMock.mockImplementation((table: string) => {
     const known = SCHEMA[table];
     const reject = (message: string) => ({ eq: async () => ({ error: { message } }) });
@@ -122,13 +150,28 @@ function installDb() {
           },
         };
       },
-      delete: () => ({
-        eq: async (col: string, value: unknown) => {
+      delete: () => {
+        const eq = async (col: string, value: unknown) => {
           if (!known.includes(col)) return { error: { message: `column ${table}.${col} does not exist` } };
           writes.push({ table, op: "delete", col, value });
           return { error: null };
-        },
-      }),
+        };
+        return {
+          eq,
+          // The suppression carve-out filters on `reason` before `email`, so
+          // the fake has to accept the same chain PostgREST does. An unknown
+          // column still rejects the whole statement.
+          in: (col: string, values: unknown[]) => {
+            if (!known.includes(col)) {
+              return {
+                eq: async () => ({ error: { message: `column ${table}.${col} does not exist` } }),
+              };
+            }
+            inFilters.push({ table, col, values });
+            return { eq };
+          },
+        };
+      },
     };
   });
 }
@@ -209,13 +252,65 @@ describe("POST /api/account/delete", () => {
     const res = await POST(req("Bearer valid"));
     expect(res.status).toBe(200);
     expect(mockDeleteUser).toHaveBeenCalledWith("u1");
-    // Every hard-delete targets the authenticated user's id, never a value
-    // from the request body.
+    // Every hard-delete targets the authenticated user's OWN id or their OWN
+    // verified email, both taken off the token. Never a value from the request
+    // body. DP-7 added the email-keyed pass, which is why the email is a legal
+    // target here and was not before.
     const deletes = writes.filter((w) => w.op === "delete");
     expect(deletes.length).toBeGreaterThan(10);
     for (const w of deletes) {
-      expect(w.value, `${w.table}.${w.col}`).toBe("u1");
+      expect(["u1", "a@x.com"], `${w.table}.${w.col}`).toContain(w.value);
     }
+  });
+
+  // ── DP-7: the three gaps the audit found ────────────────────────────────
+  it("clears the user's objects from every storage bucket", async () => {
+    // Before this, not one object was ever deleted: a deleted artist's artwork
+    // and their avatar stayed at working public URLs forever.
+    storageObjects.artworks = ["a.webp", "b.webp"];
+    storageObjects.avatars = ["me.jpg"];
+    storageObjects["message-attachments"] = ["contract.pdf"];
+
+    const res = await POST(req("Bearer valid"));
+
+    expect(res.status).toBe(200);
+    expect(storageRemoved.artworks).toEqual(["u1/a.webp", "u1/b.webp"]);
+    expect(storageRemoved.avatars).toEqual(["u1/me.jpg"]);
+    expect(storageRemoved["message-attachments"]).toEqual(["u1/contract.pdf"]);
+  });
+
+  it("erases the email-keyed tables that used to be a documented gap", async () => {
+    await POST(req("Bearer valid"));
+    const byEmail = writes
+      .filter((w) => w.op === "delete" && w.value === "a@x.com")
+      .map((w) => w.table);
+    expect(byEmail).toEqual(
+      expect.arrayContaining([
+        "newsletter_subscribers",
+        "artist_applications",
+        "venue_registrations",
+        "contact_submissions",
+        "waitlist_signups",
+        "enquiries",
+      ]),
+    );
+  });
+
+  it("erases the home address, which survived erasure before", async () => {
+    await POST(req("Bearer valid"));
+    const deleted = writes.filter((w) => w.op === "delete").map((w) => w.table);
+    expect(deleted).toContain("customer_addresses");
+  });
+
+  it("keeps a complaint or hard-bounce suppression, and removes the rest", async () => {
+    // The suppression is the record of an address asking us to stop. Deleting
+    // it would let a re-signup resume mail to someone who opted out.
+    await POST(req("Bearer valid"));
+    const suppression = inFilters.find((f) => f.table === "email_suppressions");
+    expect(suppression?.col).toBe("reason");
+    expect(suppression?.values).not.toContain("complaint");
+    expect(suppression?.values).not.toContain("hard_bounce");
+    expect(suppression?.values).toContain("unsubscribe");
   });
 
   it("touches expected core tables (smoke)", async () => {
