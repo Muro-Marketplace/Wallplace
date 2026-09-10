@@ -26,7 +26,11 @@ import { getAuthenticatedUser } from "@/lib/api-auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { sendAdminAlert } from "@/lib/email/admin-alert";
-import { reportSchema, type ReportableEntityType } from "@/lib/validations";
+import {
+  isUrgentReportReason,
+  reportSchema,
+  type ReportableEntityType,
+} from "@/lib/validations";
 
 export const runtime = "nodejs";
 
@@ -181,9 +185,15 @@ export async function POST(request: Request) {
   const source = ENTITY_SOURCES[entityType];
   const alertKey = report?.id ?? `${reporter.id}:${entityType}:${entityId}:${reason}`;
   try {
+    // OSA-1. An illegal-content report is marked in the subject line so it is
+    // distinguishable in an inbox from a spam report, which is the only
+    // difference that matters when the duty is to act swiftly on knowledge.
+    const urgent = isUrgentReportReason(reason);
     await sendAdminAlert({
       idempotencyKey: `admin_content_report:${alertKey}`,
-      subject: `${source.noun} reported: ${owner.label || entityId}`,
+      subject: urgent
+        ? `URGENT illegal content reported: ${owner.label || entityId}`
+        : `${source.noun} reported: ${owner.label || entityId}`,
       summary: `${reporter.email ?? reporter.id} reported ${source.noun} "${owner.label || entityId}".`,
       fields: [
         { label: "Report", value: report?.id ?? "(id not returned)" },
@@ -192,6 +202,7 @@ export async function POST(request: Request) {
         { label: "Id", value: entityId },
         { label: "Owner", value: owner.userId ?? "(unowned)" },
         { label: "Reason", value: storedReason.slice(0, 500) },
+        { label: "Priority", value: urgent ? "URGENT, illegal content category" : "Standard" },
       ],
       actionPath: "/admin/moderation",
       actionLabel: "Open moderation",

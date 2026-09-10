@@ -564,15 +564,58 @@ export type ReportableEntityType = (typeof REPORTABLE_ENTITY_TYPES)[number];
  * queue can be triaged by reason, with `other` carrying the detail.
  */
 export const REPORT_REASONS = [
+  // Platform-integrity reports. These were the whole list, which is the
+  // problem the UK compliance audit found: every category protected the
+  // marketplace and none of them named the one class of thing the law
+  // requires a provider to act on quickly.
   "not_the_artists_own_work",
   "offensive_or_explicit",
   "misleading_or_scam",
   "spam",
   "impersonation",
+
+  // Illegal-content categories (Online Safety Act 2023 ss.20-21, finding
+  // OSA-1). A reporting mechanism that offers no way to say "this is illegal"
+  // cannot evidence the reporting duty, and leaves the reporter picking
+  // "Something else" for the most serious thing they will ever tell us.
+  //
+  // Named after the priority offences in Schedule 7 rather than after legal
+  // section numbers, because the person choosing one is a frightened user, not
+  // a lawyer. The urgent subset below is what changes how we handle it.
+  "harassment_or_threats",
+  "hate_or_discrimination",
+  "illegal_sexual_content",
+  "child_safety",
+  "self_harm_or_suicide",
+  "fraud_or_illegal_goods",
+  "terrorism_or_extremism",
+
   "other",
 ] as const;
 
 export type ReportReason = (typeof REPORT_REASONS)[number];
+
+/**
+ * Reports that jump the queue.
+ *
+ * These are the categories where the Online Safety Act expects a provider to
+ * act swiftly once it has knowledge, so they raise a marked admin alert
+ * immediately rather than joining the ordinary moderation pool. `child_safety`
+ * and `terrorism_or_extremism` additionally carry reporting obligations
+ * outside this codebase; see docs/compliance/osa-illegal-content-risk-assessment.md.
+ */
+export const URGENT_REPORT_REASONS: readonly ReportReason[] = [
+  "harassment_or_threats",
+  "hate_or_discrimination",
+  "illegal_sexual_content",
+  "child_safety",
+  "self_harm_or_suicide",
+  "terrorism_or_extremism",
+];
+
+export function isUrgentReportReason(reason: string): boolean {
+  return (URGENT_REPORT_REASONS as readonly string[]).includes(reason);
+}
 
 export const reportSchema = z.object({
   entityType: z.enum(REPORTABLE_ENTITY_TYPES),

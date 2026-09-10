@@ -27,6 +27,15 @@ const REASON_LABELS: Record<ReportReason, string> = {
   misleading_or_scam: "Misleading, or a scam",
   spam: "Spam",
   impersonation: "Impersonating someone else",
+  // Online Safety Act categories. Plain words, because the person choosing one
+  // is a frightened user and not a lawyer.
+  harassment_or_threats: "Harassment, bullying or threats",
+  hate_or_discrimination: "Hate speech or discrimination",
+  illegal_sexual_content: "Sexual content shared without consent",
+  child_safety: "Something that puts a child at risk",
+  self_harm_or_suicide: "Encouraging self-harm or suicide",
+  fraud_or_illegal_goods: "Fraud, or something illegal being sold",
+  terrorism_or_extremism: "Terrorism or violent extremism",
   other: "Something else",
 };
 
