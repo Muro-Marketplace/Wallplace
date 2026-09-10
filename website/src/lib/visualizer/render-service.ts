@@ -24,7 +24,7 @@
  *   same interface, swapped via env config.
  */
 
-import sharp from "sharp";
+import sharp, { type OverlayOptions } from "sharp";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { computeFrameGeometry } from "./frames";
 import { generateFrameSvg, generateWallSvg } from "./frame-svg";
@@ -145,7 +145,7 @@ export async function renderLayout(input: RenderInput): Promise<RenderResult> {
   }
 
   // 3. Build composite list. Order matters, z-index.
-  const composites: sharp.OverlayOptions[] = [
+  const composites: OverlayOptions[] = [
     {
       input: wallBuffer,
       left: Math.round(wallX),
@@ -210,7 +210,7 @@ async function renderItem(
   wallOriginX: number,
   wallOriginY: number,
   workById: Record<string, { imageUrl: string }>,
-): Promise<sharp.OverlayOptions[] | null> {
+): Promise<OverlayOptions[] | null> {
   const work = workById[item.work_id];
   if (!work?.imageUrl) {
     console.warn(`[render] no image for work ${item.work_id}; skipping item`);
@@ -342,7 +342,7 @@ async function renderItem(
   // materials, not sharp composites. Flip SHADOWS_ENABLED back on if
   // a future preset wants a flat-colour wall + drop-shadow combo.
   const SHADOWS_ENABLED = false;
-  const shadowOverlay: sharp.OverlayOptions[] = [];
+  const shadowOverlay: OverlayOptions[] = [];
   if (SHADOWS_ENABLED && (frameGeo.hasShadow || item.frame.style === "none")) {
     // Mask a semi-transparent black layer to the item's silhouette. Sharp's
     // "in" blend keeps source pixels only where the destination is opaque,
