@@ -21,6 +21,7 @@
     "audit:allowlist": "tsx scripts/audit/check-public-routes.ts",
     "schema:snapshot": "tsx scripts/schema-snapshot.ts",
     "admin:backfill": "tsx scripts/backfill-admin-users.ts",
+    "data:reset-test": "tsx scripts/reset-test-data.ts",
     "email:render": "tsx scripts/email-harness.ts render",
     "email:audit": "tsx scripts/email-harness.ts audit",
     "audit:reconcile": "tsx scripts/audit/reconcile-money.ts"

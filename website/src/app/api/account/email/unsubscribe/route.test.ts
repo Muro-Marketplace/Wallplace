@@ -252,11 +252,17 @@ describe("unsubscribe link signature (A1.3)", () => {
 });
 
 // The protection above is only correct if it activates when signing is
-// possible and stands down when it is not. ORDER_TOKEN_SECRET is optional in
-// env.ts, so a deployment may not have it, and enforcing a signature we could
-// never have produced would turn the unsubscribe link in every email into a
-// dead end.
-describe("unsubscribe signing stands down when it is not configured", () => {
+// possible. It used to STAND DOWN when ORDER_TOKEN_SECRET was unset, honouring
+// an unsigned GET, on the reasoning that enforcing a signature we could never
+// have produced would turn every unsubscribe link into a dead end.
+//
+// Changed 10 September 2026. The unsigned branch was never a dead end: it
+// answers 200 pointing at /account/email/unsubscribe, a public page with a
+// button per category. Meanwhile the raw user id in the query string was the
+// entire authorisation, and a user id is not a secret, so anyone could switch
+// off anyone else's newsletter with a GET. ORDER_TOKEN_SECRET is unset in
+// production today, so that was live behaviour, not a hypothetical.
+describe("an unsigned GET writes nothing even when signing is unconfigured", () => {
   const ORIGINAL_SECRET = process.env.ORDER_TOKEN_SECRET;
 
   afterEach(() => {
@@ -264,11 +270,37 @@ describe("unsubscribe signing stands down when it is not configured", () => {
     else process.env.ORDER_TOKEN_SECRET = ORIGINAL_SECRET;
   });
 
-  it("honours an unsigned GET when no secret is set", async () => {
+  it("writes nothing for an unsigned GET when no secret is set", async () => {
     delete process.env.ORDER_TOKEN_SECRET;
     const res = await GET(
       new Request(`https://wallplace.co.uk/api/account/email/unsubscribe?u=${REAL_USER}&c=digests`, {
         method: "GET",
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(upsertMock).not.toHaveBeenCalled();
+  });
+
+  it("still points that visitor at a way to unsubscribe, so it is not a dead end", async () => {
+    delete process.env.ORDER_TOKEN_SECRET;
+    const res = await GET(
+      new Request(`https://wallplace.co.uk/api/account/email/unsubscribe?u=${REAL_USER}&c=digests`, {
+        method: "GET",
+      }),
+    );
+    const body = await res.json();
+
+    expect(body.ok).toBe(true);
+    expect(body.requiresConfirmation).toBe(true);
+    expect(String(body.message)).toMatch(/email preferences/i);
+  });
+
+  it("keeps the one-click POST working, which a mail client cannot confirm by hand", async () => {
+    delete process.env.ORDER_TOKEN_SECRET;
+    const res = await POST(
+      new Request(`https://wallplace.co.uk/api/account/email/unsubscribe?u=${REAL_USER}&c=digests`, {
+        method: "POST",
       }),
     );
 

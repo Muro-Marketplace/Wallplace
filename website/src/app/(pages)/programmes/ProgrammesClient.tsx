@@ -91,23 +91,52 @@ const WHATS_INCLUDED = [
 // into /browse below, where every artist has a genuine portfolio.
 //
 // Nav-broadening plan: swapped the Unsplash stand-ins for Wallplace's
-// own commissioned photography (an installation in progress, a QR
-// scan, a working studio). Still no caption, same reasoning as above;
-// alt text describes each scene honestly instead.
-const PROOF_PLACEMENTS = [
+// own commissioned photography (originally an installation in progress,
+// a QR scan and a working studio; the QR scan has since been pulled, see
+// below). Still no caption, same reasoning as above; alt text describes
+// each scene honestly instead.
+//
+// Pulled 10 September 2026: venues-qr-scan.webp. It read as generated imagery,
+// on three tells that are checkable rather than a matter of taste. The card on
+// the wall carries micro-text that resolves to nothing at any zoom. The QR on
+// that card and the QR on the phone screen are different patterns. And the
+// phone's camera view does not correspond to the card's position on the wall,
+// which no live viewfinder can do.
+//
+// That matters here more than it would on most sites. src/app/page.tsx:187
+// carries a "No AI art" badge, and artist-agreement/page.tsx:74 makes every
+// artist warrant their work is not AI-generated, naming the tools. Publishing
+// generated photography while requiring that warranty of others is the kind of
+// contradiction a sceptical venue notices, and it undermines the badge for the
+// artists who are genuinely keeping to it.
+//
+// The file is left in public/images/programmes/ rather than deleted, so a
+// replacement can drop in at the same path. Restoring the entry below is then
+// the whole change.
+//
+// The other two are NOT pulled. They came from the same batch and their
+// provenance is worth confirming, but neither shows a tell I can point at, and
+// removing a photograph on a hunch about how it looks is not a judgement to
+// make on the owner's behalf. See the runbook.
+export const PROOF_PLACEMENTS = [
   {
     src: "/images/programmes/programmes-installation.webp",
     alt: "Two people hanging a framed artwork on a wall, checking it with a spirit level",
-  },
-  {
-    src: "/images/programmes/venues-qr-scan.webp",
-    alt: "A café visitor scanning a QR code label beside a framed photograph on the wall",
   },
   {
     src: "/images/programmes/artists-studio.webp",
     alt: "A painter's studio with brushes, paint and canvases stacked against the wall",
   },
 ];
+
+// Tailwind needs literal class names, so the column count is a lookup rather
+// than interpolation. Derived from the array because a three-column grid
+// holding two images leaves a hole where the third used to be.
+export const PROOF_GRID_COLS: Record<number, string> = {
+  1: "md:grid-cols-1",
+  2: "md:grid-cols-2",
+  3: "md:grid-cols-3",
+};
 
 /**
  * The first real installation (owner action A5). Null until the owner
@@ -452,7 +481,7 @@ export default function ProgrammesClient() {
                 named artist with their own portfolio, open for you to look through before you
                 commit to a programme.
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className={`grid grid-cols-1 ${PROOF_GRID_COLS[PROOF_PLACEMENTS.length] ?? "md:grid-cols-3"} gap-6 mb-8`}>
                 {PROOF_PLACEMENTS.map((p) => (
                   <div key={p.src} className="aspect-[4/3] rounded-sm overflow-hidden relative">
                     <Image
