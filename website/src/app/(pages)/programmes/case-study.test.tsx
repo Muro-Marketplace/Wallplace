@@ -22,16 +22,13 @@ describe("CASE_STUDY", () => {
 
 import { PROOF_GRID_COLS, PROOF_PLACEMENTS } from "./ProgrammesClient";
 
-// R7, 10 September 2026. venues-qr-scan.webp was pulled from this array: it
-// read as generated imagery, sitting on a page whose site carries a "No AI
-// art" badge and whose artist agreement makes every artist warrant their work
-// is not AI-generated.
+// R7, 10 September 2026. The grid was a hardcoded md:grid-cols-3 while the
+// image list was a free-standing array, so changing one and not the other laid
+// the grid out with a hole in it. That is not hypothetical: this array went to
+// two entries and back to three within the day.
 //
-// Removing it took the array from three to two, and the grid was a hardcoded
-// md:grid-cols-3, which would have left a hole where the third image was. The
-// column count is a lookup on the array length instead. This holds the two in
-// step, so adding a replacement photograph back is a one-line change that
-// cannot silently mis-lay the grid.
+// The column count is a lookup on the array length now. These hold the two in
+// step, so adding or removing a photograph stays a one-line change.
 describe("the proof-placement grid fits the images it has", () => {
   it("has a column class for however many images there are", () => {
     expect(PROOF_GRID_COLS[PROOF_PLACEMENTS.length]).toBeTruthy();
@@ -43,9 +40,15 @@ describe("the proof-placement grid fits the images it has", () => {
     );
   });
 
-  it("does not carry the pulled QR image", () => {
+  it("has a column class for every count the array could plausibly take", () => {
+    for (const n of [1, 2, 3]) {
+      expect(PROOF_GRID_COLS[n]).toBe(`md:grid-cols-${n}`);
+    }
+  });
+
+  it("names each image once, so no src is rendered twice", () => {
     const sources = PROOF_PLACEMENTS.map((p) => p.src);
-    expect(sources).not.toContain("/images/programmes/venues-qr-scan.webp");
+    expect(new Set(sources).size).toBe(sources.length);
   });
 
   it("gives every image real alt text, since none of them carry a caption", () => {

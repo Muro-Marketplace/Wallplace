@@ -234,21 +234,28 @@ Open the endpoint in the Stripe dashboard and tick every event in that list.
 Five minutes, and it is the difference between a chargeback being handled and a
 chargeback being invisible.
 
-## Two images want your word (R7)
+## The Programmes images: asked and answered (R7)
 
-`venues-qr-scan.webp` was pulled from `/programmes`. It read as generated on
-three checkable tells: micro-text on the wall card that resolves to nothing,
-a QR on the card that differs from the QR on the phone screen, and a camera
-view that does not correspond to where the card sits. Beside a "No AI art"
-badge, and an artist agreement making every artist warrant their work is not
-AI-generated, that is a contradiction worth removing. The file is still in
-`public/images/programmes/`, so a real photograph at the same path plus one
-restored array entry is the whole fix.
+`venues-qr-scan.webp` was queried and you kept it. All three images on
+`/programmes` are as they were.
 
-`programmes-installation.webp` and `artists-studio.webp` came from the same
-batch and were left in place. Neither shows a tell worth acting on, but if you
-know where that batch came from and the answer is a generator, they should go
-too. That is a provenance question only you can answer.
+Recording what was queried, not to reopen it, but so nobody raises it a third
+time without the context. Three things about that photograph looked off: the
+micro-text on the wall card does not resolve at any zoom, the QR on the card is
+a different pattern from the one on the phone screen, and the camera view does
+not line up with where the card sits on the wall. The reason it was worth
+raising at all is that `src/app/page.tsx:187` carries a "No AI art" badge and
+`artist-agreement/page.tsx:74` makes every artist warrant the same of their own
+work, so the bar Wallplace sets for others is unusually high here.
+
+You know where the batch came from and the code does not, so that is the end of
+it unless the provenance is ever challenged from outside.
+
+One thing did change and is worth keeping. The image grid was a hardcoded
+three columns while the image list was a separate array, so editing one without
+the other left a hole in the layout. The column count now derives from the
+array, with tests holding the two in step. Adding or removing a photograph is a
+one-line change.
 
 ## ORDER_TOKEN_SECRET now does something different
 
