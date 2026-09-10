@@ -94,7 +94,20 @@ const WHATS_INCLUDED = [
 // own commissioned photography (an installation in progress, a QR
 // scan, a working studio). Still no caption, same reasoning as above;
 // alt text describes each scene honestly instead.
-const PROOF_PLACEMENTS = [
+//
+// venues-qr-scan.webp was queried on 10 September 2026 and kept, at the
+// owner's direction. Recording the query rather than the conclusion, because
+// the owner knows where the batch came from and this file does not:
+//
+//   - the micro-text on the wall card does not resolve at any zoom
+//   - the QR on the card is a different pattern from the one on the screen
+//   - the camera view does not line up with where the card sits on the wall
+//
+// Worth a second look only if the batch's provenance ever comes into question,
+// since src/app/page.tsx:187 carries a "No AI art" badge and
+// artist-agreement/page.tsx:74 makes every artist warrant the same of their
+// own work. Not a code concern, and not a reason to touch this array again.
+export const PROOF_PLACEMENTS = [
   {
     src: "/images/programmes/programmes-installation.webp",
     alt: "Two people hanging a framed artwork on a wall, checking it with a spirit level",
@@ -108,6 +121,17 @@ const PROOF_PLACEMENTS = [
     alt: "A painter's studio with brushes, paint and canvases stacked against the wall",
   },
 ];
+
+// Tailwind needs literal class names, so the column count is a lookup rather
+// than interpolation. Derived from the array rather than hardcoded, because a
+// three-column grid holding two images leaves a hole where the third was. It
+// resolves to md:grid-cols-3 for the three below; the point is that adding or
+// removing one lays the grid out correctly without a second edit.
+export const PROOF_GRID_COLS: Record<number, string> = {
+  1: "md:grid-cols-1",
+  2: "md:grid-cols-2",
+  3: "md:grid-cols-3",
+};
 
 /**
  * The first real installation (owner action A5). Null until the owner
@@ -452,7 +476,7 @@ export default function ProgrammesClient() {
                 named artist with their own portfolio, open for you to look through before you
                 commit to a programme.
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className={`grid grid-cols-1 ${PROOF_GRID_COLS[PROOF_PLACEMENTS.length] ?? "md:grid-cols-3"} gap-6 mb-8`}>
                 {PROOF_PLACEMENTS.map((p) => (
                   <div key={p.src} className="aspect-[4/3] rounded-sm overflow-hidden relative">
                     <Image

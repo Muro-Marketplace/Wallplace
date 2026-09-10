@@ -148,15 +148,40 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const userId = url.searchParams.get("u");
   const category = url.searchParams.get("c");
-  // Only enforce a signature where we were able to produce one. With
-  // ORDER_TOKEN_SECRET unset, every link ever sent is unsigned, so enforcing
-  // would turn the unsubscribe link in every email into a dead end. Setting
-  // the secret is what activates this protection.
+  // An unsigned GET does not write, whether or not signing is configured.
+  //
+  // This used to honour the write when ORDER_TOKEN_SECRET was unset, on the
+  // reasoning that enforcing a signature we never produced would turn every
+  // unsubscribe link already in the wild into a dead end. That reasoning had
+  // the wrong picture of the fallback. The unsigned branch does not reject:
+  // it answers 200 and points at /account/email/unsubscribe, which is a public
+  // page (no auth gate, verified logged out against production on 10 September
+  // 2026) carrying a button per category. So the recipient's route to
+  // unsubscribing stays open and one click long, which is what PECR asks for.
+  //
+  // What the old branch cost, meanwhile, was real: the raw user id in the
+  // query string was the entire authorisation, a user id is not a secret, and
+  // GET is the verb anything can issue. Anyone could switch off anyone else's
+  // newsletter. Since ORDER_TOKEN_SECRET is currently unset in production,
+  // that was the live behaviour rather than a hypothetical one.
+  //
+  // Setting ORDER_TOKEN_SECRET restores the direct one-click GET for links
+  // signed after that point. Until then, every GET takes the confirm path.
   if (!unsubscribeSigningConfigured()) {
     console.warn(
-      "[unsubscribe] ORDER_TOKEN_SECRET is unset, so unsubscribe links cannot be signed and an unsigned GET is honoured. Set it to close this.",
+      "[unsubscribe] ORDER_TOKEN_SECRET is unset, so links cannot be signed and every GET takes the confirmation path. Set it to restore one-click unsubscribe from the email link.",
     );
-  } else if (!verifyUnsubscribe(userId, url.searchParams.get("s"))) {
+    return NextResponse.json(
+      {
+        ok: true,
+        requiresConfirmation: true,
+        message:
+          "Open your email preferences to confirm which emails you'd like to stop.",
+      },
+      { status: 200 },
+    );
+  }
+  if (!verifyUnsubscribe(userId, url.searchParams.get("s"))) {
     return NextResponse.json(
       {
         ok: true,
