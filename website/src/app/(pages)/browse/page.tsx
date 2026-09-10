@@ -1883,16 +1883,24 @@ function BrowsePortfoliosPageInner() {
                         Sort: Nearest{userCoords ? "" : " (enable location)"}
                       </option>
                     </select>
-                    {/* CON-1. The default order is not neutral: artists on the paid
-                        Pro plan lead it. A consumer has to be able to see that from
-                        the surface they are shopping on, not from the artist-facing
-                        pricing page. DMCC Act 2024 s.230 and Sch 20 para 12. */}
-                    <p className="mt-1.5 text-[10px] leading-snug text-muted max-w-[15rem]">
-                      Featured puts artists on our paid Pro plan first. Every other sort
-                      ignores what an artist pays.
-                    </p>
                   </div>
                 </div>
+
+                {/* CON-1. The default order is not neutral: artists on the paid Pro
+                    plan lead it, and until now that was disclosed only on the
+                    artist-facing pricing page, which no buyer reads. DMCC Act 2024
+                    s.230 (material information in an invitation to purchase) and
+                    Sch 20 para 12 (undisclosed paid promotion).
+
+                    Outside the toolbar div on purpose: inside it, the flex row
+                    squeezed it to zero width and it rendered invisible, which is
+                    a disclosure that discloses nothing. */}
+                {artistSort === "featured" && (
+                  <p className="mb-4 text-xs leading-snug text-muted">
+                    Featured puts artists on our paid Pro plan first. Every other sort
+                    ignores what an artist pays.
+                  </p>
+                )}
 
                 {filteredArtists.length === 0 ? (
                   <div className="py-20 text-center">
@@ -2529,14 +2537,18 @@ function BrowsePortfoliosPageInner() {
                         Sort: Nearest{userCoords ? "" : " (enable location)"}
                       </option>
                     </select>
-                    {/* CON-1, gallery side. Artwork of the Week is a paid boost and
-                        Pro-plan artists lead behind it. Same disclosure duty. */}
-                    <p className="mt-1.5 text-[10px] leading-snug text-muted max-w-[15rem]">
-                      Featured puts Artwork of the Week and paid Pro plan artists first.
-                      Every other sort ignores what an artist pays.
-                    </p>
                   </div>
                 </div>
+
+                {/* CON-1, gallery side. Artwork of the Week is a paid boost and
+                    Pro-plan artists lead behind it. Same disclosure duty, same
+                    reason for sitting outside the toolbar. */}
+                {gallerySort === "featured" && (
+                  <p className="mb-4 text-xs leading-snug text-muted">
+                    Featured puts Artwork of the Week and paid Pro plan artists first.
+                    Every other sort ignores what an artist pays.
+                  </p>
+                )}
 
                 {filteredGalleryWorks.length === 0 ? (
                   <div className="py-24 text-center">
