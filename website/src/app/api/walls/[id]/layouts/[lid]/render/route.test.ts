@@ -19,7 +19,7 @@ const updateLayoutMock = vi.fn();
 const findCachedRenderMock = vi.fn();
 const renderLayoutMock = vi.fn();
 const persistRenderMock = vi.fn();
-const getPublicRenderUrlMock = vi.fn();
+const getRenderUrlMock = vi.fn();
 const consumeQuotaMock = vi.fn();
 const refundQuotaMock = vi.fn();
 
@@ -39,7 +39,7 @@ vi.mock("@/lib/visualizer/render-service", () => ({
 
 vi.mock("@/lib/visualizer/renders-db", () => ({
   persistRender: (...a: unknown[]) => persistRenderMock(...a),
-  getPublicRenderUrl: (...a: unknown[]) => getPublicRenderUrlMock(...a),
+  getRenderUrl: (...a: unknown[]) => getRenderUrlMock(...a),
 }));
 
 vi.mock("@/lib/visualizer/quota", () => ({
@@ -77,7 +77,7 @@ beforeEach(() => {
   findCachedRenderMock.mockReset();
   renderLayoutMock.mockReset();
   persistRenderMock.mockReset();
-  getPublicRenderUrlMock.mockReset();
+  getRenderUrlMock.mockReset();
   consumeQuotaMock.mockReset();
   refundQuotaMock.mockReset();
 
@@ -138,7 +138,7 @@ beforeEach(() => {
       prompt_seed: null,
       created_at: "2026-04-25T12:00:00Z",
     },
-    publicUrl: "https://supabase.example.com/storage/render-1.webp",
+    url: "https://supabase.example.com/storage/render-1.webp",
   });
   updateLayoutMock.mockResolvedValue({});
 });
@@ -226,7 +226,7 @@ describe("POST render, cache hit", () => {
       prompt_seed: null,
       created_at: "2026-04-25T11:00:00Z",
     });
-    getPublicRenderUrlMock.mockReturnValue("https://example.com/cached-1.webp");
+    getRenderUrlMock.mockResolvedValue("https://example.com/cached-1.webp");
 
     const { POST } = await import("./route");
     const res = await POST(POST_REQ(), ctx("wall-1", "lay-1"));
@@ -234,7 +234,7 @@ describe("POST render, cache hit", () => {
     const json = await res.json();
     expect(json.cached).toBe(true);
     expect(json.cost_units).toBe(0);
-    expect(json.publicUrl).toBe("https://example.com/cached-1.webp");
+    expect(json.url).toBe("https://example.com/cached-1.webp");
     expect(consumeQuotaMock).not.toHaveBeenCalled();
     expect(renderLayoutMock).not.toHaveBeenCalled();
   });
@@ -312,7 +312,7 @@ describe("POST render, happy path", () => {
     const json = await res.json();
     expect(json.cached).toBe(false);
     expect(json.cost_units).toBe(1);
-    expect(json.publicUrl).toBe(
+    expect(json.url).toBe(
       "https://supabase.example.com/storage/render-1.webp",
     );
     expect(persistRenderMock).toHaveBeenCalled();

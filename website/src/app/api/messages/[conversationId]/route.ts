@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getAuthenticatedUser } from "@/lib/api-auth";
 import { assertConversationParticipant, handleAuthzError } from "@/lib/authz";
+import { signMessageAttachments } from "@/lib/messages/attachment-urls";
 
 // E31. Conversation ids are `dm-${slugA}__${slugB}` built from two PUBLIC profile
 // slugs, so they are guessable, not secret. Every handler here therefore proves
@@ -35,7 +36,13 @@ export async function GET(
       return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
     }
 
-    return NextResponse.json({ messages: data || [] });
+    // Migration 140 made `message-attachments` private. Signing here, and only
+    // here, is what authorises the link: assertConversationParticipant above has
+    // already proved this caller is a party to the conversation, so the URL is
+    // never minted for anyone who was not already entitled to read the message.
+    const messages = await signMessageAttachments(data || [], db);
+
+    return NextResponse.json({ messages });
   } catch (err) {
     const denied = handleAuthzError(err);
     if (denied) return denied;

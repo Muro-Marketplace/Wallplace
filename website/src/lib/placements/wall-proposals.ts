@@ -39,7 +39,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { computeLayoutHash } from "@/lib/visualizer/layout-hash";
 import {
-  getPublicRenderUrl,
+  getRenderUrl,
   persistRender,
   type RenderContentType,
 } from "@/lib/visualizer/renders-db";
@@ -155,10 +155,19 @@ export async function createWallProposal(
     return null;
   }
 
+  // The signed URL is the whole point of the proposal, so a render that stored
+  // but could not be signed is treated the same as one that failed to store:
+  // the layout is removed and the caller retries, rather than a proposal
+  // existing with no image behind it.
+  if (!persisted.url) {
+    await deleteLayout(layout.id, db);
+    return null;
+  }
+
   return {
     layoutId: layout.id,
     renderId: persisted.render.id,
-    previewUrl: persisted.publicUrl,
+    previewUrl: persisted.url,
     layoutHash,
   };
 }
@@ -219,19 +228,38 @@ export async function getWallProposalsForPlacements(
       if (r.output_path) pathByRenderId.set(r.id, r.output_path);
     }
 
+    // Migration 140 made `wall-renders` private, so a preview URL is a signed
+    // link rather than a derived string. Sign the whole page in one parallel
+    // batch: the portals call this for every row they show, and one round trip
+    // per placement would undo the "three queries for the whole list" property
+    // this function was written for.
+    const candidates = rows
+      .map((row) => ({
+        placementId: parseProposalLayoutName(row.name),
+        path: pathByRenderId.get(row.last_render_id as string),
+        wallName: wallNameById.get(row.wall_id),
+        row,
+      }))
+      .filter(
+        (c): c is { placementId: string; path: string; wallName: string; row: typeof rows[number] } =>
+          Boolean(c.placementId) && Boolean(c.path) && c.wallName !== undefined,
+      );
+
+    const signed = await Promise.all(candidates.map((c) => getRenderUrl(c.path, db)));
+
     const out: Record<string, PlacementWallProposal> = {};
-    for (const row of rows) {
-      const placementId = parseProposalLayoutName(row.name);
-      const path = pathByRenderId.get(row.last_render_id as string);
-      const wallName = wallNameById.get(row.wall_id);
-      if (!placementId || !path || wallName === undefined) continue;
-      out[placementId] = {
-        layoutId: row.id,
-        wallId: row.wall_id,
-        wallName,
-        previewUrl: getPublicRenderUrl(path, db),
+    candidates.forEach((c, i) => {
+      const previewUrl = signed[i];
+      // A proposal whose preview cannot be signed is not shown rather than
+      // shown broken: the caller's contract is that every entry has an image.
+      if (!previewUrl) return;
+      out[c.placementId] = {
+        layoutId: c.row.id,
+        wallId: c.row.wall_id,
+        wallName: c.wallName,
+        previewUrl,
       };
-    }
+    });
     return out;
   } catch (err) {
     console.warn("[wall-proposals] lookup failed:", err);
@@ -289,7 +317,7 @@ async function renderPublicUrl(renderId: string, db: SupabaseClient): Promise<st
       .select("output_path")
       .eq("id", renderId)
       .maybeSingle<{ output_path: string | null }>();
-    return data?.output_path ? getPublicRenderUrl(data.output_path, db) : null;
+    return data?.output_path ? await getRenderUrl(data.output_path, db) : null;
   } catch {
     return null;
   }

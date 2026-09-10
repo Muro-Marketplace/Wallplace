@@ -33,7 +33,7 @@ import { renderRequestSchema } from "@/lib/visualizer/validations";
 import { computeLayoutHash } from "@/lib/visualizer/layout-hash";
 import { findCachedRender } from "@/lib/visualizer/render-cache";
 import { renderLayout } from "@/lib/visualizer/render-service";
-import { getPublicRenderUrl, persistRender } from "@/lib/visualizer/renders-db";
+import { getRenderUrl, persistRender } from "@/lib/visualizer/renders-db";
 import { consumeQuota, refundQuota } from "@/lib/visualizer/quota";
 import {
   getLayoutById,
@@ -124,10 +124,10 @@ export async function POST(request: Request, ctx: RouteContext) {
     kind,
   });
   if (cached) {
-    const publicUrl = getPublicRenderUrl(cached.output_path);
+    const url = await getRenderUrl(cached.output_path);
     return NextResponse.json({
       render: cached,
-      publicUrl,
+      url,
       cached: true,
       cost_units: 0,
     });
@@ -234,7 +234,7 @@ export async function POST(request: Request, ctx: RouteContext) {
 
     return NextResponse.json({
       render: persisted.render,
-      publicUrl: persisted.publicUrl,
+      url: persisted.url,
       cached: false,
       cost_units: costUnits,
       meta: result.meta,

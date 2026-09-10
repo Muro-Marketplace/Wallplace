@@ -15,7 +15,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getPublicRenderUrl } from "./renders-db";
+import { getRenderUrl } from "./renders-db";
 import type {
   Wall,
   WallItem,
@@ -448,11 +448,18 @@ export async function getWallPreviewUrls(
     if (row.output_path) pathByRenderId.set(row.id, row.output_path);
   }
 
+  // Signing is a network call per render (migration 140 made the bucket
+  // private), so sign the page in parallel rather than one wall at a time.
+  const signable = [...renderIdByWall]
+    .map(([wallId, renderId]) => ({ wallId, path: pathByRenderId.get(renderId) }))
+    .filter((e): e is { wallId: string; path: string } => Boolean(e.path));
+  const signed = await Promise.all(signable.map((e) => getRenderUrl(e.path, conn)));
+
   const out: Record<string, string> = {};
-  for (const [wallId, renderId] of renderIdByWall) {
-    const path = pathByRenderId.get(renderId);
-    if (path) out[wallId] = getPublicRenderUrl(path, conn);
-  }
+  signable.forEach((e, i) => {
+    const url = signed[i];
+    if (url) out[e.wallId] = url;
+  });
   return out;
 }
 

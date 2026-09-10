@@ -41,7 +41,12 @@ function fakeClient() {
     storage: {
       from: () => ({
         upload,
-        getPublicUrl: (path: string) => ({ data: { publicUrl: `https://public/${path}` } }),
+        // Migration 140 made `wall-renders` private, so persistRender signs
+        // rather than deriving a public URL.
+        createSignedUrl: async (path: string) => ({
+          data: { signedUrl: `https://signed/${path}` },
+          error: null,
+        }),
       }),
     },
     from: () => ({ insert }),

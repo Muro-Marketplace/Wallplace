@@ -18,7 +18,8 @@
  *   - `kind`, "standard" | "hd" (default: standard).
  *
  * Response: same shape as the saved-layout render endpoint:
- *   { render, publicUrl, cached, cost_units, meta? }
+ *   { render, url, cached, cost_units, meta? }
+ *   `url` is a short-lived signed link: `wall-renders` is private (mig 140).
  *
  * Quota:
  *   Routes through the same consumeQuota / refundQuota guarantees as
@@ -37,7 +38,7 @@ import { defaultFrameConfig } from "@/lib/visualizer/frames";
 import { getPresetWall } from "@/lib/visualizer/preset-walls";
 import { findCachedRender } from "@/lib/visualizer/render-cache";
 import { renderLayout } from "@/lib/visualizer/render-service";
-import { getPublicRenderUrl, persistRender } from "@/lib/visualizer/renders-db";
+import { getRenderUrl, persistRender } from "@/lib/visualizer/renders-db";
 import { consumeQuota, refundQuota } from "@/lib/visualizer/quota";
 import { quickRenderRequestSchema } from "@/lib/visualizer/validations";
 import { getWallById } from "@/lib/visualizer/walls-db";
@@ -195,7 +196,7 @@ export async function POST(request: Request) {
   if (cached) {
     return NextResponse.json({
       render: cached,
-      publicUrl: getPublicRenderUrl(cached.output_path),
+      url: await getRenderUrl(cached.output_path),
       cached: true,
       cost_units: 0,
     });
@@ -288,7 +289,7 @@ export async function POST(request: Request) {
     refundOnFail = false;
     return NextResponse.json({
       render: persisted.render,
-      publicUrl: persisted.publicUrl,
+      url: persisted.url,
       cached: false,
       cost_units: costUnits,
       meta: result.meta,

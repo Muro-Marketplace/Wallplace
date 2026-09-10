@@ -34,6 +34,8 @@ interface Conversation {
 }
 
 interface MessageAttachmentRow {
+  /** Set only on the sender's own optimistic bubble; see lib/upload.ts. */
+  previewUrl?: string;
   url: string;
   filename: string;
   mimeType: string;
@@ -1583,13 +1585,17 @@ export default function MessageInbox({ userSlug, portalType, initialArtistSlug, 
                       {msg.attachments && msg.attachments.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-1.5">
                           {msg.attachments.map((a, i) => (
+                            // `message-attachments` is private (mig 140). The
+                            // thread's GET hands back signed URLs on `url`;
+                            // `previewUrl` covers the sender's own bubble in the
+                            // moment between upload and the next reload.
                             a.mimeType.startsWith("image/") ? (
-                              <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" className="block">
+                              <a key={i} href={a.previewUrl ?? a.url} target="_blank" rel="noopener noreferrer" className="block">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={a.url} alt={a.filename} className="max-w-[220px] max-h-[220px] rounded-sm object-cover border border-black/5" />
+                                <img src={a.previewUrl ?? a.url} alt={a.filename} className="max-w-[220px] max-h-[220px] rounded-sm object-cover border border-black/5" />
                               </a>
                             ) : (
-                              <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm border ${isMe ? "bg-white/10 border-white/20 text-white" : "bg-white border-border text-foreground"}`}>
+                              <a key={i} href={a.previewUrl ?? a.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 px-2.5 py-1.5 rounded-sm border ${isMe ? "bg-white/10 border-white/20 text-white" : "bg-white border-border text-foreground"}`}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
                                 <span className="text-[11px] truncate max-w-[160px]">{a.filename}</span>
                               </a>

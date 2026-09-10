@@ -5,15 +5,21 @@
  *   wall-renders/{user_id}/{render_id}.webp   (or .png for a browser
  *   capture from a browser that can't encode WebP; `contentType` decides)
  *
- *   The bucket should be publicly readable (set in the Supabase dashboard)
- *   so the resulting URL works in <img> tags + emails without a signed
- *   URL refresh. Customer-private uploads (wall-photos) live in a
- *   separate bucket and are signed-URL only.
+ *   The bucket is PRIVATE (migration 140). It holds composites built from
+ *   `wall-photos`, which was already private, so publishing the derivative
+ *   republished the venue's own interior photograph at an open URL. Reads
+ *   go through a short-lived signed URL; see getRenderUrl below.
+ *
+ *   The one place a render is meant to become public is an artist promoting
+ *   it to a mockup on their listing, and api/works/[id]/mockups copies the
+ *   object into the public `artworks` bucket to do that. Deliberate publish,
+ *   not publish-by-default.
  */
 
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { signedUrlFor } from "@/lib/storage-refs";
 import type { RenderKind, WallRender } from "./types";
 
 const RENDERS_BUCKET = "wall-renders";
@@ -42,13 +48,17 @@ export interface PersistRenderInput {
 
 export interface PersistRenderResult {
   render: WallRender;
-  /** Public URL the client can fetch immediately. */
-  publicUrl: string;
+  /**
+   * Short-lived signed URL the client can fetch immediately. Null when the
+   * object stored but could not be signed, which the caller should surface as
+   * a missing preview rather than a failed render.
+   */
+  url: string | null;
 }
 
 /**
  * Upload the render bytes to Supabase Storage, then insert a wall_renders
- * row. Returns the persisted record + its public URL. On any failure,
+ * row. Returns the persisted record + a signed URL. On any failure,
  * the inserted Storage object is left in place, that's cheap to rewrite
  * (next call replaces) and avoids leaving orphan DB rows.
  */
@@ -103,8 +113,8 @@ export async function persistRender(
     return null;
   }
 
-  // 3. Resolve public URL.
-  const publicUrl = getPublicRenderUrl(path, db);
+  // 3. Resolve a signed read URL.
+  const url = await getRenderUrl(path, db);
 
   return {
     render: {
@@ -120,20 +130,26 @@ export async function persistRender(
       prompt_seed: data.prompt_seed,
       created_at: data.created_at,
     },
-    publicUrl,
+    url,
   };
 }
 
 /**
- * Resolve a render path (as stored in `wall_renders.output_path`) to its
- * publicly-fetchable URL. Useful for cache hits, we re-derive the URL
- * from the cached row's `output_path` rather than persisting URLs.
+ * Resolve a render path (as stored in `wall_renders.output_path`) to a signed,
+ * short-lived URL. Used on cache hits too: we re-derive the URL from the
+ * cached row's `output_path` rather than persisting URLs, which is what makes
+ * moving the bucket to private a config change rather than a data migration.
+ *
+ * Returns null when the object cannot be signed. Every caller treats that as
+ * "no preview available", never as an error.
  */
-export function getPublicRenderUrl(
+export async function getRenderUrl(
   path: string,
   client?: SupabaseClient,
-): string {
+): Promise<string | null> {
   const db = client ?? getSupabaseAdmin();
-  const { data } = db.storage.from(RENDERS_BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  return signedUrlFor(db, RENDERS_BUCKET, path);
 }
+
+/** The bucket renders live in. Exported so the mockup copier can read from it. */
+export { RENDERS_BUCKET };

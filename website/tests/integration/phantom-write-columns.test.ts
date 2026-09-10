@@ -105,11 +105,26 @@ function scan() {
  */
 const PHANTOM_TABLE_ALLOWED = new Map<string, string>();
 
-/** Every `.from("table")` in the source, whatever it does with it. */
+/**
+ * Every `.from("table")` in the source, whatever it does with it.
+ *
+ * `.storage.from("bucket")` is excluded. It is the same method name on a
+ * different client and a bucket is not a table, so a literal bucket name reads
+ * as a phantom table here. Bucket names with a hyphen (`message-attachments`,
+ * `wall-renders`) never matched the identifier pattern and so hid the problem;
+ * `contracts` does match, and surfaced it the moment migration 140's work
+ * replaced a loop variable with a literal.
+ */
 function tablesNamed(source: string): { table: string; line: number }[] {
+  // Blank the method name on any storage chain first, preserving length so the
+  // line numbers below stay true. A lookbehind will not do: the call is often
+  // written across two lines (`supabase.storage` then `.from("contracts")`), so
+  // the character before `.from(` is whitespace, not `storage`.
+  const scannable = source.replace(/\bstorage(\s*)\.from\(/g, (_m, gap: string) => `storage${gap}.XXXX(`);
+
   const out: { table: string; line: number }[] = [];
-  for (const m of source.matchAll(/\.from\(\s*["'`]([a-z_][a-z0-9_]*)["'`]\s*\)/g)) {
-    out.push({ table: m[1], line: source.slice(0, m.index ?? 0).split("\n").length });
+  for (const m of scannable.matchAll(/\.from\(\s*["'`]([a-z_][a-z0-9_]*)["'`]\s*\)/g)) {
+    out.push({ table: m[1], line: scannable.slice(0, m.index ?? 0).split("\n").length });
   }
   return out;
 }
