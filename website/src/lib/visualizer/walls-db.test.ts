@@ -54,8 +54,9 @@ function fakeClient(tables: Tables) {
     },
     storage: {
       from: () => ({
-        getPublicUrl: (path: string) => ({
-          data: { publicUrl: `https://cdn.example/wall-renders/${path}` },
+        createSignedUrl: async (path: string) => ({
+          data: { signedUrl: `https://cdn.example/wall-renders/${path}` },
+          error: null,
         }),
       }),
     },

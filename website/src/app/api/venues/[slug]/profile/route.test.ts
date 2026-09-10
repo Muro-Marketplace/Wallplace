@@ -20,16 +20,14 @@ const { fromMock, isFlagOnMock, getOptionalUserMock, resolveSubscriptionMock } =
 
 // `loadWalls` signs a URL for every uploaded wall, so the fake needs storage or
 // its try/catch swallows the whole load and the test passes for the wrong reason.
-// getPublicUrl serves the saved-preview lookup the same way.
+// The saved-preview lookup signs too now: migration 140 made `wall-renders`
+// private, so there is no public URL to derive.
 vi.mock("@/lib/supabase-admin", () => ({
   getSupabaseAdmin: () => ({
     from: fromMock,
     storage: {
       from: () => ({
         createSignedUrl: async () => ({ data: { signedUrl: "https://signed.example/w1" } }),
-        getPublicUrl: (path: string) => ({
-          data: { publicUrl: `https://public.example/wall-renders/${path}` },
-        }),
       }),
     },
   }),
@@ -165,9 +163,9 @@ describe("GET /api/venues/[slug]/profile carries the wall's saved preview", () =
 
     const body = await (await GET(req(), ctx)).json();
 
-    expect(body.walls[0].preview_image_url).toBe(
-      "https://public.example/wall-renders/u-venue/r1.webp",
-    );
+    // Signed, not public: migration 140 made `wall-renders` private because a
+    // render composites the venue's own interior photograph.
+    expect(body.walls[0].preview_image_url).toBe("https://signed.example/w1");
     // The photo is still there for the card's fallback.
     expect(body.walls[0].source_image_url).toBe("https://signed.example/w1");
   });

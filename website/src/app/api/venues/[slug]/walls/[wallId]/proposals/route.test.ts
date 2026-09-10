@@ -36,7 +36,7 @@ vi.mock("@/lib/visualizer/walls-db", () => ({
 }));
 vi.mock("@/lib/visualizer/renders-db", () => ({
   persistRender: (...a: unknown[]) => persistRenderMock(...a),
-  getPublicRenderUrl: (path: string) => `https://cdn.example/wall-renders/${path}`,
+  getRenderUrl: async (path: string) => `https://cdn.example/wall-renders/${path}`,
 }));
 vi.mock("@/lib/api-auth", () => ({
   getAuthenticatedUser: vi.fn(async (req: Request) => {
@@ -176,7 +176,7 @@ beforeEach(() => {
   createLayoutMock.mockResolvedValue({ id: "lay-p1", wall_id: "wall-1", user_id: "u-artist", name: "proposal:pl-1", items: [], layout_hash: "h", last_render_id: null });
   persistRenderMock.mockResolvedValue({
     render: { id: "render-9", output_path: "u-artist/render-9.webp" },
-    publicUrl: "https://cdn.example/wall-renders/u-artist/render-9.webp",
+    url: "https://cdn.example/wall-renders/u-artist/render-9.webp",
   });
   updateLayoutMock.mockResolvedValue({ id: "lay-p1", last_render_id: "render-9" });
 });

@@ -4,8 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useCookieConsent } from "@/context/CookieConsentContext";
 
+/**
+ * A notice, not a consent banner.
+ *
+ * It used to offer Accept and Decline over storage that is entirely strictly
+ * necessary, and Decline did nothing at all: nothing in the codebase read the
+ * value. See src/context/CookieConsentContext.tsx for the full finding. One
+ * honest control replaces two, and the copy says what is actually stored.
+ *
+ * If a non-essential storage technology is ever added, this component is the
+ * wrong shape for it. Build a real consent gate; do not add a second button
+ * back to this one.
+ */
 export default function CookieBanner() {
-  const { consentGiven, setConsent } = useCookieConsent();
+  const { dismissed, dismiss } = useCookieConsent();
   const [visible, setVisible] = useState(false);
   // QA 2026-08-30 bug 15: this bar is `fixed bottom-0` with nothing reserving
   // space beneath it, so it sat permanently on top of whatever the page ends
@@ -19,11 +31,11 @@ export default function CookieBanner() {
   const [barHeight, setBarHeight] = useState(0);
 
   useEffect(() => {
-    if (consentGiven === null) {
+    if (dismissed === false) {
       const timer = setTimeout(() => setVisible(true), 300);
       return () => clearTimeout(timer);
     }
-  }, [consentGiven]);
+  }, [dismissed]);
 
   // Keep the spacer the same height as the bar, including when it reflows
   // (narrow screens stack the text above the buttons).
@@ -35,9 +47,9 @@ export default function CookieBanner() {
     const ro = new ResizeObserver(sync);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [visible, consentGiven]);
+  }, [visible, dismissed]);
 
-  if (consentGiven !== null) return null;
+  if (dismissed !== false) return null;
 
   return (
     <>
@@ -53,25 +65,20 @@ export default function CookieBanner() {
       <div className="mx-auto max-w-[1200px] rounded-xl bg-foreground px-6 py-4 shadow-lg">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-white/90">
-            We use essential cookies to make this site work. See our{" "}
+            This site stores only what it needs to sign you in and keep your
+            basket. No cookies, no tracking, no advertising. See our{" "}
             <Link href="/cookies" className="underline text-white hover:text-white/80">
-              cookie policy
+              storage policy
             </Link>
             .
           </p>
 
           <div className="flex gap-3 shrink-0">
             <button
-              onClick={() => setConsent(false)}
-              className="rounded-lg border border-white/30 px-4 py-2 min-h-11 text-sm font-medium text-white transition-colors hover:bg-white/10 cursor-pointer"
-            >
-              Decline
-            </button>
-            <button
-              onClick={() => setConsent(true)}
+              onClick={dismiss}
               className="rounded-lg bg-accent px-4 py-2 min-h-11 text-sm font-medium text-white transition-colors hover:bg-accent/90 cursor-pointer"
             >
-              Accept
+              Got it
             </button>
           </div>
         </div>

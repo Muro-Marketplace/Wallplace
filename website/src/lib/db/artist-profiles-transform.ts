@@ -59,6 +59,21 @@ export interface DbArtistProfile {
   international_shipping_price?: number | null;
   /** "pending" for new claim-flow profiles; "approved" once admin reviews. */
   review_status?: "pending" | "approved" | "rejected";
+  /**
+   * Whether this artist sells as a business or as an individual, as they
+   * declared it on their application. Migration 144.
+   *
+   * A buyer's statutory rights differ depending on the answer: the Consumer
+   * Contracts Regulations 2013 and most of the Consumer Rights Act bind a
+   * TRADER selling to a consumer, and do not apply to a private sale between
+   * two consumers. CMA guidance is that an online marketplace is responsible
+   * for the information in an invitation to purchase even where it is not the
+   * seller, so the answer belongs on the listing.
+   *
+   * Null on a row that predates the column, and rendered as "we have not
+   * confirmed" rather than guessed either way.
+   */
+  trader_status?: "consumer" | "business" | null;
   approved_at?: string | null;
   /** Migration 056: optional theme overrides for the public profile and
    *  QR labels. Premium+ artists set them via the portal; for Core
@@ -148,6 +163,7 @@ export function dbProfileToArtist(profile: DbArtistProfile, works: DbArtistWork[
   return {
     slug: profile.slug,
     name: profile.name,
+    traderStatus: profile.trader_status ?? null,
     profileColor: profile.profile_color,
     shortBio: profile.short_bio,
     extendedBio: profile.extended_bio,

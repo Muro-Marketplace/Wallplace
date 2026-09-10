@@ -27,7 +27,7 @@ export default function TermsPage() {
                 <div className="space-y-3 text-muted leading-relaxed">
                   <p>These terms govern your use of wallplace.co.uk and the Wallplace platform (the &ldquo;Platform&rdquo;). By creating an account or using the Platform, you agree to be bound by these terms.</p>
                   <p>Wallplace is a marketplace and platform. It facilitates connections between artists, venues, and buyers. <strong className="text-foreground">Wallplace is not a seller, and is not a party to any contract of sale between an artist and a buyer.</strong></p>
-                  <p>These terms should be read alongside our <Link href="/privacy" className="text-accent hover:underline">Privacy Policy</Link>, <Link href="/cookies" className="text-accent hover:underline">Cookie Policy</Link>, <Link href="/artist-agreement" className="text-accent hover:underline">Artist Agreement</Link>, and <Link href="/venue-agreement" className="text-accent hover:underline">Venue Partnership Agreement</Link>.</p>
+                  <p>These terms should be read alongside our <Link href="/privacy" className="text-accent hover:underline">Privacy Policy</Link>, <Link href="/cookies" className="text-accent hover:underline">Cookie Policy</Link>, <Link href="/acceptable-use" className="text-accent hover:underline">Acceptable Use and Content Standards</Link>, <Link href="/artist-agreement" className="text-accent hover:underline">Artist Agreement</Link>, and <Link href="/venue-agreement" className="text-accent hover:underline">Venue Partnership Agreement</Link>.</p>
                 </div>
               </div>
 
@@ -59,7 +59,7 @@ export default function TermsPage() {
               <div id="accounts" className="scroll-mt-24">
                 <h2 className="text-2xl mb-4">4. Account Registration</h2>
                 <div className="space-y-3 text-muted leading-relaxed">
-                  <p>You must be at least 18 years old to create an account. You must provide accurate, complete, and current information during registration and keep it updated.</p>
+                  <p>You must be at least 18 years old to create an account, and you confirm that when you sign up. If we find an account belongs to someone under 18 we close it and delete the data held under it. You must provide accurate, complete, and current information during registration and keep it updated.</p>
                   <p>You are responsible for maintaining the security of your account and for all activity that occurs under it. You must notify Wallplace immediately if you suspect unauthorised access.</p>
                   <p>One account per person or entity. Wallplace may refuse or revoke accounts at its discretion.</p>
                 </div>
@@ -127,10 +127,11 @@ export default function TermsPage() {
 
               <div id="prohibited-conduct" className="scroll-mt-24">
                 <h2 className="text-2xl mb-4">10. Prohibited Conduct</h2>
-                <div className="text-muted leading-relaxed">
+                <div className="text-muted leading-relaxed space-y-3">
                   <p className="mb-3">You must not:</p>
                   <ul className="list-disc pl-6 space-y-1">
                     <li>Use the Platform for any unlawful purpose</li>
+                    <li>Post, upload or send illegal content, including content that is a criminal offence to share (see section 10B)</li>
                     <li>List AI-generated art or work you do not own</li>
                     <li>Misrepresent yourself, your work, or your venue</li>
                     <li>Circumvent the Platform to avoid fees after an introduction has been made (see section 10A: Non-Circumvention)</li>
@@ -138,6 +139,26 @@ export default function TermsPage() {
                     <li>Scrape, harvest, or collect data from the Platform</li>
                     <li>Harass, threaten, or abuse other users</li>
                   </ul>
+                  <p>The full standards, including what counts as illegal content and how it is dealt with, are set out in our <Link href="/acceptable-use" className="text-accent hover:underline">Acceptable Use and Content Standards</Link>, which forms part of these terms.</p>
+                </div>
+              </div>
+
+              <div id="illegal-content" className="scroll-mt-24">
+                <h2 className="text-2xl mb-4">10B. Illegal Content and How We Protect You</h2>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p>Wallplace lets users upload artwork, write profiles and blog posts, and message one another privately. That makes us responsible for protecting people who use the Platform from illegal content, and this section says how we do it.</p>
+
+                  <p><strong className="text-foreground">What is not allowed.</strong> Content that is a criminal offence to share is prohibited outright. That includes child sexual abuse material, terrorist content, threats to kill or cause serious harm, content inciting hatred or violence against a group, intimate images shared without the subject&rsquo;s consent, content encouraging serious self-harm or suicide, fraud, and the sale of goods it is unlawful to sell.</p>
+
+                  <p><strong className="text-foreground">How to tell us.</strong> Every artwork, artist profile, venue profile and collection carries a Report link, and every conversation carries a Report option. The categories include the kinds of illegal content above. If you do not have an account, or the content is about you rather than posted to you, email <a href="mailto:report@wallplace.co.uk" className="text-accent hover:underline">report@wallplace.co.uk</a>. You do not need to be a Wallplace user to report something to us.</p>
+
+                  <p><strong className="text-foreground">What we do.</strong> Reports in an illegal-content category are looked at ahead of the queue and acknowledged the same working day. Where content is clearly or credibly illegal we remove or restrict access to it as soon as we have looked at it and investigate afterwards. Depending on what we find we warn, suspend or permanently close the account, and we escalate to the relevant authority where we must. We keep a record of every report, what we decided, and why.</p>
+
+                  <p><strong className="text-foreground">If you think we got it wrong.</strong> If we remove your content or restrict your account you can appeal, and a different person reviews it wherever possible. If we were wrong we put it back and say so. See <Link href="/acceptable-use" className="text-accent hover:underline">Acceptable Use</Link> and our <Link href="/complaints" className="text-accent hover:underline">Complaints Policy</Link>.</p>
+
+                  <p><strong className="text-foreground">Enforcement.</strong> We apply these standards consistently, to every account, whatever an artist pays us. Nothing about a paid plan buys leniency here.</p>
+
+                  <p>If someone is in immediate danger, contact the police on 999. Tell us as well, but tell them first.</p>
                 </div>
               </div>
 
@@ -152,7 +173,8 @@ export default function TermsPage() {
                     <li>Soliciting another user&rsquo;s contact details for the purpose of transacting off-platform</li>
                     <li>Encouraging a buyer to cancel an on-platform order and re-purchase privately</li>
                   </ul>
-                  <p><strong className="text-foreground">Liquidated damages:</strong> The parties agree that quantifying loss from circumvention is difficult. As a genuine pre-estimate of Wallplace&rsquo;s loss, breach of this clause entitles Wallplace to recover from the breaching party liquidated damages equal to the platform fee Wallplace would have earned on the circumvented transaction at the breaching party&rsquo;s applicable fee rate, subject to a minimum of &pound;150 per circumvented transaction. This amount represents a reasonable pre-estimate of loss and is not a penalty. Wallplace may set this amount off against future payouts or invoice for it directly.</p>
+                  <p><strong className="text-foreground">Who this clause applies to:</strong> the liquidated damages below apply only where you are acting for purposes relating to your trade, business, craft or profession. If you are a consumer, they do not apply to you at all: we may still ask you to put the transaction through the Platform, and we may suspend or close your account for repeated circumvention, but we will not charge you a fixed sum.</p>
+                  <p><strong className="text-foreground">Liquidated damages (business users only):</strong> The parties agree that quantifying loss from circumvention is difficult. As a genuine pre-estimate of Wallplace&rsquo;s loss, breach of this clause entitles Wallplace to recover from the breaching party liquidated damages equal to the platform fee Wallplace would have earned on the circumvented transaction at the breaching party&rsquo;s applicable fee rate, subject to a minimum of &pound;150 per circumvented transaction. This amount represents a reasonable pre-estimate of loss and is not a penalty. Wallplace may set this amount off against future payouts, having first told you the amount and why, or invoice for it directly.</p>
                   <p><strong className="text-foreground">What is permitted:</strong> Post-Introduction-Period dealings are unrestricted. Artists and venues who discover each other independently of the Platform (e.g. through pre-existing relationships, unrelated introductions, or public directories) are not bound by this clause in respect of that independent relationship, provided they can demonstrate independence on request.</p>
                 </div>
               </div>
@@ -189,7 +211,7 @@ export default function TermsPage() {
                       <ul className="list-disc pl-6 space-y-1">
                         <li>Request a senior review within 14 days of the decision</li>
                         <li>Contact Citizens Advice (<a href="https://www.citizensadvice.org.uk" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">citizensadvice.org.uk</a>) for independent guidance</li>
-                        <li>Refer the complaint to the Centre for Effective Dispute Resolution (<a href="https://www.cedr.com" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">cedr.com</a>), a certified ADR provider. Wallplace is not currently a member of CEDR, but CEDR is named here as an available alternative dispute resolution body as required by the Alternative Dispute Resolution for Consumer Disputes Regulations 2015.</li>
+                        <li>Refer the complaint to an accredited alternative dispute resolution provider, such as the Centre for Effective Dispute Resolution (<a href="https://www.cedr.com" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">cedr.com</a>). Wallplace is not a member of any ADR scheme, so a provider may charge a fee or decline the case. ADR for consumer contract disputes is governed by Part 4 Chapter 4 of the Digital Markets, Competition and Consumers Act 2024, which replaced the 2015 Regulations from 6 April 2026.</li>
                         <li>Take legal action through the courts of England and Wales</li>
                       </ul>
                     </div>
@@ -212,21 +234,25 @@ export default function TermsPage() {
                     <li>Failures of third-party service providers (including Stripe)</li>
                   </ul>
                   <p><strong className="text-foreground">For business users:</strong> Total aggregate liability is capped at the greater of (a) fees you have paid to Wallplace in the prior 12 months, or (b) &pound;100.</p>
-                  <p><strong className="text-foreground">For consumer buyers:</strong> Where you are a consumer under the Consumer Rights Act 2015, our liability to you in relation to any order is limited to the amount you paid for that order. Nothing in this section reduces or limits your non-excludable statutory consumer rights.</p>
+                  <p><strong className="text-foreground">For consumers:</strong> we do not limit our liability to you for loss that we cause and that was a foreseeable result of our breaking these terms or failing to use reasonable care and skill. We are not liable for loss that was not foreseeable, or for loss arising from an act or omission of the artist, the venue or the courier, none of whom is our agent. Nothing in this section reduces or limits your non-excludable statutory rights, including your rights under the Consumer Rights Act 2015 and the Consumer Contracts Regulations 2013.</p>
                   <p>Nothing in these terms excludes or limits liability for death or personal injury caused by negligence, fraud or fraudulent misrepresentation, breach of terms implied by section 12 of the Sale of Goods Act 1979 or sections 9 to 11 of the Consumer Rights Act 2015, or any other liability that cannot be excluded or limited by law.</p>
                 </div>
               </div>
 
               <div id="indemnification" className="scroll-mt-24">
                 <h2 className="text-2xl mb-4">13. Indemnification</h2>
-                <p className="text-muted leading-relaxed">You agree to indemnify and hold Wallplace harmless from any claims, losses, or damages arising from your breach of these terms, your use of the Platform, your artwork or content, your transactions with other users, or disputes between you and other users.</p>
+                <div className="space-y-3 text-muted leading-relaxed">
+                  <p><strong className="text-foreground">If you are a business user:</strong> you agree to indemnify Wallplace against claims, losses and reasonable costs arising from your breach of these terms, from your artwork or other content, or from a transaction you entered into through the Platform. This does not extend to anything caused by Wallplace&rsquo;s own act, omission or breach.</p>
+                  <p><strong className="text-foreground">If you are a consumer:</strong> you are not asked to indemnify Wallplace. You remain responsible under the general law for loss you cause by breaking these terms, and nothing here adds to that.</p>
+                </div>
               </div>
 
               <div id="cancellation" className="scroll-mt-24">
                 <h2 className="text-2xl mb-4">14. Termination</h2>
                 <div className="space-y-3 text-muted leading-relaxed">
                   <p>Either party may terminate with 30 days&rsquo; written notice. Wallplace may suspend or terminate accounts immediately for breach, prohibited conduct, or where continued access poses a risk.</p>
-                  <p>On termination: artists must arrange collection of artwork from venues within 30 days; outstanding payments will be processed; no refund is given for the remainder of any paid membership period; no further charges will be made.</p>
+                  <p>On termination: artists must arrange collection of artwork from venues within 30 days; outstanding payments will be processed; and no further charges will be made.</p>
+                  <p>Membership refunds on termination. If you close your account, the paid period runs to its end and is not refunded. If <strong className="text-foreground">we</strong> close or suspend your account for a reason other than your breach of these terms, or if you leave because you objected to a change under section 15, we refund the unused part of the period you have paid for.</p>
                   <p>Sections relating to intellectual property, limitation of liability, indemnification, and governing law survive termination.</p>
                 </div>
               </div>
@@ -234,14 +260,15 @@ export default function TermsPage() {
               <div id="changes" className="scroll-mt-24">
                 <h2 className="text-2xl mb-4">15. Changes to These Terms</h2>
                 <div className="space-y-3 text-muted leading-relaxed">
-                  <p>Wallplace may update these terms from time to time. Material changes will be notified by email or Platform notice at least 14 days before taking effect.</p>
-                  <p>Continued use of the Platform after changes take effect constitutes acceptance of the updated terms.</p>
+                  <p>Wallplace may update these terms from time to time. Material changes will be notified by email or Platform notice at least 14 days before taking effect, and the notice will say what is changing.</p>
+                  <p>If you do not want to accept a material change, you may close your account at any point before it takes effect, or within 30 days after, and we will refund the unused part of any membership you have already paid for. That is true whatever section 14 says about refunds on termination.</p>
+                  <p>If you keep using the Platform after a change takes effect and have not told us you object, the updated terms apply to you.</p>
                 </div>
               </div>
 
               <div id="general" className="scroll-mt-24">
                 <h2 className="text-2xl mb-4">16. General Provisions</h2>
-                <p className="text-muted leading-relaxed">These terms, together with the Artist Agreement, Venue Partnership Agreement, Privacy Policy, and Cookie Policy, constitute the entire agreement between you and Wallplace. If any provision is found to be unenforceable, the remaining provisions continue in full force. A failure to enforce any right is not a waiver of that right. You may not assign your rights under these terms without consent. Wallplace may assign its rights freely. No third party has rights under the Contracts (Rights of Third Parties) Act 1999.</p>
+                <p className="text-muted leading-relaxed">These terms, together with the Artist Agreement, Venue Partnership Agreement, Acceptable Use and Content Standards, Privacy Policy, and Cookie Policy, constitute the entire agreement between you and Wallplace. If any provision is found to be unenforceable, the remaining provisions continue in full force. A failure to enforce any right is not a waiver of that right. You may not assign your rights under these terms without consent. Wallplace may assign its rights freely. No third party has rights under the Contracts (Rights of Third Parties) Act 1999.</p>
               </div>
 
               <div id="governing-law" className="scroll-mt-24">

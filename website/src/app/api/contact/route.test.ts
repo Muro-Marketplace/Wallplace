@@ -8,7 +8,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const insertMock = vi.fn(async (_row: Record<string, unknown>) => ({ error: null as unknown }));
-vi.mock("@/lib/supabase", () => ({ supabase: { from: () => ({ insert: insertMock }) } }));
+// DP-16: the insert moved off the anon client onto the service-role client,
+// because the anon path was the reason contact_submissions carried an
+// always-true INSERT policy for anon.
+vi.mock("@/lib/supabase-admin", () => ({
+  getSupabaseAdmin: () => ({ from: () => ({ insert: insertMock }) }),
+}));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn(async () => null) }));
 vi.mock("@/lib/email/send", () => ({ sendEmail: vi.fn(async () => ({ ok: true, skipped: false })) }));
 vi.mock("@/lib/email/admin-alert", () => ({ sendAdminAlert: vi.fn(async () => ({ ok: true })) }));
@@ -97,11 +102,13 @@ describe("POST /api/contact acknowledges the sender", () => {
     expect(new Set(keys).size).toBe(2);
   });
 
-  it("never reads the row back, because the anon client cannot", async () => {
-    // `contact_submissions` has INSERT policies and no SELECT policy, so an
-    // `.insert().select()` would be filtered to zero rows and the route would
-    // 500 on a submission it had just stored. The insert mock has no `select`,
-    // so calling one throws and this test fails.
+  it("never reads the row back", async () => {
+    // Held after DP-16 moved this to the service-role client, which COULD read
+    // it back. It should not: the reference is generated before the insert and
+    // is the only identifier the sender is ever given, so a read-back would be
+    // a round trip for nothing and would reintroduce the row id as something a
+    // caller could see. The insert mock has no `select`, so calling one throws
+    // and this test fails.
     const res = await POST(req(GOOD));
     expect(res.status).toBe(200);
   });

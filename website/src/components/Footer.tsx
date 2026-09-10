@@ -40,6 +40,11 @@ const footerColumns = [
       { label: "Cookies", href: "/cookies" },
       { label: "Returns & Refunds", href: "/returns" },
       { label: "IP Policy", href: "/ip-policy" },
+      // OSA-2: the Online Safety Act's terms duty is only met if the standards
+      // are actually reachable, so this sits with the rest of the legal set
+      // rather than being linked from the Terms alone.
+      { label: "Acceptable Use", href: "/acceptable-use" },
+      { label: "Accessibility", href: "/accessibility" },
     ],
   },
 ];

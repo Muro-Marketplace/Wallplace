@@ -380,11 +380,18 @@ describe("bulk portfolio actions report the truth (D23)", () => {
 // mutate() (not authFetch), matching the rest of this file: mutate() throws
 // ApiError on a non-2xx instead of resolving into a silent false-success (the
 // exact defect the wallplace/no-authfetch-mutation rule guards against).
+// `featuredUntil` must be in the FUTURE for the badge to render at all:
+// isArtworkOfTheWeek() is `Date.parse(featuredUntil) > now`. Both call sites
+// below used to hardcode 2026-09-09T12:00:00.000Z, so the suite passed until
+// that instant and then failed every run afterwards, for a reason that has
+// nothing to do with the behaviour under test. Derived from the clock instead.
+const featuredUntilSoon = () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
 describe("Artwork of the Week control (owner decision 2 September)", () => {
   it("offers Feature for a week to a Premium artist and posts to the feature endpoint", async () => {
     artistState.subscriptionPlan = "premium";
     artistState.works = [WORK];
-    mutateMock.mockResolvedValue({ featuredUntil: "2026-09-09T12:00:00.000Z" });
+    mutateMock.mockResolvedValue({ featuredUntil: featuredUntilSoon() });
     render(<PortfolioPage />);
 
     fireEvent.mouseOver(await screen.findByText(WORK.title));
@@ -477,7 +484,7 @@ describe("Artwork of the Week control (owner decision 2 September)", () => {
     expect(cardOrder).toEqual([`work-card-${secondWork.id}`, `work-card-${WORK.id}`]);
 
     // Now let the feature call resolve.
-    resolveFeature({ featuredUntil: "2026-09-09T12:00:00.000Z" });
+    resolveFeature({ featuredUntil: featuredUntilSoon() });
 
     await waitFor(() => expect(screen.getAllByText(/featured until/i)).toHaveLength(1));
 

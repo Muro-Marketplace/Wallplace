@@ -10,15 +10,15 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { adminMock, publicInsertMock } = vi.hoisted(() => ({
+const { adminMock, enquiryInsertMock } = vi.hoisted(() => ({
   adminMock: vi.fn(),
-  publicInsertMock: vi.fn(),
+  enquiryInsertMock: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase-admin", () => ({ getSupabaseAdmin: adminMock }));
-vi.mock("@/lib/supabase", () => ({
-  supabase: { from: () => ({ insert: publicInsertMock }) },
-}));
+// DP-16: the enquiries insert moved off the anon client onto the service-role
+// client, so it is captured through the admin stub below. The mock name stays
+// `enquiryInsertMock` to say what it holds rather than which client made it.
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: async () => null }));
 vi.mock("@/lib/api-auth", () => ({ getAuthenticatedUser: async () => ({ user: null, error: null }) }));
 vi.mock("@/lib/email/admin-alert", () => ({ sendAdminAlert: vi.fn() }));
@@ -46,6 +46,9 @@ function stubAdmin({ works }: { works: { id: string; image: string | null } | nu
           select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: works }) }) }) }),
         };
       }
+      if (table === "enquiries") {
+        return { insert: enquiryInsertMock };
+      }
       // Everything after the insert (messages, conversations, notifications).
       return {
         select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }), single: async () => ({ data: null }) }) }),
@@ -71,11 +74,11 @@ function post(body: Record<string, unknown>) {
 }
 
 /** The row handed to enquiries.insert. */
-const inserted = () => publicInsertMock.mock.calls[0][0];
+const inserted = () => enquiryInsertMock.mock.calls[0][0];
 
 beforeEach(() => {
   vi.clearAllMocks();
-  publicInsertMock.mockResolvedValue({ error: null });
+  enquiryInsertMock.mockResolvedValue({ error: null });
 });
 
 describe("POST /api/enquiry, the work it is about", () => {

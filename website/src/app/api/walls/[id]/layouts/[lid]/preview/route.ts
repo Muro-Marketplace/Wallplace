@@ -194,6 +194,6 @@ export async function POST(request: Request, ctx: RouteContext) {
 
   return NextResponse.json({
     render: persisted.render,
-    publicUrl: persisted.publicUrl,
+    url: persisted.url,
   });
 }

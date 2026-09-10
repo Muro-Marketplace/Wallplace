@@ -4,14 +4,12 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { alertMock, anonFromMock, adminFromMock } = vi.hoisted(() => ({
+const { alertMock, adminFromMock } = vi.hoisted(() => ({
   alertMock: vi.fn(async () => ({ ok: true })),
-  anonFromMock: vi.fn(),
   adminFromMock: vi.fn(),
 }));
 
 vi.mock("@/lib/email/admin-alert", () => ({ sendAdminAlert: alertMock }));
-vi.mock("@/lib/supabase", () => ({ supabase: { from: anonFromMock } }));
 vi.mock("@/lib/supabase-admin", () => ({ getSupabaseAdmin: () => ({ from: adminFromMock }) }));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn(async () => null) }));
 vi.mock("@/lib/email/notifications", () => ({ sendMessageUnreadEmail: vi.fn(async () => {}) }));
@@ -39,18 +37,33 @@ const BODY = {
 
 /** `profileName` is what artist_profiles returns for the slug. */
 function setup(profileName: string | null) {
-  anonFromMock.mockImplementation((table: string) => {
+  // DP-16: the enquiries insert and the artist-name lookup both moved off the
+  // anon client onto the service-role client, so one mock answers everything.
+  adminFromMock.mockImplementation((table: string) => {
     if (table === "artist_profiles") {
       return {
-        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: profileName === null ? null : { name: profileName } }) }) }),
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: profileName === null ? null : { name: profileName } }),
+            single: async () => ({ data: null }),
+          }),
+        }),
       };
     }
-    return { insert: async () => ({ error: null }) };
+    return {
+      insert: () => {
+        const result = { error: null } as unknown as Promise<{ error: null }> & {
+          select: () => { single: () => Promise<{ data: { id: string } }> };
+        };
+        // `enquiries` awaits the insert directly; `messages` chains
+        // .select().single(). One shape serves both.
+        return Object.assign(Promise.resolve({ error: null }), {
+          select: () => ({ single: async () => ({ data: { id: "m-1" } }) }),
+        }) as typeof result;
+      },
+      select: () => ({ eq: () => ({ single: async () => ({ data: null }) }) }),
+    };
   });
-  adminFromMock.mockImplementation(() => ({
-    insert: () => ({ select: () => ({ single: async () => ({ data: { id: "m-1" } }) }) }),
-    select: () => ({ eq: () => ({ single: async () => ({ data: null }) }) }),
-  }));
 }
 
 beforeEach(() => vi.clearAllMocks());

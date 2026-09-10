@@ -10,6 +10,7 @@ import { slugify } from "@/lib/slugify";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { TERMS_VERSION } from "@/lib/terms-version";
 import TermsCheckbox from "@/components/TermsCheckbox";
+import AgeAndMarketingConsent from "@/components/AgeAndMarketingConsent";
 import Dropdown from "@/components/Dropdown";
 import RedirectIfLoggedIn from "@/components/RedirectIfLoggedIn";
 import Turnstile from "@/components/Turnstile";
@@ -96,6 +97,11 @@ export default function RegisterVenuePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [agreedToTos, setAgreedToTos] = useState(false);
+  // UK compliance audit, findings CHI-1 and MKT-1. Both unticked, both
+  // travelling on options.data so they land on this account's own metadata
+  // rather than through a pre-auth endpoint anyone could point at anyone.
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [agreedToVenueTerms, setAgreedToVenueTerms] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
@@ -185,7 +191,12 @@ export default function RegisterVenuePage() {
           // as proof of ownership. Nothing reads it now, and it must not come
           // back: a value written with the anon key is the claimant's choice,
           // not evidence.
-          data: { user_type: "venue", display_name: form.contactName },
+          data: {
+            user_type: "venue",
+            display_name: form.contactName,
+            age_confirmed: ageConfirmed,
+            marketing_opt_in: marketingOptIn,
+          },
           emailRedirectTo: `${window.location.origin}/login?next=${encodeURIComponent(postSignupNext)}`,
         },
       });
@@ -201,6 +212,7 @@ export default function RegisterVenuePage() {
         userEmail: form.email,
         userType: "venue",
         termsVersion: TERMS_VERSION,
+        ageConfirmed,
       };
       fetch("/api/terms/accept", {
         method: "POST",
@@ -435,8 +447,14 @@ export default function RegisterVenuePage() {
               {/* Error */}
               {error && <p className="text-red-500 text-sm">{error}</p>}
 
-              {/* Terms */}
+              {/* Age, marketing and terms */}
               <div className="space-y-3">
+                <AgeAndMarketingConsent
+                  ageConfirmed={ageConfirmed}
+                  onAgeChange={setAgeConfirmed}
+                  marketingOptIn={marketingOptIn}
+                  onMarketingChange={setMarketingOptIn}
+                />
                 <TermsCheckbox
                   termsType="platform_tos"
                   checked={agreedToTos}
@@ -462,7 +480,13 @@ export default function RegisterVenuePage() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={submitting || !agreedToTos || !agreedToVenueTerms || !turnstileToken}
+                  disabled={
+                    submitting ||
+                    !agreedToTos ||
+                    !agreedToVenueTerms ||
+                    !ageConfirmed ||
+                    !turnstileToken
+                  }
                   className="px-8 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? "Registering..." : "Register Your Venue"}

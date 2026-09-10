@@ -156,7 +156,7 @@ function installFetch() {
     if (url.endsWith("/preview") && method === "POST") {
       return json({
         render: { id: "render-77" },
-        publicUrl: "https://cdn.example/wall-renders/u-venue/render-77.webp",
+        url: "https://cdn.example/wall-renders/u-venue/render-77.webp",
       });
     }
     if (url.includes("/mockups") && method === "POST") return json({ ok: true });
@@ -374,7 +374,7 @@ describe("<WallVisualizer /> Save this preview to my wall", () => {
       const url = typeof input === "string" ? input : String(input);
       const method = init?.method ?? "GET";
       if (method === "PATCH") return new Response("boom", { status: 500 });
-      if (url.endsWith("/preview") && method === "POST") return json({ render: { id: "r" }, publicUrl: "u" });
+      if (url.endsWith("/preview") && method === "POST") return json({ render: { id: "r" }, url: "u" });
       return json({ works: [], artists: [] });
     });
     await mountVenueEditor();

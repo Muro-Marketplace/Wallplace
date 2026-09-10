@@ -146,7 +146,7 @@ beforeEach(() => {
       prompt_seed: null,
       created_at: "2026-09-03T12:00:00Z",
     },
-    publicUrl: "https://cdn.example/wall-renders/u-real/render-9.webp",
+    url: "https://cdn.example/wall-renders/u-real/render-9.webp",
   });
   updateLayoutMock.mockResolvedValue({ ...LAYOUT, last_render_id: "render-9" });
 });
@@ -262,7 +262,7 @@ describe("POST preview, happy path", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.render.id).toBe("render-9");
-    expect(json.publicUrl).toBe("https://cdn.example/wall-renders/u-real/render-9.webp");
+    expect(json.url).toBe("https://cdn.example/wall-renders/u-real/render-9.webp");
 
     expect(persistRenderMock).toHaveBeenCalledTimes(1);
     const input = persistRenderMock.mock.calls[0][0];

@@ -158,6 +158,33 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       .select("*")
       .eq("user_id", input.userId)
       .maybeSingle();
+
+    // UK compliance audit, 10 September 2026, finding MKT-1.
+    //
+    // PECR reg 22 requires consent for the news stream. Soft opt-in under
+    // reg 22(3) is unavailable to a venue on a free account or a customer who
+    // never bought, because neither involves a sale or negotiations for one,
+    // and no signup form ever offered the opportunity to refuse that the
+    // second limb of reg 22(3) requires, so it failed for everyone.
+    //
+    // Migration 141 flips `tips_enabled` and `recommendations_enabled` to
+    // default false, which is necessary and not sufficient:
+    // `get_email_preferences()` creates the row LAZILY, so most users have no
+    // row at all, and the `if (prefs)` below meant absence of a row fell
+    // straight through and sent. A default nobody has ever read is not a
+    // default. Absence of a record of consent is absence of consent.
+    //
+    // News stream only. Relational notify mail (a placement request, a new
+    // message) is not marketing and stays on its existing toggle, which
+    // defaults to on and is honoured the moment a row exists. And a send with
+    // no `userId` is exempt: the newsletter double opt-in confirmation is
+    // exactly that case, the send IS the consent step, and gating it on a row
+    // would suppress the one email whose job is to create the consent record.
+    if (!prefs && rules.stream === "news") {
+      await logEvent(db, input, to, rules.stream, "skipped_opted_out", eventMetadata);
+      return { ok: true, skipped: true, reason: "opted_out" };
+    }
+
     if (prefs) {
       if (prefs.vacation_until && new Date(prefs.vacation_until) > new Date()) {
         await logEvent(db, input, to, rules.stream, "skipped_vacation", eventMetadata);

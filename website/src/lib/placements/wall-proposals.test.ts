@@ -38,7 +38,7 @@ vi.mock("@/lib/visualizer/walls-db", () => ({
 }));
 vi.mock("@/lib/visualizer/renders-db", () => ({
   persistRender: (...a: unknown[]) => persistRenderMock(...a),
-  getPublicRenderUrl: (path: string) => `https://cdn.example/wall-renders/${path}`,
+  getRenderUrl: async (path: string) => `https://cdn.example/wall-renders/${path}`,
 }));
 
 import {
@@ -171,7 +171,7 @@ describe("createWallProposal", () => {
     createLayoutMock.mockResolvedValue({ ...LAYOUT, last_render_id: null });
     persistRenderMock.mockResolvedValue({
       render: { id: "r-new" },
-      publicUrl: "https://cdn.example/wall-renders/u-artist/r-new.webp",
+      url: "https://cdn.example/wall-renders/u-artist/r-new.webp",
     });
     updateLayoutMock.mockResolvedValue({ ...LAYOUT, last_render_id: "r-new" });
 
@@ -211,7 +211,7 @@ describe("createWallProposal", () => {
 
   it("hashes an uploaded wall by its photo path", async () => {
     createLayoutMock.mockResolvedValue(LAYOUT);
-    persistRenderMock.mockResolvedValue({ render: { id: "r" }, publicUrl: "u" });
+    persistRenderMock.mockResolvedValue({ render: { id: "r" }, url: "u" });
     updateLayoutMock.mockResolvedValue(LAYOUT);
     await createWallProposal(
       {
@@ -258,7 +258,7 @@ describe("createWallProposal", () => {
 
   it("removes the layout again when the pointer cannot be written", async () => {
     createLayoutMock.mockResolvedValue(LAYOUT);
-    persistRenderMock.mockResolvedValue({ render: { id: "r" }, publicUrl: "u" });
+    persistRenderMock.mockResolvedValue({ render: { id: "r" }, url: "u" });
     updateLayoutMock.mockResolvedValue(null);
     deleteLayoutMock.mockResolvedValue(true);
     const out = await createWallProposal(

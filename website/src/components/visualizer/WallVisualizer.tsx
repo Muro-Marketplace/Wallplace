@@ -818,7 +818,7 @@ function WallVisualizerInner(props: ExtendedProps) {
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       throw new Error(body.error ?? `Save failed (${res.status})`);
     }
-    const json = (await res.json()) as { render: { id: string }; publicUrl: string };
+    const json = (await res.json()) as { render: { id: string }; url: string | null };
     const capturedUrl = preview.url;
     setPreview((prev) =>
       prev && prev.url === capturedUrl ? { ...prev, renderId: json.render.id } : prev,

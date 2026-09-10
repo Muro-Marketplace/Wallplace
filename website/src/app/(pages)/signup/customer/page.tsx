@@ -10,6 +10,7 @@ import { isFlagOn } from "@/lib/feature-flags";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { TERMS_VERSION } from "@/lib/terms-version";
 import TermsCheckbox from "@/components/TermsCheckbox";
+import AgeAndMarketingConsent from "@/components/AgeAndMarketingConsent";
 import RedirectIfLoggedIn from "@/components/RedirectIfLoggedIn";
 import Turnstile from "@/components/Turnstile";
 
@@ -21,6 +22,11 @@ export default function CustomerSignUpPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreedToTos, setAgreedToTos] = useState(false);
+  // UK compliance audit, findings CHI-1 and MKT-1. Both unticked, both
+  // travelling on options.data so they land on this account's own metadata
+  // rather than through a pre-auth endpoint anyone could point at anyone.
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   // Cloudflare Turnstile token; the component emits "dev-bypass" if the
   // site key isn't configured so signup still works in local dev.
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
@@ -71,7 +77,12 @@ export default function CustomerSignUpPage() {
         email,
         password,
         options: {
-          data: { user_type: "customer", display_name: name },
+          data: {
+            user_type: "customer",
+            display_name: name,
+            age_confirmed: ageConfirmed,
+            marketing_opt_in: marketingOptIn,
+          },
           emailRedirectTo: `${window.location.origin}/login?next=${encodeURIComponent(postSignupNext)}`,
         },
       });
@@ -91,6 +102,7 @@ export default function CustomerSignUpPage() {
         body: JSON.stringify({
           userEmail: email,
           userType: "customer",
+          ageConfirmed,
           termsVersion: TERMS_VERSION,
           termsType: "platform_tos",
         }),
@@ -240,7 +252,13 @@ export default function CustomerSignUpPage() {
               </>
             )}
 
-            <div className="py-1">
+            <div className="py-1 space-y-3">
+              <AgeAndMarketingConsent
+                ageConfirmed={ageConfirmed}
+                onAgeChange={setAgeConfirmed}
+                marketingOptIn={marketingOptIn}
+                onMarketingChange={setMarketingOptIn}
+              />
               <TermsCheckbox
                 termsType="platform_tos"
                 checked={agreedToTos}
@@ -253,7 +271,7 @@ export default function CustomerSignUpPage() {
 
             <button
               type="submit"
-              disabled={loading || !agreedToTos || !turnstileToken}
+              disabled={loading || !agreedToTos || !ageConfirmed || !turnstileToken}
               className="w-full px-6 py-3 bg-accent text-white text-sm font-semibold uppercase tracking-wider rounded-sm hover:bg-accent-hover transition-colors disabled:opacity-50"
             >
               {loading ? "Creating Account..." : "Create Account"}

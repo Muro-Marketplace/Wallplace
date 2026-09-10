@@ -569,6 +569,102 @@ describe("money-template category overrides (R4.12)", () => {
   });
 });
 
+// ── UK compliance audit, finding MKT-1: no preference row means no consent ──
+//
+// PECR reg 22 needs consent for the news stream. Soft opt-in under reg 22(3)
+// is unavailable to a venue on a free account or a customer who never bought
+// (no sale, no negotiations for a sale), and no signup form ever offered the
+// opportunity to refuse that the second limb requires, so it failed for
+// everyone.
+//
+// Flipping the column defaults in migration 141 was necessary and not
+// sufficient: `get_email_preferences()` creates the row LAZILY, so most users
+// have no row at all, and this gate's `if (prefs)` meant absence of a row fell
+// straight through and sent. Absence of a record of consent is now treated as
+// absence of consent, for the news stream only.
+describe("news stream requires an affirmative preference row", () => {
+  beforeEach(() => {
+    process.env.RESEND_API_KEY = "re_test";
+  });
+
+  it("does not send a news-stream email when the user has no preference row", async () => {
+    setupDb({ prefs: null });
+
+    const res = await sendEmail({
+      ...INPUT,
+      template: "artist_inactive_30d",
+      category: "tips",
+      userId: "u-42",
+    });
+
+    expect(res).toEqual({ ok: true, skipped: true, reason: "opted_out" });
+    expect(sendMock).not.toHaveBeenCalled();
+    expect(logged.some((r) => r.status === "skipped_opted_out")).toBe(true);
+  });
+
+  it("sends a news-stream email once the user has opted in", async () => {
+    setupDb({ prefs: { tips_enabled: true } });
+
+    const res = await sendEmail({
+      ...INPUT,
+      template: "artist_inactive_30d",
+      category: "tips",
+      userId: "u-42",
+    });
+
+    expect(res).toMatchObject({ ok: true, skipped: false });
+    expect(sendMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("still sends a relational notify-stream email with no preference row", async () => {
+    // Relational mail is not marketing: a placement request is a thing the
+    // other party asked for. Only the news stream fails closed.
+    setupDb({ prefs: null });
+
+    const res = await sendEmail({
+      ...INPUT,
+      template: "venue_new_placement_request",
+      category: "placements",
+      userId: "u-42",
+    });
+
+    expect(res).toMatchObject({ ok: true, skipped: false });
+    expect(sendMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("still sends a critical email with no preference row", async () => {
+    setupDb({ prefs: null });
+
+    const res = await sendEmail({
+      ...INPUT,
+      template: "account_password_reset",
+      category: "security",
+      userId: "u-42",
+    });
+
+    expect(res).toMatchObject({ ok: true, skipped: false });
+    expect(sendMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends a news-stream email with no preference row when there is no user id", async () => {
+    // The newsletter double opt-in confirmation is the case: the subscriber is
+    // anonymous, the send IS the consent step, and there is no user to have a
+    // preference. Gating it on a row would suppress the one email whose job is
+    // to create the consent record.
+    setupDb({ prefs: null });
+
+    const res = await sendEmail({
+      ...INPUT,
+      template: "newsletter_subscribe_confirm",
+      category: "newsletter",
+      userId: undefined,
+    });
+
+    expect(res).toMatchObject({ ok: true, skipped: false });
+    expect(sendMock).toHaveBeenCalledTimes(1);
+  });
+});
+
 // ── C24: the recipient is threaded into the footer unsubscribe link ─────────
 //
 // EmailShell renders `/account/email/unsubscribe?c=<category>` with no user,

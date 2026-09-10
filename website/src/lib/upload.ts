@@ -44,27 +44,30 @@ export async function uploadContract(file: File): Promise<string> {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 60);
   const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName || `contract.${ext}`}`;
 
-  // Prefer the private `contracts` bucket. Fall back to `collections`
-  // (legacy) only if `contracts` doesn't exist, which would mean the
-  // deployment hasn't been set up yet and the caller should paste a link
-  // instead.
-  for (const bucket of ["contracts", "collections"] as const) {
-    const { error } = await supabase.storage
-      .from(bucket)
-      .upload(path, file, { cacheControl: "86400", upsert: false, contentType: file.type });
-    if (!error) {
-      // Opaque reference. The reader will call `/api/contracts/sign` to
-      // exchange this for a short-lived signed URL after checking party
-      // permissions. Never return a raw public URL here.
-      return `${CONTRACT_REF_PREFIX}${bucket}/${path}`;
-    }
-    // Only fall through on missing-bucket, propagate other errors.
-    if (!String(error.message || "").toLowerCase().includes("not found")) {
-      console.error("Contract upload error:", error);
-      throw new Error("Contract upload failed. Please try again.");
-    }
+  // The private `contracts` bucket, and only that bucket.
+  //
+  // This used to fall back to `collections` when `contracts` looked absent.
+  // `collections` is PUBLIC, so the fallback's effect was to publish a signed
+  // agreement at an open URL on the one code path that fires when the storage
+  // configuration is already wrong. A missing bucket is a deployment fault and
+  // should read as one; it is not a reason to downgrade the privacy of the
+  // most sensitive file the platform accepts. (UK compliance audit, 10 Sep 2026.)
+  const { error } = await supabase.storage
+    .from("contracts")
+    .upload(path, file, { cacheControl: "86400", upsert: false, contentType: file.type });
+
+  if (!error) {
+    // Opaque reference. The reader calls `/api/contracts/sign` to exchange this
+    // for a short-lived signed URL after checking party permissions. Never
+    // return a raw public URL here.
+    return `${CONTRACT_REF_PREFIX}contracts/${path}`;
   }
-  throw new Error("Contract storage is not configured yet. Please paste a link instead.");
+
+  console.error("Contract upload error:", error);
+  if (String(error.message || "").toLowerCase().includes("not found")) {
+    throw new Error("Contract storage is not configured yet. Please paste a link instead.");
+  }
+  throw new Error("Contract upload failed. Please try again.");
 }
 
 /** Detect whether a stored value is a post-Phase-0 contract reference. */
@@ -167,7 +170,21 @@ const MESSAGE_ATTACHMENT_TYPES = [
 ] as const;
 
 export interface MessageAttachment {
+  /**
+   * The stable reference persisted on `messages.attachments[]`. It has the
+   * shape of a public storage URL, but `message-attachments` is a PRIVATE
+   * bucket as of migration 140, so fetching it directly 404s. Readers parse
+   * the object path back out of it and sign; see
+   * src/lib/messages/attachment-urls.ts. Kept in this shape so rows written
+   * before 140 and rows written after it read identically.
+   */
   url: string;
+  /**
+   * A short-lived signed URL for the sender's own optimistic render, before
+   * the thread reloads and the server hands back signed URLs for everyone.
+   * Never persisted: the POST schema in lib/validations.ts strips it.
+   */
+  previewUrl?: string;
   filename: string;
   mimeType: string;
   sizeBytes: number;
@@ -259,8 +276,23 @@ export async function uploadMessageAttachment(file: File): Promise<MessageAttach
     .from("message-attachments")
     .getPublicUrl(path);
 
+  // The bucket is private (migration 140), so the sender signs their own
+  // object for the optimistic bubble. The owner-read policy added in that
+  // migration is what permits this, and it permits nothing else: the folder
+  // is named after auth.uid().
+  let previewUrl: string | undefined;
+  try {
+    const { data: signed } = await supabase.storage
+      .from("message-attachments")
+      .createSignedUrl(path, 60 * 60);
+    previewUrl = signed?.signedUrl ?? undefined;
+  } catch {
+    /* best effort; the thread reload will supply a signed URL either way */
+  }
+
   return {
     url: urlData.publicUrl,
+    previewUrl,
     filename: file.name,
     mimeType: file.type,
     sizeBytes: uploadBlob.size,

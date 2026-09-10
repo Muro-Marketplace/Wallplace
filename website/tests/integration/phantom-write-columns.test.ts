@@ -64,6 +64,30 @@ const GRANDFATHERED: Array<{ file: string; table: string; phantom: string; why: 
 // not-null-writes.test.ts, which asks the other question of the same writes:
 // can the VALUE be null on a NOT NULL column? The doc comments moved with them.
 
+/**
+ * Columns a committed migration adds that the snapshot does not carry yet,
+ * because applying a migration to production is an owner action and the
+ * snapshot is taken FROM production.
+ *
+ * This is not a second grandfather list. Every entry names the migration that
+ * creates the column, and the test below reads that file and fails if it does
+ * not actually add it. So an entry cannot outlive its migration, or be written
+ * for a column nobody ever created; once the migration is applied and the
+ * snapshot refreshed, the entry is dead weight to delete.
+ */
+const PENDING_MIGRATION: Array<{ table: string; column: string; migration: string }> = [
+  // EMPTY. Both entries that lived here (terms_acceptances.age_confirmed and
+  // artist_profiles.trader_status) were applied to production on 10 September
+  // 2026 and the snapshot was regenerated in the same commit, which is what
+  // the list's own rule says to do. Shrink it, never grow it.
+];
+
+const MIGRATIONS_DIR = path.resolve(__dirname, "../../supabase/migrations");
+
+function addedByPendingMigration(table: string, column: string): boolean {
+  return PENDING_MIGRATION.some((p) => p.table === table && p.column === column);
+}
+
 function scan() {
   const offences: string[] = [];
   let writesChecked = 0;
@@ -81,6 +105,7 @@ function scan() {
       for (const key of w.keys) {
         keysChecked++;
         if (known.includes(key)) continue;
+        if (addedByPendingMigration(w.table, key)) continue;
         if (
           GRANDFATHERED.some(
             (g) => rel.endsWith(g.file) && g.table === w.table && g.phantom === key,
@@ -105,11 +130,26 @@ function scan() {
  */
 const PHANTOM_TABLE_ALLOWED = new Map<string, string>();
 
-/** Every `.from("table")` in the source, whatever it does with it. */
+/**
+ * Every `.from("table")` in the source, whatever it does with it.
+ *
+ * `.storage.from("bucket")` is excluded. It is the same method name on a
+ * different client and a bucket is not a table, so a literal bucket name reads
+ * as a phantom table here. Bucket names with a hyphen (`message-attachments`,
+ * `wall-renders`) never matched the identifier pattern and so hid the problem;
+ * `contracts` does match, and surfaced it the moment migration 140's work
+ * replaced a loop variable with a literal.
+ */
 function tablesNamed(source: string): { table: string; line: number }[] {
+  // Blank the method name on any storage chain first, preserving length so the
+  // line numbers below stay true. A lookbehind will not do: the call is often
+  // written across two lines (`supabase.storage` then `.from("contracts")`), so
+  // the character before `.from(` is whitespace, not `storage`.
+  const scannable = source.replace(/\bstorage(\s*)\.from\(/g, (_m, gap: string) => `storage${gap}.XXXX(`);
+
   const out: { table: string; line: number }[] = [];
-  for (const m of source.matchAll(/\.from\(\s*["'`]([a-z_][a-z0-9_]*)["'`]\s*\)/g)) {
-    out.push({ table: m[1], line: source.slice(0, m.index ?? 0).split("\n").length });
+  for (const m of scannable.matchAll(/\.from\(\s*["'`]([a-z_][a-z0-9_]*)["'`]\s*\)/g)) {
+    out.push({ table: m[1], line: scannable.slice(0, m.index ?? 0).split("\n").length });
   }
   return out;
 }
@@ -119,6 +159,23 @@ function tablesNamed(source: string): { table: string; line: number }[] {
 // and `from("applications")`, neither of which is a table (they are
 // `waitlist_signups` and `artist_applications`), so a person's right to erasure
 // silently left their waitlist entry and their whole application in place.
+describe("every pending-migration column is really created by its migration", () => {
+  it("finds the ADD COLUMN in the named file", () => {
+    for (const { table, column, migration } of PENDING_MIGRATION) {
+      const body = readFileSync(path.join(MIGRATIONS_DIR, migration), "utf8");
+      const adds = new RegExp(
+        `alter table (?:public\\.)?${table}[\\s\\S]*?add column (?:if not exists )?${column}\\b`,
+        "i",
+      );
+      expect(
+        adds.test(body),
+        `${migration} is listed as adding ${table}.${column} and does not. An entry ` +
+          "that outlives its migration is a hole in the guard, not an exemption.",
+      ).toBe(true);
+    }
+  });
+});
+
 describe("no .from() names a table the live schema lacks", () => {
   it("names only tables that exist", () => {
     const offences: string[] = [];

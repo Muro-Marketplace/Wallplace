@@ -20,7 +20,10 @@ const { insertMock, fromMock, sendEmailMock } = vi.hoisted(() => ({
   sendEmailMock: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase", () => ({ supabase: { from: fromMock } }));
+// DP-16: the insert moved off the anon client onto the service-role client,
+// because the anon path was the reason waitlist_signups carried an always-true
+// INSERT policy for anon.
+vi.mock("@/lib/supabase-admin", () => ({ getSupabaseAdmin: () => ({ from: fromMock }) }));
 vi.mock("@/lib/email/send", () => ({ sendEmail: sendEmailMock }));
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn(async () => null) }));
 vi.mock("@/emails/templates/customer-sales/CustomerWaitlistConfirmation", () => ({

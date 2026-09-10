@@ -39,14 +39,25 @@
 // placement_records/photos/archives/reviews, terms/email/curation rows)
 // are now included.
 //
-// Known gap: email-keyed PII tables (newsletter_subscribers,
-// email_suppressions, email_events rows with user_id IS NULL, and
-// purchase_offers rows keyed only by buyer_email) are NOT erased here.
-// They persist by-design until a follow-up plan adds a full email-keyed
-// deletion pass. The auth user's email itself IS erased by
-// auth.admin.deleteUser, but copies in the email pipeline tables persist.
-// Orders and refund_requests keyed by email ARE covered: see the
-// anonymisation passes below.
+// Two gaps this route carried for a long time are closed as of the UK
+// compliance audit (10 September 2026, finding DP-7):
+//
+//   Storage. Not one object was ever deleted. A deleted artist's artwork
+//   images and their avatar, which is often a photograph of them, stayed in
+//   public buckets at working URLs forever. purgeUserStorage now clears every
+//   bucket, paged, before the row deletes.
+//
+//   Email-keyed PII. newsletter_subscribers, email_suppressions,
+//   artist_applications, venue_registrations, contact_submissions, enquiries
+//   and the email_events rows with a null user_id were documented as
+//   persisting by design. They are erased now, matched strictly against the
+//   account's own VERIFIED email so this can never reach another person's rows.
+//
+// One email-keyed row is deliberately NOT deleted: an `email_suppressions`
+// entry with reason 'complaint' or 'hard_bounce' is the record that stops us
+// mailing an address. Deleting it on erasure would let a re-signup resume mail
+// to an address that had asked us to stop. See the pass below, which keeps
+// those two reasons and clears the rest.
 
 import { NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
@@ -55,8 +66,24 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail } from "@/lib/email/send";
 import { AccountDeletionConfirmed } from "@/emails/templates/account/AccountDeletionConfirmed";
 import { AccountDeletionRequested } from "@/emails/templates/account/AccountDeletionRequested";
+import {
+  ERASURE_TABLES,
+  ERASURE_TABLES_BY_EMAIL,
+  purgeUserStorage,
+} from "@/lib/account-erasure";
 
 const CONFIRM_STRING = "DELETE MY ACCOUNT";
+
+/**
+ * Suppression reasons that go with the account.
+ *
+ * `complaint` and `hard_bounce` are deliberately absent. Those two are not the
+ * user's data to remove: they are the record of an address asking us to stop,
+ * or of it not existing. Deleting them on erasure would let a re-signup resume
+ * mail to an address that had opted out, which is the PECR failure the
+ * suppression list exists to prevent.
+ */
+const REMOVABLE_SUPPRESSION_REASONS = ["soft_bounce", "unsubscribe", "manual", "invalid"];
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "https://wallplace.co.uk").replace(/\/$/, "");
 
 // Email audit, 2026-09-04. Two account templates existed for this flow and
@@ -147,61 +174,9 @@ async function notifyDeletionConfirmed(
 //
 // orders and refund_requests are deliberately NOT in this list: they are
 // retained and anonymised instead (C14a), see the passes after the loop.
-const TABLES_USER_ID: Array<{ table: string; col: string }> = [
-  // Per-user UI artefacts
-  { table: "saved_items", col: "user_id" },
-  { table: "notifications", col: "user_id" },
-  { table: "feature_request_upvotes", col: "user_id" },
-  { table: "feature_requests", col: "user_id" },
-  { table: "artist_referrals", col: "referrer_user_id" },
-  { table: "artist_referrals", col: "referred_user_id" },
-
-  // Messaging
-  { table: "messages", col: "sender_id" },
-  { table: "messages", col: "recipient_user_id" },
-
-  // Placements & related lifecycle records
-  { table: "placement_archives", col: "user_id" },
-  { table: "placement_photos", col: "uploader_user_id" },
-  { table: "placement_records", col: "artist_user_id" },
-  { table: "placement_records", col: "venue_user_id" },
-  { table: "placement_reviews", col: "reviewer_user_id" },
-  { table: "placement_reviews", col: "reviewee_user_id" },
-  // No requester_user_id entry: that column is the N3 phantom (it exists in
-  // migration 008 in-repo but NOT in the live schema, see PROGRESS 7c), so
-  // the delete filtering on it was rejected whole by PostgREST on every run
-  // and silently swallowed. The two entries below already cover every
-  // placement row that references the user, because the requester is always
-  // one of the two parties on the row.
-  { table: "placements", col: "artist_user_id" },
-  { table: "placements", col: "venue_user_id" },
-
-  // Commerce (minus the retained financial records, see above)
-  { table: "purchase_offers", col: "buyer_user_id" },
-  { table: "purchase_offers", col: "artist_user_id" },
-  { table: "artwork_request_responses", col: "artist_user_id" },
-  { table: "artwork_requests", col: "venue_user_id" },
-  { table: "commissions", col: "artist_user_id" },
-  { table: "commissions", col: "buyer_user_id" },
-  { table: "curation_requests", col: "requester_user_id" },
-
-  // Visualizer suite (035_visualizer_core)
-  { table: "wall_renders", col: "user_id" },
-  { table: "wall_layouts", col: "user_id" },
-  { table: "walls", col: "user_id" },
-  { table: "visualizer_usage", col: "user_id" },
-  { table: "visualizer_quota_overrides", col: "user_id" },
-
-  // Email + terms
-  { table: "email_events", col: "user_id" },
-  { table: "email_preferences", col: "user_id" },
-  { table: "terms_acceptances", col: "user_id" },
-
-  // Profiles last
-  { table: "artist_profiles", col: "user_id" },
-  { table: "venue_profiles", col: "user_id" },
-  { table: "customer_profiles", col: "user_id" },
-];
+// The list lives in src/lib/account-erasure.ts so this route and the sibling
+// soft-delete cannot drift apart on what counts as the user's data.
+const TABLES_USER_ID = ERASURE_TABLES;
 
 export async function POST(request: Request) {
   const auth = await getAuthenticatedUser(request);
@@ -315,6 +290,13 @@ export async function POST(request: Request) {
     }
   };
 
+  // 0. Storage first. If a bucket cannot be cleared the failure is collected
+  //    and the auth user is retained below, so the person keeps an account they
+  //    can log into while support finishes the job. Doing it before the row
+  //    deletes matters: the rows are how support would find the files again.
+  const storage = await purgeUserStorage(db, userId);
+  failures.push(...storage.failures);
+
   // 1. Hard-delete the rows we own outright. delete().eq() matching no rows
   //    is a success path (`error: null, count: 0`).
   for (const { table, col } of TABLES_USER_ID) {
@@ -342,6 +324,29 @@ export async function POST(request: Request) {
     );
     await step("refund_requests (anonymise by email)", () =>
       db.from("refund_requests").update({ requester_email: anonTag }).eq("requester_email", email),
+    );
+    await step("purchase_offers (anonymise by email)", () =>
+      db.from("purchase_offers").update({ buyer_email: anonTag }).eq("buyer_email", email),
+    );
+
+    // 3b. The email-keyed tables that used to be the documented gap. Matched
+    //     against the VERIFIED email off the token, never a body value.
+    for (const { table, col } of ERASURE_TABLES_BY_EMAIL) {
+      if (table === "email_suppressions") continue; // handled just below
+      await step(`${table}.${col}`, () => db.from(table).delete().eq(col, email));
+    }
+
+    // A suppression recorded because the recipient complained or the address
+    // hard-bounced is not the user's data to remove: it is the record of them
+    // asking us to stop, and deleting it would let a re-signup resume mail to
+    // an address that had opted out. Anything else (a manual entry, an
+    // unsubscribe) goes with the rest.
+    await step("email_suppressions (non-complaint)", () =>
+      db
+        .from("email_suppressions")
+        .delete()
+        .in("reason", REMOVABLE_SUPPRESSION_REASONS)
+        .eq("email", email),
     );
   }
 

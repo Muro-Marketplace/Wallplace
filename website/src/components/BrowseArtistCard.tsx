@@ -113,14 +113,27 @@ export default function BrowseArtistCard({ artist, distance }: BrowseArtistCardP
 
           {/* Featured chip for Pro artists only (owner decision
               2026-09-02). Premium no longer gets the chip or the
-              second-place weighting in the marketplace sort. */}
+              second-place weighting in the marketplace sort.
+
+              UK compliance audit, finding CON-1: the chip means "pays for the
+              top plan", and until now that was disclosed only on the
+              artist-facing pricing page, which no buyer reads. DMCC Act 2024
+              s.230 (material information in an invitation to purchase) and
+              Sch 20 para 12 (undisclosed paid promotion) both want a consumer
+              to be able to see that a placement is paid for. The title and the
+              screen-reader text now say so, and /browse carries the same line
+              beside the sort control. */}
           {isFeaturedArtistPlan(artist.subscriptionPlan) && (
             <div className="absolute top-2 left-2 z-10 pointer-events-none">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium tracking-wide shadow-sm bg-accent/95 text-white">
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium tracking-wide shadow-sm bg-accent/95 text-white"
+                title="Featured artists are on our paid Pro plan, which places them ahead of other artists in the default order."
+              >
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                 </svg>
                 Featured
+                <span className="sr-only">, a paid Pro plan placement</span>
               </span>
             </div>
           )}

@@ -14,9 +14,19 @@
  *      kind in {standard,hd}).
  *   2. Editor surfaces the latest render.id to the artist.
  *   3. Artist clicks "Save to artwork" → POST { render_id } here.
- *   4. We append an `ArtistWorkMockup` to artist_works.mockups (JSONB)
- *      and flip wall_renders.kept = true so the GC keeps the file
- *      around forever.
+ *   4. We COPY the render out of the private `wall-renders` bucket into
+ *      the public `artworks` bucket, append an `ArtistWorkMockup` to
+ *      artist_works.mockups (JSONB) pointing at the copy, and flip
+ *      wall_renders.kept = true so the GC keeps the original around.
+ *
+ * Why copy rather than link (migration 140): `wall-renders` is private,
+ * because a render is a composite of the venue's own wall photograph and
+ * publishing it by default republished that photograph. Promoting a render
+ * to a mockup is the one moment an artist deliberately chooses to publish
+ * one, so that is where the object becomes public, and it becomes public by
+ * being copied to the bucket the rest of the listing already uses. A signed
+ * URL would be wrong here: the listing is public and permanent, and a signed
+ * link expires.
  *
  * Idempotency: re-posting the same render_id is a no-op (we de-dup by
  * render_id inside the JSONB array).
@@ -26,11 +36,17 @@ import { NextResponse } from "next/server";
 import { isFlagOn } from "@/lib/feature-flags";
 import { getAuthenticatedUser } from "@/lib/api-auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { getPublicRenderUrl } from "@/lib/visualizer/renders-db";
+import { RENDERS_BUCKET } from "@/lib/visualizer/renders-db";
 import { saveMockupSchema } from "@/lib/visualizer/validations";
 import type { ArtistWorkMockup } from "@/lib/visualizer/types";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Where a promoted render lands. The same public bucket the listing's other
+ * images use, so nothing downstream has to know a mockup is special.
+ */
+const MOCKUP_BUCKET = "artworks";
 
 export async function POST(
   request: Request,
@@ -168,12 +184,44 @@ export async function POST(
     );
   }
 
+  // Copy the render into the public bucket. This is the publish step: the
+  // artist asked for this image to appear on a public listing, so it stops
+  // being a private render at exactly this point and not before.
+  const sourcePath = (renderRow as { output_path: string }).output_path;
+  const extension = sourcePath.split(".").pop() || "webp";
+  const publicPath = `${userId}/mockup-${renderId}.${extension}`;
+
+  const { data: sourceBlob, error: downloadErr } = await db.storage
+    .from(RENDERS_BUCKET)
+    .download(sourcePath);
+  if (downloadErr || !sourceBlob) {
+    console.error("[mockups] could not read the render:", downloadErr?.message);
+    return NextResponse.json(
+      { error: "Could not read that render. Try rendering it again." },
+      { status: 500 },
+    );
+  }
+
+  const { error: copyErr } = await db.storage
+    .from(MOCKUP_BUCKET)
+    .upload(publicPath, sourceBlob, {
+      contentType: sourceBlob.type || "image/webp",
+      cacheControl: "86400",
+      upsert: true,
+    });
+  if (copyErr) {
+    console.error("[mockups] could not publish the render:", copyErr.message);
+    return NextResponse.json(
+      { error: "Could not save that mockup to your artwork. Please try again." },
+      { status: 500 },
+    );
+  }
+
+  const { data: publicUrlData } = db.storage.from(MOCKUP_BUCKET).getPublicUrl(publicPath);
+
   const newMockup: ArtistWorkMockup = {
     render_id: renderId,
-    url: getPublicRenderUrl(
-      (renderRow as { output_path: string }).output_path,
-      db,
-    ),
+    url: publicUrlData.publicUrl,
     layout_id: layoutId,
     wall_name: wallName,
     created_at: new Date().toISOString(),

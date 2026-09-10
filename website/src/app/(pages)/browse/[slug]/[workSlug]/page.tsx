@@ -296,6 +296,44 @@ export default async function ArtworkPage({
               </Link>
               , an independent artist listing on Wallplace. Your contract of sale is with the artist, not with Wallplace. Wallplace operates the platform, processes payments via Stripe, and facilitates customer service.
             </p>
+            {/* CON-2. Whether the seller is a trader decides whether the
+                Consumer Contracts Regulations 2013 and most of the Consumer
+                Rights Act 2015 apply to this sale at all. CMA guidance on the
+                DMCC Act is that a marketplace is responsible for the
+                information in an invitation to purchase even where it is not
+                the seller, so it goes here rather than being left to the
+                buyer to work out. Null is rendered as "not confirmed", never
+                guessed in either direction. */}
+            <p className="text-xs text-muted leading-relaxed mb-2">
+              {artist.traderStatus === "business" ? (
+                <>
+                  <strong className="text-foreground">Selling as a business.</strong> Your full
+                  consumer rights apply to this purchase, including the 14-day right to cancel and
+                  your rights if the artwork is faulty or not as described.
+                </>
+              ) : artist.traderStatus === "consumer" ? (
+                <>
+                  <strong className="text-foreground">Selling as a private individual.</strong> This
+                  artist sells occasionally rather than as a business, so some consumer protections,
+                  including the statutory 14-day right to cancel, do not apply by law to this sale.
+                  Wallplace will still help if something goes wrong: see our{" "}
+                  <Link href="/returns" className="text-accent hover:underline">
+                    Returns and Refunds
+                  </Link>{" "}
+                  page for what we do in practice.
+                </>
+              ) : (
+                <>
+                  <strong className="text-foreground">Seller type not confirmed.</strong> We do not
+                  hold a declaration from this artist about whether they sell as a business or as a
+                  private individual, which affects some of your statutory rights. Ask us at{" "}
+                  <a href="mailto:hello@wallplace.co.uk" className="text-accent hover:underline">
+                    hello@wallplace.co.uk
+                  </a>{" "}
+                  before you buy and we will confirm it.
+                </>
+              )}
+            </p>
             <p className="text-xs text-muted leading-relaxed">
               Contact the artist via their{" "}
               <Link href={`/browse/${slug}`} className="text-accent hover:underline">

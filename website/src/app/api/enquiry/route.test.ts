@@ -10,11 +10,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getAuthenticatedUserMock, fromMock, anonFromMock, getUserByIdMock, sendEmailMock, enquiryReceivedMock } =
+const { getAuthenticatedUserMock, fromMock, getUserByIdMock, sendEmailMock, enquiryReceivedMock } =
   vi.hoisted(() => ({
     getAuthenticatedUserMock: vi.fn(),
     fromMock: vi.fn(),
-    anonFromMock: vi.fn(),
     getUserByIdMock: vi.fn(async () => ({ data: { user: null as null | { id: string; email: string } } })),
     sendEmailMock: vi.fn(async () => ({ ok: true, skipped: false, messageId: "m" })),
     enquiryReceivedMock: vi.fn(() => null),
@@ -28,10 +27,8 @@ vi.mock("@/lib/supabase-admin", () => ({
   getSupabaseAdmin: () => ({ from: fromMock, auth: { admin: { getUserById: getUserByIdMock } } }),
 }));
 
-// The POST path (public enquiry submit) pulls in the anon client, emails and
-// rate limiting; none of it runs in these GET/PATCH tests but the imports
-// must resolve.
-vi.mock("@/lib/supabase", () => ({ supabase: { from: (...a: unknown[]) => anonFromMock(...a) } }));
+// DP-16: this route no longer imports the anon client at all. Every write and
+// read goes through the service-role client, like the rest of the API.
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: vi.fn(async () => null) }));
 vi.mock("@/lib/email/admin-alert", () => ({ sendAdminAlert: vi.fn() }));
 vi.mock("@/lib/email/notifications", () => ({ sendMessageUnreadEmail: vi.fn() }));
@@ -202,24 +199,15 @@ describe("POST /api/enquiry names the sender consistently (C L1124)", () => {
     const enquiryInserts: Record<string, unknown>[] = [];
     const messageInserts: Record<string, unknown>[] = [];
 
-    anonFromMock.mockImplementation((table: string) => {
+    // DP-16: the enquiries insert and the artist-name lookup moved from the
+    // anon client to the service-role client, so both answer through fromMock
+    // now. The anon path had to go: it was the reason `enquiries` carried an
+    // always-true INSERT policy for anon, which let anyone with the
+    // publishable key write straight past this route.
+    fromMock.mockImplementation((table: string) => {
       if (table === "enquiries") {
         return { insert: async (row: Record<string, unknown>) => { enquiryInserts.push(row); return { error: null }; } };
       }
-      if (table === "artist_profiles") {
-        // #78 resolves the artist's real name for the alert subject, so the
-        // slug never reaches a human. Answer it or the POST throws before it
-        // reaches the messages insert.
-        return {
-          select: () => ({
-            eq: () => ({ maybeSingle: async () => ({ data: { name: "Maya Chen" }, error: null }) }),
-          }),
-        };
-      }
-      return { insert: async () => ({ error: null }) };
-    });
-
-    fromMock.mockImplementation((table: string) => {
       if (table === "messages") {
         return {
           insert: (row: Record<string, unknown>) => {
@@ -228,7 +216,19 @@ describe("POST /api/enquiry names the sender consistently (C L1124)", () => {
           },
         };
       }
-      // artist_profiles lookups and anything else the path touches.
+      // #78 resolves the artist's real name for the alert subject, so the slug
+      // never reaches a human. Answer it or the POST throws before it reaches
+      // the messages insert.
+      if (table === "artist_profiles") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({ data: { name: "Maya Chen" }, error: null }),
+              single: async () => ({ data: { name: "Maya Chen" }, error: null }),
+            }),
+          }),
+        };
+      }
       return {
         select: () => ({
           eq: () => ({
@@ -296,17 +296,11 @@ describe("POST /api/enquiry honours the artist's message switch and acknowledges
   };
 
   function setupPost({ notificationsEnabled }: { notificationsEnabled: boolean | null | undefined }) {
-    anonFromMock.mockImplementation((table: string) => {
-      if (table === "artist_profiles") {
-        return {
-          select: () => ({
-            eq: () => ({ maybeSingle: async () => ({ data: { name: "Maya Chen" }, error: null }) }),
-          }),
-        };
-      }
-      return { insert: async () => ({ error: null }) };
-    });
     fromMock.mockImplementation((table: string) => {
+      // DP-16: enquiries now inserts through the service-role client.
+      if (table === "enquiries") {
+        return { insert: async () => ({ error: null }) };
+      }
       if (table === "messages") {
         return {
           insert: () => ({
@@ -315,13 +309,17 @@ describe("POST /api/enquiry honours the artist's message switch and acknowledges
         };
       }
       if (table === "artist_profiles") {
+        const row = {
+          name: "Maya Chen",
+          user_id: "u-maya",
+          message_notifications_enabled: notificationsEnabled,
+        };
         return {
           select: () => ({
             eq: () => ({
-              single: async () => ({
-                data: { name: "Maya Chen", user_id: "u-maya", message_notifications_enabled: notificationsEnabled },
-                error: null,
-              }),
+              single: async () => ({ data: row, error: null }),
+              // The alert-subject lookup uses maybeSingle on the same table.
+              maybeSingle: async () => ({ data: row, error: null }),
             }),
           }),
         };
