@@ -290,7 +290,7 @@ export default function Home() {
                       </span>
                       <div>
                         <p className="text-base font-medium text-foreground leading-snug">Paid Loan</p>
-                        <p className="text-sm text-muted leading-relaxed mt-0.5">Pay one artist a monthly fee to keep one piece on your wall.</p>
+                        <p className="text-sm text-muted leading-relaxed mt-0.5">Pay one artist a monthly fee to keep their work on your wall.</p>
                       </div>
                     </li>
                     <li className="flex gap-4 px-5 py-4">
@@ -401,7 +401,7 @@ export default function Home() {
                   <div className="space-y-9 flex-1">
                     <Step dark number="01" title="Browse &amp; Filter" description="Search curated artists by style, theme, and location. Free." />
                     <Step dark number="02" title="Enquire" description="Contact artists directly. Discuss terms and fit." />
-                    <Step dark number="03" title="Arrange" description="Display for free with optional revenue share, pay a monthly loan fee for one piece, or have the whole space handled on a Programme." />
+                    <Step dark number="03" title="Arrange" description="Display for free with optional revenue share, pay a monthly loan fee to keep an artist's work, or have the whole space handled on a Programme." />
                   </div>
                   <div className="mt-10">
                     <Link href="/signup/venue" className="inline-flex w-full max-w-[280px] items-center justify-center px-7 py-3.5 bg-accent text-white text-sm font-semibold tracking-wider uppercase rounded-sm hover:bg-accent-hover transition-colors">
