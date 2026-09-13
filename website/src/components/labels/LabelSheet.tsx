@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import QRLabel from "./QRLabel";
-import { getEffectiveLabelDims, type LabelSize, type LabelStyle } from "./QRLabel";
+import { mm, sheetLayout, toLabelSize, type LabelSize, type LabelStyle } from "./label-layout";
 import { generateQRDataURL } from "@/lib/qr";
 
 export interface LabelData {
@@ -16,6 +16,9 @@ export interface LabelData {
   workId?: string;
   workMedium?: string;
   workDimensions?: string;
+  /** The work's own sizes the preview offers to print, physical sizes only
+   *  (never an image's pixel size). */
+  sizeOptions?: string[];
   workPrice?: string;
   venueName?: string;
   /** Real venue_profiles.slug, used by the QR redirect to look up
@@ -46,9 +49,7 @@ interface LabelSheetProps {
   labels: LabelData[];
   labelVisibility?: LabelVisibility[];
   pageIndex?: number; // If provided, render only this page (0-based)
-  /** Optional Premium+ theme id, applied to every label on the sheet.
-   *  Caller (the labels page) reads it off the artist profile and
-   *  passes it through; left undefined for Core (default classic). */
+  /** Colour theme id, applied to every label on the sheet. */
   labelTheme?: string;
 }
 
@@ -102,33 +103,17 @@ export default function LabelSheet({ labels, labelVisibility, pageIndex, labelTh
     );
   }
 
-  // Determine size + style from first label. Editorial flips to
-  // portrait dimensions, so the grid template uses effective dims
-  // rather than the raw landscape numbers in LABEL_SIZES.
-  const currentSize = labels[0]?.labelSize || "medium";
+  // The preview applies one size and one style to every label, so the whole
+  // sheet shares one grid, worked out from the real label dimensions so that
+  // no combination runs off the page.
+  const currentSize = toLabelSize(labels[0]?.labelSize ?? "medium");
   const currentStyle: LabelStyle = labels[0]?.labelStyle || "minimal";
-  const effective = getEffectiveLabelDims(currentSize, currentStyle);
-  const perPage = effective.perPage;
-  // Portrait editorial cards are narrower → fit one extra column on
-  // medium / large. Micro / xlarge keep their original layout because
-  // we don't swap dims for them (micro is square, xlarge editorial
-  // would be too tall for A4).
-  const isEditorialPortrait = currentStyle === "editorial" && currentSize !== "micro";
-  const cols = currentSize === "micro"
-    ? 8
-    : currentSize === "xlarge"
-      ? 1
-      : isEditorialPortrait && (currentSize === "large" || currentSize === "medium")
-        ? 3
-        : currentSize === "large"
-          ? 2
-          : 2;
-  const rows = Math.ceil(perPage / cols);
+  const layout = sheetLayout(currentSize, currentStyle);
 
   // Split into pages
   const pages: typeof expandedLabels[] = [];
-  for (let i = 0; i < expandedLabels.length; i += perPage) {
-    pages.push(expandedLabels.slice(i, i + perPage));
+  for (let i = 0; i < expandedLabels.length; i += layout.perPage) {
+    pages.push(expandedLabels.slice(i, i + layout.perPage));
   }
 
   const pagesToRender = pageIndex !== undefined ? [pages[pageIndex]].filter(Boolean) : pages;
@@ -142,8 +127,8 @@ export default function LabelSheet({ labels, labelVisibility, pageIndex, labelTh
             key={actualPageIndex}
             style={{
               display: "grid",
-              gridTemplateColumns: `repeat(${cols}, ${effective.width})`,
-              gridTemplateRows: `repeat(${rows}, ${effective.height})`,
+              gridTemplateColumns: `repeat(${layout.cols}, ${mm(layout.widthMm)})`,
+              gridTemplateRows: `repeat(${layout.rows}, ${mm(layout.heightMm)})`,
               gap: "0mm",
               justifyContent: "center",
             }}
@@ -161,7 +146,7 @@ export default function LabelSheet({ labels, labelVisibility, pageIndex, labelTh
                   qrDataUrl={qrUrls[item.uniqueIndex] || ""}
                   isPortfolioLabel={item.label.isPortfolioLabel}
                   labelSize={currentSize}
-                  labelStyle={item.label.labelStyle}
+                  labelStyle={currentStyle}
                   tagline={item.label.tagline}
                   showMedium={vis ? vis.medium : true}
                   showDimensions={vis ? vis.dimensions : true}

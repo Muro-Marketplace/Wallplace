@@ -150,7 +150,7 @@ img {
 
   /* Each A4 page is its own print page */
   .label-page {
-    width: 210mm !important;
+    width: 190mm !important; /* 210mm - 2*10mm margin from @page */
     height: 277mm !important; /* 297mm - 2*10mm margin from @page */
     padding: 0 !important;
     margin: 0 !important;

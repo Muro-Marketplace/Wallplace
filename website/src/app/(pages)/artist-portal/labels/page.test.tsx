@@ -6,7 +6,7 @@
 // saves the artist's pick as their new default via mutate().
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
 const { mutateMock, authFetchMock, showToastMock, artistState, labelPreviewProps } = vi.hoisted(() => ({
   mutateMock: vi.fn(),
@@ -44,6 +44,7 @@ vi.mock("@/components/labels/LabelPreview", () => ({
 import LabelsPage from "./page";
 import { artists } from "@/data/artists";
 import { clearPortalGetCache } from "@/lib/portal-get";
+import { _resetFeedbackBubbleVisibility, isFeedbackBubbleHidden } from "@/lib/ui/feedback-bubble-visibility";
 
 afterEach(() => cleanup());
 beforeEach(() => {
@@ -128,5 +129,85 @@ describe("artist labels page — label colour picker (owner decision 2026-09-02)
 
     await waitFor(() => expect(showToastMock).toHaveBeenCalled());
     expect(screen.getByRole("button", { name: "Accent" }).getAttribute("aria-pressed")).toBe("true");
+  });
+});
+
+// Owner report 13 September 2026: "QR Only" was offered as a size, pixel sizes
+// reached printed labels, the style cards were crushed, and the Feedback button
+// covered Preview & Print.
+describe("artist labels page: styles, sizes and the action bar (owner report 13 September 2026)", () => {
+  beforeEach(() => _resetFeedbackBubbleVisibility());
+
+  const styleGroup = () => screen.getByRole("group", { name: "Label style" });
+  const sizeGroup = () => screen.getByRole("group", { name: "Label size" });
+
+  it("offers QR Only as a style, and only Small to Extra Large as sizes", async () => {
+    render(<LabelsPage />);
+    await screen.findByText("QR Labels");
+    expect(within(styleGroup()).getByRole("button", { name: /^QR Only/ })).toBeTruthy();
+    expect(within(sizeGroup()).getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Small",
+      "Medium",
+      "Large",
+      "Extra Large",
+    ]);
+  });
+
+  it("never passes a pixel size to the preview, and offers each work's own sizes", async () => {
+    const base = artists[0];
+    artistState.artist = {
+      ...base,
+      subscriptionPlan: "core",
+      works: [
+        {
+          ...base.works[0],
+          id: "w1",
+          title: "Pixel Work",
+          dimensions: "4869 × 3246 px",
+          pricing: [
+            { label: "A4", price: 30 },
+            { label: "4869 × 3246 px", price: 40 },
+            { label: "A3", price: 50 },
+          ],
+        },
+      ],
+    };
+    render(<LabelsPage />);
+    await screen.findByText("QR Labels");
+    fireEvent.click(screen.getByText("Print →"));
+
+    const props = labelPreviewProps.at(-1)!;
+    const [work] = props.labels as Array<Record<string, unknown>>;
+    expect(work.workDimensions).toBeUndefined();
+    expect(work.sizeOptions).toEqual(["A4", "A3"]);
+    expect(props).not.toHaveProperty("availableSizes");
+  });
+
+  it("keeps a style and size chosen in the preview once it closes", async () => {
+    render(<LabelsPage />);
+    await screen.findByText("QR Labels");
+    openPreview();
+
+    const props = labelPreviewProps.at(-1)!;
+    act(() => {
+      (props.onLabelStyleChange as (style: string) => void)("qr_only");
+      (props.onLabelSizeChange as (size: string) => void)("large");
+    });
+    expect(within(styleGroup()).getByRole("button", { name: /^QR Only/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(sizeGroup()).getByRole("button", { name: "Large" }).getAttribute("aria-pressed")).toBe("true");
+    expect(typeof props.onLabelThemeChange).toBe("function");
+  });
+
+  it("hides the Feedback button while the Preview & Print bar is on screen", async () => {
+    render(<LabelsPage />);
+    await screen.findByText("QR Labels");
+    expect(isFeedbackBubbleHidden()).toBe(false);
+
+    fireEvent.click(screen.getAllByText("+")[0]);
+    expect(await screen.findByText("Preview & Print")).toBeTruthy();
+    expect(isFeedbackBubbleHidden()).toBe(true);
+
+    fireEvent.click(screen.getByText("Clear"));
+    await waitFor(() => expect(isFeedbackBubbleHidden()).toBe(false));
   });
 });
