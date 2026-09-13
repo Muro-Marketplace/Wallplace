@@ -48,6 +48,9 @@ function postKey(work: ArtistWork): string {
     // recorded as persisted: the editor showed the new value and nothing saved.
     revenueShareOverride: work.revenueShareOverride ?? null,
     paidLoanMonthlyGbp: work.paidLoanMonthlyGbp ?? null,
+    // Migration 149, for the same reason: a change to a tick alone must post.
+    openToRevenueShareOverride: work.openToRevenueShareOverride ?? null,
+    openToFreeLoanOverride: work.openToFreeLoanOverride ?? null,
   });
 }
 

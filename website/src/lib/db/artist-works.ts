@@ -90,11 +90,12 @@ export async function upsertWork(
     "shipping_price",
     "in_store_price",
     "quantity_available",
-    // Migration 148. Listed here so a write that reaches a database without
-    // the columns drops them and saves the rest, instead of failing the core
-    // write that would otherwise still carry them.
+    // Migrations 148 and 149. Listed here so a write that reaches a database
+    // without the columns drops them and saves the rest, instead of failing the
+    // core write that would otherwise still carry them.
     "revenue_share_percent",
-    "paid_loan_monthly_gbp",
+    "open_to_revenue_share",
+    "open_to_free_loan",
   ] as const;
 
   const coreRow: Record<string, unknown> = { ...row };

@@ -127,6 +127,9 @@ export interface DbArtistWork {
     placedSizeLabel: string | null;
   } | null;
   current_placement_id?: string | null;
+  /** Migration 149: null follows the profile's tick. */
+  open_to_revenue_share?: boolean | null;
+  open_to_free_loan?: boolean | null;
 }
 
 /** Convert a DB profile row + works to the Artist shape used everywhere in the app */

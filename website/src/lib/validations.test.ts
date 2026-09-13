@@ -516,11 +516,37 @@ describe("artistWorkInputSchema: per-work terms (migration 148)", () => {
     }
   });
 
-  it("holds a listed fee to the paid loan floor and the £100,000 cap", () => {
-    expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: PAID_LOAN_MIN_GBP }).success).toBe(true);
-    expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: 42.5 }).success).toBe(true);
-    expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: null }).success).toBe(true);
-    expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: PAID_LOAN_MIN_GBP - 1 }).success).toBe(false);
-    expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: 100_001 }).success).toBe(false);
+  it("still accepts the retired work-level fee, so an old tab cannot fail a save", () => {
+    for (const value of [40, 5, null]) {
+      expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: value }).success).toBe(true);
+    }
+  });
+});
+
+describe("artistWorkInputSchema: per-work ticks and per-size fees (migration 149)", () => {
+  const work = { id: "w_1", title: "Harbour Light", image: "https://example.com/x.jpg" };
+
+  it("accepts either tick as true, false or null, and nothing else", () => {
+    for (const value of [true, false, null]) {
+      expect(
+        artistWorkInputSchema.safeParse({ ...work, openToRevenueShareOverride: value, openToFreeLoanOverride: value }).success,
+      ).toBe(true);
+    }
+    expect(artistWorkInputSchema.safeParse({ ...work, openToFreeLoanOverride: "yes" }).success).toBe(false);
+  });
+
+  it("keeps a per-size fee, which z.object would otherwise strip", () => {
+    const pricing = [
+      { label: "A4", price: 120, paidLoanMonthlyGbp: 42.5 },
+      { label: "A3", price: 240, paidLoanMonthlyGbp: null },
+    ];
+    expect(artistWorkInputSchema.parse({ ...work, pricing }).pricing).toEqual(pricing);
+  });
+
+  it("holds a per-size fee to the paid loan floor and the £100,000 cap", () => {
+    const withFee = (fee: number) => ({ ...work, pricing: [{ label: "A4", price: 120, paidLoanMonthlyGbp: fee }] });
+    expect(artistWorkInputSchema.safeParse(withFee(PAID_LOAN_MIN_GBP)).success).toBe(true);
+    expect(artistWorkInputSchema.safeParse(withFee(PAID_LOAN_MIN_GBP - 1)).success).toBe(false);
+    expect(artistWorkInputSchema.safeParse(withFee(100_001)).success).toBe(false);
   });
 });

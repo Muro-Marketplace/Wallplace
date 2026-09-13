@@ -41,3 +41,19 @@ describe("dbProfileToArtist: per-work terms (migration 148)", () => {
     expect(artist.works[0].paidLoanMonthlyGbp).toBeNull();
   });
 });
+
+describe("dbProfileToArtist: per-work ticks and per-size fees (migration 149)", () => {
+  it("carries both ticks, and null for a work that follows its profile", () => {
+    const [own, follows] = dbProfileToArtist(profile, [
+      { ...row, open_to_revenue_share: false, open_to_free_loan: true },
+      { ...row, id: "w2" },
+    ]).works;
+    expect(own).toMatchObject({ openToRevenueShareOverride: false, openToFreeLoanOverride: true });
+    expect(follows).toMatchObject({ openToRevenueShareOverride: null, openToFreeLoanOverride: null });
+  });
+
+  it("keeps a per-size fee on the pricing tier", () => {
+    const pricing = [{ label: "A4", price: 120, paidLoanMonthlyGbp: 30 }];
+    expect(dbProfileToArtist(profile, [{ ...row, pricing }]).works[0].pricing).toEqual(pricing);
+  });
+});

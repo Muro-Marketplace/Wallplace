@@ -69,3 +69,22 @@ describe("worksToPost: per-work terms (migration 148)", () => {
     expect(worksToPost([w("b", { paidLoanMonthlyGbp: null })], [w("b")])).toEqual([]);
   });
 });
+
+describe("worksToPost: per-work ticks and per-size fees (migration 149)", () => {
+  it("posts a work whose only change is a tick", () => {
+    expect(worksToPost([w("a", { openToFreeLoanOverride: false })], [w("a")]).map((x) => x.work.id)).toEqual(["a"]);
+    expect(
+      worksToPost([w("b", { openToRevenueShareOverride: true })], [w("b", { openToRevenueShareOverride: null })]).map((x) => x.work.id),
+    ).toEqual(["b"]);
+  });
+
+  it("posts a work whose only change is one size's fee", () => {
+    const before = w("a", { pricing: [{ label: "S", price: 10 }] });
+    const after = w("a", { pricing: [{ label: "S", price: 10, paidLoanMonthlyGbp: 40 }] });
+    expect(worksToPost([after], [before]).map((x) => x.work.id)).toEqual(["a"]);
+  });
+
+  it("treats a missing tick and a null one alike", () => {
+    expect(worksToPost([w("a", { openToFreeLoanOverride: null })], [w("a")])).toEqual([]);
+  });
+});
