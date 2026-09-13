@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -20,6 +20,8 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { ARRANGEMENT_LABEL } from "@/lib/arrangement-labels";
+import { MIXED_TERMS_NOTE, type ArtistTermsInput } from "@/lib/work-terms";
+import { venueStartingTerms } from "./venue-starting-terms";
 
 function formatSlug(slug: string): string {
   if (!slug) return "";
@@ -86,7 +88,11 @@ interface ArtistWork {
   medium: string;
   priceBand: string;
   dimensions?: string;
-  pricing?: { label: string; price: number }[];
+  pricing?: { label: string; price: number; paidLoanMonthlyGbp?: number | null }[];
+  /** The work's own terms (migrations 148 and 149), from /api/browse-artists. */
+  revenueShareOverride?: number | null;
+  openToRevenueShareOverride?: boolean | null;
+  openToFreeLoanOverride?: boolean | null;
 }
 
 const statusBadge = (status: string) => statusBadgeClass(sharedNormaliseStatus(status));
@@ -346,13 +352,21 @@ export default function VenuePlacementsPage() {
   const [artistSlug, setArtistSlug] = useState("");
   const [artistName, setArtistName] = useState("");
   const [artistWorks, setArtistWorks] = useState<ArtistWork[]>([]);
+  const [artistTerms, setArtistTerms] = useState<ArtistTermsInput>({});
   // Map of work title → chosen size label. Empty string means "any
   // size" (venue has no preference). A work is selected iff it appears
   // as a key in this map.
   const [selectedWorkSizes, setSelectedWorkSizes] = useState<Record<string, string>>({});
   // Which work's size picker popover is currently open, if any.
   const [sizePickerFor, setSizePickerFor] = useState<string | null>(null);
-  const [revenuePercent, setRevenuePercent] = useState<number | "">(0);
+  // Per-size loan fees spec: the share starts at the ticked works' advertised
+  // terms until the venue types its own; null means not typed yet.
+  const [revenuePercentInput, setRevenuePercentInput] = useState<number | "" | null>(null);
+  const startingTerms = useMemo(
+    () => venueStartingTerms(artistWorks, selectedWorkSizes, artistTerms),
+    [artistWorks, selectedWorkSizes, artistTerms],
+  );
+  const revenuePercent: number | "" = revenuePercentInput ?? startingTerms.revenueSharePercent ?? 0;
   const [qrEnabled, setQrEnabled] = useState(true);
   const [monthlyFee, setMonthlyFee] = useState<number | "">("");
   // "Paid loan" toggle is now independent of the fee input so the user
@@ -376,6 +390,7 @@ export default function VenuePlacementsPage() {
     // not just the first. Falls back to `work` when only one piece
     // was passed (lightbox Request-Placement button).
     const paramWorks = searchParams.get("works");
+    const paramSize = searchParams.get("size");
 
     if (paramArtist) {
       setArtistSlug(paramArtist);
@@ -392,10 +407,12 @@ export default function VenuePlacementsPage() {
       if (titles.length > 0) {
         const next: Record<string, string> = {};
         for (const t of titles) next[t] = "";
+        // The work page passes the size the visitor had selected.
+        if (titles.length === 1 && paramSize) next[titles[0]] = paramSize;
         setSelectedWorkSizes(next);
-        // Only auto-pop the size picker on a single-work entry; with
-        // multiple it just clutters the screen.
-        if (titles.length === 1) setSizePickerFor(titles[0]);
+        // Only auto-pop the size picker on a single-work entry with no size
+        // chosen yet; with multiple it just clutters the screen.
+        if (titles.length === 1 && !paramSize) setSizePickerFor(titles[0]);
       }
 
       // Load artist's full portfolio
@@ -420,7 +437,15 @@ export default function VenuePlacementsPage() {
           priceBand: w.priceBand,
           dimensions: w.dimensions,
           pricing: Array.isArray(w.pricing) ? w.pricing : undefined,
+          revenueShareOverride: w.revenueShareOverride ?? null,
+          openToRevenueShareOverride: w.openToRevenueShareOverride ?? null,
+          openToFreeLoanOverride: w.openToFreeLoanOverride ?? null,
         })));
+        setArtistTerms({
+          revenueSharePercent: artist.revenueSharePercent ?? null,
+          openToRevenueShare: artist.openToRevenueShare ?? true,
+          openToFreeLoan: artist.openToFreeLoan ?? true,
+        });
         if (!artistName && artist.name) setArtistName(artist.name);
       } else if (preselectedWork) {
         // Fallback: at least show the pre-selected work
@@ -703,7 +728,7 @@ export default function VenuePlacementsPage() {
       setSelectedWorkSizes({});
       setSizePickerFor(null);
       setMessage("");
-      setRevenuePercent(0);
+      setRevenuePercentInput(null);
     } catch (err) {
       if (err instanceof ApiError) {
         setSubmitError(err.message || "Could not send request. Please try again.");
@@ -1008,13 +1033,14 @@ export default function VenuePlacementsPage() {
                     onChange={(e) => {
                       const on = e.target.checked;
                       setPaidLoanEnabled(on);
-                      // Seed a sensible default the first time the user
-                      // turns paid loan on. Don't overwrite an existing
+                      // Seed the ticked works' listed fees for their chosen
+                      // sizes, or £50 when none is listed, the first time the
+                      // user turns paid loan on. Don't overwrite an existing
                       // value; don't zero them out when turning it off
                       // either, keeps the field state predictable while
                       // they toggle back and forth.
                       if (on && (monthlyFee === "" || monthlyFee === 0)) {
-                        setMonthlyFee(50);
+                        setMonthlyFee(startingTerms.monthlyFeeGbp ?? 50);
                       }
                     }}
                     className="mt-0.5 accent-accent"
@@ -1051,6 +1077,12 @@ export default function VenuePlacementsPage() {
               )}
             </div>
 
+            {startingTerms.mixed && (qrEnabled || paidLoanEnabled) && (
+              <p role="note" className="text-xs text-muted">
+                {MIXED_TERMS_NOTE}
+              </p>
+            )}
+
             {/* Revenue share (only relevant when QR is on) */}
             {qrEnabled && (
               <div>
@@ -1065,15 +1097,15 @@ export default function VenuePlacementsPage() {
                     value={revenuePercent}
                     onChange={(e) => {
                       const v = e.target.value;
-                      if (v === "") { setRevenuePercent(""); return; }
+                      if (v === "") { setRevenuePercentInput(""); return; }
                       const n = Number(v);
                       if (Number.isNaN(n)) return;
                       // Clamp on the way in so users can't type negative or
                       // out-of-range values via the keyboard, the HTML
                       // min/max only constrain the spinner.
-                      setRevenuePercent(Math.max(0, Math.min(100, Math.round(n))));
+                      setRevenuePercentInput(Math.max(0, Math.min(100, Math.round(n))));
                     }}
-                    onBlur={() => { if (revenuePercent === "") setRevenuePercent(0); }}
+                    onBlur={() => { if (revenuePercent === "") setRevenuePercentInput(0); }}
                     className="w-20 bg-background border border-border rounded-sm px-3 py-3 text-sm text-center focus:outline-none focus:border-accent/60"
                   />
                   <span className="text-sm text-muted">% to the venue on sales</span>
