@@ -27,7 +27,9 @@ interface ArtistWorkLite {
   dimensions?: string | null;
   medium?: string | null;
   revenue_share_percent?: number | string | null;
-  paid_loan_monthly_gbp?: number | string | null;
+  open_to_revenue_share?: boolean | null;
+  open_to_free_loan?: boolean | null;
+  pricing?: unknown;
 }
 
 interface DemandVenue {

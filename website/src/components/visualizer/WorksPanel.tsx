@@ -32,6 +32,7 @@ import type {
 import type { VisualizerMode } from "@/lib/visualizer/types";
 import { formatDimensionsForDisplay } from "@/lib/format-dimensions";
 import ImageWithFallback from "@/components/ImageWithFallback";
+import type { LoanFeeSize } from "@/lib/work-terms";
 
 export interface PanelWork {
   id: string;
@@ -48,8 +49,13 @@ export interface PanelWork {
   /** Intended orientation, used to align the picked size to the
    *  artwork's actual rotation when pricing labels disagree. */
   orientation?: WorkOrientation;
-  /** Migration 148: the work's own revenue share and listed paid loan fee. */
+  /** The work's own terms (migrations 148 and 149), read through src/lib/work-terms.ts. */
   revenueShareOverride?: number | null;
+  openToRevenueShareOverride?: boolean | null;
+  openToFreeLoanOverride?: boolean | null;
+  /** Each size's listed monthly paid loan fee. */
+  pricing?: LoanFeeSize[];
+  /** Migration 148's single fee. Removed in task 11. */
   paidLoanMonthlyGbp?: number | null;
 }
 

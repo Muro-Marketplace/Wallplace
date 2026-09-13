@@ -251,18 +251,27 @@ export default function PlacementsPage() {
   const [qrEnabled, setQrEnabled] = useState(true);
   const [monthlyFee, setMonthlyFee] = useState<number | "">("");
   const [selectedWorks, setSelectedWorks] = useState<Set<number>>(new Set());
+  const [workSizes, setWorkSizes] = useState<Record<number, string>>({});
   const suggestedTerms = useMemo(
     () =>
       initialPlacementTerms(
         Array.from(selectedWorks)
-          .map((i) => artist?.works[i])
-          .filter((w): w is NonNullable<typeof w> => !!w),
-        { revenueSharePercent: artist?.revenueSharePercent ?? null },
+          .map((i) => {
+            const work = artist?.works[i];
+            // Per-size loan fees spec: the fee follows the size picked for each
+            // work, or its lowest listed fee for "Any size".
+            return work ? { ...work, sizeLabel: workSizes[i] || null } : null;
+          })
+          .filter((w): w is NonNullable<typeof w> => w !== null),
+        {
+          revenueSharePercent: artist?.revenueSharePercent ?? null,
+          openToRevenueShare: artist?.openToRevenueShare ?? true,
+          openToFreeLoan: artist?.openToFreeLoan ?? true,
+        },
       ),
-    [selectedWorks, artist],
+    [selectedWorks, workSizes, artist],
   );
   const revenuePercent: number | "" = revenuePercentInput ?? suggestedTerms.revenueSharePercent ?? 10;
-  const [workSizes, setWorkSizes] = useState<Record<number, string>>({});
   // Which card's size picker is currently open. Only one picker can be
   // open at a time so the dropdowns don't overlap each other's bounds.
   const [sizePickerFor, setSizePickerFor] = useState<number | null>(null);

@@ -49,7 +49,7 @@ import { physicalSizeLabel } from "@/lib/physical-size";
 import {
   MIXED_TERMS_NOTE,
   initialPlacementTerms,
-  workTermsFromRow,
+  workTermsSourceFromRow,
   type ArtistTermsPayload,
 } from "@/lib/work-terms";
 
@@ -59,9 +59,12 @@ interface ArtistWork {
   image: string;
   dimensions?: string | null;
   medium?: string | null;
-  /** Raw artist_works columns (migration 148), as GET /api/artist-works returns them. */
+  /** Raw artist_works columns (migrations 148 and 149), as GET /api/artist-works returns them. */
   revenue_share_percent?: number | string | null;
-  paid_loan_monthly_gbp?: number | string | null;
+  open_to_revenue_share?: boolean | null;
+  open_to_free_loan?: boolean | null;
+  /** Raw pricing tiers; each may carry its own paidLoanMonthlyGbp. */
+  pricing?: unknown;
 }
 
 export type Arrangement = "revenue_share" | "free_loan" | "purchase";
@@ -183,8 +186,14 @@ export default function SpacesPlacementRequestForm({
   const suggestedTerms = useMemo(
     () =>
       initialPlacementTerms(
-        selectedWorks.map((w) => workTermsFromRow(w as unknown as Record<string, unknown>)),
-        { revenueSharePercent: artistTerms?.revenueSharePercent ?? null },
+        // Per-size loan fees spec: no size is chosen in this form, so each work
+        // starts from its lowest listed fee.
+        selectedWorks.map((w) => workTermsSourceFromRow(w as unknown as Record<string, unknown>)),
+        {
+          revenueSharePercent: artistTerms?.revenueSharePercent ?? null,
+          openToRevenueShare: artistTerms?.openToRevenueShare ?? true,
+          openToFreeLoan: artistTerms?.openToFreeLoan ?? true,
+        },
       ),
     [selectedWorks, artistTerms],
   );

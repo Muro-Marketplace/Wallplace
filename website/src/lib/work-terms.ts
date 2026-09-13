@@ -147,8 +147,14 @@ export function loanFeeSizesFromRow(pricing: unknown): LoanFeeSize[] {
     }));
 }
 
-/** A raw row as a whole terms source, for the forms that hold raw rows. */
-export function workTermsSourceFromRow(row: Record<string, unknown>): WorkTermsInput {
+/**
+ * A raw row as a whole terms source, for the forms that hold raw rows. `pricing`
+ * is always an array here, so the result also fits types that require one,
+ * such as the visualiser's PanelWork.
+ */
+export function workTermsSourceFromRow(
+  row: Record<string, unknown>,
+): ReturnType<typeof workTermsFromRow> & { pricing: LoanFeeSize[] } {
   return { ...workTermsFromRow(row), pricing: loanFeeSizesFromRow(row.pricing) };
 }
 
