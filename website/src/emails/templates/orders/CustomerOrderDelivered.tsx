@@ -25,8 +25,8 @@ export function CustomerOrderDelivered(p: CustomerOrderDeliveredProps) {
       <H1>It&rsquo;s arrived</H1>
       <P>
         Hi {p.firstName}, your order <strong>{p.orderNumber}</strong> was marked as
-        delivered on {p.deliveredAt}. Tap below to confirm it arrived in good order so we
-        can release payment to the artist.
+        delivered on {p.deliveredAt}. Tap below to confirm it arrived in good order, or let
+        us know if something is wrong.
       </P>
       {p.workImage && (
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: "1px solid #E5E2DD", borderBottom: "1px solid #E5E2DD", margin: "12px 0" }}>

@@ -47,15 +47,15 @@ type RefundRequest = RefundRequestRow & {
   resolved_reason?: string;
 };
 
-// E21. The `shipped → delivered` action is gone, not disabled. Confirming
-// delivery releases the 14-day escrow hold, so the seller cannot attest it: the
-// API refuses it with a 403 and leaving the button would only produce an error
-// the artist cannot act on. The buyer confirms from the customer portal, and
-// support can force it via /api/admin/orders. An unconfirmed order still pays
-// out on the 14-day cron, which is the intended default.
+// Owner decision 13 September 2026: the artist can mark a shipped order delivered.
+// E21 had removed the action because the buyer's confirmation releases the 14-day
+// hold, but most buyers check out as guests and never confirm, which left orders at
+// shipped. The artist's mark moves the status and emails the buyer; it releases no
+// money early, so the payout keeps its hold.
 const statusActions: Record<string, { next: string; label: string; color: string }> = {
   confirmed: { next: "processing", label: "Mark as Processing", color: "bg-blue-600 hover:bg-blue-700" },
   processing: { next: "shipped", label: "Mark as Shipped", color: "bg-accent hover:bg-accent-hover" },
+  shipped: { next: "delivered", label: "Mark as Delivered", color: "bg-green-600 hover:bg-green-700" },
 };
 
 export default function ArtistOrdersPage() {
@@ -350,6 +350,11 @@ function ArtistOrdersContent() {
                   <input type="text" value={trackingInput} onChange={(e) => setTrackingInput(e.target.value)} placeholder="e.g. RM123456789GB" className="w-full px-3 py-2 bg-white border border-border rounded-sm text-sm focus:outline-none focus:border-accent/50" />
                   <p className="text-[11px] text-muted mt-1">Required for &pound;100+ orders (signed-for delivery).</p>
                 </div>
+              )}
+              {statusActions[selected.status].next === "delivered" && (
+                <p className="text-[11px] text-muted mb-3">
+                  We&apos;ll email the buyer to confirm it arrived. Your payout still releases on the usual 14-day schedule.
+                </p>
               )}
               <button
                 onClick={() => updateStatus(selected.id, statusActions[selected.status].next)}
