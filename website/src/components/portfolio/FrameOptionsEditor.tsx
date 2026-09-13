@@ -4,7 +4,13 @@ import Image from "next/image";
 import Dropdown from "@/components/Dropdown";
 import { uploadImage } from "@/lib/upload";
 import { frameUpliftFor } from "@/app/(pages)/browse/[slug]/[workSlug]/frame-uplift";
-import { STANDARD_FRAMES, getStandardFrame, frameSwatchDataUri } from "@/data/frame-catalogue";
+import {
+  STANDARD_FRAMES,
+  getStandardFrame,
+  standardFrameImageRef,
+  standardFrameForImage,
+  frameImageSrc,
+} from "@/data/frame-catalogue";
 
 /**
  * Frame options editor for the artist portfolio "Add / edit work" form.
@@ -57,14 +63,12 @@ const FINISH_LABEL: Record<string, string> = {
   metal: "Metal",
 };
 
-/** Reverse-lookup: which standard frame (if any) produced this imageUrl.
+/** Reverse-lookup: which standard frame (if any) this imageUrl names.
  *  Selection is derived from the data rather than tracked as separate
  *  UI state, so a work loaded from a saved draft shows the right
  *  dropdown choice with no extra field to keep in sync. */
 function standardIdForImage(imageUrl: string | undefined): string {
-  if (!imageUrl) return CUSTOM_FRAME_VALUE;
-  const match = STANDARD_FRAMES.find((f) => frameSwatchDataUri(f) === imageUrl);
-  return match ? match.id : CUSTOM_FRAME_VALUE;
+  return standardFrameForImage(imageUrl)?.id ?? CUSTOM_FRAME_VALUE;
 }
 
 export default function FrameOptionsEditor({
@@ -94,7 +98,8 @@ export default function FrameOptionsEditor({
     }
     const standard = getStandardFrame(value);
     if (!standard) return;
-    updateFrame(index, { label: standard.label, imageUrl: frameSwatchDataUri(standard) });
+    // The short reference, not the swatch: the swatch is too long to save.
+    updateFrame(index, { label: standard.label, imageUrl: standardFrameImageRef(standard) });
   }
 
   async function handleImageUpload(index: number, file: File) {
@@ -120,6 +125,7 @@ export default function FrameOptionsEditor({
           const selectedId = standardIdForImage(f.imageUrl);
           const isCustom = selectedId === CUSTOM_FRAME_VALUE;
           const defaultUplift = Number(f.priceUplift) || 0;
+          const previewSrc = frameImageSrc(f.imageUrl);
 
           return (
             <div key={i} className="space-y-2.5 border border-border/60 rounded-sm p-3">
@@ -161,8 +167,8 @@ export default function FrameOptionsEditor({
                       className="absolute inset-0 border border-dashed border-border flex items-center justify-center overflow-hidden bg-surface cursor-pointer hover:border-accent/60 transition-colors"
                       title={f.imageUrl ? "Replace image" : "Add image"}
                     >
-                      {f.imageUrl ? (
-                        <Image src={f.imageUrl} alt={f.label || "Frame preview"} fill sizes="84px" className="object-contain" />
+                      {previewSrc ? (
+                        <Image src={previewSrc} alt={f.label || "Frame preview"} fill sizes="84px" className="object-contain" />
                       ) : (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted">
                           <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -196,8 +202,8 @@ export default function FrameOptionsEditor({
                   </div>
                 ) : (
                   <div className="relative w-[72px] h-12 sm:w-[84px] sm:h-14 shrink-0 overflow-hidden bg-surface border border-border">
-                    {f.imageUrl && (
-                      <Image src={f.imageUrl} alt={f.label || "Frame preview"} fill sizes="84px" className="object-contain" />
+                    {previewSrc && (
+                      <Image src={previewSrc} alt={f.label || "Frame preview"} fill sizes="84px" className="object-contain" />
                     )}
                   </div>
                 )}

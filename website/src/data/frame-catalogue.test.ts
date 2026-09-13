@@ -4,7 +4,11 @@ import {
   getStandardFrame,
   frameSwatchDataUri,
   SWATCH_WALL_COLOUR,
+  standardFrameImageRef,
+  standardFrameForImage,
+  frameImageSrc,
 } from "./frame-catalogue";
+import { artistWorkInputSchema } from "@/lib/validations";
 
 const DATA_URI_PREFIX = "data:image/svg+xml;utf8,";
 
@@ -124,5 +128,44 @@ describe("frameSwatchDataUri", () => {
     for (const frame of STANDARD_FRAMES.filter((f) => !f.id.startsWith("floating"))) {
       expect(decode(frameSwatchDataUri(frame))).not.toMatch(/fill="#000000"/);
     }
+  });
+});
+
+// Owner report 13 September 2026: saving a work with Natural oak failed with
+// "frameOptions.0.imageUrl: Too big: expected string to have <=1000 characters".
+// The swatch data URI was the stored value, and 12 of the 15 frames' URIs run
+// past that limit (the wood frames reach 1,956). A work now stores a short
+// reference, and the swatch is drawn wherever the frame is shown.
+describe("the stored frame image (owner report 13 September 2026)", () => {
+  const walnut = getStandardFrame("walnut")!;
+
+  it("lets every standard frame save: its stored image passes the work's validation", () => {
+    const frameOptions = STANDARD_FRAMES.map((f) => ({
+      label: f.label,
+      priceUplift: 15,
+      imageUrl: standardFrameImageRef(f),
+    }));
+    const result = artistWorkInputSchema.shape.frameOptions.safeParse(frameOptions);
+    expect(result.success, JSON.stringify(result.error?.issues[0])).toBe(true);
+  });
+
+  it("draws the swatch for a stored standard frame", () => {
+    expect(frameImageSrc(standardFrameImageRef(walnut))).toBe(frameSwatchDataUri(walnut));
+  });
+
+  it("passes an uploaded photo's address through untouched", () => {
+    expect(frameImageSrc("https://cdn.example.com/frame.png")).toBe("https://cdn.example.com/frame.png");
+  });
+
+  it("gives no image for an unknown frame or an empty value", () => {
+    expect(frameImageSrc("frame:not-a-real-frame")).toBeUndefined();
+    expect(frameImageSrc(undefined)).toBeUndefined();
+    expect(frameImageSrc("")).toBeUndefined();
+  });
+
+  it("recognises a standard frame from its reference or from an older swatch data URI", () => {
+    expect(standardFrameForImage(standardFrameImageRef(walnut))?.id).toBe("walnut");
+    expect(standardFrameForImage(frameSwatchDataUri(walnut))?.id).toBe("walnut");
+    expect(standardFrameForImage("https://cdn.example.com/frame.png")).toBeUndefined();
   });
 });

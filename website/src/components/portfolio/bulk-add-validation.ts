@@ -9,6 +9,8 @@
  * draft a message the card can show, so only saved drafts leave the form.
  */
 
+import { firstUnnamedFrame } from "./frame-payload";
+
 /** The subset of BulkAddDraft the validation rules read. */
 export interface BulkAddDraftFields {
   draftId: string;
@@ -16,12 +18,14 @@ export interface BulkAddDraftFields {
   imageUrl: string;
   title: string;
   sizes: { label: string; price: number }[];
+  /** Frame rows on the draft. A priced frame without a name holds the draft back. */
+  frameOptions?: { label: string; priceUplift?: number | string }[];
 }
 
 /**
  * Why a draft cannot be saved yet, or null when it can. Mirrors the
  * save-time filter exactly: uploading, image, title, then at least one
- * priced size.
+ * priced size, then a name on every frame that has a price.
  */
 export function bulkAddDraftError(d: BulkAddDraftFields): string | null {
   if (d.uploading) {
@@ -33,7 +37,14 @@ export function bulkAddDraftError(d: BulkAddDraftFields): string | null {
   if (!d.sizes.some((s) => s.label && s.price > 0)) {
     missing.push("at least one size with a price above £0");
   }
-  if (missing.length === 0) return null;
+  if (missing.length === 0) {
+    // Owner report 13 September 2026: a frame with a price but no name was
+    // dropped on save without a word. Buyers choose a frame by its name.
+    const unnamed = firstUnnamedFrame(d.frameOptions);
+    return unnamed >= 0
+      ? `Frame option ${unnamed + 1} needs a name before this draft can be saved. Buyers choose a frame by its name.`
+      : null;
+  }
   const list =
     missing.length === 1
       ? missing[0]
