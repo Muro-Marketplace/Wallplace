@@ -22,6 +22,11 @@ export interface SizePricing {
       `inStorePricing[]` array that never persisted because the API
       didn't accept it and the DB had no column for it. */
   inStorePrice?: number | null;
+  /** Migration 149: the monthly fee to take this size on paid loan, in pounds.
+      Null or absent lists no fee for this size. Stored alongside `price` in
+      the `artist_works.pricing` JSON column. Read it through
+      src/lib/work-terms.ts. */
+  paidLoanMonthlyGbp?: number | null;
 }
 
 export interface ArtistWork {
@@ -89,6 +94,10 @@ export interface ArtistWork {
   /** Migration 148. The work's own revenue share, or null to use the artist's
    *  default. Read it through resolveWorkTerms in src/lib/work-terms.ts. */
   revenueShareOverride?: number | null;
+  /** Migration 149. Null follows the artist's profile; true or false is this
+   *  work's own setting. Read both through resolveWorkTerms. */
+  openToRevenueShareOverride?: boolean | null;
+  openToFreeLoanOverride?: boolean | null;
   /** Migration 148. Listed monthly paid loan fee in pounds, or null for none. */
   paidLoanMonthlyGbp?: number | null;
 }
