@@ -52,9 +52,16 @@ describe("bulkAddDraftError", () => {
     );
   });
 
-  it("a priced size with no label does not count", () => {
+  // Owner request 14 September 2026: a lone priced row with no name takes the
+  // artwork size (or "Original"), so an original needs only its size and price.
+  it("a single priced size with no name counts, named after the artwork", () => {
+    expect(bulkAddDraftError(draft({ sizes: [{ label: "", price: 50 }], dimensions: "70 × 50 cm" }))).toBeNull();
+    expect(bulkAddDraftError(draft({ sizes: [{ label: "", price: 50 }] }))).toBeNull();
+  });
+
+  it("several priced sizes still each need a name", () => {
     expect(
-      bulkAddDraftError(draft({ sizes: [{ label: "", price: 50 }] })),
+      bulkAddDraftError(draft({ sizes: [{ label: "", price: 50 }, { label: "", price: 80 }] })),
     ).toBe(
       "This draft needs at least one size with a price above £0 before it can be saved.",
     );

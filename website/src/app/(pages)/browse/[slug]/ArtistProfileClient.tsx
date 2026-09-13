@@ -24,6 +24,7 @@ import { physicalSizeLabel } from "@/lib/physical-size";
 import { frameUpliftFor } from "@/app/(pages)/browse/[slug]/[workSlug]/frame-uplift";
 import { formatPounds } from "@/lib/format-currency";
 import { frameImageSrc } from "@/data/frame-catalogue";
+import { oneOfOneLabel } from "@/lib/one-of-one";
 
 /** The venue, and the artwork if there is one, that a QR redirect put on the URL. */
 interface QrVenue {
@@ -1005,7 +1006,7 @@ export default function ArtistProfileClient({
                     <span className="w-2 h-2 rounded-full bg-accent" />
                     {typeof currentWork.quantityAvailable === "number"
                       ? currentWork.quantityAvailable > 0
-                        ? `${currentWork.quantityAvailable} left`
+                        ? (oneOfOneLabel(currentWork) ?? `${currentWork.quantityAvailable} left`)
                         : "Sold out"
                       : "Available"}
                   </span>

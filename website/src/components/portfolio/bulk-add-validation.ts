@@ -10,6 +10,7 @@
  */
 
 import { firstUnnamedFrame } from "./frame-payload";
+import { withSingleSizeLabel } from "./single-size-label";
 
 /** The subset of BulkAddDraft the validation rules read. */
 export interface BulkAddDraftFields {
@@ -18,6 +19,8 @@ export interface BulkAddDraftFields {
   imageUrl: string;
   title: string;
   sizes: { label: string; price: number }[];
+  /** The draft's artwork size. A lone unnamed priced size takes it as its name. */
+  dimensions?: string;
   /** Frame rows on the draft. A priced frame without a name holds the draft back. */
   frameOptions?: { label: string; priceUplift?: number | string }[];
 }
@@ -34,7 +37,7 @@ export function bulkAddDraftError(d: BulkAddDraftFields): string | null {
   const missing: string[] = [];
   if (!d.imageUrl) missing.push("an image");
   if (!d.title.trim()) missing.push("a title");
-  if (!d.sizes.some((s) => s.label && s.price > 0)) {
+  if (!withSingleSizeLabel(d.sizes, d.dimensions).some((s) => s.label && s.price > 0)) {
     missing.push("at least one size with a price above £0");
   }
   if (missing.length === 0) {

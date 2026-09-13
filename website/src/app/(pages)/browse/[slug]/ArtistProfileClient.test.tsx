@@ -446,3 +446,22 @@ describe("ArtistProfileClient lightbox frame preview (owner report 13 September 
     expect(preview.getAttribute("src")).toBe(frameSwatchDataUri(getStandardFrame("walnut")!));
   });
 });
+
+// Owner request 14 September 2026: the lightbox read "1 left" for a single painting.
+describe("ArtistProfileClient lightbox one-of-one wording (owner request 14 September 2026)", () => {
+  it("calls a one-size work with a quantity of 1 an original, one of one", async () => {
+    const original = {
+      ...WORK,
+      medium: "Oil on canvas",
+      quantityAvailable: 1,
+      pricing: [{ label: "70 × 50 cm", price: 1200 }],
+    };
+    render(
+      <ArtistProfileClient artistName="Alice" artistSlug="alice" extendedBio="" themes={[]} works={[original as never]} />,
+    );
+    fireEvent.click(screen.getByTitle("Quick look"));
+
+    expect(await screen.findByText("Original, one of one")).toBeTruthy();
+    expect(screen.queryByText("1 left")).toBeNull();
+  });
+});

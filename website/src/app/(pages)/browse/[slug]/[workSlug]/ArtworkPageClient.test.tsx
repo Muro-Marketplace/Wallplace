@@ -314,3 +314,19 @@ describe("Artwork page frame preview for a standard frame (owner report 13 Septe
     expect(preview.getAttribute("src")).toBe(frameSwatchDataUri(getStandardFrame("walnut")!));
   });
 });
+
+// Owner request 14 September 2026: a single painting read "1 available" and
+// "Only 1 left at this size" to buyers, which is print-shop copy.
+describe("Artwork page one-of-one wording (owner request 14 September 2026)", () => {
+  it("calls a one-size work with a quantity of 1 an original, one of one", () => {
+    const work = workWithPerSizeShipping();
+    work.medium = "Oil on canvas";
+    work.pricing = [{ label: "70 × 50 cm", price: 1200 }];
+    work.quantityAvailable = 1;
+    render(<ArtworkPageClient work={work} artistName="Alice Rivers" artistSlug="alice-rivers" />);
+
+    expect(screen.getByText("Original, one of one")).toBeTruthy();
+    expect(screen.queryByText("1 available")).toBeNull();
+    expect(screen.queryByText(/left at this size/)).toBeNull();
+  });
+});
