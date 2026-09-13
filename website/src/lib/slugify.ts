@@ -41,3 +41,15 @@ export function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+/**
+ * "fin-coles" -> "Fin Coles". A slug is a lookup key, not a name, so this is the
+ * readable fallback where no display name is stored. Empty for no slug.
+ */
+export function nameFromSlug(slug: string | null | undefined): string {
+  return (slug ?? "")
+    .split("-")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
