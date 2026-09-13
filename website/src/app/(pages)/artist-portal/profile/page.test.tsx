@@ -6,7 +6,7 @@
 // link. This pins that no inline editor opens and the dead keys are never written.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
 const { showToastMock, artistState, pushMock, mutateMock } = vi.hoisted(() => ({
   showToastMock: vi.fn(),
@@ -270,5 +270,39 @@ describe("Programmes opt-in (Wallplace Programmes phase 1)", () => {
 
     await waitFor(() => expect(mutateMock).toHaveBeenCalled());
     expect(savedBody().open_to_programme).toBe(false);
+  });
+});
+
+describe("Deal types use the application form's words (per-size loan fees spec)", () => {
+  const dealTypes = () => screen.getByText("Deal types").closest("div") as HTMLElement;
+  const toggleFor = (label: string) => {
+    const row = within(dealTypes()).getByText(label).closest("label");
+    if (!row) throw new Error(`${label} is not inside a toggle row`);
+    return row.querySelector("button") as HTMLButtonElement;
+  };
+
+  it("offers Revenue share, Paid loan and Direct purchase, and says works start from them", async () => {
+    render(<ProfileEditorPage />);
+    await screen.findByText("Deal types");
+    for (const label of ["Revenue share", "Paid loan", "Direct purchase"]) {
+      expect(within(dealTypes()).getByText(label)).toBeTruthy();
+    }
+    expect(within(dealTypes()).queryByText("Display (with optional revenue share)")).toBeNull();
+    expect(screen.getByText(/Every work starts with these/)).toBeTruthy();
+  });
+
+  it("shows the rate only while Revenue share is ticked, and saves the tick", async () => {
+    // artists[0] (James Okafor) is open to paid loan but not to revenue share.
+    render(<ProfileEditorPage />);
+    await screen.findByText("Deal types");
+    expect(screen.queryByText("Revenue share for venues (%)")).toBeNull();
+
+    fireEvent.click(toggleFor("Revenue share"));
+    expect(screen.getByText("Revenue share for venues (%)")).toBeTruthy();
+
+    fireEvent.click(screen.getAllByText("Save Changes")[0]);
+    await waitFor(() => expect(mutateMock).toHaveBeenCalled());
+    const body = JSON.parse((mutateMock.mock.calls.at(-1)?.[1] as { body: string }).body);
+    expect(body.open_to_revenue_share).toBe(true);
   });
 });
