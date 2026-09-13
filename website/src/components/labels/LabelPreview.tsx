@@ -36,9 +36,9 @@ function rowsWithData(label: LabelData): LabelVisibility {
 
 /**
  * Full-screen print preview. Style, size and colour can all be changed here as
- * well as on the labels page (owner report 13 September 2026), and the Medium,
- * Dimensions and Price tick boxes appear only on Editorial, the one style that
- * prints those rows, so a tick box never does nothing.
+ * well as on the labels page (owner report 13 September 2026). The Medium,
+ * Dimensions and Price tick boxes appear on Minimal and Editorial, which both
+ * print the rows ticked, and not on QR Only, which prints only the code.
  */
 export default function LabelPreview({
   labels: initialLabels,
@@ -71,7 +71,8 @@ export default function LabelPreview({
   const sizeName = LABEL_SIZES.find((s) => s.key === currentSize)?.label ?? currentSize;
   const layout = sheetLayout(currentSize, currentStyle);
   const pageCount = Math.ceil(totalCount / layout.perPage);
-  const printsRows = currentStyle === "editorial";
+  // QR Only prints nothing but the code, so it is the one style without tick boxes.
+  const printsRows = currentStyle !== "qr_only";
   const takesTagline = currentStyle !== "qr_only" && (currentSize === "large" || currentSize === "xlarge");
 
   function updateLabel(index: number, updates: Partial<LabelData>) {
@@ -92,9 +93,11 @@ export default function LabelPreview({
   function changeStyle(style: LabelStyle) {
     if (style === currentStyle) return;
     setLabels((prev) => prev.map((l) => ({ ...l, labelStyle: style })));
-    // Moving to Editorial shows every row a work has data for; the tick boxes
-    // then hide any of them.
+    // Each style starts from its defaults, as on the labels page: Editorial shows
+    // every row a work has data for, Minimal shows none. The tick boxes then
+    // change either.
     if (style === "editorial") setLabelVisibility(labels.map(rowsWithData));
+    if (style === "minimal") setLabelVisibility(labels.map(() => ({ medium: false, dimensions: false, price: false })));
     onLabelStyleChange?.(style);
   }
 
@@ -259,9 +262,9 @@ export default function LabelPreview({
                       </div>
                     )}
 
-                    {/* Only Editorial prints these rows, so only Editorial offers
-                        them. They flip visibility only, leaving the data intact so
-                        ticking again restores it. */}
+                    {/* Minimal and Editorial print the rows ticked here; QR Only
+                        prints none. They flip visibility only, leaving the data
+                        intact so ticking again restores it. */}
                     {!label.isPortfolioLabel && printsRows && (
                       <div className="flex flex-wrap gap-x-3 gap-y-1">
                         {ROWS.map(({ key, label: rowLabel }) => (

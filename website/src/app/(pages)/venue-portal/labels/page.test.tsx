@@ -116,13 +116,18 @@ describe("venue labels page: tick boxes, sizes and the action bar (owner report 
   const styleGroup = () => screen.getByRole("group", { name: "Label style" });
   const sizeGroup = () => screen.getByRole("group", { name: "Label size" });
 
-  it("shows the Medium, Dimensions and Price tick boxes only for Editorial, where they print", async () => {
+  // Owner follow-up, 13 September 2026: Minimal needs its tick boxes too; only QR
+  // Only, which prints nothing but the code, goes without.
+  it("shows the Medium, Dimensions and Price tick boxes for Minimal and Editorial, not QR Only", async () => {
     render(<VenueLabelsPage />);
     await screen.findByText("Sunset Over the Bay");
-    expect(screen.queryByRole("checkbox", { name: "Price" })).toBeNull();
+    expect(screen.getByRole("checkbox", { name: "Price" })).toBeTruthy();
 
     fireEvent.click(within(styleGroup()).getByRole("button", { name: /^Editorial/ }));
     expect(screen.getByRole("checkbox", { name: "Price" })).toBeTruthy();
+
+    fireEvent.click(within(styleGroup()).getByRole("button", { name: /^QR Only/ }));
+    expect(screen.queryByRole("checkbox", { name: "Price" })).toBeNull();
   });
 
   it("offers Small to Extra Large as sizes, with QR Only as a style", async () => {
@@ -150,6 +155,26 @@ describe("venue labels page: tick boxes, sizes and the action bar (owner report 
 
     act(() => (props.onLabelThemeChange as (id: string) => void)("dark"));
     expect(screen.getByRole("button", { name: "Dark" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  // Now Minimal prints ticked rows, a style changed in the preview must bring its
+  // tick boxes back too, or the next preview prints rows this one had cleared.
+  it("brings the tick boxes back from a style chosen in the preview, keeping the size", async () => {
+    render(<VenueLabelsPage />);
+    await screen.findByText("Sunset Over the Bay");
+    fireEvent.click(await screen.findByText("Preview & Print"));
+    const price = () => screen.getByRole("checkbox", { name: "Price" }) as HTMLInputElement;
+    const pressedSize = () =>
+      within(sizeGroup()).getAllByRole("button").find((b) => b.getAttribute("aria-pressed") === "true")?.textContent;
+    const sizeBefore = pressedSize();
+    expect(price().checked).toBe(false);
+
+    act(() => (labelPreviewProps.at(-1)!.onLabelStyleChange as (style: string) => void)("editorial"));
+    expect(price().checked).toBe(true);
+    expect(pressedSize()).toBe(sizeBefore);
+
+    act(() => (labelPreviewProps.at(-1)!.onLabelStyleChange as (style: string) => void)("minimal"));
+    expect(price().checked).toBe(false);
   });
 
   it("hides the Feedback button while the Preview & Print bar is on screen", async () => {

@@ -70,7 +70,26 @@ describe("<LabelPreview /> sidebar", () => {
     expect(screen.getByText("Medium · 35 × 35 mm")).toBeTruthy();
   });
 
-  it("offers Medium, Dimensions and Price only on Editorial, where they print, and they work there", async () => {
+  // Owner follow-up, 13 September 2026: hiding the tick boxes on Minimal left no
+  // way to add a row there. Minimal prints any row that is ticked; only QR Only,
+  // which prints nothing but the code, has no tick boxes.
+  it("offers the Medium, Dimensions and Price tick boxes on Minimal, and a ticked row prints", async () => {
+    render(
+      <LabelPreview
+        labels={[label({ labelStyle: "minimal" })]}
+        initialVisibility={[{ medium: false, dimensions: false, price: false }]}
+        onClose={() => {}}
+      />,
+    );
+    expect(within(await sheet()).queryByText("From £29.99")).toBeNull();
+
+    const price = within(card("Vietnamese Village")).getByRole("checkbox", { name: "Price" }) as HTMLInputElement;
+    expect(price.checked).toBe(false);
+    fireEvent.click(price);
+    expect(within(await sheet()).getByText("From £29.99")).toBeTruthy();
+  });
+
+  it("turns the rows on for Editorial, lets a tick box hide one, and offers none on QR Only", async () => {
     render(
       <LabelPreview
         labels={[label({ labelStyle: "minimal" })]}
@@ -79,16 +98,17 @@ describe("<LabelPreview /> sidebar", () => {
       />,
     );
     await sheet();
-    expect(within(card("Vietnamese Village")).queryByRole("checkbox")).toBeNull();
 
     fireEvent.click(within(styleGroup()).getByRole("button", { name: "Editorial" }));
     expect(within(await sheet()).getByText("From £29.99")).toBeTruthy();
     const price = within(card("Vietnamese Village")).getByRole("checkbox", { name: "Price" }) as HTMLInputElement;
     expect(price.checked).toBe(true);
-
     fireEvent.click(price);
     expect(within(await sheet()).queryByText("From £29.99")).toBeNull();
     expect(within(await sheet()).getByText("Photography Print")).toBeTruthy();
+
+    fireEvent.click(within(styleGroup()).getByRole("button", { name: "QR Only" }));
+    expect(within(card("Vietnamese Village")).queryByRole("checkbox")).toBeNull();
   });
 
   it("recolours the sheet from the sidebar and tells the page", async () => {

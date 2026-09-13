@@ -81,15 +81,29 @@ export default function VenueLabelsPage() {
     showDimensions: false,
     showPrice: false,
   });
-  function applyStyle(style: LabelStyle) {
-    setLabelStyle(style);
-    const cfg = LABEL_STYLES.find((s) => s.key === style);
-    if (cfg) setLabelSize(cfg.defaultSize);
+  // The tick boxes a style starts with: Editorial prints every row, Minimal none.
+  // QR Only prints no rows, so it leaves them as they are.
+  function applyStyleRows(style: LabelStyle) {
     if (style === "editorial") {
       setOptions({ showMedium: true, showDimensions: true, showPrice: true });
     } else if (style === "minimal") {
       setOptions({ showMedium: false, showDimensions: false, showPrice: false });
     }
+  }
+
+  function applyStyle(style: LabelStyle) {
+    setLabelStyle(style);
+    const cfg = LABEL_STYLES.find((s) => s.key === style);
+    if (cfg) setLabelSize(cfg.defaultSize);
+    applyStyleRows(style);
+  }
+
+  // A style picked in the preview keeps the size the preview is showing and
+  // takes the tick boxes the preview switched to, so opening it again prints
+  // what it last showed.
+  function applyPreviewStyle(style: LabelStyle) {
+    setLabelStyle(style);
+    applyStyleRows(style);
   }
   const [showPreview, setShowPreview] = useState(false);
   const [previewLabels, setPreviewLabels] = useState<LabelData[]>([]);
@@ -353,8 +367,8 @@ export default function VenueLabelsPage() {
                 </div>
               )}
 
-              {/* Only Editorial prints these rows, so only Editorial offers them. */}
-              {labelStyle === "editorial" && (
+              {/* Minimal and Editorial print the rows ticked here; QR Only prints only the code. */}
+              {labelStyle !== "qr_only" && (
                 <div className="mt-4">
                   <p className="text-[11px] text-muted leading-relaxed mb-2">
                     Hide a row from the printed label without removing the
@@ -572,7 +586,7 @@ export default function VenueLabelsPage() {
           initialVisibility={buildVisibility(previewLabels)}
           labelTheme={labelThemeId}
           onLabelThemeChange={setLabelThemeId}
-          onLabelStyleChange={setLabelStyle}
+          onLabelStyleChange={applyPreviewStyle}
           onLabelSizeChange={setLabelSize}
           onClose={() => setShowPreview(false)}
         />

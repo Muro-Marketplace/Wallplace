@@ -33,8 +33,9 @@ export default function LabelsPage() {
   const [selectedSizes, setSelectedSizes] = useState<Record<number, string>>({});
   const [showPreview, setShowPreview] = useState(false);
   const [previewLabels, setPreviewLabels] = useState<LabelData[]>([]);
+  // Minimal is the starting style, and it prints no rows until one is ticked.
   const [options, setOptions] = useState<LabelOptions>({
-    showMedium: true,
+    showMedium: false,
     showDimensions: false,
     showPrice: false,
   });
@@ -63,20 +64,31 @@ export default function LabelsPage() {
   // "minimal" matches the existing default size of medium.
   const [labelStyle, setLabelStyle] = useState<LabelStyle>("minimal");
 
-  function applyStyle(style: LabelStyle) {
-    // Style + size are independent now (per design feedback). Picking
-    // a style sets the *default* size for that style on first selection
-    // but doesn't override an explicit size the user has already
-    // chosen. Field toggles are always live so Editorial actually
-    // shows medium/dimensions/price.
-    setLabelStyle(style);
-    const cfg = LABEL_STYLES.find((s) => s.key === style);
-    if (cfg) setLabelSize(cfg.defaultSize);
+  // The tick boxes a style starts with: Editorial prints every row, Minimal none.
+  // QR Only prints no rows, so it leaves them as they are.
+  function applyStyleRows(style: LabelStyle) {
     if (style === "editorial") {
       setOptions({ showMedium: true, showDimensions: true, showPrice: true });
     } else if (style === "minimal") {
       setOptions({ showMedium: false, showDimensions: false, showPrice: false });
     }
+  }
+
+  function applyStyle(style: LabelStyle) {
+    // Picking a style here also moves to that style's default size, which the
+    // size picker can then change.
+    setLabelStyle(style);
+    const cfg = LABEL_STYLES.find((s) => s.key === style);
+    if (cfg) setLabelSize(cfg.defaultSize);
+    applyStyleRows(style);
+  }
+
+  // A style picked in the preview keeps the size the preview is showing and
+  // takes the tick boxes the preview switched to, so opening it again prints
+  // what it last showed.
+  function applyPreviewStyle(style: LabelStyle) {
+    setLabelStyle(style);
+    applyStyleRows(style);
   }
 
   // Pre-select venue and works from query params (from placement QR
@@ -320,8 +332,8 @@ export default function LabelsPage() {
             </div>
           )}
 
-          {/* Only Editorial prints these rows, so only Editorial offers them. */}
-          {labelStyle === "editorial" && (
+          {/* Minimal and Editorial print the rows ticked here; QR Only prints only the code. */}
+          {labelStyle !== "qr_only" && (
             <div className="mt-4">
               <p className="text-[11px] text-muted leading-relaxed mb-2">
                 Hide a row from the printed label without removing the
@@ -578,7 +590,7 @@ export default function LabelsPage() {
           initialVisibility={buildVisibility(previewLabels)}
           labelTheme={labelThemeId}
           onLabelThemeChange={handleLabelThemeChange}
-          onLabelStyleChange={setLabelStyle}
+          onLabelStyleChange={applyPreviewStyle}
           onLabelSizeChange={setLabelSize}
           onClose={() => setShowPreview(false)}
         />
