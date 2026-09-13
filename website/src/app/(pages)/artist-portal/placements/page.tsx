@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -8,6 +8,7 @@ import PlacementActionItems from "@/components/PlacementActionItems";
 import PlacementStepper, { type PlacementStepperData } from "@/components/PlacementStepper";
 import PaidLoanPaymentChip from "@/components/PaidLoanPaymentChip";
 import { useCurrentArtist } from "@/hooks/useCurrentArtist";
+import { MIXED_TERMS_NOTE, initialPlacementTerms } from "@/lib/work-terms";
 import { useAuth } from "@/context/AuthContext";
 import { authFetch, mutate, ApiError } from "@/lib/api-client";
 import { artistKeepsLabel, venueShareLabel } from "@/lib/revenue-share-labels";
@@ -243,10 +244,24 @@ export default function PlacementsPage() {
     });
   }, [venuePrefill]);
   // arrangementType derived from revenuePercent, no separate state needed
-  const [revenuePercent, setRevenuePercent] = useState<number | "">(10);
+  // Spec 2026-09-13. One field is both the revenue share and, on a paid loan,
+  // the QR share. It starts from the selected works' terms until the artist
+  // types their own; null means not typed yet.
+  const [revenuePercentInput, setRevenuePercentInput] = useState<number | "" | null>(null);
   const [qrEnabled, setQrEnabled] = useState(true);
   const [monthlyFee, setMonthlyFee] = useState<number | "">("");
   const [selectedWorks, setSelectedWorks] = useState<Set<number>>(new Set());
+  const suggestedTerms = useMemo(
+    () =>
+      initialPlacementTerms(
+        Array.from(selectedWorks)
+          .map((i) => artist?.works[i])
+          .filter((w): w is NonNullable<typeof w> => !!w),
+        { revenueSharePercent: artist?.revenueSharePercent ?? null },
+      ),
+    [selectedWorks, artist],
+  );
+  const revenuePercent: number | "" = revenuePercentInput ?? suggestedTerms.revenueSharePercent ?? 10;
   const [workSizes, setWorkSizes] = useState<Record<number, string>>({});
   // Which card's size picker is currently open. Only one picker can be
   // open at a time so the dropdowns don't overlap each other's bounds.
@@ -645,7 +660,7 @@ export default function PlacementsPage() {
         setSelectedWorks(new Set());
         setNotes("");
         setMessage("");
-        setRevenuePercent(0);
+        setRevenuePercentInput(null);
         setQrEnabled(true);
         setMonthlyFee("");
       }
@@ -932,7 +947,12 @@ export default function PlacementsPage() {
                   <input
                     type="checkbox"
                     checked={typeof monthlyFee === "number" && monthlyFee > 0}
-                    onChange={(e) => setMonthlyFee(e.target.checked ? 50 : "")}
+                    onChange={(e) => {
+                      // Spec 2026-09-13. A fee above 0 is what makes this a paid
+                      // loan, so ticking (not selecting works) applies the works'
+                      // listed total; with none listed it keeps the old £50.
+                      setMonthlyFee(e.target.checked ? (suggestedTerms.monthlyFeeGbp ?? 50) : "");
+                    }}
                     className="mt-0.5 accent-accent"
                   />
                   <div className="flex-1">
@@ -967,6 +987,12 @@ export default function PlacementsPage() {
               )}
             </div>
 
+            {suggestedTerms.mixed && (
+              <p role="note" className="text-xs text-muted">
+                {MIXED_TERMS_NOTE}
+              </p>
+            )}
+
             {/* Revenue share, only meaningful when the arrangement is
                 QR-enabled (no QR code = no QR-linked sales to share). */}
             {qrEnabled && (
@@ -981,11 +1007,11 @@ export default function PlacementsPage() {
                     value={revenuePercent}
                     onChange={(e) => {
                       const v = e.target.value;
-                      if (v === "") { setRevenuePercent(""); return; }
+                      if (v === "") { setRevenuePercentInput(""); return; }
                       const n = Number(v);
-                      if (!Number.isNaN(n)) setRevenuePercent(n);
+                      if (!Number.isNaN(n)) setRevenuePercentInput(n);
                     }}
-                    onBlur={() => { if (revenuePercent === "") setRevenuePercent(0); }}
+                    onBlur={() => { if (revenuePercent === "") setRevenuePercentInput(0); }}
                     className="w-20 bg-background border border-border rounded-sm px-3 py-3 text-sm text-center focus:outline-none focus:border-accent/60"
                   />
                   <span className="text-sm text-muted">% to the venue on sales</span>

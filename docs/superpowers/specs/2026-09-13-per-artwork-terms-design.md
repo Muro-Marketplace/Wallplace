@@ -154,6 +154,9 @@ The rules are the same in all three, because all three call
   starting value.
 - **Monthly fee** starts at the total of the selected works' listed fees, when
   at least one has a fee. Otherwise the form keeps its current starting value.
+  In the artist portal form a fee above 0 is what makes the placement a paid
+  loan, so there the total is applied when the artist ticks Paid loan rather
+  than on selection.
 - **Mixed terms.** If the selected works resolve to different shares, or only
   some have a listed fee, the form shows: "These works list different terms. One
   revenue share and one monthly fee apply to the whole placement, so check the
