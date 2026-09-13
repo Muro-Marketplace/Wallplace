@@ -86,6 +86,11 @@ export interface ArtistWork {
   } | null;
   /** Soft FK to placements.id for the active placement on this work. */
   current_placement_id?: string | null;
+  /** Migration 148. The work's own revenue share, or null to use the artist's
+   *  default. Read it through resolveWorkTerms in src/lib/work-terms.ts. */
+  revenueShareOverride?: number | null;
+  /** Migration 148. Listed monthly paid loan fee in pounds, or null for none. */
+  paidLoanMonthlyGbp?: number | null;
 }
 
 export interface Artist {

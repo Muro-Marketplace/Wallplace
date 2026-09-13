@@ -1,5 +1,6 @@
 // Pure data-transformation helpers for artist profiles.
 // No Supabase imports — safe to import from client components.
+import { workTermsFromRow } from "@/lib/work-terms";
 import type { Artist, SizePricing } from "@/data/artists";
 import type { DisciplineId } from "@/data/categories";
 import { normalisePriceBand } from "./normalise-price-band";
@@ -108,6 +109,10 @@ export interface DbArtistWork {
   /** Migration 133: Artwork of the Week. ISO timestamptz; the work is
    *  boosted while this is in the future. */
   featured_until?: string | null;
+  /** Migration 148: null means the artist's profile default applies. */
+  revenue_share_percent?: number | null;
+  /** Migration 148: listed monthly paid loan fee, null for none. */
+  paid_loan_monthly_gbp?: number | null;
   /** Migration 038: denormalised venue display name and active placement
    *  pointer. Kept in sync by the placements PATCH handler. */
   placed_at_venue?: string | null;
@@ -252,6 +257,8 @@ export function dbProfileToArtist(profile: DbArtistProfile, works: DbArtistWork[
       placed_at_venue: w.placed_at_venue ?? null,
       currentPlacement: w.current_placement ?? null,
       current_placement_id: w.current_placement_id ?? null,
+      // Migration 148. Raw override and fee; resolveWorkTerms applies the default.
+      ...workTermsFromRow(w as unknown as Record<string, unknown>),
     })),
   };
 }
