@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -106,7 +106,10 @@ export default function ArtistProfileClient({
   // filterWorksByTheme matches tags where a work carries them and keeps
   // the substring behaviour (widened to the description) only for
   // untagged works. See portfolio-filters.ts.
-  const filteredWorks = filterWorksByTheme(works, activeTheme);
+  // Memoised because filterWorksByTheme returns a fresh array on every call, and
+  // the lightbox's URL and tracking effects list filteredWorks: unmemoised, every
+  // render re-ran them (owner report 13 September 2026, see the URL sync below).
+  const filteredWorks = useMemo(() => filterWorksByTheme(works, activeTheme), [works, activeTheme]);
 
   // Selected works as resolved ArtistWork records, in array order. Used
   // by the bulk Buy Now / Make Offer flows so we don't recompute the
@@ -304,19 +307,27 @@ export default function ArtistProfileClient({
     }
   }, [artistSlug, user?.id, userType]);
 
-  // Track artwork views in lightbox
+  // Track artwork views in the lightbox, once per work opened. A re-render must
+  // not post again: it used to, hundreds of times a second (see the URL sync).
+  const trackedWorkKey = useRef<string | null>(null);
   useEffect(() => {
-    if (lightboxIndex !== null && filteredWorks[lightboxIndex]) {
-      fetch("/api/analytics/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event_type: "artwork_view",
-          artist_slug: artistSlug,
-          work_id: filteredWorks[lightboxIndex].id || filteredWorks[lightboxIndex].title,
-        }),
-      }).catch(() => {});
+    const work = lightboxIndex !== null ? filteredWorks[lightboxIndex] : undefined;
+    if (!work) {
+      trackedWorkKey.current = null;
+      return;
     }
+    const workKey = work.id || work.title;
+    if (trackedWorkKey.current === workKey) return;
+    trackedWorkKey.current = workKey;
+    fetch("/api/analytics/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_type: "artwork_view",
+        artist_slug: artistSlug,
+        work_id: workKey,
+      }),
+    }).catch(() => {});
   }, [lightboxIndex, artistSlug, filteredWorks]);
 
   // Sync URL with lightbox state so each artwork gets a shareable link
@@ -337,7 +348,15 @@ export default function ArtistProfileClient({
     if (showEnquiry) return;
     if (lightboxIndex !== null && filteredWorks[lightboxIndex]) {
       const workSlug = slugify(filteredWorks[lightboxIndex].title);
-      window.history.pushState(null, "", `/browse/${artistSlug}/${workSlug}`);
+      const permalink = `/browse/${artistSlug}/${workSlug}`;
+      // Push only when the address actually changes. Next re-renders the page
+      // after every pushState, and this effect used to push again on each of
+      // those renders: 800 calls in 3 seconds. Safari throws after 100, so an
+      // artwork's QR code opened "This page couldn't load" on an iPhone (owner
+      // report 13 September 2026).
+      if (window.location.pathname !== permalink) {
+        window.history.pushState(null, "", permalink);
+      }
     } else if (lightboxIndex === null) {
       // Only restore if URL currently has a workSlug segment
       const segments = window.location.pathname.split("/").filter(Boolean);

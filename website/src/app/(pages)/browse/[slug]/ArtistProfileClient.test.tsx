@@ -57,6 +57,9 @@ beforeEach(() => {
   searchParamsMock.mockReset();
   searchParamsMock.mockReturnValue(new URLSearchParams());
   global.fetch = vi.fn(() => Promise.resolve(new Response("{}", { status: 200 }))) as unknown as typeof fetch;
+  // Every test starts on the profile itself: opening a work moves jsdom's URL
+  // to the artwork permalink, and that would otherwise carry into the next test.
+  window.history.replaceState(null, "", "/browse/alice");
 });
 
 // The enquiry form lives in the work lightbox, opened from a grid card's
@@ -313,5 +316,51 @@ describe("ArtistProfileClient portfolio theme filter (B6)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Show the whole portfolio" }));
     expect(cardIds(container)).toEqual(["work-last-light"]);
+  });
+});
+
+// Owner report 13 September 2026: scanning an artwork's QR code on an iPhone
+// showed "This page couldn't load". Opening a work rewrites the URL with
+// history.pushState, Next re-renders the page for the new URL,
+// filterWorksByTheme hands back a fresh array, and both effects that listed
+// filteredWorks ran again: measured at 800 pushState calls and 800
+// artwork_view posts in 3 seconds. Safari throws after 100 pushState calls in
+// 30 seconds, and the Reload button worked only because it drops ?work=.
+describe("ArtistProfileClient opening a work (owner report 13 September 2026)", () => {
+  const works = [WORK as never];
+  const profile = () => (
+    <ArtistProfileClient artistName="Alice" artistSlug="alice" extendedBio="" themes={[]} works={works} />
+  );
+  const permalinkPushes = (spy: { mock: { calls: unknown[][] } }) =>
+    spy.mock.calls.filter((c) => String(c[2]) === "/browse/alice/last-light").length;
+  const artworkViews = () =>
+    vi.mocked(global.fetch).mock.calls.filter((c) => c[0] === "/api/analytics/track").length;
+
+  it("claims the permalink and records the view once from a QR link, however often the page re-renders", async () => {
+    searchParamsMock.mockReturnValue(new URLSearchParams("ref=qr&work=last-light&size=Medium"));
+    const pushState = vi.spyOn(window.history, "pushState");
+    const { rerender } = render(profile());
+    await waitFor(() => expect(permalinkPushes(pushState)).toBe(1));
+
+    // Next re-renders the page after every URL change. Each pass used to push
+    // and post again, which re-rendered the page again.
+    for (let i = 0; i < 5; i++) rerender(profile());
+
+    expect(permalinkPushes(pushState)).toBe(1);
+    expect(artworkViews()).toBe(1);
+    pushState.mockRestore();
+  });
+
+  it("does the same for a work opened from the grid", async () => {
+    const pushState = vi.spyOn(window.history, "pushState");
+    const { rerender } = render(profile());
+    fireEvent.click(screen.getByTitle("Quick look"));
+    await waitFor(() => expect(permalinkPushes(pushState)).toBe(1));
+
+    for (let i = 0; i < 5; i++) rerender(profile());
+
+    expect(permalinkPushes(pushState)).toBe(1);
+    expect(artworkViews()).toBe(1);
+    pushState.mockRestore();
   });
 });
