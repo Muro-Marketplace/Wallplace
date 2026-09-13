@@ -2691,7 +2691,8 @@ function BrowsePortfoliosPageInner() {
                               openToRevenueShare={work.openToRevenueShare}
                               revenueSharePercent={work.revenueSharePercent}
                               openToFreeLoan={work.openToFreeLoan}
-                              paidLoanMonthlyGbp={work.paidLoanMonthlyGbp}
+                              paidLoanFromGbp={work.paidLoanFromGbp}
+                              paidLoanFeesVary={work.paidLoanFeesVary}
                             />
                           </div>
                         </div>

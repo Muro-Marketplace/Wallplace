@@ -24,11 +24,15 @@ export interface GalleryWork {
   offersOriginals: boolean;
   offersPrints: boolean;
   offersFramed: boolean;
+  /** The work's own ticks (migration 149), else the artist's profile. The
+   *  arrangement line, the Galleries filters and the terms line read these. */
   openToFreeLoan: boolean;
   openToRevenueShare: boolean;
   revenueSharePercent?: number;
-  /** Listed monthly paid loan fee, null for none. Migration 148. */
-  paidLoanMonthlyGbp?: number | null;
+  /** Lowest listed monthly paid loan fee across sizes, null for none. */
+  paidLoanFromGbp?: number | null;
+  /** True when sizes list different fees, so the card says "From". */
+  paidLoanFeesVary?: boolean;
   openToOutrightPurchase: boolean;
   /** Artist's subscription plan, used to put Pro / Premium works
    *  first in the marketplace's "Featured" sort. Mirrors the Featured
@@ -77,10 +81,11 @@ export function artistsToGalleryWorks(allArtists: Artist[]): GalleryWork[] {
       offersOriginals: artist.offersOriginals,
       offersPrints: artist.offersPrints,
       offersFramed: artist.offersFramed,
-      openToFreeLoan: artist.openToFreeLoan,
-      openToRevenueShare: artist.openToRevenueShare,
+      openToFreeLoan: terms.openToFreeLoan,
+      openToRevenueShare: terms.openToRevenueShare,
       revenueSharePercent: terms.revenueSharePercent,
-      paidLoanMonthlyGbp: terms.paidLoanMonthlyGbp,
+      paidLoanFromGbp: terms.paidLoanFromGbp,
+      paidLoanFeesVary: terms.paidLoanFeesVary,
       openToOutrightPurchase: artist.openToOutrightPurchase,
       artistSubscriptionPlan: artist.subscriptionPlan,
       artistIsFounding: artist.isFoundingArtist,
