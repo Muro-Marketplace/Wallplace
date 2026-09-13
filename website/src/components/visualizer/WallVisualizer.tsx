@@ -81,7 +81,7 @@ import type { WallCanvasHandle } from "./WallCanvas";
 import WorksPanel, { type PanelWork } from "./WorksPanel";
 import {
   initialPlacementTerms,
-  workTermsFromRow,
+  workTermsSourceFromRow,
   type ArtistTermsPayload,
 } from "@/lib/work-terms";
 
@@ -495,12 +495,22 @@ function WallVisualizerInner(props: ExtendedProps) {
   }, [props.lockedWork, works, myWorks, savedWorks, allWorks]);
 
   // Spec 2026-09-13. Wall order, so the first work matches the proposal's
-  // primary work in buildProposalPlacement.
+  // primary work in buildProposalPlacement. Each fee follows the size placed on
+  // the wall (per-size loan fees spec).
   const proposalInitialTerms = useMemo(
     () =>
       initialPlacementTerms(
-        items.map((i) => workById[i.work_id]).filter((w): w is PanelWork => !!w),
-        { revenueSharePercent: artistTerms?.revenueSharePercent ?? null },
+        items
+          .map((item) => {
+            const work = workById[item.work_id];
+            return work ? { ...work, sizeLabel: item.size_label ?? null } : null;
+          })
+          .filter((w): w is PanelWork & { sizeLabel: string | null } => w !== null),
+        {
+          revenueSharePercent: artistTerms?.revenueSharePercent ?? null,
+          openToRevenueShare: artistTerms?.openToRevenueShare ?? true,
+          openToFreeLoan: artistTerms?.openToFreeLoan ?? true,
+        },
       ),
     [items, workById, artistTerms],
   );
@@ -1713,7 +1723,7 @@ function normaliseWork(raw: Record<string, unknown>): PanelWork | null {
     heightCm: parsedNatural?.heightCm,
     sizes: sizes.length > 0 ? sizes : undefined,
     orientation,
-    ...workTermsFromRow(raw),
+    ...workTermsSourceFromRow(raw),
   };
 }
 

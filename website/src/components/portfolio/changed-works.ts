@@ -43,11 +43,13 @@ function postKey(work: ArtistWork): string {
     frameOptions: w.frameOptions ?? [],
     description: work.description ?? "",
     images: work.images ?? [],
-    // Migration 148. Without these a work whose only change is its revenue share
-    // or listed paid loan fee compared equal, was never re-POSTed, and was then
-    // recorded as persisted: the editor showed the new value and nothing saved.
+    // Migration 148. Without this a work whose only change is its revenue share
+    // compared equal, was never re-POSTed, and was then recorded as persisted:
+    // the editor showed the new value and nothing saved.
     revenueShareOverride: work.revenueShareOverride ?? null,
-    paidLoanMonthlyGbp: work.paidLoanMonthlyGbp ?? null,
+    // Migration 149, for the same reason: a change to a tick alone must post.
+    openToRevenueShareOverride: work.openToRevenueShareOverride ?? null,
+    openToFreeLoanOverride: work.openToFreeLoanOverride ?? null,
   });
 }
 

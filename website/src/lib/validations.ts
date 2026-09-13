@@ -232,6 +232,15 @@ export const sizePricingSchema = z.object({
   quantityAvailable: z.number().int().min(0).max(10_000).nullable().optional(),
   shippingPrice: money(1000).nullable().optional(),
   inStorePrice: money(100_000).nullable().optional(),
+  // Migration 149: the monthly paid loan fee for this size. Same range as the
+  // CHECK on pricing; null or absent lists no fee.
+  paidLoanMonthlyGbp: z
+    .number()
+    .finite()
+    .min(PAID_LOAN_MIN_GBP, { message: `Monthly loan fees start at £${PAID_LOAN_MIN_GBP}.` })
+    .max(100_000)
+    .nullable()
+    .optional(),
 });
 
 export const artistWorkInputSchema = z.object({
@@ -255,17 +264,18 @@ export const artistWorkInputSchema = z.object({
   // model. inStorePrice above stays accepted (and ignored by the route) so an
   // old client tab cannot 400 a whole save.
   availableInStore: z.boolean().optional(),
-  // Migration 148. null clears the work's own value. An omitted key leaves the
+  // Migration 148. null clears the work's own rate. An omitted key leaves the
   // stored value alone: the portfolio re-saves every work on a reorder without
-  // these keys. Same ranges as the database CHECKs.
+  // these keys. Same range as the database CHECK.
   revenueShareOverride: z.number().int().min(0).max(100).nullable().optional(),
-  paidLoanMonthlyGbp: z
-    .number()
-    .finite()
-    .min(PAID_LOAN_MIN_GBP, { message: `Monthly loan fees start at £${PAID_LOAN_MIN_GBP}.` })
-    .max(100_000)
-    .nullable()
-    .optional(),
+  // Migration 149. null returns the work to following the profile; an omitted
+  // key leaves it alone, as above.
+  openToRevenueShareOverride: z.boolean().nullable().optional(),
+  openToFreeLoanOverride: z.boolean().nullable().optional(),
+  // Retired by migration 149: fees live on each size in `pricing`. Still
+  // accepted so a tab opened before the deploy cannot fail a whole save, and
+  // ignored by the route (the inStorePrice precedent).
+  paidLoanMonthlyGbp: z.number().finite().nullable().optional(),
   quantityAvailable: z.number().int().min(0).max(10_000).nullable().optional(),
   description: optionalString(2000),
   images: z.array(z.string().max(2000)).max(10).optional(),

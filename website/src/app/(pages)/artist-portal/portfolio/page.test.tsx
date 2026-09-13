@@ -10,7 +10,7 @@ import { cleanup, render, screen, fireEvent, waitFor, within } from "@testing-li
 const { mutateMock, showToastMock, artistState } = vi.hoisted(() => ({
   mutateMock: vi.fn(),
   showToastMock: vi.fn(),
-  artistState: { works: [] as unknown[], subscriptionPlan: undefined as string | undefined },
+  artistState: { works: [] as unknown[], subscriptionPlan: undefined as string | undefined, profile: null as unknown },
 }));
 
 vi.mock("next/navigation", () => ({
@@ -31,6 +31,7 @@ vi.mock("@/components/ArtistPortalLayout", () => ({ default: ({ children }: { ch
 vi.mock("@/hooks/useCurrentArtist", () => ({
   useCurrentArtist: () => ({
     artist: { slug: "alice", name: "Alice", works: artistState.works, subscriptionPlan: artistState.subscriptionPlan },
+    profile: artistState.profile,
     loading: false,
   }),
 }));
@@ -59,6 +60,7 @@ beforeEach(() => {
   showToastMock.mockReset();
   artistState.works = [];
   artistState.subscriptionPlan = undefined;
+  artistState.profile = null;
   vi.stubGlobal("Image", FakeImage);
 });
 
@@ -613,5 +615,86 @@ describe("restocking a sold-out work puts it back on sale (owner-reported 5 Sept
     fireEvent.click(screen.getAllByText("Save Changes")[0]);
     await waitFor(() => expect(showToastMock).toHaveBeenCalledWith("Artwork updated"));
     expect(postedBody()).toMatchObject({ id: "w1", available: false, quantityAvailable: 7 });
+  });
+});
+
+describe("placement terms on each work (migration 149)", () => {
+  const LOAN_OPEN = { revenue_share_percent: 20, open_to_revenue_share: true, open_to_free_loan: true };
+  const loanTick = () => screen.getAllByLabelText("Offer on paid loan")[0] as HTMLInputElement;
+  const shareTick = () => screen.getAllByLabelText("Offer on revenue share")[0] as HTMLInputElement;
+  const rateInput = () => screen.getAllByLabelText("Revenue share for this work, %")[0] as HTMLInputElement;
+  const feeInputs = () => screen.queryAllByLabelText(/^Paid loan fee a month for/) as HTMLInputElement[];
+  const postedBody = () => JSON.parse((mutateMock.mock.calls.at(-1)![1] as { body: string }).body);
+
+  it("starts both ticks from the profile, with the fee column showing for a loan-open artist", async () => {
+    artistState.profile = LOAN_OPEN;
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    expect(loanTick().checked).toBe(true);
+    expect(shareTick().checked).toBe(true);
+    expect(feeInputs().length).toBeGreaterThan(0);
+    expect(rateInput().value).toBe("20");
+  });
+
+  it("starts unticked for an artist whose profile says no, who can still tick it and add a fee", async () => {
+    artistState.profile = { ...LOAN_OPEN, open_to_free_loan: false };
+    mutateMock.mockResolvedValue({ savedRow: { id: "w1" } });
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    expect(loanTick().checked).toBe(false);
+    expect(feeInputs()).toHaveLength(0);
+
+    fireEvent.click(loanTick());
+    fireEvent.change(feeInputs()[0], { target: { value: "35" } });
+    fireEvent.click(screen.getAllByText("Save Work")[0]);
+
+    await waitFor(() => expect(showToastMock).toHaveBeenCalledWith("Artwork added"));
+    expect(postedBody()).toMatchObject({ openToFreeLoanOverride: true, openToRevenueShareOverride: null, revenueShareOverride: null });
+    expect(postedBody().pricing[0]).toMatchObject({ paidLoanMonthlyGbp: 35 });
+    expect("paidLoanMonthlyGbp" in postedBody()).toBe(false);
+  });
+
+  it("saves nothing of its own for a work left as the profile set it", async () => {
+    artistState.profile = LOAN_OPEN;
+    mutateMock.mockResolvedValue({ savedRow: { id: "w1" } });
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    fireEvent.click(screen.getAllByText("Save Work")[0]);
+
+    await waitFor(() => expect(showToastMock).toHaveBeenCalledWith("Artwork added"));
+    expect(postedBody()).toMatchObject({ openToFreeLoanOverride: null, openToRevenueShareOverride: null, revenueShareOverride: null });
+    expect(postedBody().pricing[0].paidLoanMonthlyGbp).toBeUndefined();
+  });
+
+  it("refuses a fee under the floor and keeps the form open", async () => {
+    artistState.profile = LOAN_OPEN;
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    fireEvent.change(feeInputs()[0], { target: { value: "5" } });
+    fireEvent.click(screen.getAllByText("Save Work")[0]);
+
+    expect((await screen.findAllByText("Monthly loan fees run from £15 to £100,000")).length).toBeGreaterThan(0);
+    expect(mutateMock).not.toHaveBeenCalled();
+  });
+
+  it("reopens a work with its own tick and its per-size fee", async () => {
+    artistState.profile = LOAN_OPEN;
+    artistState.works = [
+      { ...WORK, openToRevenueShareOverride: false, pricing: [{ label: "Medium", price: 200, paidLoanMonthlyGbp: 45 }] },
+    ];
+    render(<PortfolioPage />);
+    fireEvent.mouseEnter(await screen.findByTestId(`work-card-${WORK.id}`));
+    fireEvent.click((await screen.findAllByRole("button", { name: /^edit$/i }))[0]);
+    await screen.findAllByPlaceholderText(TITLE_PLACEHOLDER);
+
+    expect(shareTick().checked).toBe(false);
+    expect(feeInputs()[0].value).toBe("45");
+  });
+
+  it("keeps the ticks disabled until the profile has loaded", async () => {
+    render(<PortfolioPage />);
+    await openAddAndFill({ withImage: false });
+    expect(loanTick().disabled).toBe(true);
+    expect(shareTick().disabled).toBe(true);
   });
 });

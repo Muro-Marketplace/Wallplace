@@ -53,19 +53,32 @@ describe("worksToPost (E41-c)", () => {
 // loan fee must still be re-POSTed. postKey used to omit both, so the editor
 // showed the new value, marked it saved, and never sent it.
 describe("worksToPost: per-work terms (migration 148)", () => {
-  it("posts a work whose only change is its paid loan fee", () => {
-    const out = worksToPost([w("a", { paidLoanMonthlyGbp: 40 })], [w("a", { paidLoanMonthlyGbp: null })]);
-    expect(out.map((x) => x.work.id)).toEqual(["a"]);
-  });
-
   it("posts a work whose only change is its revenue share", () => {
     const out = worksToPost([w("a", { revenueShareOverride: 30 })], [w("a")]);
     expect(out.map((x) => x.work.id)).toEqual(["a"]);
   });
 
-  it("does not post a work whose terms are unchanged, treating missing and null alike", () => {
-    const same = { revenueShareOverride: 30, paidLoanMonthlyGbp: 40 };
-    expect(worksToPost([w("a", same)], [w("a", same)])).toEqual([]);
-    expect(worksToPost([w("b", { paidLoanMonthlyGbp: null })], [w("b")])).toEqual([]);
+  it("does not post a work whose rate is unchanged, treating missing and null alike", () => {
+    expect(worksToPost([w("a", { revenueShareOverride: 30 })], [w("a", { revenueShareOverride: 30 })])).toEqual([]);
+    expect(worksToPost([w("b", { revenueShareOverride: null })], [w("b")])).toEqual([]);
+  });
+});
+
+describe("worksToPost: per-work ticks and per-size fees (migration 149)", () => {
+  it("posts a work whose only change is a tick", () => {
+    expect(worksToPost([w("a", { openToFreeLoanOverride: false })], [w("a")]).map((x) => x.work.id)).toEqual(["a"]);
+    expect(
+      worksToPost([w("b", { openToRevenueShareOverride: true })], [w("b", { openToRevenueShareOverride: null })]).map((x) => x.work.id),
+    ).toEqual(["b"]);
+  });
+
+  it("posts a work whose only change is one size's fee", () => {
+    const before = w("a", { pricing: [{ label: "S", price: 10 }] });
+    const after = w("a", { pricing: [{ label: "S", price: 10, paidLoanMonthlyGbp: 40 }] });
+    expect(worksToPost([after], [before]).map((x) => x.work.id)).toEqual(["a"]);
+  });
+
+  it("treats a missing tick and a null one alike", () => {
+    expect(worksToPost([w("a", { openToFreeLoanOverride: null })], [w("a")])).toEqual([]);
   });
 });

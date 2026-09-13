@@ -31,6 +31,7 @@ import {
 // route page.tsx files breaks rendering in some Next.js versions,
 // don't do it). Re-exported for any legacy callers.
 import { WORK_MEDIUM_OPTIONS } from "@/data/work-medium-options";
+import { ARRANGEMENT_LABEL } from "@/lib/arrangement-labels";
 export { WORK_MEDIUM_OPTIONS };
 
 
@@ -908,10 +909,14 @@ export default function ProfileEditorPage() {
           {/* Deal types */}
           <div className="mb-6">
             <label className={labelClass}>Deal types</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {([
-                { key: "openToFreeLoan" as const, label: "Display (with optional revenue share)", wide: false },
-                { key: "openToOutrightPurchase" as const, label: "Purchase", wide: false },
+                // Per-size loan fees spec: the application form's words, so the
+                // boxes an artist ticked when applying read the same here. Each
+                // work starts from these and can set its own.
+                { key: "openToRevenueShare" as const, label: ARRANGEMENT_LABEL.revenue_share, wide: false },
+                { key: "openToFreeLoan" as const, label: ARRANGEMENT_LABEL.paid_loan, wide: false },
+                { key: "openToOutrightPurchase" as const, label: ARRANGEMENT_LABEL.purchase, wide: false },
                 // The rent and who picks the pieces sit in the label itself,
                 // because that sentence is what the artist is agreeing to; the
                 // rest of the terms are in the note below the group. It takes
@@ -919,7 +924,7 @@ export default function ProfileEditorPage() {
                 // sentence instead of wrapping three times in a narrow cell.
                 { key: "openToProgramme" as const, label: "Programmes (about £10 a month per piece, chosen by Wallplace)", wide: true },
               ]).map(({ key, label, wide }) => (
-                <label key={key} className={`flex items-center gap-2.5 cursor-pointer group${wide ? " col-span-2" : ""}`}>
+                <label key={key} className={`flex items-center gap-2.5 cursor-pointer group${wide ? " col-span-2 sm:col-span-3" : ""}`}>
                   <button
                     type="button"
                     onClick={() => update(key, !profile[key])}
@@ -934,6 +939,9 @@ export default function ProfileEditorPage() {
               ))}
             </div>
             <p className="text-xs text-muted mt-2 leading-relaxed">
+              Every work starts with these. You can change them on any work, and a work you&rsquo;ve changed keeps its own setting.
+            </p>
+            <p className="text-xs text-muted mt-2 leading-relaxed">
               A Programme places curated work in a venue for twelve months and
               rotates it through the year. Tick the box and you join the pool we pick
               from: Wallplace chooses which of your pieces go up and when, and pays
@@ -945,10 +953,10 @@ export default function ProfileEditorPage() {
           </div>
 
           {/* Revenue share % */}
-          {profile.openToFreeLoan && (
+          {profile.openToRevenueShare && (
             <div className="mb-6">
               <label className={labelClass}>Revenue share for venues (%)</label>
-              <p className="text-xs text-muted mb-2">Optional: the % you offer venues on sales from their space. Leave at 0 for a pure free display.</p>
+              <p className="text-xs text-muted mb-2">The share venues earn on sales from their wall. Each work starts at this rate, and you can change it on any work.</p>
               <div className="flex items-center gap-2">
                 <input
                   type="number"

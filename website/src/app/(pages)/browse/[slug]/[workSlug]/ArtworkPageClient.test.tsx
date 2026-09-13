@@ -220,3 +220,36 @@ describe("collect-from-venue price (LA-C066)", () => {
     expect(screen.getByText("Collect from The Gallery, £120.00")).toBeTruthy();
   });
 });
+
+describe("Artwork page placement terms (per-size loan fees)", () => {
+  const TERMS = { revenueSharePercent: 20, openToRevenueShare: true, openToFreeLoan: true };
+
+  function workWithFees(): ArtistWork {
+    const w = workWithPerSizeShipping();
+    w.pricing = [
+      { label: "A4", price: 120, paidLoanMonthlyGbp: 25 },
+      { label: "100x80 cm", price: 480, paidLoanMonthlyGbp: 60 },
+    ];
+    return w;
+  }
+
+  it("shows the share and the selected size's own fee, not From", () => {
+    render(<ArtworkPageClient work={workWithFees()} artistName="Alice Rivers" artistSlug="alice-rivers" artistTerms={TERMS} />);
+    expect(screen.getByText("20% Revenue Share · £25/month Paid Loan")).toBeTruthy();
+    expect(screen.queryByText(/From £/)).toBeNull();
+  });
+
+  it("follows the size dropdown", () => {
+    render(<ArtworkPageClient work={workWithFees()} artistName="Alice Rivers" artistSlug="alice-rivers" artistTerms={TERMS} />);
+    fireEvent.click(screen.getByLabelText("Choose size"));
+    // Dropdown commits an option on mouse-down, so focus stays on the trigger.
+    fireEvent.mouseDown(screen.getAllByRole("option")[1]);
+    expect(screen.getByText("20% Revenue Share · £60/month Paid Loan")).toBeTruthy();
+  });
+
+  it("shows nothing for a work switched off both arrangements", () => {
+    const work = { ...workWithFees(), openToRevenueShareOverride: false, openToFreeLoanOverride: false };
+    render(<ArtworkPageClient work={work} artistName="Alice Rivers" artistSlug="alice-rivers" artistTerms={TERMS} />);
+    expect(screen.queryByText(/Revenue Share|Paid Loan/)).toBeNull();
+  });
+});

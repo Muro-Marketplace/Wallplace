@@ -247,6 +247,28 @@ describe("SpacesPlacementRequestForm starts from the work's terms (spec 2026-09-
     fireEvent.change(shareInput(), { target: { value: "12" } });
     expect(shareInput().value).toBe("12");
   });
+
+  it("opens the monthly fee at the work's lowest listed size fee, since no size is chosen here", () => {
+    renderWith(
+      [
+        {
+          ...WORKS[0],
+          pricing: [
+            { label: "A4", price: 100, paidLoanMonthlyGbp: 60 },
+            { label: "A3", price: 200, paidLoanMonthlyGbp: 40 },
+          ],
+        },
+      ],
+      TERMS,
+    );
+    fireEvent.click(screen.getByTitle("Paid loan"));
+    expect((screen.getByLabelText("Monthly fee from venue") as HTMLInputElement).value).toBe("40");
+  });
+
+  it("keeps the form's own share for a work switched off revenue share", () => {
+    renderWith([{ ...WORKS[0], revenue_share_percent: 30, open_to_revenue_share: false }], TERMS);
+    expect(shareInput().value).toBe("25");
+  });
 });
 
 // Review finding: the note says "check the figures below", so it must not show

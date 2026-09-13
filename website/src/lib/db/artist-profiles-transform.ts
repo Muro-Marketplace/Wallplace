@@ -111,8 +111,6 @@ export interface DbArtistWork {
   featured_until?: string | null;
   /** Migration 148: null means the artist's profile default applies. */
   revenue_share_percent?: number | null;
-  /** Migration 148: listed monthly paid loan fee, null for none. */
-  paid_loan_monthly_gbp?: number | null;
   /** Migration 038: denormalised venue display name and active placement
    *  pointer. Kept in sync by the placements PATCH handler. */
   placed_at_venue?: string | null;
@@ -127,6 +125,9 @@ export interface DbArtistWork {
     placedSizeLabel: string | null;
   } | null;
   current_placement_id?: string | null;
+  /** Migration 149: null follows the profile's tick. */
+  open_to_revenue_share?: boolean | null;
+  open_to_free_loan?: boolean | null;
 }
 
 /** Convert a DB profile row + works to the Artist shape used everywhere in the app */

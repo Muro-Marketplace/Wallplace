@@ -44,11 +44,38 @@ describe("artistsToGalleryWorks: per-work terms (migration 148)", () => {
     expect(g.revenueSharePercent).toBe(25);
   });
 
-  it("carries a listed fee to the card, and null when there is none", () => {
-    const [withFee, withoutFee] = artistsToGalleryWorks([
-      artistWith([{ ...work, paidLoanMonthlyGbp: 40 }, { ...work, id: "w2" }]),
+  it("carries the lowest per-size fee to the card, and whether the sizes differ", () => {
+    const [varies, single, none] = artistsToGalleryWorks([
+      artistWith([
+        {
+          ...work,
+          pricing: [
+            { label: "A4", price: 100, paidLoanMonthlyGbp: 40 },
+            { label: "A3", price: 200, paidLoanMonthlyGbp: 25 },
+          ],
+        },
+        { ...work, id: "w2", pricing: [{ label: "A4", price: 100, paidLoanMonthlyGbp: 40 }] },
+        { ...work, id: "w3" },
+      ]),
     ]);
-    expect(withFee.paidLoanMonthlyGbp).toBe(40);
-    expect(withoutFee.paidLoanMonthlyGbp).toBeNull();
+    expect(varies).toMatchObject({ paidLoanFromGbp: 25, paidLoanFeesVary: true });
+    expect(single).toMatchObject({ paidLoanFromGbp: 40, paidLoanFeesVary: false });
+    expect(none).toMatchObject({ paidLoanFromGbp: null, paidLoanFeesVary: false });
+  });
+});
+
+describe("artistsToGalleryWorks: per-work ticks (migration 149)", () => {
+  it("uses a work's own ticks for the arrangement flags the card and the filters read", () => {
+    const artist = {
+      ...artistWith([
+        { ...work, openToFreeLoanOverride: true, openToRevenueShareOverride: false },
+        { ...work, id: "w2" },
+      ]),
+      openToFreeLoan: false,
+      openToRevenueShare: true,
+    } as Artist;
+    const [own, follows] = artistsToGalleryWorks([artist]);
+    expect(own).toMatchObject({ openToFreeLoan: true, openToRevenueShare: false, revenueSharePercent: 0 });
+    expect(follows).toMatchObject({ openToFreeLoan: false, openToRevenueShare: true, revenueSharePercent: 25 });
   });
 });

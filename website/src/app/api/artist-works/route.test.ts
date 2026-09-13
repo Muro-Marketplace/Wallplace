@@ -420,33 +420,48 @@ describe("POST /api/artist-works keeps the per-size fields on each pricing tier"
   });
 });
 
-describe("POST /api/artist-works: per-work terms (migration 148)", () => {
-  it("saves a work's own share and listed fee", async () => {
-    const res = await POST(req({ ...baseBody, revenueShareOverride: 30, paidLoanMonthlyGbp: 40 }));
+describe("POST /api/artist-works: per-work terms (migrations 148 and 149)", () => {
+  const row = () => upsertWorkMock.mock.calls[0][1] as Record<string, unknown>;
+
+  it("saves a work's own share and both ticks", async () => {
+    const res = await POST(
+      req({ ...baseBody, revenueShareOverride: 30, openToRevenueShareOverride: false, openToFreeLoanOverride: true }),
+    );
     expect(res.status).toBe(200);
-    const row = upsertWorkMock.mock.calls[0][1];
-    expect(row.revenue_share_percent).toBe(30);
-    expect(row.paid_loan_monthly_gbp).toBe(40);
+    expect(row()).toMatchObject({ revenue_share_percent: 30, open_to_revenue_share: false, open_to_free_loan: true });
   });
 
-  it("clears both with an explicit null", async () => {
-    await POST(req({ ...baseBody, revenueShareOverride: null, paidLoanMonthlyGbp: null }));
-    const row = upsertWorkMock.mock.calls[0][1];
-    expect(row.revenue_share_percent).toBeNull();
-    expect(row.paid_loan_monthly_gbp).toBeNull();
+  it("returns a work to its profile with an explicit null", async () => {
+    await POST(req({ ...baseBody, revenueShareOverride: null, openToRevenueShareOverride: null, openToFreeLoanOverride: null }));
+    expect(row()).toMatchObject({ revenue_share_percent: null, open_to_revenue_share: null, open_to_free_loan: null });
   });
 
-  it("leaves both untouched when the request does not name them, as a reorder save does", async () => {
+  it("leaves all three untouched when the request does not name them, as a reorder save does", async () => {
     await POST(req(baseBody));
-    const row = upsertWorkMock.mock.calls[0][1];
-    expect("revenue_share_percent" in row).toBe(false);
-    expect("paid_loan_monthly_gbp" in row).toBe(false);
+    for (const column of ["revenue_share_percent", "open_to_revenue_share", "open_to_free_loan"]) {
+      expect(column in row(), column).toBe(false);
+    }
   });
 
-  it("refuses a fee under the paid loan floor", async () => {
-    const res = await POST(req({ ...baseBody, paidLoanMonthlyGbp: 5 }));
+  it("keeps each size's fee on its pricing tier", async () => {
+    const pricing = [
+      { label: "A4", price: 120, paidLoanMonthlyGbp: 30 },
+      { label: "A3", price: 240, paidLoanMonthlyGbp: 45.5 },
+    ];
+    await POST(req({ ...baseBody, pricing }));
+    expect(row().pricing).toEqual(pricing);
+  });
+
+  it("refuses a per-size fee under the paid loan floor", async () => {
+    const res = await POST(req({ ...baseBody, pricing: [{ label: "A4", price: 120, paidLoanMonthlyGbp: 5 }] }));
     expect(res.status).toBe(400);
     expect(upsertWorkMock).not.toHaveBeenCalled();
+  });
+
+  it("accepts the retired work-level fee from an old tab but never writes it", async () => {
+    const res = await POST(req({ ...baseBody, paidLoanMonthlyGbp: 40 }));
+    expect(res.status).toBe(200);
+    expect("paid_loan_monthly_gbp" in row()).toBe(false);
   });
 });
 

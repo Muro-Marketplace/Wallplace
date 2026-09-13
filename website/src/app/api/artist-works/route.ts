@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     const {
       id, title, medium, dimensions, priceBand, pricing, available, color, image,
       orientation, sortOrder, shippingPrice, inStorePrice, availableInStore, quantityAvailable, frameOptions,
-      description, images, revenueShareOverride, paidLoanMonthlyGbp,
+      description, images, revenueShareOverride, openToRevenueShareOverride, openToFreeLoanOverride,
     } = parsed.data;
 
     // Owner decision 2 September 2026: saving a work never depends on
@@ -188,12 +188,15 @@ export async function POST(request: Request) {
       // in_store_price deliberately NOT forwarded any more (see above).
       ...(void inStorePrice, {}),
       quantity_available: quantityAvailable ?? null,
-      // Migration 148. Written only when the request names them. The portfolio
-      // re-saves every work on a reorder without these keys, and writing null
-      // there would silently wipe an artist's per-work terms. An explicit null
-      // still clears a value.
+      // Migrations 148 and 149. Written only when the request names them. The
+      // portfolio re-saves every work on a reorder without these keys, and
+      // writing null there would silently send an artist's settings back to
+      // the profile. An explicit null still does that on purpose. The retired
+      // work-level fee (paid_loan_monthly_gbp) is never written: fees live on
+      // each size in `pricing` now.
       ...(revenueShareOverride !== undefined ? { revenue_share_percent: revenueShareOverride } : {}),
-      ...(paidLoanMonthlyGbp !== undefined ? { paid_loan_monthly_gbp: paidLoanMonthlyGbp } : {}),
+      ...(openToRevenueShareOverride !== undefined ? { open_to_revenue_share: openToRevenueShareOverride } : {}),
+      ...(openToFreeLoanOverride !== undefined ? { open_to_free_loan: openToFreeLoanOverride } : {}),
       frame_options: sanitizedFrames,
       description: sanitizedDescription,
       images: sanitizedImages,

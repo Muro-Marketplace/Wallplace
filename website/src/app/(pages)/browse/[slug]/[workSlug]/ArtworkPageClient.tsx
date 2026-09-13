@@ -26,6 +26,9 @@ import { frameUpliftFor } from "./frame-uplift";
 import { formatSizeLabelForDisplay } from "@/lib/format-size-label";
 import { formatDimensionsForDisplay } from "@/lib/format-dimensions";
 import { formatPounds } from "@/lib/format-currency";
+import WorkTermsLine from "@/components/WorkTermsLine";
+import { paidLoanFeeForSize, resolveWorkTerms, type ArtistTermsPayload } from "@/lib/work-terms";
+import { placementRequestHref } from "./placement-request-href";
 interface ArtworkPageClientProps {
   work: ArtistWork;
   artistName: string;
@@ -38,6 +41,9 @@ interface ArtworkPageClientProps {
   viewsThisWeek?: number;
   /** Seed (sample) artist's work: shows the Sample pill beside the name. Changes nothing else. */
   isSample?: boolean;
+  /** The artist's profile rate and ticks, which a work follows until it sets
+   *  its own. Drives the terms line under Size & Price. */
+  artistTerms?: ArtistTermsPayload;
 }
 
 export default function ArtworkPageClient({
@@ -48,6 +54,7 @@ export default function ArtworkPageClient({
   internationalShippingPrice,
   viewsThisWeek,
   isSample = false,
+  artistTerms,
 }: ArtworkPageClientProps) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -95,6 +102,11 @@ export default function ArtworkPageClient({
   }, []);
 
   const selectedPricing = work.pricing[selectedSizeIdx] || work.pricing[0];
+
+  // Per-size loan fees spec: the Galleries card's orange line for the size the
+  // visitor has selected, so the fee is that size's own rather than "From".
+  const workTerms = resolveWorkTerms(work, artistTerms ?? {});
+  const selectedLoanFee = workTerms.openToFreeLoan ? paidLoanFeeForSize(work, selectedPricing?.label) : null;
 
   // B10: the charged uplift and the "+£X" on each Frame dropdown row are
   // now the same function, so an artist's explicit per-size frame prices
@@ -322,6 +334,13 @@ export default function ArtworkPageClient({
               )}
             </>
           )}
+          <WorkTermsLine
+            openToRevenueShare={workTerms.openToRevenueShare}
+            revenueSharePercent={workTerms.revenueSharePercent}
+            openToFreeLoan={workTerms.openToFreeLoan}
+            paidLoanFromGbp={selectedLoanFee}
+            spacer={false}
+          />
         </div>
       )}
 
@@ -435,7 +454,13 @@ export default function ArtworkPageClient({
           <button
             onClick={() => {
               router.push(
-                `/venue-portal/placements?artist=${artistSlug}&artistName=${encodeURIComponent(artistName)}&work=${encodeURIComponent(work.title)}&workImage=${encodeURIComponent(work.image)}`
+                placementRequestHref({
+                  artistSlug,
+                  artistName,
+                  workTitle: work.title,
+                  workImage: work.image,
+                  sizeLabel: selectedPricing?.label,
+                }),
               );
             }}
             className="w-full px-5 py-3 text-sm font-medium text-white bg-accent hover:bg-accent-hover rounded-sm transition-colors"
