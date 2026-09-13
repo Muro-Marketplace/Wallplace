@@ -55,8 +55,6 @@ export interface PanelWork {
   openToFreeLoanOverride?: boolean | null;
   /** Each size's listed monthly paid loan fee. */
   pricing?: LoanFeeSize[];
-  /** Migration 148's single fee. Removed in task 11. */
-  paidLoanMonthlyGbp?: number | null;
 }
 
 type Tab = "my" | "saved" | "all";

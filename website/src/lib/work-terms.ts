@@ -32,8 +32,6 @@ export interface WorkTermsInput {
   openToFreeLoanOverride?: boolean | null;
   /** The work's sizes, each with its listed fee, if any. */
   pricing?: ReadonlyArray<LoanFeeSize> | null;
-  /** Migration 148's single fee. Retired by 149; removed in task 11. */
-  paidLoanMonthlyGbp?: number | null;
 }
 
 /** A selected work and the size chosen for it, if any. */
@@ -63,8 +61,6 @@ export interface ResolvedWorkTerms {
   paidLoanFromGbp: number | null;
   /** True when the listed fees differ between sizes. */
   paidLoanFeesVary: boolean;
-  /** Migration 148's single fee. Removed in task 11. */
-  paidLoanMonthlyGbp: number | null;
 }
 
 function finiteOrNull(value: unknown): number | null {
@@ -96,7 +92,6 @@ export function resolveWorkTerms(work: WorkTermsInput, artist: ArtistTermsInput)
     openToFreeLoan,
     paidLoanFromGbp: fees.length > 0 ? Math.min(...fees) : null,
     paidLoanFeesVary: new Set(fees).size > 1,
-    paidLoanMonthlyGbp: finiteOrNull(work.paidLoanMonthlyGbp),
   };
 }
 
@@ -126,13 +121,11 @@ export function workTermsFromRow(row: Record<string, unknown>): {
   revenueShareOverride: number | null;
   openToRevenueShareOverride: boolean | null;
   openToFreeLoanOverride: boolean | null;
-  paidLoanMonthlyGbp: number | null;
 } {
   return {
     revenueShareOverride: finiteOrNull(row.revenue_share_percent),
     openToRevenueShareOverride: booleanOrNull(row.open_to_revenue_share),
     openToFreeLoanOverride: booleanOrNull(row.open_to_free_loan),
-    paidLoanMonthlyGbp: finiteOrNull(row.paid_loan_monthly_gbp),
   };
 }
 
@@ -198,32 +191,6 @@ export function initialPlacementTerms(
     revenueSharePercent: firstOpen >= 0 ? shareOf(works[firstOpen]) : null,
     monthlyFeeGbp: total,
     mixed: works.length > 1 && (new Set(shareKeys).size > 1 || (listed.length > 0 && listed.length < works.length)),
-  };
-}
-
-export type WorkTermsFormResult =
-  | { ok: true; revenueShareOverride: number | null; paidLoanMonthlyGbp: number | null }
-  | { ok: false; error: string };
-
-/** The work editor's two text inputs, checked against the same ranges as the database. */
-export function parseWorkTermsForm(shareRaw: string, feeRaw: string): WorkTermsFormResult {
-  const share = shareRaw.trim();
-  const fee = feeRaw.trim();
-
-  const shareVal = share === "" ? null : Number(share);
-  if (shareVal !== null && (!Number.isInteger(shareVal) || shareVal < 0 || shareVal > 100)) {
-    return { ok: false, error: "Revenue share must be a whole number from 0 to 100" };
-  }
-
-  const feeVal = fee === "" ? null : Number(fee);
-  if (feeVal !== null && (!Number.isFinite(feeVal) || feeVal < PAID_LOAN_MIN_GBP || feeVal > 100_000)) {
-    return { ok: false, error: `Monthly loan fees run from £${PAID_LOAN_MIN_GBP} to £100,000` };
-  }
-
-  return {
-    ok: true,
-    revenueShareOverride: shareVal,
-    paidLoanMonthlyGbp: feeVal === null ? null : Math.round(feeVal * 100) / 100,
   };
 }
 

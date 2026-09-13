@@ -98,8 +98,6 @@ export interface ArtistWork {
    *  work's own setting. Read both through resolveWorkTerms. */
   openToRevenueShareOverride?: boolean | null;
   openToFreeLoanOverride?: boolean | null;
-  /** Migration 148. Listed monthly paid loan fee in pounds, or null for none. */
-  paidLoanMonthlyGbp?: number | null;
 }
 
 export interface Artist {

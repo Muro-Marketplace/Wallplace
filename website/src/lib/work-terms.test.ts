@@ -9,11 +9,11 @@ import {
   loanFeeSizesFromRow,
   paidLoanFeeForSize,
   parseWorkArrangements,
-  parseWorkTermsForm,
   resolveWorkTerms,
   speakMonthlyFee,
   workTermsFromRow,
   workTermsSourceFromRow,
+  type WorkTermsInput,
 } from "./work-terms";
 
 /** Sizes S1, S2, ... carrying the given fees. */
@@ -57,6 +57,11 @@ describe("resolveWorkTerms", () => {
 
   it("lists no fee on a work not open to paid loan", () => {
     expect(resolveWorkTerms({ pricing: fees(40), openToFreeLoanOverride: false }, open).paidLoanFromGbp).toBeNull();
+  });
+
+  it("ignores the retired work-level fee", () => {
+    expect(resolveWorkTerms({ paidLoanMonthlyGbp: 40 } as WorkTermsInput, open)).not.toHaveProperty("paidLoanMonthlyGbp");
+    expect(workTermsFromRow({ paid_loan_monthly_gbp: 40 })).not.toHaveProperty("paidLoanMonthlyGbp");
   });
 });
 
@@ -152,28 +157,6 @@ describe("initialPlacementTerms", () => {
 
   it("words the note without dashes", () => {
     expect(MIXED_TERMS_NOTE).not.toMatch(/[–—]/);
-  });
-});
-
-describe("parseWorkTermsForm", () => {
-  it("reads blanks as no value", () => {
-    expect(parseWorkTermsForm("", " ")).toEqual({ ok: true, revenueShareOverride: null, paidLoanMonthlyGbp: null });
-  });
-
-  it("accepts a whole-number share and a fee, rounding the fee to pence", () => {
-    expect(parseWorkTermsForm("30", "42.499")).toEqual({ ok: true, revenueShareOverride: 30, paidLoanMonthlyGbp: 42.5 });
-  });
-
-  it("refuses a share that is fractional or out of range", () => {
-    for (const raw of ["12.5", "-1", "101", "abc"]) {
-      expect(parseWorkTermsForm(raw, "").ok).toBe(false);
-    }
-  });
-
-  it("refuses a fee under the paid loan floor or over the cap", () => {
-    expect(parseWorkTermsForm("", String(PAID_LOAN_MIN_GBP - 1)).ok).toBe(false);
-    expect(parseWorkTermsForm("", "100001").ok).toBe(false);
-    expect(parseWorkTermsForm("", String(PAID_LOAN_MIN_GBP)).ok).toBe(true);
   });
 });
 

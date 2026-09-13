@@ -28,17 +28,19 @@ const row = {
 } as DbArtistWork;
 
 describe("dbProfileToArtist: per-work terms (migration 148)", () => {
-  it("keeps a work's own terms separate from the artist's default", () => {
-    const artist = dbProfileToArtist(profile, [{ ...row, revenue_share_percent: 30, paid_loan_monthly_gbp: 40 }]);
+  it("keeps a work's own rate separate from the artist's default", () => {
+    const artist = dbProfileToArtist(profile, [{ ...row, revenue_share_percent: 30 }]);
     expect(artist.works[0].revenueShareOverride).toBe(30);
-    expect(artist.works[0].paidLoanMonthlyGbp).toBe(40);
     expect(artist.revenueSharePercent).toBe(25);
   });
 
-  it("reads unset columns as null, which means the default applies", () => {
-    const artist = dbProfileToArtist(profile, [row]);
-    expect(artist.works[0].revenueShareOverride).toBeNull();
-    expect(artist.works[0].paidLoanMonthlyGbp).toBeNull();
+  it("reads an unset rate as null, which means the default applies", () => {
+    expect(dbProfileToArtist(profile, [row]).works[0].revenueShareOverride).toBeNull();
+  });
+
+  it("does not carry the retired work-level fee", () => {
+    const [work] = dbProfileToArtist(profile, [{ ...row, paid_loan_monthly_gbp: 40 } as unknown as DbArtistWork]).works;
+    expect(work).not.toHaveProperty("paidLoanMonthlyGbp");
   });
 });
 
