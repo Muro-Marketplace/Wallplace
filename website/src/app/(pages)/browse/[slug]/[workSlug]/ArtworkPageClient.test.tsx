@@ -36,6 +36,8 @@ vi.mock("next/link", () => ({
     <a href={typeof href === "string" ? href : "#"}>{children}</a>
   ),
 }));
+const qrContextState: { value: Record<string, unknown> | null } = { value: null };
+vi.mock("@/lib/qr-context", () => ({ readQrContext: () => qrContextState.value }));
 
 import ArtworkPageClient from "./ArtworkPageClient";
 
@@ -63,6 +65,7 @@ function workWithPerSizeShipping(): ArtistWork {
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("no network in test"))));
+  qrContextState.value = null;
 });
 
 afterEach(() => {
@@ -251,5 +254,45 @@ describe("Artwork page placement terms (per-size loan fees)", () => {
     const work = { ...workWithFees(), openToRevenueShareOverride: false, openToFreeLoanOverride: false };
     render(<ArtworkPageClient work={work} artistName="Alice Rivers" artistSlug="alice-rivers" artistTerms={TERMS} />);
     expect(screen.queryByText(/Revenue Share|Paid Loan/)).toBeNull();
+  });
+});
+
+// Owner request 13 September 2026: a visitor who scanned a venue's QR code sees
+// that venue on the artwork's own page too, for example after reloading the
+// permalink the lightbox moved them to. Only on the artwork the code was printed for.
+describe("Artwork page venue from a QR scan (owner request 13 September 2026)", () => {
+  const scannedFor = (artistSlug: string, workSlug = "winter-field") => ({
+    venueSlug: "the-curzon",
+    venueName: "The Curzon",
+    source: "qr",
+    artistSlug,
+    workSlug,
+    ts: Date.now(),
+  });
+
+  it("shows the venue where the visitor scanned this artist's QR code", async () => {
+    qrContextState.value = scannedFor("alice-rivers");
+    render(<ArtworkPageClient work={workWithPerSizeShipping()} artistName="Alice Rivers" artistSlug="alice-rivers" />);
+    expect(await screen.findByText("Seen in The Curzon")).toBeTruthy();
+  });
+
+  it("shows no venue when the scan was for another artist's work", () => {
+    qrContextState.value = scannedFor("someone-else");
+    render(<ArtworkPageClient work={workWithPerSizeShipping()} artistName="Alice Rivers" artistSlug="alice-rivers" />);
+    expect(screen.queryByText(/Seen in/)).toBeNull();
+  });
+
+  it("shows no venue on another artwork by the same artist", () => {
+    qrContextState.value = scannedFor("alice-rivers", "first-frost");
+    render(<ArtworkPageClient work={workWithPerSizeShipping()} artistName="Alice Rivers" artistSlug="alice-rivers" />);
+    expect(screen.queryByText(/Seen in/)).toBeNull();
+  });
+
+  it("says it once when the work is placed at the venue that was scanned", async () => {
+    qrContextState.value = scannedFor("alice-rivers");
+    const work = { ...workWithPerSizeShipping(), placed_at_venue: "The Curzon" };
+    render(<ArtworkPageClient work={work} artistName="Alice Rivers" artistSlug="alice-rivers" />);
+    expect(await screen.findByText("Seen in The Curzon")).toBeTruthy();
+    expect(screen.queryByText(/Currently placed at/)).toBeNull();
   });
 });

@@ -24,6 +24,26 @@ import { physicalSizeLabel } from "@/lib/physical-size";
 import { frameUpliftFor } from "@/app/(pages)/browse/[slug]/[workSlug]/frame-uplift";
 import { formatPounds } from "@/lib/format-currency";
 
+/** The venue, and the artwork if there is one, that a QR redirect put on the URL. */
+interface QrVenue {
+  slug: string | null;
+  name: string | null;
+  token: string | null;
+  workSlug: string | null;
+}
+
+function qrVenueFromParams(params: Pick<URLSearchParams, "get">): QrVenue | null {
+  if (params.get("ref") !== "qr") return null;
+  const slug = params.get("venue");
+  const name = params.get("venueName");
+  if (!slug && !name) return null;
+  return { slug, name, token: params.get("va"), workSlug: params.get("work") };
+}
+
+function sameQrVenue(a: QrVenue, b: QrVenue): boolean {
+  return a.slug === b.slug && a.name === b.name && a.token === b.token && a.workSlug === b.workSlug;
+}
+
 interface ArtistProfileClientProps {
   artistName: string;
   artistSlug: string;
@@ -201,7 +221,6 @@ export default function ArtistProfileClient({
   const pathname = usePathname();
 
   const qrSize = searchParams.get("size") || null;
-  const isQrScan = searchParams.get("ref") === "qr";
 
   // B9/F19: the signed-in messaging API rejects customers (403) and
   // guests (401), so only artists and venues take the /api/messages
@@ -392,26 +411,44 @@ export default function ArtistProfileClient({
   // so the banner still reads sensibly. The slug-vs-name split is
   // necessary because the checkout API needs the slug to credit the
   // venue's revenue-share cut.
-  const qrVenueSlug = isQrScan ? searchParams.get("venue") : null;
-  const qrVenueNameParam = isQrScan ? searchParams.get("venueName") : null;
+  //
+  // Kept for the whole visit rather than read live from the URL: opening an
+  // artwork moves the address to its permalink, which drops the query string,
+  // and the venue went with it (owner request 13 September 2026: show the venue
+  // on the artwork). A new scan's parameters replace it.
+  const [qrVenue, setQrVenue] = useState<QrVenue | null>(() => qrVenueFromParams(searchParams));
+  useEffect(() => {
+    const next = qrVenueFromParams(searchParams);
+    if (next) setQrVenue((prev) => (prev && sameQrVenue(prev, next) ? prev : next));
+  }, [searchParams]);
+  const qrVenueSlug = qrVenue?.slug ?? null;
+  const qrVenueNameParam = qrVenue?.name ?? null;
   const qrVenueName = qrVenueNameParam || qrVenueSlug;
   // D10: the signed venue attribution minted by the QR redirect (`va`). Stored
   // alongside the slug and preferred at checkout.
-  const qrAttributionToken = isQrScan ? searchParams.get("va") : null;
+  const qrAttributionToken = qrVenue?.token ?? null;
+  // The artwork the code was printed for. Only that artwork says where it was
+  // seen: the rest of the portfolio may hang somewhere else.
+  const qrWorkSlug = qrVenue?.workSlug ?? null;
+  const isScannedWork = (work: ArtistWork) =>
+    !!qrWorkSlug && (slugify(work.title) === qrWorkSlug || work.id === qrWorkSlug);
 
   // Stash the QR context in localStorage so the venue attribution
   // survives the navigation away from this page (buy buttons push
   // `/checkout?backTo=…` which strips the `?venue=` param). The
   // checkout page reads this back to pass venueSlug to the API.
   useEffect(() => {
-    if (!isQrScan || !qrVenueSlug) return;
+    if (!qrVenueSlug) return;
     saveQrContext({
       venueSlug: qrVenueSlug,
       venueName: qrVenueNameParam || undefined,
       source: "qr",
       attributionToken: qrAttributionToken || undefined,
+      // So the artwork's own page names the venue on this artwork only.
+      artistSlug,
+      workSlug: qrWorkSlug || undefined,
     });
-  }, [isQrScan, qrVenueSlug, qrVenueNameParam, qrAttributionToken]);
+  }, [qrVenueSlug, qrVenueNameParam, qrAttributionToken, artistSlug, qrWorkSlug]);
 
   // Premium+ artists pick a profile theme via the artist portal; Core
   // artists see the picker locked behind an upsell, so render-side we
@@ -928,6 +965,15 @@ export default function ArtistProfileClient({
               <h3 className="text-base sm:text-xl font-serif text-foreground leading-snug mb-2 sm:mb-3">
                 {currentWork.title}
               </h3>
+
+              {/* The venue whose QR code opened this artwork, in the artwork
+                  page's placed-at chip style (owner request 13 September 2026). */}
+              {qrVenueName && isScannedWork(currentWork) && (
+                <p className="mb-3 sm:mb-4 self-start inline-flex items-center gap-1.5 text-xs text-muted bg-foreground/5 rounded-full px-2.5 py-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden />
+                  Seen in {qrVenueName}
+                </p>
+              )}
 
               {/* Details. Dimensions row is suppressed entirely when
                   formatDimensionsForDisplay returns empty so a row
