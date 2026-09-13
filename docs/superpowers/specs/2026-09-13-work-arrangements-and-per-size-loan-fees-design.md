@@ -165,8 +165,9 @@ the public work page and the editor.
   brings them back. The card and the forms ignore them while it is unticked.
 - The fees are an array aligned with `sizes` (`sizeLoanFees`), like
   `sizeShipping`. Adding a size or a suggested-size chip appends a blank.
-  Removing a size removes its fee. "Copy sizes from…" and "Copy prices from…"
-  carry fees by label, as they carry shipping. The quick price edit keeps them,
+  Removing a size removes its fee. "Copy sizes from…" clears
+  them and "Copy prices from…" brings them across row by row, exactly as each
+  treats per-size shipping. The quick price edit keeps them,
   because it already merges onto the existing rows.
 
 ### Revenue share
