@@ -60,6 +60,18 @@ describe("bulkAddDraftError", () => {
     );
   });
 
+  // Owner report 13 September 2026: a frame with a price but no name was dropped
+  // on save without a word.
+  it("flags a frame option that has a price but no name", () => {
+    expect(bulkAddDraftError(draft({ frameOptions: [{ label: "", priceUplift: "15" }] }))).toBe(
+      "Frame option 1 needs a name before this draft can be saved. Buyers choose a frame by its name.",
+    );
+  });
+
+  it("does not hold a draft back for an empty frame row", () => {
+    expect(bulkAddDraftError(draft({ frameOptions: [{ label: "", priceUplift: "" }] }))).toBeNull();
+  });
+
   it("lists every missing piece in one message", () => {
     expect(
       bulkAddDraftError(

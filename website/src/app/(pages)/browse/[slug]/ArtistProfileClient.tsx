@@ -23,6 +23,7 @@ import { filterWorksByTheme, largestPricedTier } from "./portfolio-filters";
 import { physicalSizeLabel } from "@/lib/physical-size";
 import { frameUpliftFor } from "@/app/(pages)/browse/[slug]/[workSlug]/frame-uplift";
 import { formatPounds } from "@/lib/format-currency";
+import { frameImageSrc } from "@/data/frame-catalogue";
 
 /** The venue, and the artwork if there is one, that a QR redirect put on the URL. */
 interface QrVenue {
@@ -1069,11 +1070,12 @@ export default function ArtistProfileClient({
                       );
                     })}
                   </select>
-                  {currentWork.frameOptions[selectedFrameIdx]?.imageUrl && (
+                  {/* A standard frame is stored as a short reference; frameImageSrc draws its swatch. */}
+                  {frameImageSrc(currentWork.frameOptions[selectedFrameIdx]?.imageUrl) && (
                     <div className="mt-2 relative aspect-[3/2] overflow-hidden border border-border/60 bg-surface select-none" onContextMenu={(e) => e.preventDefault()}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={currentWork.frameOptions[selectedFrameIdx].imageUrl}
+                        src={frameImageSrc(currentWork.frameOptions[selectedFrameIdx].imageUrl)}
                         alt={`${currentWork.frameOptions[selectedFrameIdx].label} preview`}
                         className="w-full h-full object-contain pointer-events-none select-none"
                         draggable={false}

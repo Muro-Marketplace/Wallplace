@@ -9,11 +9,12 @@
  *
  * `frameSwatchDataUri` turns a `StandardFrame` into a self-contained SVG
  * data URI: no external image, no AI, no network call, and the same
- * frame always produces the same string. That string becomes the
- * frame's `imageUrl`, exactly the field `artistWorkInputSchema` already
- * accepts (`optionalString(1000)`), so nothing downstream changes: the
- * artwork page preview, checkout, and the visualiser all keep reading
- * `imageUrl` as they always have.
+ * frame always produces the same string. A work stores the short
+ * reference from `standardFrameImageRef` ("frame:natural-oak") as the
+ * frame's `imageUrl`, and `frameImageSrc` turns it back into the swatch
+ * wherever a frame is shown. Storing the data URI itself failed the
+ * 1,000-character `imageUrl` limit for most frames, so the whole work
+ * would not save (owner report 13 September 2026).
  */
 
 export type FrameFinish = "matte" | "gloss" | "wood" | "metal";
@@ -195,4 +196,38 @@ function buildSwatchSvg(frame: StandardFrame): string {
  */
 export function frameSwatchDataUri(frame: StandardFrame): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(buildSwatchSvg(frame))}`;
+}
+
+const STANDARD_FRAME_REF_PREFIX = "frame:";
+
+/**
+ * What a work stores as a standard frame's `imageUrl`: a short reference, not
+ * the swatch. At 836 to 1,956 characters the swatch data URI failed
+ * `artistWorkInputSchema`'s 1,000-character limit for 12 of the 15 frames
+ * (owner report 13 September 2026). Draw it with `frameImageSrc`.
+ */
+export function standardFrameImageRef(frame: StandardFrame): string {
+  return `${STANDARD_FRAME_REF_PREFIX}${frame.id}`;
+}
+
+/** The standard frame a stored `imageUrl` names, from its reference or from an
+ *  older swatch data URI still held in an unsaved form. Undefined for a photo. */
+export function standardFrameForImage(imageUrl: string | null | undefined): StandardFrame | undefined {
+  if (!imageUrl) return undefined;
+  if (imageUrl.startsWith(STANDARD_FRAME_REF_PREFIX)) {
+    return getStandardFrame(imageUrl.slice(STANDARD_FRAME_REF_PREFIX.length));
+  }
+  return STANDARD_FRAMES.find((f) => frameSwatchDataUri(f) === imageUrl);
+}
+
+/** The `src` to draw for a frame's stored `imageUrl`: the swatch for a standard
+ *  frame, the address itself for an uploaded photo, and undefined when there is
+ *  nothing to draw (no image, or a frame no longer in the catalogue). */
+export function frameImageSrc(imageUrl: string | null | undefined): string | undefined {
+  if (!imageUrl) return undefined;
+  if (imageUrl.startsWith(STANDARD_FRAME_REF_PREFIX)) {
+    const frame = standardFrameForImage(imageUrl);
+    return frame ? frameSwatchDataUri(frame) : undefined;
+  }
+  return imageUrl;
 }

@@ -29,6 +29,7 @@ import { formatPounds } from "@/lib/format-currency";
 import WorkTermsLine from "@/components/WorkTermsLine";
 import { paidLoanFeeForSize, resolveWorkTerms, type ArtistTermsPayload } from "@/lib/work-terms";
 import { placementRequestHref } from "./placement-request-href";
+import { frameImageSrc } from "@/data/frame-catalogue";
 import { readQrContext } from "@/lib/qr-context";
 import { slugify } from "@/lib/slugify";
 interface ArtworkPageClientProps {
@@ -86,6 +87,8 @@ export default function ArtworkPageClient({
   // explicitly opt in to a frame.
   const [selectedFrameIdx, setSelectedFrameIdx] = useState(-1);
   const selectedFrame = selectedFrameIdx >= 0 ? frameOptions[selectedFrameIdx] : undefined;
+  // A standard frame is stored as a short reference; this draws its swatch.
+  const selectedFramePreview = frameImageSrc(selectedFrame?.imageUrl);
   const [wallVizOpen, setWallVizOpen] = useState(false);
   const [offerOpen, setOfferOpen] = useState(false);
 
@@ -416,11 +419,11 @@ export default function ArtworkPageClient({
             ]}
             ariaLabel="Choose frame"
           />
-          {selectedFrame?.imageUrl && (
+          {selectedFrame && selectedFramePreview && (
             <div className="mt-3 relative aspect-video rounded-sm overflow-hidden border border-border/60 bg-surface select-none" onContextMenu={(e) => e.preventDefault()}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={selectedFrame.imageUrl}
+                src={selectedFramePreview}
                 alt={`${selectedFrame.label} preview`}
                 className="w-full h-full object-cover pointer-events-none select-none"
                 draggable={false}

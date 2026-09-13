@@ -48,6 +48,7 @@ vi.mock("@/lib/qr-context", () => ({ saveQrContext: saveQrContextMock }));
 
 import ArtistProfileClient from "./ArtistProfileClient";
 import { ApiError } from "@/lib/api-client";
+import { frameSwatchDataUri, getStandardFrame } from "@/data/frame-catalogue";
 
 afterEach(() => cleanup());
 beforeEach(() => {
@@ -423,5 +424,25 @@ describe("ArtistProfileClient venue from a QR scan (owner request 13 September 2
     render(profile());
     await waitFor(() => expect(artworkDetails()).toBeTruthy());
     expect(screen.queryByText(/Seen in/)).toBeNull();
+  });
+});
+
+// Owner report 13 September 2026: a standard frame is stored as a short reference
+// ("frame:walnut") so the work can save, and the lightbox draws its swatch.
+describe("ArtistProfileClient lightbox frame preview (owner report 13 September 2026)", () => {
+  it("draws the swatch for a stored standard frame rather than a broken image", async () => {
+    const framed = { ...WORK, frameOptions: [{ label: "Walnut", priceUplift: 20, imageUrl: "frame:walnut" }] };
+    render(
+      <ArtistProfileClient artistName="Alice" artistSlug="alice" extendedBio="" themes={[]} works={[framed as never]} />,
+    );
+    fireEvent.click(screen.getByTitle("Quick look"));
+
+    const frameSelect = (screen.getAllByRole("combobox") as HTMLSelectElement[]).find((el) =>
+      Array.from(el.options).some((o) => (o.textContent ?? "").startsWith("Walnut")),
+    )!;
+    fireEvent.change(frameSelect, { target: { value: "0" } });
+
+    const preview = await screen.findByAltText("Walnut preview");
+    expect(preview.getAttribute("src")).toBe(frameSwatchDataUri(getStandardFrame("walnut")!));
   });
 });

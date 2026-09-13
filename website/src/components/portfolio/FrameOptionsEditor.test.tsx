@@ -49,16 +49,22 @@ function Harness({
   initial = [],
   sizes = SIZES,
   onUploadError = () => {},
+  onChangeSpy,
 }: {
   initial?: FrameOptionFormEntry[];
   sizes?: { label: string; price: number }[];
   onUploadError?: (message: string) => void;
+  /** Sees every array the editor hands back, which is what the page saves. */
+  onChangeSpy?: (next: FrameOptionFormEntry[]) => void;
 }) {
   const [frameOptions, setFrameOptions] = useState<FrameOptionFormEntry[]>(initial);
   return (
     <FrameOptionsEditor
       frameOptions={frameOptions}
-      onChange={setFrameOptions}
+      onChange={(next) => {
+        onChangeSpy?.(next);
+        setFrameOptions(next);
+      }}
       sizes={sizes}
       onUploadError={onUploadError}
     />
@@ -85,7 +91,7 @@ describe("<FrameOptionsEditor />", () => {
     expect(document.querySelector('input[type="file"]')).toBeTruthy();
   });
 
-  it("choosing a standard frame fills the label and sets the swatch data URI as the image", () => {
+  it("choosing a standard frame fills the label and previews its swatch", () => {
     render(<Harness initial={[{ label: "", priceUplift: "10" }]} />);
     const walnut = STANDARD_FRAMES.find((f) => f.id === "walnut")!;
     fireEvent.change(screen.getByRole("combobox", { name: "Frame" }), {
@@ -97,6 +103,25 @@ describe("<FrameOptionsEditor />", () => {
     expect(img.getAttribute("src")).toBe(frameSwatchDataUri(walnut));
     // Standard frames show a fixed preview, not the upload control.
     expect(document.querySelector('input[type="file"]')).toBeNull();
+  });
+
+  // Owner report 13 September 2026: saving with Natural oak failed because its
+  // swatch data URI, 1,956 characters, was the stored image and the limit is
+  // 1,000. The editor stores a short reference; the preview still draws the swatch.
+  it("stores a standard frame as a short reference the work's validation accepts", () => {
+    const spy = vi.fn();
+    render(<Harness initial={[{ label: "", priceUplift: "15" }]} onChangeSpy={spy} />);
+    fireEvent.change(screen.getByRole("combobox", { name: "Frame" }), { target: { value: "natural-oak" } });
+    const saved = (spy.mock.calls.at(-1)![0] as FrameOptionFormEntry[])[0];
+    expect(saved.imageUrl).toBe("frame:natural-oak");
+    expect(saved.imageUrl!.length).toBeLessThanOrEqual(1000);
+  });
+
+  it("shows a saved standard frame as chosen, with its swatch", () => {
+    const walnut = STANDARD_FRAMES.find((f) => f.id === "walnut")!;
+    render(<Harness initial={[{ label: "Walnut", priceUplift: "10", imageUrl: "frame:walnut" }]} />);
+    expect((screen.getByRole("combobox", { name: "Frame" }) as HTMLSelectElement).value).toBe("walnut");
+    expect(screen.getByAltText("Walnut").getAttribute("src")).toBe(frameSwatchDataUri(walnut));
   });
 
   it("switching a standard frame back to custom clears the swatch and restores the upload control", () => {
