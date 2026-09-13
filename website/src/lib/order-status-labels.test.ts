@@ -73,6 +73,31 @@ describe("isRefundEligible", () => {
     ).toBe(false);
   });
 
+  // Owner decision 13 September 2026: an artist can mark an order delivered, and
+  // that can come before the parcel does. The statutory window runs from arrival,
+  // so a delivery the artist marked keeps the refund open a week longer.
+  it("gives a delivery the artist marked a week's allowance for the post", () => {
+    const history = [
+      { status: "shipped", timestamp: "2026-04-18T12:00:00Z", by: "seller" },
+      { status: "delivered", timestamp: "2026-04-20T12:00:00Z", by: "seller" },
+    ];
+    // 16 days after the artist's mark: still open.
+    expect(
+      isRefundEligible({ status: "delivered", delivered_at: "2026-04-20T12:00:00Z", status_history: history }, now),
+    ).toBe(true);
+    // A second over 21 days after it: closed.
+    expect(
+      isRefundEligible({ status: "delivered", delivered_at: "2026-04-15T11:59:59Z", status_history: history }, now),
+    ).toBe(false);
+  });
+
+  it("keeps 14 days for a delivery the buyer confirmed", () => {
+    const history = [{ status: "delivered", timestamp: "2026-04-20T12:00:00Z", by: "buyer" }];
+    expect(
+      isRefundEligible({ status: "delivered", delivered_at: "2026-04-20T12:00:00Z", status_history: history }, now),
+    ).toBe(false);
+  });
+
   it("blocks refund for delivered orders missing delivered_at (defensive — no clock to compare)", () => {
     expect(isRefundEligible({ status: "delivered" }, now)).toBe(false);
     expect(isRefundEligible({ status: "delivered", delivered_at: null }, now)).toBe(false);

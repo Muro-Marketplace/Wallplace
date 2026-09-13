@@ -51,7 +51,7 @@ const STEPS: StepDef[] = [
   { key: "order.placed", label: "Placed", hint: "We received your order." },
   { key: "order.processing", label: "Processing", hint: "The artist is preparing your piece." },
   { key: "order.out_for_delivery", label: "Out for delivery", hint: "On its way." },
-  { key: "order.delivered", label: "Delivered", hint: "Marked as arrived by you, the buyer." },
+  { key: "order.delivered", label: "Delivered", hint: "Marked as arrived." },
   { key: "order.delivery_confirmed", label: "Confirmed", hint: "You confirmed receipt. Thank you." },
 ];
 
