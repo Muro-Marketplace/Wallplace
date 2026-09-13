@@ -186,6 +186,11 @@ export default async function ArtworkPage({
                 internationalShippingPrice={artist.internationalShippingPrice}
                 viewsThisWeek={viewsThisWeek}
                 isSample={Boolean(artist.isSeedArtist)}
+                artistTerms={{
+                  revenueSharePercent: artist.revenueSharePercent ?? null,
+                  openToRevenueShare: artist.openToRevenueShare,
+                  openToFreeLoan: artist.openToFreeLoan,
+                }}
               />
             </div>
           </div>

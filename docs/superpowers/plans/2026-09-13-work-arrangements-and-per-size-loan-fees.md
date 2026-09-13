@@ -2092,7 +2092,8 @@ describe("Artwork page placement terms (per-size loan fees)", () => {
   it("follows the size dropdown", () => {
     render(<ArtworkPageClient work={workWithFees()} artistName="Alice Rivers" artistSlug="alice-rivers" artistTerms={TERMS} />);
     fireEvent.click(screen.getByLabelText("Choose size"));
-    fireEvent.click(screen.getAllByRole("option")[1]);
+    // Dropdown commits an option on mouse-down, so focus stays on the trigger.
+    fireEvent.mouseDown(screen.getAllByRole("option")[1]);
     expect(screen.getByText("20% Revenue Share · £60/month Paid Loan")).toBeTruthy();
   });
 
