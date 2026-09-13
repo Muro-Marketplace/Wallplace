@@ -36,3 +36,29 @@ export function buildFramePayload(frameOptions: FramePayloadInput[] | undefined)
     pricesBySize: f.pricesBySize,
   }));
 }
+
+/**
+ * The index of the first frame the artist started but left without a name, or
+ * -1. Something to save means a price, a photo or a per-size price; a completely
+ * empty row is an unused "+ Add frame option" and does not count. Buyers choose a
+ * frame by its name, and saving used to drop an unnamed frame without a word
+ * (owner report 13 September 2026), so the save stops and says which one.
+ */
+export function firstUnnamedFrame(
+  frameOptions:
+    | Array<{
+        label: string;
+        priceUplift?: number | string;
+        imageUrl?: string;
+        pricesBySize?: Record<string, number | string | undefined>;
+      }>
+    | undefined,
+): number {
+  return (frameOptions ?? []).findIndex((f) => {
+    if (f.label.trim()) return false;
+    const priced = Number(f.priceUplift) > 0;
+    const pictured = !!f.imageUrl;
+    const sizePriced = Object.values(f.pricesBySize ?? {}).some((v) => v !== undefined && v !== "");
+    return priced || pictured || sizePriced;
+  });
+}
