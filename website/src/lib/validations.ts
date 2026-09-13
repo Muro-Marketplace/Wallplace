@@ -255,6 +255,17 @@ export const artistWorkInputSchema = z.object({
   // model. inStorePrice above stays accepted (and ignored by the route) so an
   // old client tab cannot 400 a whole save.
   availableInStore: z.boolean().optional(),
+  // Migration 148. null clears the work's own value. An omitted key leaves the
+  // stored value alone: the portfolio re-saves every work on a reorder without
+  // these keys. Same ranges as the database CHECKs.
+  revenueShareOverride: z.number().int().min(0).max(100).nullable().optional(),
+  paidLoanMonthlyGbp: z
+    .number()
+    .finite()
+    .min(PAID_LOAN_MIN_GBP, { message: `Monthly loan fees start at £${PAID_LOAN_MIN_GBP}.` })
+    .max(100_000)
+    .nullable()
+    .optional(),
   quantityAvailable: z.number().int().min(0).max(10_000).nullable().optional(),
   description: optionalString(2000),
   images: z.array(z.string().max(2000)).max(10).optional(),

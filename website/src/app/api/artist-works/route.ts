@@ -24,11 +24,20 @@ export async function GET(request: Request) {
 
   const result = await getArtistProfileByUserId(auth.user!.id);
   if (!result) {
-    return NextResponse.json({ works: [] });
+    return NextResponse.json({ works: [], terms: null });
   }
 
   const works = await getWorksByArtistProfileId(result.profile.id);
-  return NextResponse.json({ works });
+  // Migration 148. The Spaces request form and the wall visualiser both start
+  // from a work's own terms and fall back to these, so they arrive together.
+  return NextResponse.json({
+    works,
+    terms: {
+      revenueSharePercent: result.profile.revenue_share_percent ?? null,
+      openToRevenueShare: result.profile.open_to_revenue_share ?? true,
+      openToFreeLoan: result.profile.open_to_free_loan ?? true,
+    },
+  });
 }
 
 // POST: create or update a work
@@ -59,7 +68,7 @@ export async function POST(request: Request) {
     const {
       id, title, medium, dimensions, priceBand, pricing, available, color, image,
       orientation, sortOrder, shippingPrice, inStorePrice, availableInStore, quantityAvailable, frameOptions,
-      description, images,
+      description, images, revenueShareOverride, paidLoanMonthlyGbp,
     } = parsed.data;
 
     // Owner decision 2 September 2026: saving a work never depends on
@@ -179,6 +188,12 @@ export async function POST(request: Request) {
       // in_store_price deliberately NOT forwarded any more (see above).
       ...(void inStorePrice, {}),
       quantity_available: quantityAvailable ?? null,
+      // Migration 148. Written only when the request names them. The portfolio
+      // re-saves every work on a reorder without these keys, and writing null
+      // there would silently wipe an artist's per-work terms. An explicit null
+      // still clears a value.
+      ...(revenueShareOverride !== undefined ? { revenue_share_percent: revenueShareOverride } : {}),
+      ...(paidLoanMonthlyGbp !== undefined ? { paid_loan_monthly_gbp: paidLoanMonthlyGbp } : {}),
       frame_options: sanitizedFrames,
       description: sanitizedDescription,
       images: sanitizedImages,

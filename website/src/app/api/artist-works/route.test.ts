@@ -41,7 +41,7 @@ vi.mock("@/lib/feature-flags", () => ({ isFlagOn: isFlagOnMock }));
 vi.mock("@/lib/subscriptions", () => ({ isSubscribed: isSubscribedMock }));
 vi.mock("next/cache", () => ({ revalidatePath: revalidatePathMock }));
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
 
 beforeEach(() => {
   rpcMock.mockReset();
@@ -417,5 +417,56 @@ describe("POST /api/artist-works keeps the per-size fields on each pricing tier"
     const res = await POST(req({ ...baseBody, pricing: [{ label: "A3", price: 120, shippingPrice: -5 }] }));
     expect(res.status).toBe(400);
     expect(upsertWorkMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/artist-works: per-work terms (migration 148)", () => {
+  it("saves a work's own share and listed fee", async () => {
+    const res = await POST(req({ ...baseBody, revenueShareOverride: 30, paidLoanMonthlyGbp: 40 }));
+    expect(res.status).toBe(200);
+    const row = upsertWorkMock.mock.calls[0][1];
+    expect(row.revenue_share_percent).toBe(30);
+    expect(row.paid_loan_monthly_gbp).toBe(40);
+  });
+
+  it("clears both with an explicit null", async () => {
+    await POST(req({ ...baseBody, revenueShareOverride: null, paidLoanMonthlyGbp: null }));
+    const row = upsertWorkMock.mock.calls[0][1];
+    expect(row.revenue_share_percent).toBeNull();
+    expect(row.paid_loan_monthly_gbp).toBeNull();
+  });
+
+  it("leaves both untouched when the request does not name them, as a reorder save does", async () => {
+    await POST(req(baseBody));
+    const row = upsertWorkMock.mock.calls[0][1];
+    expect("revenue_share_percent" in row).toBe(false);
+    expect("paid_loan_monthly_gbp" in row).toBe(false);
+  });
+
+  it("refuses a fee under the paid loan floor", async () => {
+    const res = await POST(req({ ...baseBody, paidLoanMonthlyGbp: 5 }));
+    expect(res.status).toBe(400);
+    expect(upsertWorkMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/artist-works: the artist's default terms (migration 148)", () => {
+  function getReq(): Request {
+    return new Request("http://localhost/api/artist-works", { headers: { authorization: "Bearer valid" } });
+  }
+
+  it("returns the profile's share and arrangement flags beside the works", async () => {
+    getProfileMock.mockResolvedValue({
+      profile: { id: "ap_1", revenue_share_percent: 25, open_to_revenue_share: true, open_to_free_loan: false },
+    });
+    getWorksMock.mockResolvedValue([{ id: "w_1" }]);
+    const body = await (await GET(getReq())).json();
+    expect(body.works).toEqual([{ id: "w_1" }]);
+    expect(body.terms).toEqual({ revenueSharePercent: 25, openToRevenueShare: true, openToFreeLoan: false });
+  });
+
+  it("returns null terms when there is no artist profile", async () => {
+    getProfileMock.mockResolvedValue(null);
+    expect(await (await GET(getReq())).json()).toEqual({ works: [], terms: null });
   });
 });

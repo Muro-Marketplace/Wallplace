@@ -3,6 +3,7 @@
 // allowlists, numeric bounds, and required-vs-optional.
 
 import { describe, expect, it } from "vitest";
+import { PAID_LOAN_MIN_GBP } from "./pricing";
 import {
   applySchema,
   artistWorkInputSchema,
@@ -497,5 +498,29 @@ describe("sizePricingSchema per-size fields", () => {
       pricing,
     });
     expect(parsed.pricing).toEqual(pricing);
+  });
+});
+
+describe("artistWorkInputSchema: per-work terms (migration 148)", () => {
+  const work = { id: "w_1", title: "Harbour Light", image: "https://example.com/x.jpg" };
+
+  it("accepts a whole-number share from 0 to 100, or null to clear it", () => {
+    for (const value of [0, 30, 100, null]) {
+      expect(artistWorkInputSchema.safeParse({ ...work, revenueShareOverride: value }).success).toBe(true);
+    }
+  });
+
+  it("rejects a share outside 0 to 100, or with a fraction", () => {
+    for (const value of [-1, 101, 12.5]) {
+      expect(artistWorkInputSchema.safeParse({ ...work, revenueShareOverride: value }).success).toBe(false);
+    }
+  });
+
+  it("holds a listed fee to the paid loan floor and the £100,000 cap", () => {
+    expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: PAID_LOAN_MIN_GBP }).success).toBe(true);
+    expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: 42.5 }).success).toBe(true);
+    expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: null }).success).toBe(true);
+    expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: PAID_LOAN_MIN_GBP - 1 }).success).toBe(false);
+    expect(artistWorkInputSchema.safeParse({ ...work, paidLoanMonthlyGbp: 100_001 }).success).toBe(false);
   });
 });
