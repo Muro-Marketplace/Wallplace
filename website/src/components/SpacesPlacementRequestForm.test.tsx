@@ -199,3 +199,51 @@ describe("SpacesPlacementRequestForm — 429 error copy", () => {
     await waitFor(() => expect(screen.getByText(pending)).toBeTruthy());
   });
 });
+
+describe("SpacesPlacementRequestForm starts from the work's terms (spec 2026-09-13)", () => {
+  const TERMS = { revenueSharePercent: 20, openToRevenueShare: true, openToFreeLoan: true };
+
+  function renderWith(works: Array<Record<string, unknown>>, artistTerms: typeof TERMS | null) {
+    vi.stubGlobal("fetch", mockFetch({}));
+    return render(
+      <SpacesPlacementRequestForm
+        venue={VENUE}
+        works={works as unknown as typeof WORKS}
+        artistTerms={artistTerms}
+        authToken="token-123"
+        onCancel={() => {}}
+        onSuccess={() => {}}
+      />,
+    );
+  }
+
+  function shareInput() {
+    return screen.getByLabelText("Revenue share to venue") as HTMLInputElement;
+  }
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("opens the revenue share at the work's own share", () => {
+    renderWith([{ ...WORKS[0], revenue_share_percent: 30 }], TERMS);
+    expect(shareInput().value).toBe("30");
+  });
+
+  it("falls back to the artist's default for a work without one", () => {
+    renderWith([{ ...WORKS[0] }], TERMS);
+    expect(shareInput().value).toBe("20");
+  });
+
+  it("keeps the form's own 25% when there is no share anywhere", () => {
+    renderWith([{ ...WORKS[0] }], null);
+    expect(shareInput().value).toBe("25");
+  });
+
+  it("keeps what the artist types", () => {
+    renderWith([{ ...WORKS[0], revenue_share_percent: 30 }], TERMS);
+    fireEvent.change(shareInput(), { target: { value: "12" } });
+    expect(shareInput().value).toBe("12");
+  });
+});
