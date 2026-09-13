@@ -10,7 +10,7 @@ import { useToast } from "@/context/ToastContext";
 import { useConfirm } from "@/context/ConfirmContext";
 import { useUnsavedWarning } from "@/lib/use-unsaved-warning";
 import { useSaveAction } from "@/hooks/useSaveAction";
-import { buildFramePayload, type FramePayloadInput } from "./frame-payload";
+import { buildFramePayload, firstUnnamedFrame, type FramePayloadInput } from "./frame-payload";
 import { mergeBulkPricing, copySizesPricing } from "./bulk-pricing";
 import { worksToPost } from "./changed-works";
 import { partitionBulkAddDrafts } from "./bulk-add-validation";
@@ -1918,6 +1918,15 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
     );
     if (!terms.ok) {
       setFormError(terms.error);
+      return;
+    }
+
+    // Owner report 13 September 2026: a frame given a price but no name was
+    // dropped by the label filter below without a word, so it never saved.
+    // Buyers choose a frame by its name, so say which frame needs one instead.
+    const unnamedFrame = firstUnnamedFrame(form.frameOptions);
+    if (unnamedFrame >= 0) {
+      setFormError(`Frame option ${unnamedFrame + 1} needs a name. Buyers choose a frame by its name.`);
       return;
     }
 

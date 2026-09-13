@@ -262,6 +262,28 @@ describe("imageless works cannot save (D22)", () => {
   });
 });
 
+// Owner report 13 September 2026: a custom frame given a price but no name was
+// dropped when the work saved, with no message, so the frame option never saved.
+describe("a frame option without a name is not dropped silently", () => {
+  it("refuses to save and says which frame needs a name", async () => {
+    mutateMock.mockResolvedValue({ savedRow: { id: "w1" } });
+    render(<PortfolioPage />);
+
+    await openAddAndFill();
+    fireEvent.click(screen.getAllByText("+ Add frame option")[0]);
+    fireEvent.change(screen.getAllByRole("spinbutton", { name: "Default frame uplift" })[0], {
+      target: { value: "15" },
+    });
+    fireEvent.click(screen.getAllByText("Save Work")[0]);
+
+    expect(
+      (await screen.findAllByText("Frame option 1 needs a name. Buyers choose a frame by its name.")).length,
+    ).toBeGreaterThan(0);
+    expect(mutateMock).not.toHaveBeenCalled();
+    expect(formIsOpen()).toBe(true);
+  });
+});
+
 // D24. Bulk add used to filter to the valid drafts, save those, and clear the
 // whole list, silently discarding every incomplete draft (typed titles and
 // uploaded images included) with only an "Added N works" toast.

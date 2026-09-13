@@ -40,6 +40,7 @@ const qrContextState: { value: Record<string, unknown> | null } = { value: null 
 vi.mock("@/lib/qr-context", () => ({ readQrContext: () => qrContextState.value }));
 
 import ArtworkPageClient from "./ArtworkPageClient";
+import { frameSwatchDataUri, getStandardFrame } from "@/data/frame-catalogue";
 
 /** A work whose A4 size carries its own, cheaper, shipping price. */
 function workWithPerSizeShipping(): ArtistWork {
@@ -294,5 +295,22 @@ describe("Artwork page venue from a QR scan (owner request 13 September 2026)", 
     render(<ArtworkPageClient work={work} artistName="Alice Rivers" artistSlug="alice-rivers" />);
     expect(await screen.findByText("Seen in The Curzon")).toBeTruthy();
     expect(screen.queryByText(/Currently placed at/)).toBeNull();
+  });
+});
+
+// Owner report 13 September 2026: a standard frame is stored as a short reference
+// ("frame:walnut") so the work can save, and the artwork page draws its swatch.
+describe("Artwork page frame preview for a standard frame (owner report 13 September 2026)", () => {
+  it("draws the swatch for a stored standard frame rather than a broken image", () => {
+    const work = workWithPerSizeShipping();
+    work.frameOptions = [{ label: "Walnut", priceUplift: 20, imageUrl: "frame:walnut" }];
+    render(<ArtworkPageClient work={work} artistName="Alice Rivers" artistSlug="alice-rivers" />);
+
+    fireEvent.click(screen.getByLabelText("Choose frame"));
+    // Dropdown commits an option on mouse-down.
+    fireEvent.mouseDown(screen.getByRole("option", { name: /Walnut/ }));
+
+    const preview = screen.getByAltText("Walnut preview") as HTMLImageElement;
+    expect(preview.getAttribute("src")).toBe(frameSwatchDataUri(getStandardFrame("walnut")!));
   });
 });
