@@ -33,6 +33,7 @@ import {
   type ProposalVenue,
   DEFAULT_QR_REVENUE_SHARE_PERCENT,
 } from "@/lib/placements/wall-proposal-client";
+import { MIXED_TERMS_NOTE, type InitialPlacementTerms } from "@/lib/work-terms";
 
 export type ProposalSendStatus = "idle" | "sending" | "sent" | "error";
 
@@ -42,6 +43,8 @@ export interface ProposalSendPanelProps {
   status: ProposalSendStatus;
   error: string | null;
   onSend: (terms: ProposalTerms) => void;
+  /** Where the terms start, from the works on the wall (spec 2026-09-13). */
+  initialTerms?: InitialPlacementTerms;
 }
 
 const ARRANGEMENT_COPY: Record<ProposalArrangement, string> = {
@@ -59,14 +62,18 @@ export default function ProposalSendPanel({
   status,
   error,
   onSend,
+  initialTerms,
 }: ProposalSendPanelProps) {
   const supported = useMemo(() => supportedArrangements(venue), [venue]);
   const [open, setOpen] = useState(false);
   const [arrangement, setArrangement] = useState<ProposalArrangement>(
     () => supported[0] ?? "revenue_share",
   );
-  const [revenueShare, setRevenueShare] = useState(DEFAULT_REVENUE_SHARE_PERCENT);
-  const [monthlyFee, setMonthlyFee] = useState(DEFAULT_MONTHLY_FEE_GBP);
+  // null means the artist has not typed yet, so the value follows the works.
+  const [revenueShareInput, setRevenueShareInput] = useState<number | null>(null);
+  const [monthlyFeeInput, setMonthlyFeeInput] = useState<number | null>(null);
+  const revenueShare = revenueShareInput ?? initialTerms?.revenueSharePercent ?? DEFAULT_REVENUE_SHARE_PERCENT;
+  const monthlyFee = monthlyFeeInput ?? initialTerms?.monthlyFeeGbp ?? DEFAULT_MONTHLY_FEE_GBP;
   const [qrEnabled, setQrEnabled] = useState(true);
   const [qrRevenueShare, setQrRevenueShare] = useState(DEFAULT_QR_REVENUE_SHARE_PERCENT);
   const [message, setMessage] = useState(() => defaultProposalMessage(venue.name, wallName));
@@ -196,6 +203,12 @@ export default function ProposalSendPanel({
             </div>
           </fieldset>
 
+          {initialTerms?.mixed && (
+            <p role="note" className="text-[11px] text-stone-500">
+              {MIXED_TERMS_NOTE}
+            </p>
+          )}
+
           {arrangement === "revenue_share" && (
             <label className="flex items-center gap-2 text-xs text-stone-600">
               <span className="w-40">Revenue share to venue</span>
@@ -205,7 +218,7 @@ export default function ProposalSendPanel({
                 max={100}
                 step={1}
                 value={revenueShare}
-                onChange={(e) => setRevenueShare(clampRevenueShare(Number(e.target.value) || 0))}
+                onChange={(e) => setRevenueShareInput(clampRevenueShare(Number(e.target.value) || 0))}
                 disabled={sending}
                 aria-label="Revenue share to venue"
                 className={`w-20 ${INPUT}`}
@@ -224,7 +237,7 @@ export default function ProposalSendPanel({
                   min={0}
                   step={1}
                   value={monthlyFee}
-                  onChange={(e) => setMonthlyFee(Math.max(0, Number(e.target.value) || 0))}
+                  onChange={(e) => setMonthlyFeeInput(Math.max(0, Number(e.target.value) || 0))}
                   disabled={sending}
                   aria-label="Monthly fee from venue"
                   className={`w-24 ${INPUT}`}

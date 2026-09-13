@@ -13,6 +13,7 @@ vi.mock("next/link", () => ({
 }));
 
 import ProposalSendPanel from "./ProposalSendPanel";
+import { MIXED_TERMS_NOTE } from "@/lib/work-terms";
 
 const VENUE = {
   slug: "copper-kettle",
@@ -130,5 +131,31 @@ describe("<ProposalSendPanel />", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send to The Copper Kettle" }));
     expect(screen.getByText(/isn\u2019t open to placement requests/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+  });
+});
+
+describe("<ProposalSendPanel /> starts from the wall's works (spec 2026-09-13)", () => {
+  function open() {
+    fireEvent.click(screen.getByRole("button", { name: "Send to The Copper Kettle" }));
+  }
+
+  it("opens at the works' share and fee instead of the defaults", () => {
+    mount({ initialTerms: { revenueSharePercent: 30, monthlyFeeGbp: 100, mixed: false } });
+    open();
+    expect((screen.getByLabelText("Revenue share to venue") as HTMLInputElement).value).toBe("30");
+    fireEvent.click(screen.getByRole("radio", { name: "Paid loan" }));
+    expect((screen.getByLabelText("Monthly fee from venue") as HTMLInputElement).value).toBe("100");
+  });
+
+  it("keeps the defaults for anything the works do not set", () => {
+    mount({ initialTerms: { revenueSharePercent: null, monthlyFeeGbp: null, mixed: false } });
+    open();
+    expect((screen.getByLabelText("Revenue share to venue") as HTMLInputElement).value).toBe("25");
+  });
+
+  it("says so when the works on the wall list different terms", () => {
+    mount({ initialTerms: { revenueSharePercent: 30, monthlyFeeGbp: 40, mixed: true } });
+    open();
+    expect(screen.getByText(MIXED_TERMS_NOTE)).toBeTruthy();
   });
 });

@@ -48,6 +48,9 @@ export interface PanelWork {
   /** Intended orientation, used to align the picked size to the
    *  artwork's actual rotation when pricing labels disagree. */
   orientation?: WorkOrientation;
+  /** Migration 148: the work's own revenue share and listed paid loan fee. */
+  revenueShareOverride?: number | null;
+  paidLoanMonthlyGbp?: number | null;
 }
 
 type Tab = "my" | "saved" | "all";
