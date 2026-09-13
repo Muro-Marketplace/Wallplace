@@ -452,9 +452,14 @@ describe("POST /api/artist-works: per-work terms (migrations 148 and 149)", () =
     expect(row().pricing).toEqual(pricing);
   });
 
-  it("refuses a per-size fee under the paid loan floor", async () => {
-    const res = await POST(req({ ...baseBody, pricing: [{ label: "A4", price: 120, paidLoanMonthlyGbp: 5 }] }));
-    expect(res.status).toBe(400);
+  it("saves a per-size fee under the old £15 floor, and refuses one that is not above £0", async () => {
+    const pricing = [{ label: "A4", price: 120, paidLoanMonthlyGbp: 5 }];
+    expect((await POST(req({ ...baseBody, pricing }))).status).toBe(200);
+    expect(row().pricing).toEqual(pricing);
+
+    upsertWorkMock.mockClear();
+    const zero = await POST(req({ ...baseBody, pricing: [{ label: "A4", price: 120, paidLoanMonthlyGbp: 0 }] }));
+    expect(zero.status).toBe(400);
     expect(upsertWorkMock).not.toHaveBeenCalled();
   });
 

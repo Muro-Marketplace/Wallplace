@@ -5,7 +5,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { PAID_LOAN_MIN_GBP } from "../../src/lib/pricing";
 
 const SQL = readFileSync(
   path.resolve(__dirname, "../../supabase/migrations/149_work_arrangements_and_size_loan_fees.sql"),
@@ -19,9 +18,9 @@ describe("149_work_arrangements_and_size_loan_fees.sql", () => {
     expect(SQL).not.toMatch(/boolean\s+(not null|default)/i);
   });
 
-  it("uses the app's fee floor and the £100,000 cap for each size", () => {
+  it("shipped a £15 floor and the £100,000 cap for each size, before migration 150 lifted the floor", () => {
     const floor = /'paidLoanMonthlyGbp'\)::numeric >= (\d+(?:\.\d+)?)/i.exec(SQL)?.[1];
-    expect(Number(floor)).toBe(PAID_LOAN_MIN_GBP);
+    expect(Number(floor)).toBe(15);
     expect(SQL).toMatch(/'paidLoanMonthlyGbp'\)::numeric <= 100000/i);
   });
 

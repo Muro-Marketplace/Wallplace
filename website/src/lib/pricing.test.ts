@@ -5,7 +5,6 @@ import {
   WORKS_CAP,
   ACTIVE_PLACEMENT_CAP,
   activePlacementCapForProfile,
-  PAID_LOAN_MIN_GBP,
   FOUNDING_ARTIST_LIMIT,
   FOUNDING_TRIAL_MONTHS,
   FOUNDING_OFFER_SHORT,
@@ -42,9 +41,12 @@ describe("pricing source of truth", () => {
     expect(activePlacementCapForProfile({ subscription_plan: "toString", subscription_status: "active" })).toBe(2);
   });
 
-  it("floors paid loans at £15 and caps founding artists at 20", () => {
-    expect(PAID_LOAN_MIN_GBP).toBe(15);
+  it("caps founding artists at 20", () => {
     expect(FOUNDING_ARTIST_LIMIT).toBe(20);
+  });
+
+  it("sets no minimum monthly loan fee (owner decision 13 September 2026)", async () => {
+    expect("PAID_LOAN_MIN_GBP" in (await import("./pricing"))).toBe(false);
   });
 });
 

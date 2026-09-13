@@ -4,7 +4,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { PAID_LOAN_MIN_GBP } from "../../src/lib/pricing";
 
 const SQL = readFileSync(
   path.resolve(__dirname, "../../supabase/migrations/148_artist_work_terms.sql"),
@@ -22,9 +21,11 @@ describe("148_artist_work_terms.sql", () => {
     expect(SQL).toMatch(/revenue_share_percent is null or revenue_share_percent between 0 and 100/i);
   });
 
-  it("uses the same fee floor as the app, and the same £100,000 cap", () => {
+  // The app has no minimum since 13 September 2026 (migration 150). This column
+  // is retired and keeps the £15 floor it shipped with; nothing writes it.
+  it("shipped the retired column with a £15 floor and the £100,000 cap", () => {
     const floor = /paid_loan_monthly_gbp >= (\d+(?:\.\d+)?)/i.exec(SQL)?.[1];
-    expect(Number(floor)).toBe(PAID_LOAN_MIN_GBP);
+    expect(Number(floor)).toBe(15);
     expect(SQL).toMatch(/paid_loan_monthly_gbp <= 100000/i);
   });
 });

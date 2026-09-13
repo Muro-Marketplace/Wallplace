@@ -3,7 +3,6 @@
 // allowlists, numeric bounds, and required-vs-optional.
 
 import { describe, expect, it } from "vitest";
-import { PAID_LOAN_MIN_GBP } from "./pricing";
 import {
   applySchema,
   artistWorkInputSchema,
@@ -160,6 +159,13 @@ describe("placementSchema", () => {
     expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: 100001 }).success).toBe(false);
   });
 
+  it("takes any monthly fee from 0, with no rent floor (owner decision 13 September 2026)", () => {
+    for (const fee of [0, 0.5, 5, 14.99]) {
+      expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: fee }).success, String(fee)).toBe(true);
+    }
+    expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: -1 }).success).toBe(false);
+  });
+
   it("extraWorks caps at 20 entries", () => {
     const twentyOne = Array.from({ length: 21 }, (_, i) => ({ title: `w${i}` }));
     expect(placementSchema.safeParse({ ...base, extraWorks: twentyOne }).success).toBe(false);
@@ -202,7 +208,9 @@ describe("placementUpdateSchema", () => {
   });
 });
 
-describe("paid-loan monthly fee floor", () => {
+// Owner decision 13 September 2026: no minimum monthly loan fee, replacing the
+// £15 floor of 2026-08-28. 0 still means no monthly fee.
+describe("paid-loan monthly fee has no floor", () => {
   const base = {
     id: "pl-1",
     workTitle: "Test work",
@@ -210,23 +218,22 @@ describe("paid-loan monthly fee floor", () => {
     type: "paid_loan" as const,
   };
 
-  it("accepts zero (not a paid loan) and £15 and up", () => {
-    expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: 0 }).success).toBe(true);
-    expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: 15 }).success).toBe(true);
-    expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: 250 }).success).toBe(true);
+  it("accepts zero (not a paid loan) and any rent up to the cap", () => {
+    for (const fee of [0, 0.5, 5, 14.99, 15, 250, 100000]) {
+      expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: fee }).success, String(fee)).toBe(true);
+    }
   });
 
-  it("rejects a rent between £0.01 and £14.99", () => {
-    expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: 5 }).success).toBe(false);
-    expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: 14.99 }).success).toBe(false);
+  it("still rejects a negative rent or one over the cap", () => {
+    expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: -1 }).success).toBe(false);
+    expect(placementSchema.safeParse({ ...base, monthlyFeeGbp: 100001 }).success).toBe(false);
   });
 
-  it("applies the same floor to counter offers", () => {
-    const counter = { id: "pl-1", counter: { monthlyFeeGbp: 10 } };
-    expect(placementUpdateSchema.safeParse(counter).success).toBe(false);
-    expect(
-      placementUpdateSchema.safeParse({ id: "pl-1", counter: { monthlyFeeGbp: 20 } }).success,
-    ).toBe(true);
+  it("applies the same rule to counter offers", () => {
+    for (const fee of [10, 20]) {
+      expect(placementUpdateSchema.safeParse({ id: "pl-1", counter: { monthlyFeeGbp: fee } }).success, String(fee)).toBe(true);
+    }
+    expect(placementUpdateSchema.safeParse({ id: "pl-1", counter: { monthlyFeeGbp: -1 } }).success).toBe(false);
   });
 });
 
@@ -543,10 +550,13 @@ describe("artistWorkInputSchema: per-work ticks and per-size fees (migration 149
     expect(artistWorkInputSchema.parse({ ...work, pricing }).pricing).toEqual(pricing);
   });
 
-  it("holds a per-size fee to the paid loan floor and the £100,000 cap", () => {
+  it("accepts any per-size fee above £0 up to the £100,000 cap, with no minimum", () => {
     const withFee = (fee: number) => ({ ...work, pricing: [{ label: "A4", price: 120, paidLoanMonthlyGbp: fee }] });
-    expect(artistWorkInputSchema.safeParse(withFee(PAID_LOAN_MIN_GBP)).success).toBe(true);
-    expect(artistWorkInputSchema.safeParse(withFee(PAID_LOAN_MIN_GBP - 1)).success).toBe(false);
-    expect(artistWorkInputSchema.safeParse(withFee(100_001)).success).toBe(false);
+    for (const fee of [0.5, 5, 15, 100_000]) {
+      expect(artistWorkInputSchema.safeParse(withFee(fee)).success, String(fee)).toBe(true);
+    }
+    for (const fee of [0, -1, 100_001]) {
+      expect(artistWorkInputSchema.safeParse(withFee(fee)).success, String(fee)).toBe(false);
+    }
   });
 });

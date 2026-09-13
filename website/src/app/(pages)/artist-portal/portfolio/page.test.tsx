@@ -666,14 +666,26 @@ describe("placement terms on each work (migration 149)", () => {
     expect(postedBody().pricing[0].paidLoanMonthlyGbp).toBeUndefined();
   });
 
-  it("refuses a fee under the floor and keeps the form open", async () => {
+  it("saves a fee under the old £15 floor, since there is no minimum", async () => {
     artistState.profile = LOAN_OPEN;
+    mutateMock.mockResolvedValue({ savedRow: { id: "w1" } });
     render(<PortfolioPage />);
     await openAddAndFill();
     fireEvent.change(feeInputs()[0], { target: { value: "5" } });
     fireEvent.click(screen.getAllByText("Save Work")[0]);
 
-    expect((await screen.findAllByText("Monthly loan fees run from £15 to £100,000")).length).toBeGreaterThan(0);
+    await waitFor(() => expect(showToastMock).toHaveBeenCalledWith("Artwork added"));
+    expect(postedBody().pricing[0]).toMatchObject({ paidLoanMonthlyGbp: 5 });
+  });
+
+  it("refuses a fee over the cap and keeps the form open", async () => {
+    artistState.profile = LOAN_OPEN;
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    fireEvent.change(feeInputs()[0], { target: { value: "100001" } });
+    fireEvent.click(screen.getAllByText("Save Work")[0]);
+
+    expect((await screen.findAllByText("Enter a monthly fee up to £100,000, or leave it blank")).length).toBeGreaterThan(0);
     expect(mutateMock).not.toHaveBeenCalled();
   });
 

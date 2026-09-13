@@ -2,7 +2,6 @@
 // form, and the placement payload is built from what is on the wall.
 
 import { describe, expect, it } from "vitest";
-import { PAID_LOAN_MIN_GBP } from "@/lib/pricing";
 import type { WallItem } from "@/lib/visualizer/types";
 import {
   buildProposalPlacement,
@@ -117,11 +116,10 @@ describe("proposalTermsProblem", () => {
     expect(proposalTermsProblem({ ...TERMS, arrangement: "purchase" })).toBeNull();
   });
 
-  it("holds a paid loan to the rent floor, allowing 0 for a free loan", () => {
-    expect(proposalTermsProblem({ ...TERMS, arrangement: "loan", monthlyFeeGbp: PAID_LOAN_MIN_GBP - 1 })).toMatch(
-      new RegExp(`start at £${PAID_LOAN_MIN_GBP}`),
-    );
-    expect(proposalTermsProblem({ ...TERMS, arrangement: "loan", monthlyFeeGbp: 0 })).toBeNull();
+  it("allows any monthly fee from 0, with no rent floor, and refuses a negative one", () => {
+    for (const fee of [0, 0.5, 5, 14.99]) {
+      expect(proposalTermsProblem({ ...TERMS, arrangement: "loan", monthlyFeeGbp: fee }), String(fee)).toBeNull();
+    }
     expect(proposalTermsProblem({ ...TERMS, arrangement: "loan", monthlyFeeGbp: -1 })).toMatch(/monthly fee/);
   });
 

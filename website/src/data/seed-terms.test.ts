@@ -4,7 +4,6 @@
 // changed in both directions so every state of the card can be seen.
 import { describe, expect, it } from "vitest";
 import { artists } from "./artists";
-import { PAID_LOAN_MIN_GBP } from "@/lib/pricing";
 import { resolveWorkTerms } from "@/lib/work-terms";
 
 const works = artists.flatMap((artist) =>
@@ -19,12 +18,12 @@ describe("seed catalogue per-work terms", () => {
     expect(works.some(({ terms }) => terms.paidLoanFromGbp !== null && !terms.paidLoanFeesVary)).toBe(true);
   });
 
-  it("lists fees only on works offered on paid loan, within the floor and cap", () => {
+  it("lists fees only on works offered on paid loan, above £0 and within the cap", () => {
     for (const { work, terms } of withFees) {
       expect(terms.openToFreeLoan, work.id).toBe(true);
       for (const size of work.pricing) {
         if (size.paidLoanMonthlyGbp == null) continue;
-        expect(size.paidLoanMonthlyGbp, work.id).toBeGreaterThanOrEqual(PAID_LOAN_MIN_GBP);
+        expect(size.paidLoanMonthlyGbp, work.id).toBeGreaterThan(0);
         expect(size.paidLoanMonthlyGbp, work.id).toBeLessThanOrEqual(100_000);
       }
     }

@@ -12,7 +12,6 @@
  * and the request carries the proposal's layout id.
  */
 
-import { PAID_LOAN_MIN_GBP } from "@/lib/pricing";
 import type { Wall, WallItem } from "@/lib/visualizer/types";
 
 /**
@@ -99,9 +98,6 @@ export function proposalTermsProblem(terms: ProposalTerms): string | null {
   if (terms.arrangement === "loan") {
     const fee = terms.monthlyFeeGbp;
     if (!Number.isFinite(fee) || fee < 0) return "Enter a monthly fee, or 0 for a free loan.";
-    if (fee > 0 && fee < PAID_LOAN_MIN_GBP) {
-      return `Monthly loan fees start at £${PAID_LOAN_MIN_GBP}. Set 0 for a free loan.`;
-    }
   }
   if (terms.arrangement === "revenue_share") {
     const share = terms.revenueSharePercent;

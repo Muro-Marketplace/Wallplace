@@ -765,7 +765,7 @@ export default function SpacesPlacementRequestForm({
                 <span className="text-xs text-muted">per month</span>
               </div>
               <p className="text-[10px] text-muted/80 mt-1">
-                Suggested rent: 3 to 5% of the work&rsquo;s value per month, minimum £15.
+                Suggested rent: 3 to 5% of the work&rsquo;s value per month.
               </p>
 
               {/* Optional QR-driven rev share on top of the monthly fee.

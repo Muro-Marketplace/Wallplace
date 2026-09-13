@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { PAID_LOAN_MIN_GBP } from "./pricing";
 import {
   LOAN_FEE_RANGE_ERROR,
   MIXED_TERMS_NOTE,
@@ -208,15 +207,17 @@ describe("parseWorkArrangements", () => {
     expect(parseWorkArrangements(untouched, { ...profile, revenueSharePercent: null }).ok).toBe(true);
   });
 
-  it("reads each size's fee, rounding to pence and keeping blanks as none", () => {
-    expect(parseWorkArrangements({ ...untouched, loanFees: ["42.499", " ", String(PAID_LOAN_MIN_GBP)] }, profile))
-      .toMatchObject({ ok: true, loanFees: [42.5, null, PAID_LOAN_MIN_GBP] });
+  it("reads each size's fee, rounding to pence, with no minimum, and treats blank or 0 as none", () => {
+    expect(parseWorkArrangements({ ...untouched, loanFees: ["42.499", " ", "5", "0.5", "0", "0.001"] }, profile))
+      .toMatchObject({ ok: true, loanFees: [42.5, null, 5, 0.5, null, null] });
   });
 
-  it("refuses a fee outside the range while paid loan is ticked, and drops it while unticked", () => {
-    expect(parseWorkArrangements({ ...untouched, loanFees: ["5"] }, profile)).toEqual({ ok: false, error: LOAN_FEE_RANGE_ERROR });
-    expect(parseWorkArrangements({ ...untouched, loanFees: ["100001"] }, profile)).toEqual({ ok: false, error: LOAN_FEE_RANGE_ERROR });
-    expect(parseWorkArrangements({ ...untouched, paidLoanOffered: false, loanFees: ["5", "40"] }, profile))
+  it("refuses a negative, unreadable or over-cap fee while paid loan is ticked, and drops it while unticked", () => {
+    for (const raw of ["-1", "abc", "100001"]) {
+      expect(parseWorkArrangements({ ...untouched, loanFees: [raw] }, profile), raw).toEqual({ ok: false, error: LOAN_FEE_RANGE_ERROR });
+    }
+    expect(LOAN_FEE_RANGE_ERROR).not.toMatch(/£15/);
+    expect(parseWorkArrangements({ ...untouched, paidLoanOffered: false, loanFees: ["-1", "40"] }, profile))
       .toMatchObject({ ok: true, openToFreeLoanOverride: false, loanFees: [null, 40] });
   });
 });
