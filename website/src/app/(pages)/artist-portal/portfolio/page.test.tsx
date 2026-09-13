@@ -284,6 +284,69 @@ describe("a frame option without a name is not dropped silently", () => {
   });
 });
 
+// Owner request 14 September 2026: the artwork editor was built for photographs
+// sold as prints. Uploading wrote the image's pixel size as its dimensions, five
+// print sizes were filled in, and a blank quantity let an original sell twice.
+describe("adding an original is not print-first (owner request 14 September 2026)", () => {
+  const ARTWORK_SIZE = "e.g. 70 × 50 cm";
+  const QUANTITY = "e.g. 10";
+  const PRINT_SIZE_CHIP = /^\+ \d+×\d+"/;
+
+  it("never writes the image's pixel size in as the artwork size", async () => {
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    expect((screen.getAllByPlaceholderText(ARTWORK_SIZE)[0] as HTMLInputElement).value).toBe("");
+    expect(screen.queryAllByDisplayValue(/px$/)).toHaveLength(0);
+  });
+
+  it("starts with one unnamed size row, and offers print sizes only when asked", async () => {
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    expect(screen.getAllByPlaceholderText("Blank uses the artwork size").length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(PRINT_SIZE_CHIP)).toHaveLength(0);
+
+    fireEvent.click(screen.getAllByText("Selling prints too? Add print sizes")[0]);
+    expect(screen.getAllByText(PRINT_SIZE_CHIP).length).toBeGreaterThan(0);
+  });
+
+  it("saves a one-price original under its artwork size, with a quantity of 1", async () => {
+    mutateMock.mockResolvedValue({ savedRow: { id: "w1" } });
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    fireEvent.change(screen.getAllByPlaceholderText(ARTWORK_SIZE)[0], { target: { value: "70 × 50 cm" } });
+    fireEvent.click(screen.getAllByText("Save Work")[0]);
+
+    await waitFor(() => expect(mutateMock).toHaveBeenCalled());
+    const body = JSON.parse((mutateMock.mock.calls[0][1] as { body: string }).body) as {
+      dimensions: string;
+      pricing: Array<{ label: string; price: number }>;
+      quantityAvailable: number | null;
+    };
+    expect(body.dimensions).toBe("70 × 50 cm");
+    expect(body.pricing).toEqual([expect.objectContaining({ label: "70 × 50 cm", price: 120 })]);
+    expect(body.quantityAvailable).toBe(1);
+  });
+
+  it("warns when a one-size work has no quantity, and sets it to 1", async () => {
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    fireEvent.change(screen.getAllByPlaceholderText(QUANTITY)[0], { target: { value: "" } });
+
+    expect(screen.getAllByText(/can sell again and again/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Set to 1" })[0]);
+    expect((screen.getAllByPlaceholderText(QUANTITY)[0] as HTMLInputElement).value).toBe("1");
+  });
+
+  it("clears the one-off quantity when print sizes are added, so prints do not sell out after one", async () => {
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    fireEvent.click(screen.getAllByText("Selling prints too? Add print sizes")[0]);
+    fireEvent.click(screen.getAllByText(PRINT_SIZE_CHIP)[0]);
+
+    expect((screen.getAllByPlaceholderText(QUANTITY)[0] as HTMLInputElement).value).toBe("");
+  });
+});
+
 // D24. Bulk add used to filter to the valid drafts, save those, and clear the
 // whole list, silently discarding every incomplete draft (typed titles and
 // uploaded images included) with only an "Added N works" toast.
