@@ -50,17 +50,32 @@ function migrations(): Migration[] {
     .sort((a, b) => a.number - b.number);
 }
 
-/** Tables a migration creates, by name. */
+/**
+ * Tables a migration creates in `public`, by name.
+ *
+ * A table in another schema is out of scope: the rule is about the grants
+ * Supabase hands anon and authenticated on `public`, which PostgREST exposes.
+ * 146's backup_20260910 snapshot is the case that made this explicit; it
+ * revokes the whole schema instead. Names may contain digits.
+ */
 function tablesCreated(sql: string): string[] {
-  return [...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?([a-z_]+)/gi)].map(
-    (m) => m[1].toLowerCase(),
-  );
+  return [
+    ...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\.)?([a-z_][a-z0-9_]*)/gi),
+  ]
+    .filter((m) => !m[1] || m[1].toLowerCase() === "public")
+    .map((m) => m[2].toLowerCase());
 }
 
 describe("a new table locks itself down", () => {
   it("sees the migrations at all", () => {
     expect(migrations().length).toBeGreaterThan(90);
     expect(migrations().some((m) => m.number >= FIRST_ENFORCED)).toBe(true);
+  });
+
+  it("counts tables in public, with or without the prefix, and ignores other schemas", () => {
+    expect(tablesCreated("create table public.foo_2 (id int);")).toEqual(["foo_2"]);
+    expect(tablesCreated("create table if not exists bar (id int);")).toEqual(["bar"]);
+    expect(tablesCreated("create table backup_20260910.orders as select * from public.orders;")).toEqual([]);
   });
 
   it("every table created since 111 revokes its client grants", () => {
