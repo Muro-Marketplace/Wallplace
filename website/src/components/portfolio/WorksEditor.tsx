@@ -16,7 +16,7 @@ import { worksToPost } from "./changed-works";
 import { partitionBulkAddDrafts } from "./bulk-add-validation";
 import { deriveAvailable, hydrateAvailable } from "./work-availability";
 import { estimateShipping, tierLabel } from "@/lib/shipping-calculator";
-import { parseWorkTermsForm } from "@/lib/work-terms";
+import { parseWorkArrangements } from "@/lib/work-terms";
 import { canFeatureArtwork, isArtworkOfTheWeek } from "@/lib/tier-features";
 import Combobox from "@/components/Combobox";
 import { WORK_MEDIUM_OPTIONS } from "@/data/work-medium-options";
@@ -116,10 +116,14 @@ interface WorkFormState {
   sizeStock: string[];
   detectedRatio: number | null;
   quantityAvailable: string;
-  /** Migration 148. Blank means the artist's profile default applies. */
-  revenueShareOverride: string;
-  /** Migration 148. Blank means no listed paid loan fee. */
-  paidLoanMonthlyGbp: string;
+  /** Migration 149. Null while the work follows the profile's revenue share tick. */
+  revenueShareOffered: boolean | null;
+  /** The rate box as typed, or null while it shows the profile rate. */
+  revenueShareRate: string | null;
+  /** Migration 149. Null while the work follows the profile's paid loan tick. */
+  paidLoanOffered: boolean | null;
+  /** Monthly paid loan fee per size, aligned by index with `sizes`. "" lists none. */
+  sizeLoanFees: string[];
   frameOptions: {
     label: string;
     priceUplift: string;
@@ -204,8 +208,10 @@ const emptyWork: WorkFormState = {
   sizeStock: [],
   detectedRatio: null,
   quantityAvailable: "",
-  revenueShareOverride: "",
-  paidLoanMonthlyGbp: "",
+  revenueShareOffered: null,
+  revenueShareRate: null,
+  paidLoanOffered: null,
+  sizeLoanFees: [],
   frameOptions: [],
 };
 
@@ -284,6 +290,17 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
     });
   }
   const [form, setForm] = useState<WorkFormState>(emptyWork);
+  // Spec 2026-09-13 (per-size loan fees). A work follows the profile until the
+  // artist changes it, so each control shows `own ?? profile`, and the ticks
+  // wait for the profile so a guessed default is never saved as a choice.
+  const profileTerms = {
+    revenueSharePercent: profile?.revenue_share_percent ?? null,
+    openToRevenueShare: profile?.open_to_revenue_share ?? true,
+    openToFreeLoan: profile?.open_to_free_loan ?? true,
+  };
+  const profileReady = !artistLoading && profile != null;
+  const shareOffered = form.revenueShareOffered ?? profileTerms.openToRevenueShare;
+  const loanOffered = form.paidLoanOffered ?? profileTerms.openToFreeLoan;
   const [hoveredWork, setHoveredWork] = useState<number | null>(null);
   // Drag-reorder state. We track the source index (work being dragged)
   // and the current target hovered. Visual cues: the source card fades,
@@ -588,10 +605,12 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
               shippingPrice: (work as ArtistWork & { shippingPrice?: number; inStorePrice?: number }).shippingPrice ?? null,
               inStorePrice: (work as ArtistWork & { shippingPrice?: number; inStorePrice?: number }).inStorePrice ?? null,
               quantityAvailable: (work as ArtistWork & { quantityAvailable?: number | null }).quantityAvailable ?? null,
-              // Migration 148. undefined drops out of JSON, so the route leaves
-              // the stored value alone; null clears it.
+              // Migrations 148 and 149. undefined drops out of JSON, so the route
+              // leaves the stored value alone; null returns it to the profile.
+              // Per-size fees travel inside `pricing`.
               revenueShareOverride: work.revenueShareOverride,
-              paidLoanMonthlyGbp: work.paidLoanMonthlyGbp,
+              openToRevenueShareOverride: work.openToRevenueShareOverride,
+              openToFreeLoanOverride: work.openToFreeLoanOverride,
               frameOptions: frames,
               description: work.description || "",
               images: work.images || [],
@@ -1351,6 +1370,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
           stockPerSize: false,
           sizeStock: newSizes.map(() => ""),
           inStorePricing: newSizes.map(() => ""),
+          sizeLoanFees: newSizes.map(() => ""),
         };
       }
       // kind === "prices", index-aligned per-row copy. Labels are
@@ -1365,6 +1385,12 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
         return typeof shipping === "number" ? String(shipping) : "";
       });
       const anyShipping = nextSizeShipping.some((v) => v !== "");
+      // Paid loan fees come across row by row, like per-size shipping. A row
+      // the source leaves blank keeps the form's own fee.
+      const nextSizeLoanFees = p.sizes.map((_, i) => {
+        const fee = source.pricing[i]?.paidLoanMonthlyGbp;
+        return typeof fee === "number" ? String(fee) : (p.sizeLoanFees[i] ?? "");
+      });
       const nextInStorePricing =
         Array.isArray(source.inStorePricing) &&
         source.inStorePricing.length > 0
@@ -1377,6 +1403,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
         ...p,
         sizes: nextSizes,
         sizeShipping: anyShipping ? nextSizeShipping : p.sizeShipping,
+        sizeLoanFees: nextSizeLoanFees,
         shippingPerSize: anyShipping || p.shippingPerSize,
         shippingPrice:
           source.shippingPrice != null
@@ -1440,6 +1467,9 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
         };
         if (sourceRow?.shippingPrice != null) {
           next.shippingPrice = sourceRow.shippingPrice;
+        }
+        if (sourceRow?.paidLoanMonthlyGbp != null) {
+          next.paidLoanMonthlyGbp = sourceRow.paidLoanMonthlyGbp;
         }
         return next;
       });
@@ -1543,8 +1573,12 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       sizes: w.pricing.map((p) => ({ label: p.label, price: p.price })),
       shippingPrice: w.shippingPrice != null ? w.shippingPrice.toFixed(2) : "",
       inStorePrice: w.inStorePrice != null ? w.inStorePrice.toFixed(2) : "",
-      revenueShareOverride: w.revenueShareOverride != null ? String(w.revenueShareOverride) : "",
-      paidLoanMonthlyGbp: w.paidLoanMonthlyGbp != null ? w.paidLoanMonthlyGbp.toFixed(2) : "",
+      revenueShareOffered: w.openToRevenueShareOverride ?? null,
+      revenueShareRate: w.revenueShareOverride != null ? String(w.revenueShareOverride) : null,
+      paidLoanOffered: w.openToFreeLoanOverride ?? null,
+      sizeLoanFees: w.pricing.map((p) =>
+        typeof p.paidLoanMonthlyGbp === "number" ? String(p.paidLoanMonthlyGbp) : "",
+      ),
       // Mirror the openEdit rehydration so duplicating a work copies
       // its in-store prices from the persisted `pricing[i].inStorePrice`
       // location, with legacy fallbacks.
@@ -1590,8 +1624,12 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       orientation: w.orientation || "landscape",
       sizes: w.pricing.map((p) => ({ label: p.label, price: p.price })),
       shippingPrice: w.shippingPrice != null ? w.shippingPrice.toFixed(2) : "",
-      revenueShareOverride: w.revenueShareOverride != null ? String(w.revenueShareOverride) : "",
-      paidLoanMonthlyGbp: w.paidLoanMonthlyGbp != null ? w.paidLoanMonthlyGbp.toFixed(2) : "",
+      revenueShareOffered: w.openToRevenueShareOverride ?? null,
+      revenueShareRate: w.revenueShareOverride != null ? String(w.revenueShareOverride) : null,
+      paidLoanOffered: w.openToFreeLoanOverride ?? null,
+      sizeLoanFees: w.pricing.map((p) =>
+        typeof p.paidLoanMonthlyGbp === "number" ? String(p.paidLoanMonthlyGbp) : "",
+      ),
       // Rehydrate per-size shipping. Previously hard-coded to `false`
       // / `[]` here, which meant opening a work that HAD per-size
       // shipping silently lost it: the toggle showed off, the column
@@ -1806,6 +1844,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       sizeShipping: p.shippingPerSize ? [...p.sizeShipping, ""] : p.sizeShipping,
       inStorePricing: p.inStoreEnabled ? [...p.inStorePricing, ""] : p.inStorePricing,
       sizeStock: p.stockPerSize ? [...p.sizeStock, ""] : p.sizeStock,
+      sizeLoanFees: [...p.sizes.map((_, j) => p.sizeLoanFees[j] ?? ""), ""],
     }));
   }
 
@@ -1823,7 +1862,16 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       sizeShipping: p.sizeShipping.filter((_, i) => i !== index),
       inStorePricing: p.inStorePricing.filter((_, i) => i !== index),
       sizeStock: p.sizeStock.filter((_, i) => i !== index),
+      sizeLoanFees: p.sizeLoanFees.filter((_, j) => j !== index),
     }));
+  }
+
+  function updateLoanFee(index: number, value: string) {
+    setForm((p) => {
+      const updated = p.sizes.map((_, j) => p.sizeLoanFees[j] ?? "");
+      updated[index] = value;
+      return { ...p, sizeLoanFees: updated };
+    });
   }
 
   function handleSubmit() {
@@ -1857,8 +1905,17 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
 
     const lowestPrice = Math.min(...validSizes.map((s) => s.price));
 
-    // Migration 148. Same ranges as the database CHECKs; a blank clears.
-    const terms = parseWorkTermsForm(form.revenueShareOverride, form.paidLoanMonthlyGbp);
+    // Spec 2026-09-13 (per-size loan fees). Same ranges as the database; a work
+    // stores only what differs from the profile, so untouched settings follow it.
+    const terms = parseWorkArrangements(
+      {
+        revenueShareOffered: form.revenueShareOffered,
+        revenueShareRate: form.revenueShareRate,
+        paidLoanOffered: form.paidLoanOffered,
+        loanFees: form.sizes.map((_, i) => form.sizeLoanFees[i] ?? ""),
+      },
+      profileTerms,
+    );
     if (!terms.ok) {
       setFormError(terms.error);
       return;
@@ -1911,6 +1968,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
           quantityAvailable?: number;
           shippingPrice?: number;
           inStorePrice?: number;
+          paidLoanMonthlyGbp?: number;
         } = {
           label: s.label,
           price: s.price,
@@ -1942,6 +2000,10 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
         // toggle silently failed to persist. We now stash the price
         // alongside `shippingPrice` in the `pricing` JSONB column,
         // which DOES round-trip through the API and DB.
+        // Migration 149: this size's paid loan fee. Kept while paid loan is
+        // unticked, so ticking it again later brings the fees back.
+        const loanFee = terms.loanFees[formIdx];
+        if (typeof loanFee === "number") base.paidLoanMonthlyGbp = loanFee;
         return base;
       }),
       available: deriveAvailable(form.available, qtyFinite ? qtyVal : null),
@@ -1955,7 +2017,8 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       ...(shippingVal != null && !isNaN(shippingVal) ? { shippingPrice: shippingVal } : {}),
       quantityAvailable: qtyFinite ? qtyVal : null,
       revenueShareOverride: terms.revenueShareOverride,
-      paidLoanMonthlyGbp: terms.paidLoanMonthlyGbp,
+      openToRevenueShareOverride: terms.openToRevenueShareOverride,
+      openToFreeLoanOverride: terms.openToFreeLoanOverride,
       frameOptions: cleanFrameOptions.length > 0 ? cleanFrameOptions : undefined,
     };
 
@@ -2557,6 +2620,21 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                   />
                   <span className="text-xs text-muted">Different quantity per size</span>
                 </label>
+                {/* Spec 2026-09-13 (per-size loan fees). Offers this work on paid
+                    loan and shows a fee column. Starts from the profile. */}
+                <label className={`flex items-center gap-2 ${profileReady ? "cursor-pointer" : "opacity-60"}`}>
+                  <input
+                    type="checkbox"
+                    checked={loanOffered}
+                    disabled={!profileReady}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setForm((p) => ({ ...p, paidLoanOffered: checked }));
+                    }}
+                    className="w-3.5 h-3.5 rounded-sm border border-border accent-accent"
+                  />
+                  <span className="text-xs text-muted px-1.5 py-0.5 rounded-sm bg-accent/10">Offer on paid loan</span>
+                </label>
               </div>
 
               {/* Quick-add standard sizes */}
@@ -2607,8 +2685,8 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                   "1fr",                    // Spacer, pushes price columns to the right edge
                   "110px",                  // Price (£ + input)
                   form.shippingPerSize ? "140px" : null,
-                  form.inStoreEnabled   ? "110px" : null,
                   form.stockPerSize     ? "90px"  : null,
+                  loanOffered           ? "120px" : null, // Paid loan fee, migration 149
                   "20px",                   // Remove
                 ].filter(Boolean).join(" ");
                 return (
@@ -2622,6 +2700,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                       <div className="text-right pr-1">Price</div>
                       {form.shippingPerSize && <div className="text-right pr-1">Shipping</div>}
                       {form.stockPerSize && <div className="text-right pr-1">Qty</div>}
+                      {loanOffered && <div className="text-right pr-1 py-1 rounded-sm bg-accent/10">Paid loan / month</div>}
                       <div />
                     </div>
                     <div className="divide-y divide-border/60">
@@ -2718,6 +2797,21 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                                   placeholder="∞"
                                   className="w-[70px] bg-background border border-border rounded-sm px-2 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
                                   aria-label="Quantity available at this size"
+                                />
+                              </div>
+                            )}
+                            {loanOffered && (
+                              <div className="flex items-center gap-1 justify-end rounded-sm bg-accent/10 px-1.5 py-1">
+                                <span className="text-xs text-muted">£</span>
+                                <input
+                                  type="number"
+                                  min={PAID_LOAN_MIN_GBP}
+                                  step="0.01"
+                                  value={form.sizeLoanFees[i] ?? ""}
+                                  onChange={(e) => updateLoanFee(i, e.target.value)}
+                                  placeholder="None"
+                                  aria-label={`Paid loan fee a month for ${size.label || `size ${i + 1}`}`}
+                                  className="w-[80px] bg-background border border-border rounded-sm px-2 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
                                 />
                               </div>
                             )}
@@ -2834,6 +2928,24 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                             )}
                           </label>
                         )}
+                        {loanOffered && (
+                          <label className="flex flex-col gap-1 rounded-sm bg-accent/10 p-1.5">
+                            <span className="text-[10px] text-muted uppercase tracking-wider">Paid loan / month</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-muted">£</span>
+                              <input
+                                type="number"
+                                min={PAID_LOAN_MIN_GBP}
+                                step="0.01"
+                                value={form.sizeLoanFees[i] ?? ""}
+                                onChange={(e) => updateLoanFee(i, e.target.value)}
+                                placeholder="None"
+                                aria-label={`Paid loan fee a month for ${size.label || `size ${i + 1}`}`}
+                                className="w-full bg-background border border-border rounded-sm px-2 py-2 text-sm focus:outline-none focus:border-accent/60"
+                              />
+                            </div>
+                          </label>
+                        )}
                                               </div>
                     </div>
                   );
@@ -2841,7 +2953,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
               </div>
 
               <p className="text-[10px] text-muted mt-2">
-                Set a price for each size. Enable the toggles above to add per-size shipping or in-store prices as extra columns.
+                Set a price for each size. The ticks above add columns for shipping, quantity and paid loan fees by size. A blank fee lists no price for that size.
               </p>
 
               {/* Single-price shipping fallback, only visible when the
@@ -2940,57 +3052,53 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
               )}
             </div>
 
-            {/* Placement terms for this work (migration 148). Blank uses the
-                profile default, or lists no fee. Each input shows only when the
-                artist is open to that arrangement. */}
-            {((profile?.open_to_revenue_share ?? true) || (profile?.open_to_free_loan ?? true)) && (
-              <div className="pt-4 border-t border-border space-y-3">
-                <p className="text-sm font-medium">Placement terms for this work</p>
-                {(profile?.open_to_revenue_share ?? true) && (
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <label htmlFor="work-revenue-share" className="text-sm sm:w-40 shrink-0">
-                      Revenue share %
-                    </label>
+            {/* Placement terms for this work (spec 2026-09-13, per-size loan
+                fees). Paid loan sits with the sizes above because its fee can
+                differ by size; revenue share is one rate for the whole work. */}
+            <div className="pt-4 border-t border-border space-y-3">
+              <p className="text-sm font-medium">Placement terms for this work</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <label className={`flex items-center gap-2 sm:w-52 shrink-0 ${profileReady ? "cursor-pointer" : "opacity-60"}`}>
+                  <input
+                    type="checkbox"
+                    checked={shareOffered}
+                    disabled={!profileReady}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setForm((p) => ({ ...p, revenueShareOffered: checked }));
+                    }}
+                    className="w-3.5 h-3.5 rounded-sm border border-border accent-accent"
+                  />
+                  <span className="text-sm">Offer on revenue share</span>
+                </label>
+                {shareOffered && (
+                  <div className="flex items-center gap-1">
                     <input
-                      id="work-revenue-share"
                       type="number"
-                      min={0}
+                      min={1}
                       max={100}
                       step={1}
-                      value={form.revenueShareOverride}
-                      onChange={(e) => setForm((p) => ({ ...p, revenueShareOverride: e.target.value }))}
-                      placeholder={
-                        profile?.revenue_share_percent != null
-                          ? `${profile.revenue_share_percent}%, your default`
-                          : "Your default"
+                      disabled={!profileReady}
+                      value={
+                        form.revenueShareRate ??
+                        (profileTerms.revenueSharePercent != null ? String(profileTerms.revenueSharePercent) : "")
                       }
-                      className="w-44 bg-background border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent/60"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setForm((p) => ({ ...p, revenueShareRate: value }));
+                      }}
+                      aria-label="Revenue share for this work, %"
+                      className="w-20 bg-background border border-border rounded-sm px-3 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
                     />
+                    <span className="text-sm text-muted">%</span>
+                    {form.revenueShareRate === null && profileTerms.revenueSharePercent != null && (
+                      <span className="text-xs text-muted ml-2">Your profile rate</span>
+                    )}
                   </div>
                 )}
-                {(profile?.open_to_free_loan ?? true) && (
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <label htmlFor="work-paid-loan-fee" className="text-sm sm:w-40 shrink-0">
-                      Paid loan, £ a month
-                    </label>
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm text-muted">£</span>
-                      <input
-                        id="work-paid-loan-fee"
-                        type="number"
-                        min={PAID_LOAN_MIN_GBP}
-                        step="0.01"
-                        value={form.paidLoanMonthlyGbp}
-                        onChange={(e) => setForm((p) => ({ ...p, paidLoanMonthlyGbp: e.target.value }))}
-                        placeholder="No listed fee"
-                        className="w-40 bg-background border border-border rounded-sm px-3 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
-                      />
-                    </div>
-                  </div>
-                )}
-                <p className="text-xs text-muted">These don&rsquo;t change placements you&rsquo;ve already agreed.</p>
               </div>
-            )}
+              <p className="text-xs text-muted">These don&rsquo;t change placements you&rsquo;ve already agreed.</p>
+            </div>
 
             {/* Available toggle */}
             <div className="flex items-center gap-3">
