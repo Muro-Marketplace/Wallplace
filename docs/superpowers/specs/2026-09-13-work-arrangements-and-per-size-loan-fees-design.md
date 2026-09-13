@@ -2,6 +2,9 @@
 
 Date: 2026-09-13
 Status: design agreed with the owner; spec awaiting review
+Update, 13 September 2026: the owner removed the minimum monthly loan fee.
+Per-size fees are any amount above £0 up to £100,000 (migration 150), and
+placement fees have no floor. Where this spec says £15, read no minimum.
 Builds on: `2026-09-13-per-artwork-terms-design.md`, shipped in PR #102. This spec
 replaces that one's single loan fee, its "Editing" section and its card rules,
 and brings in the two things it left out: loan fees that vary by size, and

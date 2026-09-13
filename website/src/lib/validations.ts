@@ -1,22 +1,14 @@
 import { z } from "zod";
 import { isValidPostcode } from "./postcode";
-import { PAID_LOAN_MIN_GBP } from "@/lib/pricing";
 
 // Shared helpers
 const safeString = (max = 500) => z.string().trim().min(1).max(max);
 const email = z.string().trim().email().max(254);
-// Paid-loan rent floor (owner decision 2026-08-28): 0 means "no monthly fee,
-// not a paid loan"; any actual rent must be at least £15/mo. Below that,
-// Stripe's fixed fees eat the platform cut and cheap rent trains venues that
-// art costs nothing (the Artsicle failure mode). Shared by placementSchema
-// and placementUpdateSchema's counter so the rule cannot drift between them.
-const monthlyFeeGbp = z
-  .number()
-  .min(0)
-  .max(100000)
-  .refine((v) => v === 0 || v >= PAID_LOAN_MIN_GBP, {
-    message: `Monthly loan fees start at £${PAID_LOAN_MIN_GBP}. Set 0 for a free loan.`,
-  });
+// Paid-loan monthly fee: 0 means "no monthly fee, not a paid loan". Owner
+// decision 13 September 2026: no minimum, replacing the £15 floor of
+// 2026-08-28. Shared by placementSchema and placementUpdateSchema's counter so
+// the rule cannot drift between them.
+const monthlyFeeGbp = z.number().min(0).max(100000);
 // Accepts string / "" / undefined / null. Null is coerced to "" so callers
 // can safely serialise missing values as `null` (common when loading from
 // Postgres) without tripping the validator.
@@ -233,11 +225,12 @@ export const sizePricingSchema = z.object({
   shippingPrice: money(1000).nullable().optional(),
   inStorePrice: money(100_000).nullable().optional(),
   // Migration 149: the monthly paid loan fee for this size. Same range as the
-  // CHECK on pricing; null or absent lists no fee.
+  // CHECK on pricing since migration 150: above £0 and up to £100,000, with no
+  // minimum. null or absent lists no fee.
   paidLoanMonthlyGbp: z
     .number()
     .finite()
-    .min(PAID_LOAN_MIN_GBP, { message: `Monthly loan fees start at £${PAID_LOAN_MIN_GBP}.` })
+    .positive({ message: "Monthly loan fees must be more than £0." })
     .max(100_000)
     .nullable()
     .optional(),

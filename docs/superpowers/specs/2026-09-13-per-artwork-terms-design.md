@@ -5,6 +5,9 @@ Status: shipped in PR #102. Partly replaced by
 `2026-09-13-work-arrangements-and-per-size-loan-fees-design.md`, which moves the
 loan fee onto each size, adds per-work arrangement tick boxes, and changes the
 editor and the card.
+Update, 13 September 2026: the owner removed the minimum monthly loan fee.
+Per-size fees are any amount above £0 up to £100,000 (migration 150), and
+placement fees have no floor. Where this spec says £15, read no minimum.
 
 ## The problem
 

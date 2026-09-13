@@ -20,7 +20,7 @@ import { parseWorkArrangements } from "@/lib/work-terms";
 import { canFeatureArtwork, isArtworkOfTheWeek } from "@/lib/tier-features";
 import Combobox from "@/components/Combobox";
 import { WORK_MEDIUM_OPTIONS } from "@/data/work-medium-options";
-import { WORKS_CAP, PAID_LOAN_MIN_GBP } from "@/lib/pricing";
+import { WORKS_CAP } from "@/lib/pricing";
 import FrameOptionsEditor from "@/components/portfolio/FrameOptionsEditor";
 
 interface SizeEntry {
@@ -2805,7 +2805,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                                 <span className="text-xs text-muted">£</span>
                                 <input
                                   type="number"
-                                  min={PAID_LOAN_MIN_GBP}
+                                  min={0}
                                   step="0.01"
                                   value={form.sizeLoanFees[i] ?? ""}
                                   onChange={(e) => updateLoanFee(i, e.target.value)}
@@ -2935,7 +2935,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                               <span className="text-xs text-muted">£</span>
                               <input
                                 type="number"
-                                min={PAID_LOAN_MIN_GBP}
+                                min={0}
                                 step="0.01"
                                 value={form.sizeLoanFees[i] ?? ""}
                                 onChange={(e) => updateLoanFee(i, e.target.value)}

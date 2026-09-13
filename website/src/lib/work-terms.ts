@@ -15,7 +15,6 @@
  */
 
 import { gbp } from "@/lib/curation-tiers";
-import { PAID_LOAN_MIN_GBP } from "@/lib/pricing";
 
 /** One size's listed monthly paid loan fee, as it sits in `pricing`. */
 export interface LoanFeeSize {
@@ -205,7 +204,7 @@ export function speakMonthlyFee(fee: number): string {
 }
 
 export const REVENUE_SHARE_RATE_ERROR = "Enter a revenue share from 1 to 100";
-export const LOAN_FEE_RANGE_ERROR = `Monthly loan fees run from £${PAID_LOAN_MIN_GBP} to £100,000`;
+export const LOAN_FEE_RANGE_ERROR = "Enter a monthly fee up to £100,000, or leave it blank";
 
 /** The profile values a work follows until it sets its own. */
 export interface ProfileTerms {
@@ -257,10 +256,13 @@ export function parseWorkArrangements(form: WorkArrangementsForm, profile: Profi
   for (const typed of form.loanFees) {
     const raw = typed.trim();
     const fee = raw === "" ? null : Number(raw);
-    if (fee === null) {
+    // No minimum (owner decision 13 September 2026). Blank or 0 lists no fee,
+    // and so does anything that rounds to 0p.
+    const pounds = fee !== null && Number.isFinite(fee) ? Math.round(fee * 100) / 100 : Number.NaN;
+    if (fee === null || pounds === 0) {
       loanFees.push(null);
-    } else if (Number.isFinite(fee) && fee >= PAID_LOAN_MIN_GBP && fee <= 100_000) {
-      loanFees.push(Math.round(fee * 100) / 100);
+    } else if (pounds > 0 && pounds <= 100_000) {
+      loanFees.push(pounds);
     } else if (loanOffered) {
       return { ok: false, error: LOAN_FEE_RANGE_ERROR };
     } else {

@@ -19,7 +19,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ARRANGEMENT_LABEL } from "@/lib/arrangement-labels";
-import { PAID_LOAN_MIN_GBP } from "@/lib/pricing";
 import {
   DEFAULT_MONTHLY_FEE_GBP,
   DEFAULT_REVENUE_SHARE_PERCENT,
@@ -280,7 +279,7 @@ export default function ProposalSendPanel({
                 </label>
               )}
               <p className="text-[11px] text-stone-500">
-                Monthly loan fees start at &pound;{PAID_LOAN_MIN_GBP}. Set 0 for a free loan.
+                Set 0 for a free loan.
               </p>
             </div>
           )}

@@ -75,7 +75,7 @@ describe("<ProposalSendPanel />", () => {
     });
   });
 
-  it("switches to the loan fee for a paid loan and holds it to the rent floor before sending", () => {
+  it("switches to the loan fee for a paid loan and sends any fee, with no rent floor", () => {
     const { onSend } = mount();
     fireEvent.click(screen.getByRole("button", { name: "Send to The Copper Kettle" }));
     fireEvent.click(screen.getByRole("radio", { name: "Paid loan" }));
@@ -86,12 +86,8 @@ describe("<ProposalSendPanel />", () => {
 
     fireEvent.change(fee, { target: { value: "5" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
-    expect(onSend).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert").textContent).toMatch(/start at £15/);
-
-    fireEvent.change(fee, { target: { value: "0" } });
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
-    expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ arrangement: "loan", monthlyFeeGbp: 0 }));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(onSend).toHaveBeenCalledWith(expect.objectContaining({ arrangement: "loan", monthlyFeeGbp: 5 }));
   });
 
   it("shows the server's refusal word for word and disables the controls while sending", () => {

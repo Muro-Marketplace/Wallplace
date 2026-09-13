@@ -46,10 +46,8 @@ export function activePlacementCapForProfile(
   return Object.hasOwn(ACTIVE_PLACEMENT_CAP, plan) ? ACTIVE_PLACEMENT_CAP[plan] : ACTIVE_PLACEMENT_CAP.core;
 }
 
-// Paid-loan monthly rent floor. Below this Stripe's fixed fees eat the cut and
-// cheap rent teaches venues that art is nearly free (the Artsicle failure).
-// Suggested guidance shown in forms: 3 to 5% of the work's value per month.
-export const PAID_LOAN_MIN_GBP = 15;
+// There is no minimum monthly loan fee: the owner removed the £15 floor on
+// 13 September 2026 (pricing.test.ts pins that it stays gone).
 
 // Suggested venue revenue share. A SUGGESTION ONLY, surfaced as a form default
 // and in copy. Owner decision: the share is not capped; the artist chooses.
