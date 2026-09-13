@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ARRANGEMENT_LABEL } from "@/lib/arrangement-labels";
 import { authFetch } from "@/lib/api-client";
 import { isLoan } from "@/lib/arrangement-type";
+import { nameFromSlug } from "@/lib/slugify";
 
 interface Props {
   placementId: string;
@@ -16,7 +17,10 @@ interface LogEntry {
   id: string | number;
   created_at: string;
   message_type: "placement_request" | "placement_response";
+  /** The sender's slug: the stored identity messages are matched on, not a name. */
   sender_name?: string;
+  /** The artist's or venue's name, resolved by the history route. */
+  sender_display_name?: string;
   sender_type?: string;
   content?: string | null;
   metadata?: {
@@ -124,8 +128,11 @@ export default function PlacementNegotiationLog({ placementId, refreshKey = 0 }:
                 <p className="text-sm font-medium text-foreground">{title}</p>
                 <p className="text-[11px] text-muted">{formatDateTime(entry.created_at)}</p>
               </div>
-              {entry.sender_name && (
-                <p className="text-[11px] text-muted mt-0.5">From {entry.sender_name}</p>
+              {/* Owner report 13 September 2026: this printed the slug ("From fin-coles"). */}
+              {(entry.sender_display_name || entry.sender_name) && (
+                <p className="text-[11px] text-muted mt-0.5">
+                  From {entry.sender_display_name || nameFromSlug(entry.sender_name)}
+                </p>
               )}
               {terms && (
                 <p className="text-xs text-foreground mt-1">{terms}</p>

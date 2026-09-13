@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { slugify } from "./slugify";
+import { slugify, nameFromSlug } from "./slugify";
 
 describe("slugify()", () => {
   it.each([
@@ -36,5 +36,20 @@ describe("slugify()", () => {
 
   it("preserves digits", () => {
     expect(slugify("Volume 2: The Sequel")).toBe("volume-2-the-sequel");
+  });
+});
+
+// Owner report 13 September 2026: the negotiation log read "From fin-coles".
+// A slug is a lookup key, so where no display name is stored it is shown as words.
+describe("nameFromSlug", () => {
+  it("turns a slug back into words people can read", () => {
+    expect(nameFromSlug("fin-coles")).toBe("Fin Coles");
+    expect(nameFromSlug("the-curzon")).toBe("The Curzon");
+  });
+
+  it("is empty for no slug", () => {
+    expect(nameFromSlug("")).toBe("");
+    expect(nameFromSlug(null)).toBe("");
+    expect(nameFromSlug(undefined)).toBe("");
   });
 });
