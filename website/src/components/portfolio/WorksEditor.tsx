@@ -14,6 +14,8 @@ import { buildFramePayload, firstUnnamedFrame, type FramePayloadInput } from "./
 import { mergeBulkPricing, copySizesPricing } from "./bulk-pricing";
 import { worksToPost } from "./changed-works";
 import { partitionBulkAddDrafts } from "./bulk-add-validation";
+import { withSingleSizeLabel } from "./single-size-label";
+import { displayPhysicalDimensions } from "@/lib/dimensions";
 import { deriveAvailable, hydrateAvailable } from "./work-availability";
 import { estimateShipping, tierLabel } from "@/lib/shipping-calculator";
 import { parseWorkArrangements } from "@/lib/work-terms";
@@ -184,8 +186,12 @@ function getSuggestedSizes(ratio: number): SizeEntry[] {
     .map(({ label, price }) => ({ label, price }));
 }
 
+// One unnamed row. Owner request 14 September 2026: a new work used to start with
+// a print size, which fits a photograph sold as prints but not an original. A lone
+// priced row with no name takes the artwork size (single-size-label.ts), and print
+// sizes are one click away under "Selling prints too?".
 const defaultSizes: SizeEntry[] = [
-  { label: '10×8" (25×20 cm)', price: 0 },
+  { label: "", price: 0 },
 ];
 
 const emptyWork: WorkFormState = {
@@ -207,7 +213,9 @@ const emptyWork: WorkFormState = {
   stockPerSize: false,
   sizeStock: [],
   detectedRatio: null,
-  quantityAvailable: "",
+  // A new work starts as a one-off, so an original cannot sell twice by accident.
+  // Adding print sizes clears it to unlimited (owner request 14 September 2026).
+  quantityAvailable: "1",
   revenueShareOffered: null,
   revenueShareRate: null,
   paidLoanOffered: null,
@@ -403,6 +411,8 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extraFileInputRef = useRef<HTMLInputElement>(null);
   const [formError, setFormError] = useState("");
+  // Print sizes sit behind "Selling prints too?" (owner request 14 September 2026).
+  const [showPrintSizes, setShowPrintSizes] = useState(false);
   const [defaultShipping, setDefaultShipping] = useState<string>("");
   const [shipsInternationally, setShipsInternationally] = useState(false);
   const [internationalShipping, setInternationalShipping] = useState<string>("");
@@ -877,7 +887,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       title: f.name.replace(/\.[^.]+$/, "").slice(0, 200),
       dimensions: "",
       orientation: "landscape",
-      sizes: [{ label: '10×8" (25×20 cm)', price: 0 }],
+      sizes: [{ label: "", price: 0 }],
       shippingPrices: [""],
       inStorePrices: [""],
       frameOptions: [],
@@ -894,7 +904,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       images.map(async (file, i) => {
         const draftId = seeded[i].draftId;
         try {
-          // Detect orientation + suggested sizes from the natural
+          // Detect orientation from the natural
           // dimensions BEFORE the upload comes back, since the upload
           // strips the file blob. Same logic as the single-add flow.
           const img = new window.Image();
@@ -908,14 +918,11 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
           URL.revokeObjectURL(objectUrl);
           const orientation: "landscape" | "portrait" | "square" =
             ratio > 1.05 ? "landscape" : ratio < 0.95 ? "portrait" : "square";
-          const suggested = getSuggestedSizes(ratio);
-          const sizesToUse =
-            suggested.length > 0
-              ? suggested.map((s) => ({ label: s.label, price: 0 }))
-              : [{ label: '10×8" (25×20 cm)', price: 0 }];
-
           const url = await uploadImage(file, "artworks");
 
+          // Owner request 14 September 2026: the upload no longer writes the image's
+          // pixel size in as the dimensions, or fills the draft with print sizes.
+          // "Suggest sizes" on the draft still adds them for prints.
           setBulkAddDrafts((prev) =>
             prev.map((d) =>
               d.draftId === draftId
@@ -924,11 +931,6 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                     imageUrl: url,
                     uploading: false,
                     orientation,
-                    sizes: sizesToUse,
-                    // Re-pad parallel arrays to the new size count.
-                    shippingPrices: sizesToUse.map(() => ""),
-                    inStorePrices: sizesToUse.map(() => ""),
-                    dimensions: `${img.naturalWidth} × ${img.naturalHeight} px`,
                   }
                 : d,
             ),
@@ -1085,7 +1087,8 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       // the original sizes array so we can pull matching shipping +
       // in-store entries by index even after invalid rows are
       // filtered out.
-      const validWithIndex = d.sizes
+      // A lone unnamed priced size takes the artwork size (single-size-label.ts).
+      const validWithIndex = withSingleSizeLabel(d.sizes, d.dimensions)
         .map((s, idx) => ({ size: s, idx }))
         .filter(({ size }) => size.label && size.price > 0);
       const lowest = Math.min(...validWithIndex.map((v) => v.size.price));
@@ -1566,7 +1569,8 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
     };
     openAdd({
       medium: w.medium,
-      dimensions: w.dimensions,
+      // A stored pixel count is not an artwork size, so it opens empty.
+      dimensions: displayPhysicalDimensions(w.dimensions) ?? "",
       description: w.description ?? "",
       available: true,
       orientation: w.orientation || "landscape",
@@ -1614,7 +1618,8 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
     const initial: WorkFormState = {
       title: w.title,
       medium: w.medium,
-      dimensions: w.dimensions,
+      // A stored pixel count is not an artwork size, so it opens empty.
+      dimensions: displayPhysicalDimensions(w.dimensions) ?? "",
       imagePreview: w.image,
       additionalImages: Array.isArray(w.images) ? [...w.images] : [],
       description: w.description || "",
@@ -1759,19 +1764,16 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
     const orientation: "landscape" | "portrait" | "square" =
       ratio > 1.05 ? "landscape" : ratio < 0.95 ? "portrait" : "square";
 
-    // Generate suggested sizes matching this ratio
-    const suggested = getSuggestedSizes(ratio);
-    const sizesToUse = suggested.length > 0 ? suggested : [{ label: '10×8" (A4)', price: 0 }];
-
     const url = await uploadImage(file, "artworks");
+    // Owner request 14 September 2026: the image's pixel size is not the artwork's
+    // size, and a painting is not a set of print sizes. The upload keeps what the
+    // artist typed; the ratio only sets orientation and the print sizes offered
+    // under "Selling prints too?".
     setForm((p) => ({
       ...p,
       imagePreview: url,
       orientation,
       detectedRatio: ratio,
-      dimensions: `${img.naturalWidth} × ${img.naturalHeight} px`,
-      // Only auto-set sizes if user hasn't already entered prices
-      sizes: p.sizes.some((s) => s.price > 0) ? p.sizes : sizesToUse,
     }));
     setUploading(false);
   }
@@ -1893,7 +1895,9 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       return;
     }
 
-    const validSizes = form.sizes.filter((s) => s.label && s.price > 0);
+    // A lone priced row with no name takes the artwork size (single-size-label.ts).
+    const sizesForSave = withSingleSizeLabel(form.sizes, form.dimensions);
+    const validSizes = sizesForSave.filter((s) => s.label && s.price > 0);
     if (validSizes.length === 0) {
       setFormError("At least one size with a price above £0 is required");
       return;
@@ -1985,7 +1989,9 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
         // Look up the original form.sizes index by label so the
         // sizeStock / sizeShipping arrays stay aligned even if the
         // artist removed empty rows above this one.
-        const formIdx = form.sizes.findIndex((x) => x.label === s.label);
+        // By position, not label: a row named from the artwork size has no label in
+        // form.sizes to match on.
+        const formIdx = sizesForSave.indexOf(s);
         if (form.stockPerSize) {
           const raw = form.sizeStock[formIdx];
           const n = raw === undefined || raw === "" ? NaN : Number(raw);
@@ -2529,12 +2535,12 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
             {/* Dimensions + Orientation */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Original Dimensions</label>
+                <label className="block text-sm font-medium mb-2">Artwork size (as it hangs)</label>
                 <input
                   type="text"
                   value={form.dimensions}
                   onChange={(e) => setForm((p) => ({ ...p, dimensions: e.target.value }))}
-                  placeholder="e.g. 70 x 50 cm"
+                  placeholder="e.g. 70 × 50 cm"
                   className={inputClass}
                 />
               </div>
@@ -2646,11 +2652,22 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                 </label>
               </div>
 
-              {/* Quick-add standard sizes */}
-              {form.detectedRatio && (
+              {/* Print sizes, on request. Owner request 14 September 2026: these
+                  were filled in for every upload, which suits prints and not an
+                  original, so they sit behind "Selling prints too?" now. */}
+              {form.detectedRatio && !showPrintSizes && (
+                <button
+                  type="button"
+                  onClick={() => setShowPrintSizes(true)}
+                  className="mb-3 text-xs text-accent hover:text-accent-hover"
+                >
+                  Selling prints too? Add print sizes
+                </button>
+              )}
+              {form.detectedRatio && showPrintSizes && (
                 <div className="mb-3">
                   <p className="text-[10px] text-muted mb-2">
-                    Suggested sizes for your image ({form.orientation}, {form.detectedRatio.toFixed(2)} ratio):
+                    Print sizes for your image ({form.orientation}, {form.detectedRatio.toFixed(2)} ratio):
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {getSuggestedSizes(form.detectedRatio).map((s) => {
@@ -2662,7 +2679,20 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                           disabled={alreadyAdded}
                           onClick={() => {
                             if (!alreadyAdded) {
-                              setForm((p) => ({ ...p, sizes: [...p.sizes, { label: s.label, price: 0 }] }));
+                              setForm((p) => {
+                                // The untouched starting row gives way to the first print
+                                // size. Prints are not a one-off, so a quantity still at
+                                // the starting 1 clears to unlimited.
+                                const untouched =
+                                  p.sizes.length === 1 && !p.sizes[0].label.trim() && !(p.sizes[0].price > 0);
+                                return {
+                                  ...p,
+                                  sizes: untouched
+                                    ? [{ label: s.label, price: 0 }]
+                                    : [...p.sizes, { label: s.label, price: 0 }],
+                                  quantityAvailable: p.quantityAvailable.trim() === "1" ? "" : p.quantityAvailable,
+                                };
+                              });
                             }
                           }}
                           className={`px-2.5 py-1 text-[11px] rounded-sm border transition-colors ${
@@ -2727,7 +2757,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                               type="text"
                               value={size.label}
                               onChange={(e) => updateSize(i, "label", e.target.value)}
-                              placeholder='e.g. 12×16" (A3)'
+                              placeholder={form.sizes.length === 1 ? "Blank uses the artwork size" : 'e.g. 12×16" (A3)'}
                               className="bg-background border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent/60 min-w-0"
                             />
                             <div />
@@ -2858,7 +2888,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                           type="text"
                           value={size.label}
                           onChange={(e) => updateSize(i, "label", e.target.value)}
-                          placeholder='e.g. 12×16" (A3)'
+                          placeholder={form.sizes.length === 1 ? "Blank uses the artwork size" : 'e.g. 12×16" (A3)'}
                           className="flex-1 bg-background border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent/60"
                         />
                         {form.sizes.length > 1 && (
@@ -2998,7 +3028,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                   {(() => {
                     // Suggest work-level shipping based on the SMALLEST
                     // priced size label, not form.dimensions. The
-                    // dimensions field is auto-filled from the image's
+                    // dimensions field was auto-filled from the image's
                     // pixel size on upload ("1920 × 1080 px"), those
                     // numbers are large enough that the calculator's
                     // mm-fallback kicks in (any number > 300 → divide
@@ -3009,7 +3039,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                     // means: the floor charge applied when the buyer
                     // picks the smallest size and the artist hasn't
                     // set per-size shipping.
-                    const validSizes = form.sizes.filter(
+                    const validSizes = withSingleSizeLabel(form.sizes, form.dimensions).filter(
                       (s) => s.label && s.price > 0,
                     );
                     let baseLabel = "";
@@ -3128,7 +3158,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
             {/* Quantity available */}
             <div>
               <label className="block text-sm font-medium mb-1">Quantity available (optional)</label>
-              <p className="text-xs text-muted mb-2">Leave blank for unlimited (e.g. print-on-demand). Enter a number if you have a fixed number of units.</p>
+              <p className="text-xs text-muted mb-2">Enter 1 for a one-off original. Leave it blank for prints you can keep making, such as print-on-demand.</p>
               <input
                 type="number"
                 min={0}
@@ -3138,6 +3168,23 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                 placeholder="e.g. 10"
                 className="w-32 bg-background border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent/60"
               />
+              {/* Owner request 14 September 2026: a blank quantity is unlimited, so a
+                  one-off original left blank could sell twice. */}
+              {form.sizes.length === 1 && form.quantityAvailable.trim() === "" && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-amber-700">
+                  <span>With one size and no quantity, this can sell again and again. If it is a one-off original, set the quantity to 1.</span>
+                  <button
+                    type="button"
+                    onClick={() => setForm((p) => ({ ...p, quantityAvailable: "1" }))}
+                    className="px-2 py-0.5 border border-amber-300 rounded-sm hover:bg-amber-50"
+                  >
+                    Set to 1
+                  </button>
+                </div>
+              )}
+              {form.sizes.length > 1 && form.quantityAvailable.trim() === "1" && (
+                <p className="mt-2 text-xs text-muted">A quantity of 1 covers every size, so this sells once. Clear it for unlimited prints.</p>
+              )}
             </div>
 
             {/* Frame options */}
@@ -3160,7 +3207,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleSubmit}
-                disabled={!form.title || form.sizes.filter((s) => s.label && s.price > 0).length === 0}
+                disabled={!form.title || withSingleSizeLabel(form.sizes, form.dimensions).filter((s) => s.label && s.price > 0).length === 0}
                 className="px-6 py-2.5 text-sm font-medium text-white bg-foreground hover:bg-foreground/90 rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {editingIndex !== null ? "Save Changes" : "Save Work"}
@@ -4268,7 +4315,7 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
               )}
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs text-muted">
-                  {bulkAddDrafts.filter((d) => d.imageUrl && d.title.trim() && d.sizes.some((s) => s.label && s.price > 0)).length}
+                  {bulkAddDrafts.filter((d) => d.imageUrl && d.title.trim() && withSingleSizeLabel(d.sizes, d.dimensions).some((s) => s.label && s.price > 0)).length}
                   {" / "}
                   {bulkAddDrafts.length} ready to save
                 </p>
@@ -4400,12 +4447,12 @@ function BulkAddDraftCard({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-medium text-muted mb-1">Dimensions</label>
+              <label className="block text-[11px] font-medium text-muted mb-1">Artwork size</label>
               <input
                 type="text"
                 value={draft.dimensions}
                 onChange={(e) => onChange({ dimensions: e.target.value })}
-                placeholder="e.g. 50 × 70 cm"
+                placeholder="e.g. 70 × 50 cm"
                 className="w-full bg-background border border-border rounded-sm px-2 py-1.5 text-sm focus:outline-none focus:border-accent/60"
               />
             </div>

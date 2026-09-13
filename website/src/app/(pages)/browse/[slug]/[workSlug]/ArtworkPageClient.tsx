@@ -30,6 +30,7 @@ import WorkTermsLine from "@/components/WorkTermsLine";
 import { paidLoanFeeForSize, resolveWorkTerms, type ArtistTermsPayload } from "@/lib/work-terms";
 import { placementRequestHref } from "./placement-request-href";
 import { frameImageSrc } from "@/data/frame-catalogue";
+import { oneOfOneLabel } from "@/lib/one-of-one";
 import { readQrContext } from "@/lib/qr-context";
 import { slugify } from "@/lib/slugify";
 interface ArtworkPageClientProps {
@@ -207,8 +208,12 @@ export default function ArtworkPageClient({
   // tag it explicitly. Falls back to the work-level unqualified
   // label for legacy artworks tracking stock at the work level.
   const sizeStockIsPerSize = typeof selectedPricing?.quantityAvailable === "number";
+  // A one-size work with a quantity of 1 is a one-off, not stock (owner request
+  // 14 September 2026): "Original, one of one" rather than "1 available".
+  const oneOfOne = oneOfOneLabel(work);
   const availabilityLabel = (() => {
     if (!work.available) return "Sold";
+    if (oneOfOne) return oneOfOne;
     if (typeof sizeStock === "number") {
       if (sizeStock <= 0) return "Sold out at this size";
       return sizeStockIsPerSize
@@ -516,7 +521,7 @@ export default function ArtworkPageClient({
           const totalPrice = displayPrice ?? selectedPricing.price;
           return (
             <>
-              {typeof sizeStock === "number" && sizeStock <= 3 && sizeStock > 0 && (
+              {!oneOfOne && typeof sizeStock === "number" && sizeStock <= 3 && sizeStock > 0 && (
                 <p className="text-xs text-amber-700 -mt-1">Only {sizeStock} left at this size</p>
               )}
               {typeof sizeStock === "number" && sizeStock === 0 ? (
