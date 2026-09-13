@@ -5,7 +5,7 @@
 // only in component state for the current print run, nothing is persisted.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
 const { authFetchMock, labelPreviewProps } = vi.hoisted(() => ({
   authFetchMock: vi.fn(),
@@ -25,6 +25,7 @@ vi.mock("@/components/labels/LabelPreview", () => ({
 }));
 
 import VenueLabelsPage from "./page";
+import { _resetFeedbackBubbleVisibility, isFeedbackBubbleHidden } from "@/lib/ui/feedback-bubble-visibility";
 
 const PLACEMENTS = [
   {
@@ -105,5 +106,58 @@ describe("venue labels when the placements request fails (LA-C035)", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByText("Sunset Over the Bay")).toBeTruthy();
+  });
+});
+
+// Owner report 13 September 2026, on the same screens as the artist side.
+describe("venue labels page: tick boxes, sizes and the action bar (owner report 13 September 2026)", () => {
+  beforeEach(() => _resetFeedbackBubbleVisibility());
+
+  const styleGroup = () => screen.getByRole("group", { name: "Label style" });
+  const sizeGroup = () => screen.getByRole("group", { name: "Label size" });
+
+  it("shows the Medium, Dimensions and Price tick boxes only for Editorial, where they print", async () => {
+    render(<VenueLabelsPage />);
+    await screen.findByText("Sunset Over the Bay");
+    expect(screen.queryByRole("checkbox", { name: "Price" })).toBeNull();
+
+    fireEvent.click(within(styleGroup()).getByRole("button", { name: /^Editorial/ }));
+    expect(screen.getByRole("checkbox", { name: "Price" })).toBeTruthy();
+  });
+
+  it("offers Small to Extra Large as sizes, with QR Only as a style", async () => {
+    render(<VenueLabelsPage />);
+    await screen.findByText("Sunset Over the Bay");
+    expect(within(styleGroup()).getByRole("button", { name: /^QR Only/ })).toBeTruthy();
+    expect(within(sizeGroup()).getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Small",
+      "Medium",
+      "Large",
+      "Extra Large",
+    ]);
+  });
+
+  it("prints the agreed placement size and keeps a colour chosen in the preview", async () => {
+    render(<VenueLabelsPage />);
+    await screen.findByText("Sunset Over the Bay");
+    fireEvent.click(await screen.findByText("Preview & Print"));
+
+    const props = labelPreviewProps.at(-1)!;
+    const [work] = props.labels as Array<Record<string, unknown>>;
+    expect(work.workDimensions).toBe("40x50cm");
+    expect(work.sizeOptions).toEqual(["40x50cm"]);
+    expect(props).not.toHaveProperty("availableSizes");
+
+    act(() => (props.onLabelThemeChange as (id: string) => void)("dark"));
+    expect(screen.getByRole("button", { name: "Dark" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("hides the Feedback button while the Preview & Print bar is on screen", async () => {
+    render(<VenueLabelsPage />);
+    expect(await screen.findByText("Preview & Print")).toBeTruthy();
+    expect(isFeedbackBubbleHidden()).toBe(true);
+
+    fireEvent.click(screen.getByText("Clear"));
+    await waitFor(() => expect(isFeedbackBubbleHidden()).toBe(false));
   });
 });

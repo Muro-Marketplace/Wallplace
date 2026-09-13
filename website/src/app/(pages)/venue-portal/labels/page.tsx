@@ -6,8 +6,11 @@ import Image from "next/image";
 import LoadErrorState from "@/components/LoadErrorState";
 import LabelPreview from "@/components/labels/LabelPreview";
 import LabelThemePicker from "@/components/labels/LabelThemePicker";
+import LabelStylePicker from "@/components/labels/LabelStylePicker";
+import LabelSizePicker from "@/components/labels/LabelSizePicker";
 import type { LabelData } from "@/components/labels/LabelSheet";
-import { LABEL_SIZES, LABEL_STYLES, type LabelSize, type LabelStyle } from "@/components/labels/QRLabel";
+import { LABEL_STYLES, type LabelSize, type LabelStyle } from "@/components/labels/label-layout";
+import { hideFeedbackBubble } from "@/lib/ui/feedback-bubble-visibility";
 import { authFetch } from "@/lib/api-client";
 import { displayPhysicalDimensions } from "@/lib/dimensions";
 import { DEFAULT_LABEL_THEME, type LabelThemeId } from "@/lib/profile-themes";
@@ -206,6 +209,11 @@ export default function VenueLabelsPage() {
     return count;
   }, [selected, quantities]);
 
+  // Owner report 13 September 2026: the Feedback button sat on top of Preview
+  // & Print. Hold it hidden while the action bar is on screen.
+  const actionBarShowing = selected.size > 0;
+  useEffect(() => (actionBarShowing ? hideFeedbackBubble() : undefined), [actionBarShowing]);
+
   const allSelected = placements.length > 0 && selected.size === placements.length;
 
   function formatArtistName(slug: string): string {
@@ -268,6 +276,7 @@ export default function VenueLabelsPage() {
         // gated by labelVisibility in LabelPreview, not by absence here.
         workMedium: work?.medium,
         workDimensions: effectiveDimensions,
+        sizeOptions: effectiveDimensions ? [effectiveDimensions] : [],
         workPrice: work?.priceBand,
         _sourceMedium: work?.medium,
         _sourcePrice: work?.priceBand,
@@ -318,100 +327,76 @@ export default function VenueLabelsPage() {
           </div>
         ) : (
           <>
-            {/* Options row */}
-            <div className="flex flex-col lg:flex-row gap-4 mb-6">
-              <div className="flex-1 bg-surface border border-border rounded-sm p-4">
-                <h3 className="text-xs font-medium tracking-wider uppercase text-muted mb-3">Label Style</h3>
+            {/* Label style has the full width so its three options have room; the
+                other settings share the row beneath. Owner report 13 September 2026:
+                squeezed beside fixed-width panels, the style cards were a few words wide. */}
+            <div className="bg-surface border border-border rounded-sm p-4 mb-4">
+              <h3 className="text-xs font-medium tracking-wider uppercase text-muted mb-3">Label Style</h3>
+              <LabelStylePicker value={labelStyle} onChange={applyStyle} />
 
-                {/* Plan G #7: high-level style picker (parity with the
-                    artist label editor). Pre-fills the default size +
-                    field toggles for the selected style. */}
-                <div className="grid sm:grid-cols-3 gap-2 mb-4">
-                  {LABEL_STYLES.map((s) => (
-                    <button
-                      key={s.key}
-                      type="button"
-                      onClick={() => applyStyle(s.key)}
-                      className={`text-left p-3 rounded-sm border transition-colors ${
-                        labelStyle === s.key ? "border-accent bg-accent/5" : "border-border hover:border-accent/40"
-                      }`}
-                    >
-                      <p className="text-sm font-medium text-foreground mb-0.5">{s.name}</p>
-                      <p className="text-[11px] text-muted leading-snug">{s.description}</p>
-                    </button>
-                  ))}
+              <div className="mt-4">
+                <p className="text-xs text-muted mb-1.5">Label size</p>
+                <LabelSizePicker value={labelSize} style={labelStyle} onChange={setLabelSize} />
+              </div>
+
+              {(labelSize === "large" || labelSize === "xlarge") && labelStyle !== "qr_only" && (
+                <div className="mt-4">
+                  <p className="text-xs text-muted mb-1.5">Tagline (shown on label)</p>
+                  <input
+                    type="text"
+                    value={tagline}
+                    onChange={(e) => setTagline(e.target.value)}
+                    placeholder="e.g. Scan to view & purchase this artwork"
+                    maxLength={80}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/60"
+                  />
                 </div>
+              )}
 
-                <div className="mb-3">
-                  <p className="text-xs text-muted mb-1.5">Label Size</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {LABEL_SIZES.map((s) => (
-                      <button
-                        key={s.key}
-                        onClick={() => setLabelSize(s.key)}
-                        className={`px-3 py-1.5 text-xs rounded-sm border transition-colors ${
-                          labelSize === s.key ? "bg-foreground text-white border-foreground" : "border-border text-muted hover:border-foreground/30"
-                        }`}
-                      >
-                        {s.label}
-                      </button>
+              {/* Only Editorial prints these rows, so only Editorial offers them. */}
+              {labelStyle === "editorial" && (
+                <div className="mt-4">
+                  <p className="text-[11px] text-muted leading-relaxed mb-2">
+                    Hide a row from the printed label without removing the
+                    underlying data. Toggles only affect what shows up on
+                    the printed card. The QR code itself always points to
+                    the work.
+                  </p>
+                  <div className="flex flex-wrap gap-x-5 gap-y-2">
+                    {([
+                      { key: "showMedium" as const, label: "Medium" },
+                      { key: "showDimensions" as const, label: "Dimensions" },
+                      { key: "showPrice" as const, label: "Price" },
+                    ]).map(({ key, label }) => (
+                      <label key={key} className="flex items-center gap-2 cursor-pointer text-sm text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={options[key]}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setOptions((prev) => ({ ...prev, [key]: checked }));
+                          }}
+                          className="w-4 h-4 accent-accent"
+                        />
+                        {label}
+                      </label>
                     ))}
                   </div>
                 </div>
+              )}
+            </div>
 
-                {(labelSize === "large" || labelSize === "xlarge") && (
-                  <div className="mb-3">
-                    <p className="text-xs text-muted mb-1.5">Tagline (shown on label)</p>
-                    <input
-                      type="text"
-                      value={tagline}
-                      onChange={(e) => setTagline(e.target.value)}
-                      placeholder="e.g. Scan to view & purchase this artwork"
-                      maxLength={80}
-                      className="w-full px-3 py-2 bg-background border border-border rounded-sm text-sm text-foreground focus:outline-none focus:border-accent/60"
-                    />
-                  </div>
-                )}
-
-                <p className="text-[11px] text-muted leading-relaxed mb-2">
-                  Hide a row from the printed label without removing the
-                  underlying data. Toggles only affect what shows up on
-                  the printed card. The QR code itself always points to
-                  the work.
-                </p>
-                <div className="flex flex-wrap gap-x-5 gap-y-2">
-                  {([
-                    { key: "showMedium" as const, label: "Medium" },
-                    { key: "showDimensions" as const, label: "Dimensions" },
-                    { key: "showPrice" as const, label: "Price" },
-                  ]).map(({ key, label }) => (
-                    <label key={key} className="flex items-center gap-2 cursor-pointer text-sm text-foreground">
-                      <button
-                        onClick={() => setOptions((prev) => ({ ...prev, [key]: !prev[key] }))}
-                        className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${
-                          options[key] ? "bg-accent border-accent" : "bg-white border-border"
-                        }`}
-                      >
-                        {options[key] && (
-                          <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="2 7 5.5 10.5 12 3.5" /></svg>
-                        )}
-                      </button>
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
+            <div className="grid gap-4 md:grid-cols-2 mb-6">
               {/* Label colour (owner decision 2026-09-02): free for every
                   plan, venues included. Chosen per print run; venues have
                   no saved theme column so nothing here is persisted. */}
-              <div className="lg:w-64 bg-surface border border-border rounded-sm p-4">
+              <div className="bg-surface border border-border rounded-sm p-4">
                 <h3 className="text-xs font-medium tracking-wider uppercase text-muted mb-2">Label colour</h3>
                 <p className="text-xs text-muted mb-3">How the printed labels are styled</p>
                 <LabelThemePicker value={labelThemeId} onChange={setLabelThemeId} label="" />
               </div>
 
-              <div className="lg:w-64 bg-surface border border-border rounded-sm p-4">
+              <div className="bg-surface border border-border rounded-sm p-4">
                 <h3 className="text-xs font-medium tracking-wider uppercase text-muted mb-2">Your venue</h3>
                 <p className="text-sm text-foreground">{venueName || "Your venue"}</p>
                 <p className="text-xs text-muted mt-2">QR scans from these labels will be tagged to your venue automatically.</p>
@@ -585,8 +570,10 @@ export default function VenueLabelsPage() {
         <LabelPreview
           labels={previewLabels}
           initialVisibility={buildVisibility(previewLabels)}
-          availableSizes={[]}
           labelTheme={labelThemeId}
+          onLabelThemeChange={setLabelThemeId}
+          onLabelStyleChange={setLabelStyle}
+          onLabelSizeChange={setLabelSize}
           onClose={() => setShowPreview(false)}
         />
       )}
