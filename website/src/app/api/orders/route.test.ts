@@ -87,11 +87,11 @@ describe("PATCH /api/orders state machine", () => {
     });
   }
 
-  it("rejects confirmed → delivered, now at the role gate before the state machine", async () => {
-    // Was asserted as 422. After E21 a SELLER is refused 403 for `delivered` at
-    // all, which is the stronger answer and reached first. The 422 path still
-    // exists for a caller whose role permits the status: see the buyer case in
-    // the E21 suite below.
+  it("refuses an artist marking an unshipped order delivered", async () => {
+    // Owner decision 13 September 2026: an artist may mark an order delivered,
+    // because most buyers check out as guests and never confirm. Only once it has
+    // shipped, though, so confirmed → delivered stays refused, with a 403 that
+    // says why rather than the state machine's generic 422.
     fromMock.mockImplementation(() =>
       chainSelectSingle({
         artist_user_id: "u-artist",
@@ -104,7 +104,7 @@ describe("PATCH /api/orders state machine", () => {
     const res = await PATCH(req({ orderId: "o1", status: "delivered" }));
     expect(res.status).toBe(403);
     const body = await res.json();
-    expect(body.error).toMatch(/seller cannot move an order to delivered/i);
+    expect(body.error).toMatch(/only once it has shipped/i);
   });
 
   it("allows confirmed → artist_notified", async () => {
@@ -298,6 +298,31 @@ describe("PATCH /api/orders payout + email side-effects", () => {
     expect(res.status).toBe(422);
   });
 
+  // Owner decision 13 September 2026: artists may mark an order delivered, since
+  // most buyers never sign in to confirm. The mark must not release the payout
+  // early, or an artist could mark shipped then delivered and be paid before the
+  // parcel existed. The 14-day sweep pays it; only the buyer's confirmation is early.
+  it("an artist marking a shipped order delivered releases no money early", async () => {
+    actAs("seller");
+    vi.mocked(executeTransfer).mockResolvedValue({ id: "tr_1" } as never);
+    fromMock.mockImplementation(makeDeliveredFromMock(["t1", "t2"]));
+
+    const res = await PATCH(req({ orderId: "o1", status: "delivered" }));
+
+    expect(res.status).toBe(200);
+    expect(vi.mocked(executeTransfer), "the artist's own mark released the hold").not.toHaveBeenCalled();
+  });
+
+  it("an artist cannot mark a collection order delivered: the handover is the buyer's to confirm", async () => {
+    actAs("seller");
+    fromMock.mockImplementation(
+      makeDeliveredFromMock(["t1"], { status: "confirmed", fulfilment_method: "collect_venue" }),
+    );
+    const res = await PATCH(req({ orderId: "o1", status: "delivered" }));
+    expect(res.status).toBe(403);
+    expect(vi.mocked(executeTransfer)).not.toHaveBeenCalled();
+  });
+
   it("delivered PATCH with one failing executeTransfer returns 200 with payoutFailures >= 1", async () => {
     // RED: currently the transfer is fire-and-forget so the response
     // does not include payoutFailures at all.
@@ -465,6 +490,10 @@ describe("POST /api/orders (E19, deleted)", () => {
 // confirmed → processing → shipped → delivered in three requests and every
 // pending stripe_transfers row executed immediately. That defeats the 14-day
 // hold, which is the only chargeback buffer in the payout design.
+//
+// Owner decision 13 September 2026: the seller may mark a shipped order delivered
+// again, because most buyers check out as guests and never confirm. That mark
+// releases no money early; only the buyer's confirmation does.
 describe("PATCH /api/orders role split (E21)", () => {
   function req(body: unknown): Request {
     return new Request("http://localhost/api/orders", {
@@ -489,14 +518,13 @@ describe("PATCH /api/orders role split (E21)", () => {
     vi.mocked(executeTransfer).mockResolvedValue({ id: "tr_1" } as never);
   });
 
-  it("refuses the seller marking their own order delivered, and pays nobody", async () => {
-    // The exploit's third request.
+  it("lets the seller mark a shipped order delivered, without paying anyone early", async () => {
+    // The exploit's third request, now allowed for the status and refused for the
+    // money: see "an artist marking a shipped order delivered releases no money early".
     actAs("seller");
     fromMock.mockImplementation(() => chainSelectSingle(SHIPPED));
     const res = await PATCH(req({ orderId: "o1", status: "delivered" }));
-    expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.error).toMatch(/seller cannot move an order to delivered/i);
+    expect(res.status).toBe(200);
     expect(vi.mocked(executeTransfer), "escrow was released by the seller").not.toHaveBeenCalled();
   });
 
@@ -638,6 +666,26 @@ describe("PATCH /api/orders stamps delivered_at", () => {
     await PATCH(patch({ orderId: "ord_1", status: "shipped", trackingNumber: "TRK1" }));
 
     expect(updated ?? {}).not.toHaveProperty("delivered_at");
+  });
+
+  // Owner decision 13 September 2026. Who marked it matters: a delivery the artist
+  // marked can come before the parcel does, so the refund window allows for the post.
+  it("records who marked the order delivered", async () => {
+    actAs("seller");
+    setupOrder({ ...ORDER, status_history: [] });
+    await PATCH(patch({ orderId: "ord_1", status: "delivered" }));
+    expect((updated!.status_history as Array<Record<string, unknown>>).at(-1)).toMatchObject({
+      status: "delivered",
+      by: "seller",
+    });
+
+    actAs("buyer");
+    setupOrder({ ...ORDER, status_history: [] });
+    await PATCH(patch({ orderId: "ord_1", status: "delivered" }));
+    expect((updated!.status_history as Array<Record<string, unknown>>).at(-1)).toMatchObject({
+      status: "delivered",
+      by: "buyer",
+    });
   });
 });
 
@@ -1160,6 +1208,24 @@ describe("lifecycle emails carry real order data (email audit fix 2)", () => {
     // The buyer's copy is untouched by the artist overrides.
     const buyerHtml = await renderedEmail("customer_order_delivered");
     expect(buyerHtml).toContain("Hi Bob");
+  });
+
+  it("delivered by the artist: asks the buyer to confirm, and tells the artist nothing untrue", async () => {
+    // Owner decision 13 September 2026. The artist's delivered email says the
+    // buyer confirmed and the payout is released. Neither is true when the artist
+    // marked it, and the buyer's copy must not promise that confirming releases
+    // payment, because an artist-marked order keeps its 14-day hold.
+    actAs("seller");
+    setupOrder({ ...ORDER, status: "shipped" });
+
+    const res = await PATCH(patch({ orderId: "o1", status: "delivered" }));
+
+    expect(res.status).toBe(200);
+    const buyerHtml = await renderedEmail("customer_order_delivered");
+    expect(buyerHtml).toContain("Confirm delivery");
+    expect(buyerHtml).not.toContain("release payment");
+    const templates = vi.mocked(sendEmail).mock.calls.map((c) => c[0].template);
+    expect(templates).not.toContain("artist_order_delivered");
   });
 
   it("never lets a raw slug reach the buyer when the artist has no profile name", async () => {
