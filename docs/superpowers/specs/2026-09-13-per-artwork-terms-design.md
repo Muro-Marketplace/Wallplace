@@ -1,7 +1,10 @@
 # Per-artwork revenue share and paid loan fee
 
 Date: 2026-09-13
-Status: design approved by the owner; spec awaiting review
+Status: shipped in PR #102. Partly replaced by
+`2026-09-13-work-arrangements-and-per-size-loan-fees-design.md`, which moves the
+loan fee onto each size, adds per-work arrangement tick boxes, and changes the
+editor and the card.
 
 ## The problem
 
