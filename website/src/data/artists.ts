@@ -86,6 +86,11 @@ export interface ArtistWork {
   } | null;
   /** Soft FK to placements.id for the active placement on this work. */
   current_placement_id?: string | null;
+  /** Migration 148. The work's own revenue share, or null to use the artist's
+   *  default. Read it through resolveWorkTerms in src/lib/work-terms.ts. */
+  revenueShareOverride?: number | null;
+  /** Migration 148. Listed monthly paid loan fee in pounds, or null for none. */
+  paidLoanMonthlyGbp?: number | null;
 }
 
 export interface Artist {
@@ -208,6 +213,7 @@ export const artists: Artist[] = [
         available: true,
         color: "#7A9BB5",
         image: "https://picsum.photos/seed/james-okafor-1/600/750",
+        paidLoanMonthlyGbp: 40,
       },
       {
         id: "james-okafor-2",
@@ -219,6 +225,7 @@ export const artists: Artist[] = [
         available: true,
         color: "#6B8CA6",
         image: "https://picsum.photos/seed/james-okafor-2/600/750",
+        paidLoanMonthlyGbp: 30,
       },
       {
         id: "james-okafor-3",
@@ -307,6 +314,7 @@ export const artists: Artist[] = [
         available: true,
         color: "#C4867A",
         image: "https://picsum.photos/seed/priya-sharma-1/600/750",
+        paidLoanMonthlyGbp: 45,
       },
       {
         id: "priya-sharma-2",
@@ -318,6 +326,7 @@ export const artists: Artist[] = [
         available: true,
         color: "#D49488",
         image: "https://picsum.photos/seed/priya-sharma-2/600/750",
+        paidLoanMonthlyGbp: 35,
       },
       {
         id: "priya-sharma-3",
@@ -406,6 +415,7 @@ export const artists: Artist[] = [
         available: true,
         color: "#7A9E6B",
         image: "https://picsum.photos/seed/tom-hadley-1/600/750",
+        paidLoanMonthlyGbp: 25,
       },
       {
         id: "tom-hadley-2",
@@ -417,6 +427,8 @@ export const artists: Artist[] = [
         available: true,
         color: "#6B8F5C",
         image: "https://picsum.photos/seed/tom-hadley-2/600/750",
+        revenueShareOverride: 20,
+        paidLoanMonthlyGbp: 30,
       },
       {
         id: "tom-hadley-3",
@@ -798,6 +810,7 @@ export const artists: Artist[] = [
         available: true,
         color: "#D48C4A",
         image: "https://picsum.photos/seed/ravi-patel-1/600/750",
+        paidLoanMonthlyGbp: 60,
       },
       {
         id: "ravi-patel-2",
@@ -996,6 +1009,7 @@ export const artists: Artist[] = [
         available: true,
         color: "#5A8C6A",
         image: "https://picsum.photos/seed/marcus-webb-1/600/750",
+        paidLoanMonthlyGbp: 22.5,
       },
       {
         id: "marcus-webb-2",

@@ -16,10 +16,11 @@ import { worksToPost } from "./changed-works";
 import { partitionBulkAddDrafts } from "./bulk-add-validation";
 import { deriveAvailable, hydrateAvailable } from "./work-availability";
 import { estimateShipping, tierLabel } from "@/lib/shipping-calculator";
+import { parseWorkTermsForm } from "@/lib/work-terms";
 import { canFeatureArtwork, isArtworkOfTheWeek } from "@/lib/tier-features";
 import Combobox from "@/components/Combobox";
 import { WORK_MEDIUM_OPTIONS } from "@/data/work-medium-options";
-import { WORKS_CAP } from "@/lib/pricing";
+import { WORKS_CAP, PAID_LOAN_MIN_GBP } from "@/lib/pricing";
 import FrameOptionsEditor from "@/components/portfolio/FrameOptionsEditor";
 
 interface SizeEntry {
@@ -115,6 +116,10 @@ interface WorkFormState {
   sizeStock: string[];
   detectedRatio: number | null;
   quantityAvailable: string;
+  /** Migration 148. Blank means the artist's profile default applies. */
+  revenueShareOverride: string;
+  /** Migration 148. Blank means no listed paid loan fee. */
+  paidLoanMonthlyGbp: string;
   frameOptions: {
     label: string;
     priceUplift: string;
@@ -199,6 +204,8 @@ const emptyWork: WorkFormState = {
   sizeStock: [],
   detectedRatio: null,
   quantityAvailable: "",
+  revenueShareOverride: "",
+  paidLoanMonthlyGbp: "",
   frameOptions: [],
 };
 
@@ -581,6 +588,10 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
               shippingPrice: (work as ArtistWork & { shippingPrice?: number; inStorePrice?: number }).shippingPrice ?? null,
               inStorePrice: (work as ArtistWork & { shippingPrice?: number; inStorePrice?: number }).inStorePrice ?? null,
               quantityAvailable: (work as ArtistWork & { quantityAvailable?: number | null }).quantityAvailable ?? null,
+              // Migration 148. undefined drops out of JSON, so the route leaves
+              // the stored value alone; null clears it.
+              revenueShareOverride: work.revenueShareOverride,
+              paidLoanMonthlyGbp: work.paidLoanMonthlyGbp,
               frameOptions: frames,
               description: work.description || "",
               images: work.images || [],
@@ -1532,6 +1543,8 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       sizes: w.pricing.map((p) => ({ label: p.label, price: p.price })),
       shippingPrice: w.shippingPrice != null ? w.shippingPrice.toFixed(2) : "",
       inStorePrice: w.inStorePrice != null ? w.inStorePrice.toFixed(2) : "",
+      revenueShareOverride: w.revenueShareOverride != null ? String(w.revenueShareOverride) : "",
+      paidLoanMonthlyGbp: w.paidLoanMonthlyGbp != null ? w.paidLoanMonthlyGbp.toFixed(2) : "",
       // Mirror the openEdit rehydration so duplicating a work copies
       // its in-store prices from the persisted `pricing[i].inStorePrice`
       // location, with legacy fallbacks.
@@ -1577,6 +1590,8 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       orientation: w.orientation || "landscape",
       sizes: w.pricing.map((p) => ({ label: p.label, price: p.price })),
       shippingPrice: w.shippingPrice != null ? w.shippingPrice.toFixed(2) : "",
+      revenueShareOverride: w.revenueShareOverride != null ? String(w.revenueShareOverride) : "",
+      paidLoanMonthlyGbp: w.paidLoanMonthlyGbp != null ? w.paidLoanMonthlyGbp.toFixed(2) : "",
       // Rehydrate per-size shipping. Previously hard-coded to `false`
       // / `[]` here, which meant opening a work that HAD per-size
       // shipping silently lost it: the toggle showed off, the column
@@ -1842,6 +1857,13 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
 
     const lowestPrice = Math.min(...validSizes.map((s) => s.price));
 
+    // Migration 148. Same ranges as the database CHECKs; a blank clears.
+    const terms = parseWorkTermsForm(form.revenueShareOverride, form.paidLoanMonthlyGbp);
+    if (!terms.ok) {
+      setFormError(terms.error);
+      return;
+    }
+
     const shippingVal = form.shippingPrice.trim() ? parseFloat(form.shippingPrice) : undefined;
     const inStoreVal = form.inStorePrice.trim() ? parseFloat(form.inStorePrice) : undefined;
     const qtyRaw = form.quantityAvailable.trim();
@@ -1932,6 +1954,8 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       orientation: form.orientation,
       ...(shippingVal != null && !isNaN(shippingVal) ? { shippingPrice: shippingVal } : {}),
       quantityAvailable: qtyFinite ? qtyVal : null,
+      revenueShareOverride: terms.revenueShareOverride,
+      paidLoanMonthlyGbp: terms.paidLoanMonthlyGbp,
       frameOptions: cleanFrameOptions.length > 0 ? cleanFrameOptions : undefined,
     };
 
@@ -2915,6 +2939,58 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                 </div>
               )}
             </div>
+
+            {/* Placement terms for this work (migration 148). Blank uses the
+                profile default, or lists no fee. Each input shows only when the
+                artist is open to that arrangement. */}
+            {((profile?.open_to_revenue_share ?? true) || (profile?.open_to_free_loan ?? true)) && (
+              <div className="pt-4 border-t border-border space-y-3">
+                <p className="text-sm font-medium">Placement terms for this work</p>
+                {(profile?.open_to_revenue_share ?? true) && (
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <label htmlFor="work-revenue-share" className="text-sm sm:w-40 shrink-0">
+                      Revenue share %
+                    </label>
+                    <input
+                      id="work-revenue-share"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={form.revenueShareOverride}
+                      onChange={(e) => setForm((p) => ({ ...p, revenueShareOverride: e.target.value }))}
+                      placeholder={
+                        profile?.revenue_share_percent != null
+                          ? `${profile.revenue_share_percent}%, your default`
+                          : "Your default"
+                      }
+                      className="w-44 bg-background border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent/60"
+                    />
+                  </div>
+                )}
+                {(profile?.open_to_free_loan ?? true) && (
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <label htmlFor="work-paid-loan-fee" className="text-sm sm:w-40 shrink-0">
+                      Paid loan, £ a month
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-muted">£</span>
+                      <input
+                        id="work-paid-loan-fee"
+                        type="number"
+                        min={PAID_LOAN_MIN_GBP}
+                        step="0.01"
+                        value={form.paidLoanMonthlyGbp}
+                        onChange={(e) => setForm((p) => ({ ...p, paidLoanMonthlyGbp: e.target.value }))}
+                        placeholder="No listed fee"
+                        className="w-40 bg-background border border-border rounded-sm px-3 py-2 text-sm text-right focus:outline-none focus:border-accent/60"
+                      />
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-muted">These don&rsquo;t change placements you&rsquo;ve already agreed.</p>
+              </div>
+            )}
 
             {/* Available toggle */}
             <div className="flex items-center gap-3">

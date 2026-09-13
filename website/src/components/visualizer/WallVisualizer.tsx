@@ -79,6 +79,11 @@ import RenderPreview, { type SaveToWallStatus } from "./RenderPreview";
 import type { Wall3DCanvasHandle } from "./Wall3DCanvas";
 import type { WallCanvasHandle } from "./WallCanvas";
 import WorksPanel, { type PanelWork } from "./WorksPanel";
+import {
+  initialPlacementTerms,
+  workTermsFromRow,
+  type ArtistTermsPayload,
+} from "@/lib/work-terms";
 
 const WallCanvas = dynamic(() => import("./WallCanvas"), {
   ssr: false,
@@ -360,6 +365,7 @@ function WallVisualizerInner(props: ExtendedProps) {
   const [myWorks, setMyWorks] = useState<PanelWork[]>([]);
   const [savedWorks, setSavedWorks] = useState<PanelWork[]>([]);
   const [allWorks, setAllWorks] = useState<PanelWork[]>([]);
+  const [artistTerms, setArtistTerms] = useState<ArtistTermsPayload | null>(null);
 
   const [worksLoading, setWorksLoading] = useState(false);
   const [worksError, setWorksError] = useState<string | null>(null);
@@ -455,12 +461,13 @@ function WallVisualizerInner(props: ExtendedProps) {
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           return r.json();
         })
-        .then((data: { works?: Array<Record<string, unknown>> }) => {
+        .then((data: { works?: Array<Record<string, unknown>>; terms?: ArtistTermsPayload | null }) => {
           if (cancelled) return;
           const mapped = (data.works ?? [])
             .map(normaliseWork)
             .filter((w): w is PanelWork => w !== null);
           setWorks(mapped);
+          setArtistTerms(data.terms ?? null);
         })
         .catch((e) => !cancelled && setWorksError(String(e)))
         .finally(() => !cancelled && setWorksLoading(false));
@@ -486,6 +493,17 @@ function WallVisualizerInner(props: ExtendedProps) {
     }
     return out;
   }, [props.lockedWork, works, myWorks, savedWorks, allWorks]);
+
+  // Spec 2026-09-13. Wall order, so the first work matches the proposal's
+  // primary work in buildProposalPlacement.
+  const proposalInitialTerms = useMemo(
+    () =>
+      initialPlacementTerms(
+        items.map((i) => workById[i.work_id]).filter((w): w is PanelWork => !!w),
+        { revenueSharePercent: artistTerms?.revenueSharePercent ?? null },
+      ),
+    [items, workById, artistTerms],
+  );
 
   const selectedItem = useMemo(
     () => items.find((i) => i.id === selectedItemId) ?? null,
@@ -1340,6 +1358,7 @@ function WallVisualizerInner(props: ExtendedProps) {
                 wallName: props.wall.name,
                 status: proposalStatus,
                 error: proposalError,
+                initialTerms: proposalInitialTerms,
                 onSend: (terms) => {
                   void handleSendProposal(terms);
                 },
@@ -1694,6 +1713,7 @@ function normaliseWork(raw: Record<string, unknown>): PanelWork | null {
     heightCm: parsedNatural?.heightCm,
     sizes: sizes.length > 0 ? sizes : undefined,
     orientation,
+    ...workTermsFromRow(raw),
   };
 }
 

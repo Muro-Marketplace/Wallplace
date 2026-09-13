@@ -1,5 +1,6 @@
 import { artists, type Artist, type WorkOrientation, type SizePricing } from "./artists";
 import type { DisciplineId } from "./categories";
+import { resolveWorkTerms } from "@/lib/work-terms";
 
 export interface GalleryWork {
   id: string;
@@ -26,6 +27,8 @@ export interface GalleryWork {
   openToFreeLoan: boolean;
   openToRevenueShare: boolean;
   revenueSharePercent?: number;
+  /** Listed monthly paid loan fee, null for none. Migration 148. */
+  paidLoanMonthlyGbp?: number | null;
   openToOutrightPurchase: boolean;
   /** Artist's subscription plan, used to put Pro / Premium works
    *  first in the marketplace's "Featured" sort. Mirrors the Featured
@@ -49,7 +52,11 @@ export function getGalleryWorks(): GalleryWork[] {
 /** Build gallery works from any artist list (merged static + DB) */
 export function artistsToGalleryWorks(allArtists: Artist[]): GalleryWork[] {
   return allArtists.flatMap((artist) =>
-    artist.works.map((work) => ({
+    artist.works.map((work) => {
+      // Spec 2026-09-13. This builder names every field and never spreads the
+      // work, so a work field not named here never reaches the card.
+      const terms = resolveWorkTerms(work, artist);
+      return {
       id: work.id,
       title: work.title,
       artistName: artist.name,
@@ -72,13 +79,15 @@ export function artistsToGalleryWorks(allArtists: Artist[]): GalleryWork[] {
       offersFramed: artist.offersFramed,
       openToFreeLoan: artist.openToFreeLoan,
       openToRevenueShare: artist.openToRevenueShare,
-      revenueSharePercent: artist.revenueSharePercent,
+      revenueSharePercent: terms.revenueSharePercent,
+      paidLoanMonthlyGbp: terms.paidLoanMonthlyGbp,
       openToOutrightPurchase: artist.openToOutrightPurchase,
       artistSubscriptionPlan: artist.subscriptionPlan,
       artistIsFounding: artist.isFoundingArtist,
       featuredUntil: work.featuredUntil,
       artistIsSeed: artist.isSeedArtist,
       createdAt: work.createdAt,
-    }))
+      };
+    })
   );
 }

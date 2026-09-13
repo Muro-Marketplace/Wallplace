@@ -8,6 +8,7 @@ import Image from "next/image";
 import { artists as staticArtists, type Artist } from "@/data/artists";
 import { themes } from "@/data/themes";
 import { artistsToGalleryWorks } from "@/data/galleries";
+import WorkTermsLine from "@/components/WorkTermsLine";
 import { collections as staticCollections, type ArtistCollection } from "@/data/collections";
 import { DISCIPLINES, formatSubStyleLabel, getDisciplineById, resolveDiscipline, disciplineLabel } from "@/data/categories";
 import { slugify } from "@/lib/slugify";
@@ -2683,18 +2684,15 @@ function BrowsePortfoliosPageInner() {
                                 work.openToOutrightPurchase ? ARRANGEMENT_LABEL.purchase : "",
                               ].filter(Boolean).join(" · ")}
                             </p>
-                            {/* Reserve a row for the revenue-share line on every
-                                card so the masonry rows line up; works without a
-                                rev-share percent fall back to a transparent
-                                placeholder rather than collapsing the card height
-                                and visibly shrinking compared to neighbours. */}
-                            {work.openToRevenueShare && work.revenueSharePercent != null && work.revenueSharePercent > 0 ? (
-                              <p className="text-[11px] text-accent font-medium mt-1">
-                                {work.revenueSharePercent}% Revenue Share
-                              </p>
-                            ) : (
-                              <p className="text-[11px] mt-1" aria-hidden="true">&nbsp;</p>
-                            )}
+                            {/* Revenue share and listed paid loan fee (spec
+                                2026-09-13). WorkTermsLine keeps a spacer when
+                                there is neither, so rows still line up. */}
+                            <WorkTermsLine
+                              openToRevenueShare={work.openToRevenueShare}
+                              revenueSharePercent={work.revenueSharePercent}
+                              openToFreeLoan={work.openToFreeLoan}
+                              paidLoanMonthlyGbp={work.paidLoanMonthlyGbp}
+                            />
                           </div>
                         </div>
                       </div>

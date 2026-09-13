@@ -236,6 +236,9 @@ export const ARTIST_WORK_WRITABLE = Object.freeze([
   "quantity_available",
   "frame_options",
   "description",
+  // Migration 148: per-work revenue share and listed paid loan fee.
+  "revenue_share_percent",
+  "paid_loan_monthly_gbp",
 ] as const);
 
 export const ARTIST_WORK_SERVER_OWNED = Object.freeze([

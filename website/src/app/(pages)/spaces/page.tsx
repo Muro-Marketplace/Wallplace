@@ -18,6 +18,7 @@ import SpacesPlacementRequestForm, {
 } from "@/components/SpacesPlacementRequestForm";
 import { ARRANGEMENT_LABEL } from "@/lib/arrangement-labels";
 import OutreachAllowanceBadge, { useOutreachAllowance } from "@/components/OutreachAllowance";
+import type { ArtistTermsPayload } from "@/lib/work-terms";
 
 interface ArtistWorkLite {
   id: string;
@@ -25,6 +26,8 @@ interface ArtistWorkLite {
   image: string;
   dimensions?: string | null;
   medium?: string | null;
+  revenue_share_percent?: number | string | null;
+  paid_loan_monthly_gbp?: number | string | null;
 }
 
 interface DemandVenue {
@@ -121,6 +124,7 @@ function SpacesPageContent() {
   //   this session, so the card flips to a success state.
   const [myWorks, setMyWorks] = useState<ArtistWorkLite[]>([]);
   const [worksLoading, setWorksLoading] = useState(false);
+  const [artistTerms, setArtistTerms] = useState<ArtistTermsPayload | null>(null);
   // What the artist has left this week, shown above the venue list so the
   // limit is visible while they are choosing who to approach, not only once
   // they have opened a request form.
@@ -194,8 +198,11 @@ function SpacesPageContent() {
           cache: "no-store",
         });
         if (!res.ok) throw new Error(`Works fetch ${res.status}`);
-        const data = (await res.json()) as { works?: ArtistWorkLite[] };
-        if (!cancelled) setMyWorks(data.works || []);
+        const data = (await res.json()) as { works?: ArtistWorkLite[]; terms?: ArtistTermsPayload | null };
+        if (!cancelled) {
+          setMyWorks(data.works || []);
+          setArtistTerms(data.terms ?? null);
+        }
       } catch {
         if (!cancelled) setMyWorks([]);
       } finally {
@@ -697,6 +704,7 @@ function SpacesPageContent() {
                               interestedInDirectPurchase: venue.interestedInDirectPurchase,
                             } as SpacesVenueOption}
                             works={myWorks}
+                            artistTerms={artistTerms}
                             worksLoading={worksLoading}
                             authToken={session?.access_token ?? null}
                             onCancel={() => setRequestOpenSlug(null)}

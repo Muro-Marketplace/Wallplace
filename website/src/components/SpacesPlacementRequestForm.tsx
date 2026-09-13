@@ -46,6 +46,12 @@ import OutreachAllowanceBadge, { useOutreachAllowance } from "@/components/Outre
 import Image from "next/image";
 import Link from "next/link";
 import { physicalSizeLabel } from "@/lib/physical-size";
+import {
+  MIXED_TERMS_NOTE,
+  initialPlacementTerms,
+  workTermsFromRow,
+  type ArtistTermsPayload,
+} from "@/lib/work-terms";
 
 interface ArtistWork {
   id: string;
@@ -53,6 +59,9 @@ interface ArtistWork {
   image: string;
   dimensions?: string | null;
   medium?: string | null;
+  /** Raw artist_works columns (migration 148), as GET /api/artist-works returns them. */
+  revenue_share_percent?: number | string | null;
+  paid_loan_monthly_gbp?: number | string | null;
 }
 
 export type Arrangement = "revenue_share" | "free_loan" | "purchase";
@@ -77,6 +86,8 @@ interface Props {
   authToken: string | null;
   onCancel: () => void;
   onSuccess: (placementId: string) => void;
+  /** The artist's default terms, from GET /api/artist-works. */
+  artistTerms?: ArtistTermsPayload | null;
 }
 
 export default function SpacesPlacementRequestForm({
@@ -86,6 +97,7 @@ export default function SpacesPlacementRequestForm({
   authToken,
   onCancel,
   onSuccess,
+  artistTerms,
 }: Props) {
   const supported: Arrangement[] = useMemo(() => {
     const arr: Arrangement[] = [];
@@ -111,8 +123,10 @@ export default function SpacesPlacementRequestForm({
   const [arrangement, setArrangement] = useState<Arrangement>(
     supported[0] || "revenue_share",
   );
-  const [revenueShare, setRevenueShare] = useState<number>(25);
-  const [monthlyFee, setMonthlyFee] = useState<number>(25);
+  // Spec 2026-09-13. Both start from the selected works' terms (derived below
+  // selectedWorks) until the artist types their own; null means not typed yet.
+  const [revenueShareInput, setRevenueShareInput] = useState<number | null>(null);
+  const [monthlyFeeInput, setMonthlyFeeInput] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,6 +180,16 @@ export default function SpacesPlacementRequestForm({
     [selectedWorkIds, works],
   );
   const primaryWork = selectedWorks[0] || null;
+  const suggestedTerms = useMemo(
+    () =>
+      initialPlacementTerms(
+        selectedWorks.map((w) => workTermsFromRow(w as unknown as Record<string, unknown>)),
+        { revenueSharePercent: artistTerms?.revenueSharePercent ?? null },
+      ),
+    [selectedWorks, artistTerms],
+  );
+  const revenueShare = revenueShareInput ?? suggestedTerms.revenueSharePercent ?? 25;
+  const monthlyFee = monthlyFeeInput ?? suggestedTerms.monthlyFeeGbp ?? 25;
 
   function toggleWork(id: string) {
     if (action === "quote") {
@@ -675,6 +699,13 @@ export default function SpacesPlacementRequestForm({
             </div>
           )}
 
+          {/* A direct purchase carries no share or fee, so there is nothing to reconcile. */}
+          {action === "placement" && arrangement !== "purchase" && suggestedTerms.mixed && (
+            <p role="note" className="text-[11px] text-muted leading-relaxed">
+              {MIXED_TERMS_NOTE}
+            </p>
+          )}
+
           {/* Terms, depend on arrangement */}
           {arrangement === "revenue_share" && (
             <div>
@@ -688,8 +719,9 @@ export default function SpacesPlacementRequestForm({
                   max={100}
                   step={1}
                   value={revenueShare}
+                  aria-label="Revenue share to venue"
                   onChange={(e) =>
-                    setRevenueShare(
+                    setRevenueShareInput(
                       Math.max(0, Math.min(100, Number(e.target.value) || 0)),
                     )
                   }
@@ -715,8 +747,9 @@ export default function SpacesPlacementRequestForm({
                   min={0}
                   step={1}
                   value={monthlyFee}
+                  aria-label="Monthly fee from venue"
                   onChange={(e) =>
-                    setMonthlyFee(Math.max(0, Number(e.target.value) || 0))
+                    setMonthlyFeeInput(Math.max(0, Number(e.target.value) || 0))
                   }
                   className="w-24 px-2.5 py-1.5 text-sm border border-border rounded-sm bg-background focus:outline-none focus:border-accent"
                 />

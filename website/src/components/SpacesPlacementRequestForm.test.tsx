@@ -22,6 +22,7 @@ const { authFetchMock } = vi.hoisted(() => ({ authFetchMock: vi.fn() }));
 vi.mock("@/lib/api-client", () => ({ authFetch: authFetchMock }));
 
 import SpacesPlacementRequestForm from "./SpacesPlacementRequestForm";
+import { MIXED_TERMS_NOTE } from "@/lib/work-terms";
 
 const VENUE = {
   slug: "copper-kettle",
@@ -197,5 +198,93 @@ describe("SpacesPlacementRequestForm — 429 error copy", () => {
     fireEvent.click(send);
 
     await waitFor(() => expect(screen.getByText(pending)).toBeTruthy());
+  });
+});
+
+describe("SpacesPlacementRequestForm starts from the work's terms (spec 2026-09-13)", () => {
+  const TERMS = { revenueSharePercent: 20, openToRevenueShare: true, openToFreeLoan: true };
+
+  function renderWith(works: Array<Record<string, unknown>>, artistTerms: typeof TERMS | null) {
+    vi.stubGlobal("fetch", mockFetch({}));
+    return render(
+      <SpacesPlacementRequestForm
+        venue={VENUE}
+        works={works as unknown as typeof WORKS}
+        artistTerms={artistTerms}
+        authToken="token-123"
+        onCancel={() => {}}
+        onSuccess={() => {}}
+      />,
+    );
+  }
+
+  function shareInput() {
+    return screen.getByLabelText("Revenue share to venue") as HTMLInputElement;
+  }
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("opens the revenue share at the work's own share", () => {
+    renderWith([{ ...WORKS[0], revenue_share_percent: 30 }], TERMS);
+    expect(shareInput().value).toBe("30");
+  });
+
+  it("falls back to the artist's default for a work without one", () => {
+    renderWith([{ ...WORKS[0] }], TERMS);
+    expect(shareInput().value).toBe("20");
+  });
+
+  it("keeps the form's own 25% when there is no share anywhere", () => {
+    renderWith([{ ...WORKS[0] }], null);
+    expect(shareInput().value).toBe("25");
+  });
+
+  it("keeps what the artist types", () => {
+    renderWith([{ ...WORKS[0], revenue_share_percent: 30 }], TERMS);
+    fireEvent.change(shareInput(), { target: { value: "12" } });
+    expect(shareInput().value).toBe("12");
+  });
+});
+
+// Review finding: the note says "check the figures below", so it must not show
+// for a direct purchase, which renders no share or fee at all.
+describe("SpacesPlacementRequestForm mixed-terms note", () => {
+  const TERMS = { revenueSharePercent: 20, openToRevenueShare: true, openToFreeLoan: true };
+  const TWO_WORKS = [
+    { id: "w1", title: "Harbour Light", image: "/w1.jpg", revenue_share_percent: 30 },
+    { id: "w2", title: "Second Tide", image: "/w2.jpg" },
+  ];
+
+  function renderFor(venue: typeof VENUE) {
+    vi.stubGlobal("fetch", mockFetch({}));
+    render(
+      <SpacesPlacementRequestForm
+        venue={venue}
+        works={TWO_WORKS as unknown as typeof WORKS}
+        artistTerms={TERMS}
+        authToken="token-123"
+        onCancel={() => {}}
+        onSuccess={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByTitle("Add Second Tide"));
+  }
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the note when the selected works disagree and their terms are on screen", () => {
+    renderFor(VENUE);
+    expect(screen.getByText(MIXED_TERMS_NOTE)).toBeTruthy();
+  });
+
+  it("hides the note for a direct purchase, which carries no share or fee", () => {
+    renderFor({ ...VENUE, interestedInRevenueShare: false, interestedInFreeLoan: false, interestedInDirectPurchase: true });
+    expect(screen.queryByText(MIXED_TERMS_NOTE)).toBeNull();
   });
 });
