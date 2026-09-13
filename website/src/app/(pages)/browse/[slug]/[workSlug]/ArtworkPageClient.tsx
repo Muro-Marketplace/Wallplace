@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { ArtistWork } from "@/data/artists";
@@ -29,6 +29,8 @@ import { formatPounds } from "@/lib/format-currency";
 import WorkTermsLine from "@/components/WorkTermsLine";
 import { paidLoanFeeForSize, resolveWorkTerms, type ArtistTermsPayload } from "@/lib/work-terms";
 import { placementRequestHref } from "./placement-request-href";
+import { readQrContext } from "@/lib/qr-context";
+import { slugify } from "@/lib/slugify";
 interface ArtworkPageClientProps {
   work: ArtistWork;
   artistName: string;
@@ -44,6 +46,23 @@ interface ArtworkPageClientProps {
   /** The artist's profile rate and ticks, which a work follows until it sets
    *  its own. Drives the terms line under Size & Price. */
   artistTerms?: ArtistTermsPayload;
+}
+
+function sameVenueName(a: string | null | undefined, b: string | null | undefined): boolean {
+  return !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/** The QR context sits in localStorage and is only written by another page, so
+ *  there is nothing to listen for while this one is open. */
+const subscribeToNothing = () => () => {};
+
+/** The venue named by a QR scan of this artwork, or null. Only the artwork the
+ *  code was printed for counts: the artist's other work may hang elsewhere. */
+function scannedVenueNameFor(artistSlug: string, work: Pick<ArtistWork, "id" | "title">): string | null {
+  const ctx = readQrContext();
+  if (!ctx || ctx.artistSlug !== artistSlug || !ctx.workSlug) return null;
+  if (ctx.workSlug !== slugify(work.title) && ctx.workSlug !== work.id) return null;
+  return ctx.venueName || ctx.venueSlug;
 }
 
 export default function ArtworkPageClient({
@@ -69,6 +88,17 @@ export default function ArtworkPageClient({
   const selectedFrame = selectedFrameIdx >= 0 ? frameOptions[selectedFrameIdx] : undefined;
   const [wallVizOpen, setWallVizOpen] = useState(false);
   const [offerOpen, setOfferOpen] = useState(false);
+
+  // Owner request 13 September 2026: a visitor who scanned this artwork's QR code
+  // at a venue sees where it was seen, including after reloading this permalink.
+  // The scan is kept in the browser for 24 hours (lib/qr-context.ts). The server
+  // cannot see it, so the page renders without the venue and the browser adds it
+  // once hydrated.
+  const qrVenueName = useSyncExternalStore(
+    subscribeToNothing,
+    () => scannedVenueNameFor(artistSlug, work),
+    () => null,
+  );
 
   // ── Wall visualiser swap ──────────────────────────────────────────
   // When the WALL_VISUALIZER_V1 flag is on we use the new react-konva
@@ -201,10 +231,19 @@ export default function ArtworkPageClient({
         {work.title}
       </h1>
 
+      {/* Where the visitor scanned this artwork's QR code. It stands in for the
+          placed-at chip below when that names the same venue. */}
+      {qrVenueName && (
+        <p className="mb-5 inline-flex items-center gap-1.5 text-xs text-muted bg-foreground/5 rounded-full px-2.5 py-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden />
+          Seen in {qrVenueName}
+        </p>
+      )}
+
       {/* Currently-placed chip, only when the work is on display at a
           venue right now. Sourced from artist_works.placed_at_venue,
           kept in sync by the placements PATCH handler. */}
-      {work.placed_at_venue && (
+      {work.placed_at_venue && !sameVenueName(work.placed_at_venue, qrVenueName) && (
         <p className="mb-5 inline-flex items-center gap-1.5 text-xs text-muted bg-foreground/5 rounded-full px-2.5 py-1">
           <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden />
           Currently placed at {work.placed_at_venue}

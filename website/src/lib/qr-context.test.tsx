@@ -43,6 +43,19 @@ describe("qr-context", () => {
     expect(ctx!.source).toBe("qr");
   });
 
+  // Owner request 13 September 2026: the venue is shown only on the artwork whose
+  // QR code was scanned, so the context carries the artist and the artwork.
+  it("round-trips the artist and artwork whose QR code was scanned", () => {
+    saveQrContext({
+      venueSlug: "copper-kettle",
+      venueName: "Copper Kettle",
+      source: "qr",
+      artistSlug: "fin-coles",
+      workSlug: "vietnamese-village",
+    });
+    expect(readQrContext()).toMatchObject({ artistSlug: "fin-coles", workSlug: "vietnamese-village" });
+  });
+
   it("returns null when nothing is stored", () => {
     expect(readQrContext()).toBeNull();
   });

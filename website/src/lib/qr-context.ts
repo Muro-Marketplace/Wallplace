@@ -28,6 +28,10 @@ export interface QrContext {
   /** D10: server-signed venue attribution minted by the QR redirect. Preferred
    *  over venueSlug at checkout; the bare slug is a backward-compat fallback. */
   attributionToken?: string;
+  /** The artist and artwork whose QR code was scanned, so the venue is shown on
+   *  that artwork only. Absent on entries saved before 13 September 2026. */
+  artistSlug?: string;
+  workSlug?: string;
   /** Epoch ms when this entry was written. */
   ts: number;
 }
@@ -62,6 +66,8 @@ export function readQrContext(): QrContext | null {
       source: typeof parsed.source === "string" ? parsed.source : "qr",
       attributionToken:
         typeof parsed.attributionToken === "string" ? parsed.attributionToken : undefined,
+      artistSlug: typeof parsed.artistSlug === "string" ? parsed.artistSlug : undefined,
+      workSlug: typeof parsed.workSlug === "string" ? parsed.workSlug : undefined,
       ts: parsed.ts,
     };
   } catch {

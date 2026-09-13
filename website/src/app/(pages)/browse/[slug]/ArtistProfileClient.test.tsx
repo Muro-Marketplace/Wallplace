@@ -12,9 +12,10 @@
 // email); signed-in artists and venues keep the /api/messages path.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 
-const { mutateMock, showToastMock, authState, searchParamsMock } = vi.hoisted(() => ({
+const { mutateMock, showToastMock, authState, searchParamsMock, saveQrContextMock } = vi.hoisted(() => ({
+  saveQrContextMock: vi.fn(),
   mutateMock: vi.fn(),
   showToastMock: vi.fn(),
   authState: {
@@ -43,6 +44,7 @@ vi.mock("@/components/ArtworkThumb", () => ({ default: () => null }));
 vi.mock("@/components/offers/MakeOfferModal", () => ({ default: () => null }));
 vi.mock("next/image", () => ({ default: () => null }));
 vi.mock("next/link", () => ({ default: ({ children }: { children: unknown }) => children }));
+vi.mock("@/lib/qr-context", () => ({ saveQrContext: saveQrContextMock }));
 
 import ArtistProfileClient from "./ArtistProfileClient";
 import { ApiError } from "@/lib/api-client";
@@ -362,5 +364,64 @@ describe("ArtistProfileClient opening a work (owner report 13 September 2026)", 
     expect(permalinkPushes(pushState)).toBe(1);
     expect(artworkViews()).toBe(1);
     pushState.mockRestore();
+  });
+});
+
+// Owner request 13 September 2026: a QR code printed for a venue should show that
+// venue on the artwork it opens. Opening the artwork moves the address to its
+// permalink, which drops ?venue=, so the venue has to outlive the query string.
+describe("ArtistProfileClient venue from a QR scan (owner request 13 September 2026)", () => {
+  const works = [WORK as never];
+  const profile = () => (
+    <ArtistProfileClient artistName="Alice" artistSlug="alice" extendedBio="" themes={[]} works={works} />
+  );
+  /** The lightbox's details panel: the Message button sits in its first row. */
+  const artworkDetails = () =>
+    screen.getByRole("button", { name: "Message Alice" }).parentElement!.parentElement as HTMLElement;
+
+  it("shows the venue on the artwork a venue's QR code opens, even after the address loses the query", async () => {
+    saveQrContextMock.mockClear();
+    searchParamsMock.mockReturnValue(
+      new URLSearchParams("ref=qr&venue=the-curzon&venueName=The+Curzon&va=token&work=last-light"),
+    );
+    const { rerender } = render(profile());
+    await waitFor(() => expect(within(artworkDetails()).getByText("Seen in The Curzon")).toBeTruthy());
+
+    // What Next reports once the lightbox has moved the address to the permalink.
+    searchParamsMock.mockReturnValue(new URLSearchParams());
+    rerender(profile());
+
+    expect(within(artworkDetails()).getByText("Seen in The Curzon")).toBeTruthy();
+    expect(saveQrContextMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        venueSlug: "the-curzon",
+        venueName: "The Curzon",
+        attributionToken: "token",
+        artistSlug: "alice",
+        workSlug: "last-light",
+      }),
+    );
+  });
+
+  it("says so only on the artwork the code was printed for", async () => {
+    const other = { ...WORK, id: "w2", title: "First Frost" };
+    const two = [WORK as never, other as never];
+    searchParamsMock.mockReturnValue(
+      new URLSearchParams("ref=qr&venue=the-curzon&venueName=The+Curzon&work=last-light"),
+    );
+    render(<ArtistProfileClient artistName="Alice" artistSlug="alice" extendedBio="" themes={[]} works={two} />);
+    await waitFor(() => expect(within(artworkDetails()).getByText("Seen in The Curzon")).toBeTruthy());
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+
+    await waitFor(() => expect(within(artworkDetails()).getByText("First Frost")).toBeTruthy());
+    expect(within(artworkDetails()).queryByText(/Seen in/)).toBeNull();
+  });
+
+  it("shows no venue on an artwork opened without a venue's QR code", async () => {
+    searchParamsMock.mockReturnValue(new URLSearchParams("ref=qr&work=last-light"));
+    render(profile());
+    await waitFor(() => expect(artworkDetails()).toBeTruthy());
+    expect(screen.queryByText(/Seen in/)).toBeNull();
   });
 });
