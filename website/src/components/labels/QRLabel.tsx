@@ -3,8 +3,9 @@
 // Three independent choices:
 //   1. **size** (LabelSize): Small to Extra Large. Drives sheet density.
 //   2. **style** (LabelStyle): what the label says. Minimal (artist + title +
-//      QR), Editorial (gallery-style framing with medium, size and price), or
-//      QR Only (the code and the web address, on a square label).
+//      QR, plus any rows ticked), Editorial (gallery-style framing with medium,
+//      size and price), or QR Only (the code and the web address, on a square
+//      label).
 //   3. **theme** (LabelTheme): colour scheme. Default is the classic
 //      white-on-paper look.
 //
@@ -27,7 +28,7 @@ interface QRLabelProps {
   /** Visual treatment. Defaults to "minimal". */
   labelStyle?: LabelStyle;
   tagline?: string;
-  /** Per-label row toggles. Only Editorial prints these rows. */
+  /** Per-label row toggles. Minimal and Editorial print these rows; QR Only never does. */
   showMedium?: boolean;
   showDimensions?: boolean;
   showPrice?: boolean;
@@ -166,8 +167,12 @@ export default function QRLabel({
                 color: theme.fg,
                 margin: "1.5mm 0 0 0",
                 lineHeight: 1.15,
-                wordBreak: "break-word",
-                hyphens: "auto",
+                // Wrap between words, never inside one: automatic hyphenation
+                // split "Vil-lage" across two lines (owner follow-up, 13
+                // September 2026). Only a single word wider than the card
+                // breaks, and without a hyphen.
+                overflowWrap: "break-word",
+                hyphens: "manual",
               }}
             >
               {workTitle}
@@ -311,12 +316,33 @@ export default function QRLabel({
                   color: theme.fg,
                   margin: "2mm 0 0 0",
                   lineHeight: 1.3,
+                  // As on Editorial: wrap between words, and break only a word
+                  // too wide for the column, so it never runs under the QR code.
+                  overflowWrap: "break-word",
+                  hyphens: "manual",
                 }}
               >
                 {workTitle}
               </p>
             )
           )}
+          {/* The rows this label has ticked. Owner follow-up, 13 September
+              2026: Minimal used to ignore them, so its tick boxes did nothing. */}
+          {!isPortfolioLabel &&
+            ((showMedium && workMedium) || (showDimensions && workDimensions) || (showPrice && workPrice)) && (
+              <div
+                style={{
+                  margin: "1.5mm 0 0 0",
+                  fontSize: isLargeSize ? "7.5pt" : isSmallSize ? "5.5pt" : "6.5pt",
+                  color: theme.subtle,
+                  lineHeight: 1.35,
+                }}
+              >
+                {showMedium && workMedium && <div>{workMedium}</div>}
+                {showDimensions && workDimensions && <div>{workDimensions}</div>}
+                {showPrice && workPrice && <div style={{ color: "#C17C5A", fontWeight: 500 }}>{workPrice}</div>}
+              </div>
+            )}
         </div>
         {isLargeSize && tagline && (
           <p

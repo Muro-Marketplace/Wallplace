@@ -198,6 +198,39 @@ describe("artist labels page: styles, sizes and the action bar (owner report 13 
     expect(typeof props.onLabelThemeChange).toBe("function");
   });
 
+  // Now Minimal prints ticked rows, a style changed in the preview must bring its
+  // tick boxes back too, or the next preview prints rows this one had cleared.
+  it("brings the tick boxes back from a style chosen in the preview, keeping the size", async () => {
+    render(<LabelsPage />);
+    await screen.findByText("QR Labels");
+    openPreview();
+    const price = () => screen.getByRole("checkbox", { name: "Price" }) as HTMLInputElement;
+    const pressedSize = () =>
+      within(sizeGroup()).getAllByRole("button").find((b) => b.getAttribute("aria-pressed") === "true")?.textContent;
+    const sizeBefore = pressedSize();
+    expect(price().checked).toBe(false);
+
+    act(() => (labelPreviewProps.at(-1)!.onLabelStyleChange as (style: string) => void)("editorial"));
+    expect(price().checked).toBe(true);
+    expect(pressedSize()).toBe(sizeBefore);
+
+    act(() => (labelPreviewProps.at(-1)!.onLabelStyleChange as (style: string) => void)("minimal"));
+    expect(price().checked).toBe(false);
+  });
+
+  // Owner follow-up, 13 September 2026: Minimal needs its tick boxes too.
+  it("shows the Medium, Dimensions and Price tick boxes for Minimal and Editorial, not QR Only", async () => {
+    render(<LabelsPage />);
+    await screen.findByText("QR Labels");
+    expect(screen.getByRole("checkbox", { name: "Price" })).toBeTruthy();
+
+    fireEvent.click(within(styleGroup()).getByRole("button", { name: /^Editorial/ }));
+    expect(screen.getByRole("checkbox", { name: "Price" })).toBeTruthy();
+
+    fireEvent.click(within(styleGroup()).getByRole("button", { name: /^QR Only/ }));
+    expect(screen.queryByRole("checkbox", { name: "Price" })).toBeNull();
+  });
+
   it("hides the Feedback button while the Preview & Print bar is on screen", async () => {
     render(<LabelsPage />);
     await screen.findByText("QR Labels");

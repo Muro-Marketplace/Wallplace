@@ -29,7 +29,7 @@ export const LABEL_STYLES: {
   /** The size a style starts at when it is picked on a labels page. */
   defaultSize: LabelSize;
 }[] = [
-  { key: "minimal", name: "Minimal", description: "Artist, title and QR code.", defaultSize: "medium" },
+  { key: "minimal", name: "Minimal", description: "Artist, title and QR code, plus any rows you tick.", defaultSize: "medium" },
   {
     key: "editorial",
     name: "Editorial",
