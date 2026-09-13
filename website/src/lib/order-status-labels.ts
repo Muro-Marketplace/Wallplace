@@ -68,15 +68,33 @@ const PRE_DISPATCH: readonly OrderStatus[] = [
 ];
 
 const POST_DELIVERY_REFUND_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+// Owner decision 13 September 2026: an artist can mark an order delivered, and
+// that can come before the parcel does. The statutory window runs from arrival,
+// so a delivery the artist marked, rather than the buyer, allows a week for the post.
+const ARTIST_MARKED_POSTAL_ALLOWANCE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function isRefundEligible(
-  order: { status: string; delivered_at?: string | null },
+  order: { status: string; delivered_at?: string | null; status_history?: unknown },
   now: Date = new Date(),
 ): boolean {
   if ((PRE_DISPATCH as readonly string[]).includes(order.status)) return true;
   if (order.status === "delivered" && order.delivered_at) {
     const elapsed = now.getTime() - new Date(order.delivered_at).getTime();
-    return elapsed >= 0 && elapsed < POST_DELIVERY_REFUND_WINDOW_MS;
+    const windowMs =
+      POST_DELIVERY_REFUND_WINDOW_MS +
+      (deliveryMarkedByArtist(order.status_history) ? ARTIST_MARKED_POSTAL_ALLOWANCE_MS : 0);
+    return elapsed >= 0 && elapsed < windowMs;
   }
   return false;
+}
+
+/** Whether the order's first `delivered` entry was the artist's mark. delivered_at
+ *  is stamped on that first entry, so it is the one the window runs from. */
+function deliveryMarkedByArtist(history: unknown): boolean {
+  if (!Array.isArray(history)) return false;
+  const first = history.find(
+    (entry): entry is { status: string; by?: unknown } =>
+      !!entry && typeof entry === "object" && (entry as { status?: unknown }).status === "delivered",
+  );
+  return first?.by === "seller";
 }

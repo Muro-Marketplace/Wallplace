@@ -339,3 +339,32 @@ describe("an order with no delivery address says so (rows 933-939)", () => {
     expect(screen.queryByText(/nothing to post to yet/i)).toBeNull();
   });
 });
+
+// Owner decision 13 September 2026: most buyers check out as guests and never
+// confirm delivery, so the artist can mark a shipped order delivered.
+describe("the artist can mark a shipped order delivered (owner decision 13 September 2026)", () => {
+  it("offers Mark as Delivered on a shipped order, says the payout keeps its hold, and sends it", async () => {
+    authFetchMock.mockImplementation((url: string) =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify(
+            url.includes("refunds") ? { refundRequests: [] } : { orders: [{ ...ORDER, status: "shipped" }] },
+          ),
+          { status: 200 },
+        ),
+      ),
+    );
+    mutateMock.mockResolvedValue({});
+
+    render(<ArtistOrdersPage />);
+    fireEvent.click(await screen.findByText("o1"));
+    expect(await screen.findByText(/payout still releases/i)).toBeTruthy();
+    fireEvent.click(await screen.findByText("Mark as Delivered"));
+
+    await waitFor(() => expect(mutateMock).toHaveBeenCalled());
+    const [url, init] = mutateMock.mock.calls[0] as [string, { body: string }];
+    expect(url).toBe("/api/orders");
+    expect(JSON.parse(init.body)).toMatchObject({ orderId: "o1", status: "delivered" });
+    await waitFor(() => expect(screen.queryByText("Mark as Delivered")).toBeNull());
+  });
+});

@@ -9,16 +9,21 @@ import { executeTransfer } from "@/lib/stripe-connect";
 import { canTransition, type OrderStatus, ORDER_STATUSES } from "@/lib/order-state-machine";
 import { assertOrderParty, handleAuthzError } from "@/lib/authz";
 
-// E21. Who may set what. `delivered` is deliberately absent from the seller's
-// set: it releases escrow, so the party who gets paid cannot self-attest it.
-// `cancelled` is on both because either side may call off an order that has not
-// shipped; canTransition still decides whether the move is legal from the
-// current status, and both gates must pass.
+// E21. Who may set what. `cancelled` is on both because either side may call off
+// an order that has not shipped; canTransition still decides whether the move is
+// legal from the current status, and both gates must pass.
+//
+// `delivered` was buyer-only, because it released escrow and the party who gets
+// paid could self-attest it. Owner decision 13 September 2026: most buyers check
+// out as guests and never confirm, so the seller may mark a SHIPPED order delivered
+// too, and that mark releases no money early (see the payout block below). Only
+// the buyer's confirmation still pays out ahead of the 14-day hold.
 const SELLER_STATUSES = new Set<string>([
   "artist_notified",
   "awaiting_dispatch",
   "processing",
   "shipped",
+  "delivered",
   "cancelled",
 ]);
 const BUYER_STATUSES = new Set<string>(["delivered", "disputed", "cancelled"]);
@@ -181,16 +186,13 @@ export async function PATCH(request: Request) {
         .then(() => {}, () => {});
     }
 
-    // The seller may drive dispatch; only the buyer may confirm the parcel
-    // arrived. `delivered` releases every pending stripe_transfers row for the
+    // The buyer's `delivered` releases every pending stripe_transfers row for the
     // order (see the executeTransfer block below), which is the platform's only
     // chargeback buffer. canTransition blocks confirmed → delivered, but
-    // shipped → delivered is a legal edge and shipping is self-attested too, so
-    // before this the seller could walk confirmed → processing → shipped →
-    // delivered in three requests and be paid on day zero.
-    //
-    // Support overrides ("the carrier confirmed but the buyer never clicked")
-    // go through /api/admin/orders, which is the intended escape hatch.
+    // shipped → delivered is a legal edge and shipping is self-attested too, so a
+    // seller whose mark released money could walk confirmed → processing →
+    // shipped → delivered in three requests and be paid on day zero. That is why
+    // the seller's mark, allowed since 13 September 2026, moves the status only.
     const allowed = order.role === "seller" ? SELLER_STATUSES : BUYER_STATUSES;
     if (!allowed.has(status)) {
       return NextResponse.json(
@@ -203,6 +205,15 @@ export async function PATCH(request: Request) {
     // confirming pickup is the only completion it will ever have.
     const fulfilment = (order as { fulfilment_method?: string | null }).fulfilment_method || "";
     const isCollectionOrder = fulfilment === "collection" || fulfilment === "collect_venue";
+    // The seller's delivered mark is for a parcel they have sent: only from
+    // shipped, and never a collection, where the handover is the buyer's to confirm.
+    const sellerMarksDelivered = order.role === "seller" && status === "delivered";
+    if (sellerMarksDelivered && (order.status !== "shipped" || isCollectionOrder)) {
+      return NextResponse.json(
+        { error: "An artist can mark an order delivered only once it has shipped." },
+        { status: 403 },
+      );
+    }
     const transition = canTransition(order.status as OrderStatus, status as OrderStatus, {
       collection: isCollectionOrder,
     });
@@ -220,7 +231,9 @@ export async function PATCH(request: Request) {
       : typeof rawHistory === "string"
         ? (() => { try { const v = JSON.parse(rawHistory); return Array.isArray(v) ? v : []; } catch { return []; } })()
         : [];
-    parsedHistory.push({ status, timestamp: new Date().toISOString() });
+    // `by` records which party made the move. isRefundEligible reads it, because a
+    // delivery the seller marked can come before the parcel does.
+    parsedHistory.push({ status, timestamp: new Date().toISOString(), by: order.role });
 
     const updates: Record<string, unknown> = { status, status_history: parsedHistory };
     if (trackingNumber) updates.tracking_number = trackingNumber;
@@ -302,7 +315,9 @@ export async function PATCH(request: Request) {
         newStatus: status,
         actorUserId: auth.user?.id ?? null,
         buyerEmail: order.buyer_email ?? null,
-        artistEmail,
+        // The artist's delivered email says the buyer confirmed and the payout is
+        // released. Neither is true of the artist's own mark, so they get none.
+        artistEmail: sellerMarksDelivered ? null : artistEmail,
         // R4.10: recipient identities, so the buyer's email resolves the
         // BUYER's preferences, not whoever clicked the status button.
         buyerUserId: (order as { buyer_user_id?: string | null }).buyer_user_id ?? null,
@@ -423,7 +438,8 @@ export async function PATCH(request: Request) {
       }
     }
 
-    // On delivery, release pending payouts immediately (instead of waiting 14 days)
+    // On the buyer's delivery confirmation, release pending payouts immediately
+    // (instead of waiting 14 days)
     // and attribute the venue revenue back to the source placement so venue
     // dashboards see the linkage. Idempotent: status_history is checked before
     // the original update; if "delivered" was already there we skip the bump.
@@ -446,13 +462,18 @@ export async function PATCH(request: Request) {
         .select("id, recipient_type, recipient_user_id")
         .eq("order_id", orderId)
         .eq("status", "pending");
-      const pendingTransfers = (pendingAll || []).filter(
-        (t: { recipient_type?: string | null; recipient_user_id?: string | null }) =>
-          t.recipient_type === "venue" ||
-          !order.artist_user_id ||
-          !t.recipient_user_id ||
-          t.recipient_user_id === order.artist_user_id,
-      );
+      // Owner decision 13 September 2026: the seller's own mark releases nothing
+      // early. Every leg keeps its payout_after and the daily sweep pays it once
+      // the 14-day hold ends, exactly as for a buyer who never confirms.
+      const pendingTransfers = sellerMarksDelivered
+        ? []
+        : (pendingAll || []).filter(
+            (t: { recipient_type?: string | null; recipient_user_id?: string | null }) =>
+              t.recipient_type === "venue" ||
+              !order.artist_user_id ||
+              !t.recipient_user_id ||
+              t.recipient_user_id === order.artist_user_id,
+          );
 
       // Await each transfer individually so Vercel serverless cannot
       // freeze/kill the payouts before they complete. Per-transfer
