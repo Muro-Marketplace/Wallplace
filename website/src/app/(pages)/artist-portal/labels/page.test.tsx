@@ -238,7 +238,9 @@ describe("artist labels page: styles, sizes and the action bar (owner report 13 
 
     fireEvent.click(screen.getAllByText("+")[0]);
     expect(await screen.findByText("Preview & Print")).toBeTruthy();
-    expect(isFeedbackBubbleHidden()).toBe(true);
+    // The bubble hides in an effect that runs after the bar renders, so wait for
+    // it rather than racing it: a CI run checked in between (14 September 2026).
+    await waitFor(() => expect(isFeedbackBubbleHidden()).toBe(true));
 
     fireEvent.click(screen.getByText("Clear"));
     await waitFor(() => expect(isFeedbackBubbleHidden()).toBe(false));
