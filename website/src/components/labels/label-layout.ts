@@ -68,6 +68,18 @@ export function labelDims(size: LabelSize, style: LabelStyle): LabelDims {
     : { widthMm: card.width, heightMm: card.height, qrMm: card.qr };
 }
 
+/**
+ * How much bigger an Extra Large label sets Large's type and spacing: the ratio
+ * of the two cards' short sides, a third in every style. Small, Medium and Large
+ * each have type of their own, so they stay at 1. Owner follow-up, 13 September
+ * 2026: Extra Large used Large's sizes as they were, so its writing looked lost.
+ */
+export function typeScale(size: LabelSize, style: LabelStyle): number {
+  if (size !== "xlarge") return 1;
+  const shortSide = (dims: LabelDims) => Math.min(dims.widthMm, dims.heightMm);
+  return shortSide(labelDims("xlarge", style)) / shortSide(labelDims("large", style));
+}
+
 export interface SheetLayout extends LabelDims {
   cols: number;
   rows: number;

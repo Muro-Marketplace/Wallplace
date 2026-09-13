@@ -14,7 +14,7 @@
 // 2026: "QR Only" was a size, so it squeezed a full label into 25mm.
 
 import { getLabelTheme, type LabelTheme } from "@/lib/profile-themes";
-import { labelDims, mm, type LabelSize, type LabelStyle } from "./label-layout";
+import { labelDims, mm, typeScale, type LabelSize, type LabelStyle } from "./label-layout";
 
 interface QRLabelProps {
   artistName: string;
@@ -57,6 +57,13 @@ export default function QRLabel({
   const dims = labelDims(labelSize, labelStyle);
   const isLargeSize = labelSize === "large" || labelSize === "xlarge";
   const isSmallSize = labelSize === "small";
+  // Extra Large shares Large's layout, with its type and spacing set a third
+  // bigger (typeScale in label-layout.ts) so the writing fills the bigger card.
+  // Owner follow-up, 13 September 2026: it used Large's sizes as they were.
+  // Rounded to the half point or half millimetre; every other size is unchanged.
+  const scale = typeScale(labelSize, labelStyle);
+  const pt = (value: number) => `${Math.round(value * scale * 2) / 2}pt`;
+  const space = (value: number) => mm(Math.round(value * scale * 2) / 2);
   const theme: LabelTheme = getLabelTheme(labelTheme);
 
   // ── Style: QR Only ───────────────────────────────────────────────
@@ -102,7 +109,9 @@ export default function QRLabel({
         <p
           style={{
             fontFamily: "var(--font-sans)",
-            fontSize: isSmallSize ? "5pt" : "6.5pt",
+            // Under an Extra Large code only 3mm is left for this line, so it
+            // stops at 7.5pt: at 8pt and up the line came out taller than the space.
+            fontSize: isSmallSize ? "5pt" : labelSize === "xlarge" ? "7.5pt" : "6.5pt",
             color: theme.subtle,
             margin: 0,
             letterSpacing: "0.05em",
@@ -135,7 +144,7 @@ export default function QRLabel({
         className="qr-label"
         style={{
           ...containerStyle,
-          padding: isLargeSize ? "6mm 5mm" : isSmallSize ? "3mm" : "4.5mm",
+          padding: isLargeSize ? `${space(6)} ${space(5)}` : isSmallSize ? "3mm" : "4.5mm",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -146,7 +155,7 @@ export default function QRLabel({
           <p
             style={{
               fontFamily: "var(--font-sans)",
-              fontSize: isLargeSize ? "7pt" : "6pt",
+              fontSize: isLargeSize ? pt(7) : "6pt",
               color: theme.subtle,
               margin: 0,
               letterSpacing: "0.18em",
@@ -161,11 +170,12 @@ export default function QRLabel({
                 fontFamily: "var(--font-serif)",
                 // Editorial portrait at medium gets a narrower card, so the
                 // title drops to 11pt to keep longer titles like "Vietnamese
-                // Village" inside the border. Large and Extra Large stay at 16pt.
-                fontSize: isLargeSize ? "16pt" : isSmallSize ? "10pt" : "11pt",
+                // Village" inside the border. Large is 16pt, and Extra Large
+                // scales that up with the rest of its type.
+                fontSize: isLargeSize ? pt(16) : isSmallSize ? "10pt" : "11pt",
                 fontWeight: 400,
                 color: theme.fg,
-                margin: "1.5mm 0 0 0",
+                margin: `${space(1.5)} 0 0 0`,
                 lineHeight: 1.15,
                 // Wrap between words, never inside one: automatic hyphenation
                 // split "Vil-lage" across two lines (owner follow-up, 13
@@ -182,10 +192,10 @@ export default function QRLabel({
             <p
               style={{
                 fontFamily: "var(--font-serif)",
-                fontSize: isLargeSize ? "12pt" : "10pt",
+                fontSize: isLargeSize ? pt(12) : "10pt",
                 fontStyle: "italic",
                 color: theme.subtle,
-                margin: "1.5mm 0 0 0",
+                margin: `${space(1.5)} 0 0 0`,
               }}
             >
               Scan to view full portfolio
@@ -193,10 +203,10 @@ export default function QRLabel({
           )}
           <div
             style={{
-              width: isLargeSize ? "10mm" : "6mm",
+              width: isLargeSize ? space(10) : "6mm",
               height: "0.4pt",
               backgroundColor: "#C17C5A",
-              margin: "2mm auto 0",
+              margin: `${space(2)} auto 0`,
             }}
           />
         </div>
@@ -221,7 +231,7 @@ export default function QRLabel({
           {!isPortfolioLabel && (
             <div
               style={{
-                fontSize: isLargeSize ? "7pt" : "6pt",
+                fontSize: isLargeSize ? pt(7) : "6pt",
                 color: theme.subtle,
                 lineHeight: 1.4,
               }}
@@ -229,17 +239,17 @@ export default function QRLabel({
               {showMedium && workMedium && <div>{workMedium}</div>}
               {showDimensions && workDimensions && <div>{workDimensions}</div>}
               {showPrice && workPrice && (
-                <div style={{ color: "#C17C5A", fontWeight: 500, marginTop: "1mm" }}>{workPrice}</div>
+                <div style={{ color: "#C17C5A", fontWeight: 500, marginTop: space(1) }}>{workPrice}</div>
               )}
             </div>
           )}
           {isLargeSize && tagline && (
             <p
               style={{
-                fontSize: "7pt",
+                fontSize: pt(7),
                 color: theme.subtle,
                 fontStyle: "italic",
-                margin: "2mm 0 0 0",
+                margin: `${space(2)} 0 0 0`,
               }}
             >
               {tagline}
@@ -247,9 +257,9 @@ export default function QRLabel({
           )}
           <p
             style={{
-              fontSize: isSmallSize ? "5pt" : "6pt",
+              fontSize: isSmallSize ? "5pt" : pt(6),
               color: theme.subtle,
-              margin: "1.5mm 0 0 0",
+              margin: `${space(1.5)} 0 0 0`,
               letterSpacing: "0.05em",
             }}
           >
@@ -266,7 +276,7 @@ export default function QRLabel({
       className="qr-label"
       style={{
         ...containerStyle,
-        padding: isSmallSize ? "3mm" : isLargeSize ? "5mm" : "4mm",
+        padding: isSmallSize ? "3mm" : isLargeSize ? space(5) : "4mm",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "stretch",
@@ -279,14 +289,14 @@ export default function QRLabel({
           justifyContent: "space-between",
           flex: 1,
           minWidth: 0,
-          paddingRight: "3mm",
+          paddingRight: space(3),
         }}
       >
         <div>
           <p
             style={{
               fontFamily: "var(--font-serif)",
-              fontSize: isLargeSize ? "14pt" : isSmallSize ? "9pt" : "11pt",
+              fontSize: isLargeSize ? pt(14) : isSmallSize ? "9pt" : "11pt",
               fontWeight: 600,
               color: theme.fg,
               margin: 0,
@@ -298,9 +308,9 @@ export default function QRLabel({
           {isPortfolioLabel ? (
             <p
               style={{
-                fontSize: "8pt",
+                fontSize: pt(8),
                 color: theme.subtle,
-                margin: "2mm 0 0 0",
+                margin: `${space(2)} 0 0 0`,
                 lineHeight: 1.3,
                 fontStyle: "italic",
               }}
@@ -311,10 +321,10 @@ export default function QRLabel({
             workTitle && (
               <p
                 style={{
-                  fontSize: isLargeSize ? "10pt" : "9pt",
+                  fontSize: isLargeSize ? pt(10) : "9pt",
                   fontWeight: 500,
                   color: theme.fg,
-                  margin: "2mm 0 0 0",
+                  margin: `${space(2)} 0 0 0`,
                   lineHeight: 1.3,
                   // As on Editorial: wrap between words, and break only a word
                   // too wide for the column, so it never runs under the QR code.
@@ -332,8 +342,8 @@ export default function QRLabel({
             ((showMedium && workMedium) || (showDimensions && workDimensions) || (showPrice && workPrice)) && (
               <div
                 style={{
-                  margin: "1.5mm 0 0 0",
-                  fontSize: isLargeSize ? "7.5pt" : isSmallSize ? "5.5pt" : "6.5pt",
+                  margin: `${space(1.5)} 0 0 0`,
+                  fontSize: isLargeSize ? pt(7.5) : isSmallSize ? "5.5pt" : "6.5pt",
                   color: theme.subtle,
                   lineHeight: 1.35,
                 }}
@@ -347,9 +357,9 @@ export default function QRLabel({
         {isLargeSize && tagline && (
           <p
             style={{
-              fontSize: "7.5pt",
+              fontSize: pt(7.5),
               color: theme.subtle,
-              margin: "2mm 0 0 0",
+              margin: `${space(2)} 0 0 0`,
               lineHeight: 1.3,
               fontStyle: "italic",
             }}
@@ -359,7 +369,7 @@ export default function QRLabel({
         )}
         <p
           style={{
-            fontSize: isSmallSize ? "5.5pt" : "6.5pt",
+            fontSize: isSmallSize ? "5.5pt" : pt(6.5),
             color: theme.subtle,
             margin: 0,
             letterSpacing: "0.03em",

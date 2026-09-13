@@ -10,6 +10,7 @@ import {
   labelDims,
   sheetLayout,
   toLabelSize,
+  typeScale,
 } from "./label-layout";
 
 describe("label sizes and styles", () => {
@@ -48,5 +49,16 @@ describe("label sizes and styles", () => {
     expect(toLabelSize("large")).toBe("large");
     expect(toLabelSize("micro")).toBe("small");
     expect(toLabelSize(undefined)).toBe("small");
+  });
+
+  // Owner follow-up, 13 September 2026: Extra Large set its writing at Large's
+  // sizes, so on a card a third bigger it looked lost.
+  it("sets Extra Large's type a third bigger than Large's in every style, and leaves the other sizes alone", () => {
+    for (const { key: style } of LABEL_STYLES) {
+      expect(typeScale("xlarge", style), style).toBeCloseTo(4 / 3, 5);
+      for (const size of ["small", "medium", "large"] as const) {
+        expect(typeScale(size, style), `${style} ${size}`).toBe(1);
+      }
+    }
   });
 });

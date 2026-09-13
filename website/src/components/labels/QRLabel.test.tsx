@@ -38,4 +38,35 @@ describe("<QRLabel />", () => {
       expect(screen.queryByText(text), text).toBeNull();
     }
   });
+
+  // Owner follow-up, 13 September 2026: Extra Large set its writing at Large's
+  // sizes, so on a card a third bigger it looked lost.
+  it("sets every line of writing bigger on Extra Large than on Large, in every style", () => {
+    const fontPt = (el: HTMLElement) => {
+      for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+        if (node.style.fontSize) return parseFloat(node.style.fontSize);
+      }
+      throw new Error(`no font size above "${el.textContent}"`);
+    };
+    const measure = (labelStyle: "minimal" | "editorial" | "qr_only", labelSize: "large" | "xlarge") => {
+      const { unmount } = render(
+        <QRLabel {...work} labelStyle={labelStyle} labelSize={labelSize} tagline="Shot on film in Hoi An" />,
+      );
+      const texts =
+        labelStyle === "qr_only"
+          ? ["wallplace.co.uk"]
+          : ["Fin Coles", "Vietnamese Village", "Photography Print", "From £29.99", "Shot on film in Hoi An", "wallplace.co.uk"];
+      const sizes = Object.fromEntries(texts.map((text) => [text, fontPt(screen.getByText(text))]));
+      unmount();
+      return sizes;
+    };
+
+    for (const style of ["minimal", "editorial", "qr_only"] as const) {
+      const large = measure(style, "large");
+      const xlarge = measure(style, "xlarge");
+      for (const text of Object.keys(large)) {
+        expect(xlarge[text], `${style}: ${text}`).toBeGreaterThan(large[text]);
+      }
+    }
+  });
 });
