@@ -48,3 +48,24 @@ describe("worksToPost (E41-c)", () => {
     expect(worksToPost(updated, persisted).map((x) => x.work.id)).toEqual(["a"]);
   });
 });
+
+// Migration 148. A work whose only change is its revenue share or listed paid
+// loan fee must still be re-POSTed. postKey used to omit both, so the editor
+// showed the new value, marked it saved, and never sent it.
+describe("worksToPost: per-work terms (migration 148)", () => {
+  it("posts a work whose only change is its paid loan fee", () => {
+    const out = worksToPost([w("a", { paidLoanMonthlyGbp: 40 })], [w("a", { paidLoanMonthlyGbp: null })]);
+    expect(out.map((x) => x.work.id)).toEqual(["a"]);
+  });
+
+  it("posts a work whose only change is its revenue share", () => {
+    const out = worksToPost([w("a", { revenueShareOverride: 30 })], [w("a")]);
+    expect(out.map((x) => x.work.id)).toEqual(["a"]);
+  });
+
+  it("does not post a work whose terms are unchanged, treating missing and null alike", () => {
+    const same = { revenueShareOverride: 30, paidLoanMonthlyGbp: 40 };
+    expect(worksToPost([w("a", same)], [w("a", same)])).toEqual([]);
+    expect(worksToPost([w("b", { paidLoanMonthlyGbp: null })], [w("b")])).toEqual([]);
+  });
+});

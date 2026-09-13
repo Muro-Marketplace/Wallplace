@@ -987,7 +987,8 @@ export default function PlacementsPage() {
               )}
             </div>
 
-            {suggestedTerms.mixed && (
+            {/* Only while a share or a fee is on screen to be reconciled. */}
+            {suggestedTerms.mixed && (qrEnabled || (typeof monthlyFee === "number" && monthlyFee > 0)) && (
               <p role="note" className="text-xs text-muted">
                 {MIXED_TERMS_NOTE}
               </p>

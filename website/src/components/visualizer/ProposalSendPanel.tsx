@@ -203,7 +203,8 @@ export default function ProposalSendPanel({
             </div>
           </fieldset>
 
-          {initialTerms?.mixed && (
+          {/* A direct purchase carries no share or fee, so there is nothing to reconcile. */}
+          {initialTerms?.mixed && arrangement !== "purchase" && (
             <p role="note" className="text-[11px] text-stone-500">
               {MIXED_TERMS_NOTE}
             </p>

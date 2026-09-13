@@ -159,3 +159,18 @@ describe("<ProposalSendPanel /> starts from the wall's works (spec 2026-09-13)",
     expect(screen.getByText(MIXED_TERMS_NOTE)).toBeTruthy();
   });
 });
+
+// Review finding: no note once Direct purchase is chosen, since it shows no
+// share or fee for the artist to check.
+describe("<ProposalSendPanel /> mixed-terms note and arrangement", () => {
+  it("hides the note once Direct purchase is chosen", () => {
+    mount({
+      venue: { ...VENUE, interestedInDirectPurchase: true },
+      initialTerms: { revenueSharePercent: 30, monthlyFeeGbp: 40, mixed: true },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send to The Copper Kettle" }));
+    expect(screen.getByText(MIXED_TERMS_NOTE)).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: "Direct purchase" }));
+    expect(screen.queryByText(MIXED_TERMS_NOTE)).toBeNull();
+  });
+});

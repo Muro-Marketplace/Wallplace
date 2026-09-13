@@ -43,6 +43,11 @@ function postKey(work: ArtistWork): string {
     frameOptions: w.frameOptions ?? [],
     description: work.description ?? "",
     images: work.images ?? [],
+    // Migration 148. Without these a work whose only change is its revenue share
+    // or listed paid loan fee compared equal, was never re-POSTed, and was then
+    // recorded as persisted: the editor showed the new value and nothing saved.
+    revenueShareOverride: work.revenueShareOverride ?? null,
+    paidLoanMonthlyGbp: work.paidLoanMonthlyGbp ?? null,
   });
 }
 

@@ -699,7 +699,8 @@ export default function SpacesPlacementRequestForm({
             </div>
           )}
 
-          {action === "placement" && suggestedTerms.mixed && (
+          {/* A direct purchase carries no share or fee, so there is nothing to reconcile. */}
+          {action === "placement" && arrangement !== "purchase" && suggestedTerms.mixed && (
             <p role="note" className="text-[11px] text-muted leading-relaxed">
               {MIXED_TERMS_NOTE}
             </p>
