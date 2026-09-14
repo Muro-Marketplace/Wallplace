@@ -14,7 +14,7 @@ import { buildFramePayload, firstUnnamedFrame, type FramePayloadInput } from "./
 import { mergeBulkPricing, copySizesPricing } from "./bulk-pricing";
 import { worksToPost } from "./changed-works";
 import { partitionBulkAddDrafts } from "./bulk-add-validation";
-import { withSingleSizeLabel } from "./single-size-label";
+import { beforeAnotherSize, singleSizeName, withSingleSizeLabel } from "./single-size-label";
 import { displayPhysicalDimensions } from "@/lib/dimensions";
 import { deriveAvailable, hydrateAvailable } from "./work-availability";
 import { estimateShipping, tierLabel } from "@/lib/shipping-calculator";
@@ -1837,9 +1837,12 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
   }
 
   function addSize() {
+    const newIndex = form.sizes.length;
     setForm((p) => ({
       ...p,
-      sizes: [...p.sizes, { label: "", price: 0 }],
+      // A lone unnamed row stood for the artwork size, so it takes that name
+      // before another row joins it (single-size-label.ts).
+      sizes: [...beforeAnotherSize(p.sizes, p.dimensions), { label: "", price: 0 }],
       // Keep the parallel per-size arrays aligned so a new row
       // doesn't silently drop / mis-align shipping / in-store / qty
       // values when the user edits them.
@@ -1848,6 +1851,13 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
       sizeStock: p.stockPerSize ? [...p.sizeStock, ""] : p.sizeStock,
       sizeLoanFees: [...p.sizes.map((_, j) => p.sizeLoanFees[j] ?? ""), ""],
     }));
+    // Put the cursor in the new row's name once it has rendered. Both layouts
+    // render the row, and focus() does nothing on the one hidden at this width.
+    requestAnimationFrame(() => {
+      formRef.current
+        ?.querySelectorAll<HTMLInputElement>(`input[data-size-name="${newIndex}"]`)
+        .forEach((input) => input.focus());
+    });
   }
 
   function updateSize(index: number, field: "label" | "price", value: string | number) {
@@ -1897,6 +1907,14 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
 
     // A lone priced row with no name takes the artwork size (single-size-label.ts).
     const sizesForSave = withSingleSizeLabel(form.sizes, form.dimensions);
+    // Owner report 14 September 2026: with two sizes, a priced row left without a
+    // name was dropped by the filter below without a word. Buyers choose a size by
+    // its name, so say which one needs it.
+    const unnamedSize = sizesForSave.findIndex((s) => s.price > 0 && !s.label.trim());
+    if (unnamedSize >= 0) {
+      setFormError(`Size ${unnamedSize + 1} needs a name. Buyers choose a size by its name.`);
+      return;
+    }
     const validSizes = sizesForSave.filter((s) => s.label && s.price > 0);
     if (validSizes.length === 0) {
       setFormError("At least one size with a price above £0 is required");
@@ -2583,13 +2601,6 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                     }
                     onPick={applyCopyFromSourceToForm}
                   />
-                  <button
-                    type="button"
-                    onClick={addSize}
-                    className="text-xs text-accent hover:text-accent-hover transition-colors"
-                  >
-                    + Add custom size
-                  </button>
                 </div>
               </div>
 
@@ -2652,63 +2663,6 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                 </label>
               </div>
 
-              {/* Print sizes, on request. Owner request 14 September 2026: these
-                  were filled in for every upload, which suits prints and not an
-                  original, so they sit behind "Selling prints too?" now. */}
-              {form.detectedRatio && !showPrintSizes && (
-                <button
-                  type="button"
-                  onClick={() => setShowPrintSizes(true)}
-                  className="mb-3 text-xs text-accent hover:text-accent-hover"
-                >
-                  Selling prints too? Add print sizes
-                </button>
-              )}
-              {form.detectedRatio && showPrintSizes && (
-                <div className="mb-3">
-                  <p className="text-[10px] text-muted mb-2">
-                    Print sizes for your image ({form.orientation}, {form.detectedRatio.toFixed(2)} ratio):
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {getSuggestedSizes(form.detectedRatio).map((s) => {
-                      const alreadyAdded = form.sizes.some((existing) => existing.label === s.label);
-                      return (
-                        <button
-                          key={s.label}
-                          type="button"
-                          disabled={alreadyAdded}
-                          onClick={() => {
-                            if (!alreadyAdded) {
-                              setForm((p) => {
-                                // The untouched starting row gives way to the first print
-                                // size. Prints are not a one-off, so a quantity still at
-                                // the starting 1 clears to unlimited.
-                                const untouched =
-                                  p.sizes.length === 1 && !p.sizes[0].label.trim() && !(p.sizes[0].price > 0);
-                                return {
-                                  ...p,
-                                  sizes: untouched
-                                    ? [{ label: s.label, price: 0 }]
-                                    : [...p.sizes, { label: s.label, price: 0 }],
-                                  quantityAvailable: p.quantityAvailable.trim() === "1" ? "" : p.quantityAvailable,
-                                };
-                              });
-                            }
-                          }}
-                          className={`px-2.5 py-1 text-[11px] rounded-sm border transition-colors ${
-                            alreadyAdded
-                              ? "bg-accent/10 border-accent/30 text-accent cursor-default"
-                              : "border-border text-muted hover:border-accent hover:text-accent cursor-pointer"
-                          }`}
-                        >
-                          {alreadyAdded ? "✓ " : "+ "}{s.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               {/* Desktop grid, explicit column template so Size takes
                   the space it needs and the price columns hug to the
                   right. Avoids the "Price floating 1000px from Size"
@@ -2757,7 +2711,10 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                               type="text"
                               value={size.label}
                               onChange={(e) => updateSize(i, "label", e.target.value)}
-                              placeholder={form.sizes.length === 1 ? "Blank uses the artwork size" : 'e.g. 12×16" (A3)'}
+                              // A lone row shows the name it saves under (single-size-label.ts).
+                              placeholder={form.sizes.length === 1 ? singleSizeName(form.dimensions) : 'e.g. 12×16" (A3)'}
+                              aria-label={`Size ${i + 1} name`}
+                              data-size-name={i}
                               className="bg-background border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent/60 min-w-0"
                             />
                             <div />
@@ -2888,7 +2845,9 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                           type="text"
                           value={size.label}
                           onChange={(e) => updateSize(i, "label", e.target.value)}
-                          placeholder={form.sizes.length === 1 ? "Blank uses the artwork size" : 'e.g. 12×16" (A3)'}
+                          placeholder={form.sizes.length === 1 ? singleSizeName(form.dimensions) : 'e.g. 12×16" (A3)'}
+                          aria-label={`Size ${i + 1} name`}
+                          data-size-name={i}
                           className="flex-1 bg-background border border-border rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-accent/60"
                         />
                         {form.sizes.length > 1 && (
@@ -2991,9 +2950,84 @@ export default function WorksEditor({ title, headerActions }: WorksEditorProps) 
                 })}
               </div>
 
-              <p className="text-[10px] text-muted mt-2">
-                Set a price for each size. The ticks above add columns for shipping, quantity and paid loan fees by size. A blank fee lists no price for that size.
-              </p>
+              {/* Owner report 14 September 2026: "+ Add custom size" sat in the header
+                  among the copy tools, away from the rows it adds to. Every way to add
+                  a size now sits under the rows, where the new row appears. */}
+              <div className="mt-3 space-y-3">
+                <button
+                  type="button"
+                  onClick={addSize}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 border border-dashed border-border rounded-sm text-sm text-accent hover:border-accent hover:bg-accent/5 transition-colors"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true"><path d="M6 1v10M1 6h10" /></svg>
+                  Add another size
+                </button>
+
+                {/* Print sizes, on request. Owner request 14 September 2026: these
+                    were filled in for every upload, which suits prints and not an
+                    original, so they sit behind "Selling prints too?" now. */}
+                {form.detectedRatio && !showPrintSizes && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPrintSizes(true)}
+                    className="text-xs text-accent hover:text-accent-hover"
+                  >
+                    Selling prints too? Add print sizes
+                  </button>
+                )}
+                {form.detectedRatio && showPrintSizes && (
+                  <div>
+                    <p className="text-[10px] text-muted mb-2">
+                      Print sizes for your image ({form.orientation}, {form.detectedRatio.toFixed(2)} ratio):
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {getSuggestedSizes(form.detectedRatio).map((s) => {
+                        const alreadyAdded = form.sizes.some((existing) => existing.label === s.label);
+                        return (
+                          <button
+                            key={s.label}
+                            type="button"
+                            disabled={alreadyAdded}
+                            onClick={() => {
+                              if (!alreadyAdded) {
+                                setForm((p) => {
+                                  // The untouched starting row gives way to the first print
+                                  // size, and a row already in use takes its name before the
+                                  // print joins it. Prints are not a one-off, so a quantity
+                                  // still at the starting 1 clears to unlimited.
+                                  const untouched =
+                                    p.sizes.length === 1 && !p.sizes[0].label.trim() && !(p.sizes[0].price > 0);
+                                  return {
+                                    ...p,
+                                    sizes: untouched
+                                      ? [{ label: s.label, price: 0 }]
+                                      : [...beforeAnotherSize(p.sizes, p.dimensions), { label: s.label, price: 0 }],
+                                    quantityAvailable: p.quantityAvailable.trim() === "1" ? "" : p.quantityAvailable,
+                                  };
+                                });
+                              }
+                            }}
+                            className={`px-2.5 py-1 text-[11px] rounded-sm border transition-colors ${
+                              alreadyAdded
+                                ? "bg-accent/10 border-accent/30 text-accent cursor-default"
+                                : "border-border text-muted hover:border-accent hover:text-accent cursor-pointer"
+                            }`}
+                          >
+                            {alreadyAdded ? "✓ " : "+ "}{s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <p className="text-[10px] text-muted">
+                  {form.sizes.length === 1
+                    ? "An original needs one size, and it takes the artwork size unless you name it. Add another for each print or format you sell."
+                    : "Give each size a name and a price."}{" "}
+                  The ticks above add columns for shipping, quantity and paid loan fees by size, and a blank fee lists no price for that size.
+                </p>
+              </div>
 
               {/* Single-price shipping fallback, only visible when the
                   per-size toggle is off. Keeps one shipping number for

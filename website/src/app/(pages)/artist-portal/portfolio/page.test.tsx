@@ -302,7 +302,7 @@ describe("adding an original is not print-first (owner request 14 September 2026
   it("starts with one unnamed size row, and offers print sizes only when asked", async () => {
     render(<PortfolioPage />);
     await openAddAndFill();
-    expect(screen.getAllByPlaceholderText("Blank uses the artwork size").length).toBeGreaterThan(0);
+    expect((screen.getAllByRole("textbox", { name: "Size 1 name" })[0] as HTMLInputElement).value).toBe("");
     expect(screen.queryAllByText(PRINT_SIZE_CHIP)).toHaveLength(0);
 
     fireEvent.click(screen.getAllByText("Selling prints too? Add print sizes")[0]);
@@ -344,6 +344,65 @@ describe("adding an original is not print-first (owner request 14 September 2026
     fireEvent.click(screen.getAllByText(PRINT_SIZE_CHIP)[0]);
 
     expect((screen.getAllByPlaceholderText(QUANTITY)[0] as HTMLInputElement).value).toBe("");
+  });
+});
+
+// Owner report 14 September 2026: "+ Add custom size" sat in the header among the
+// copy tools, away from the rows it adds to, and the lone row's "Blank uses the
+// artwork size" read as an instruction rather than as the name it saves under.
+describe("adding another size happens under the size rows (owner report 14 September 2026)", () => {
+  const ARTWORK_SIZE = "e.g. 70 × 50 cm";
+  const PRINT_SIZE_CHIP = /^\+ \d+×\d+"/;
+  const sizeNames = (n: number) => screen.getAllByRole("textbox", { name: `Size ${n} name` }) as HTMLInputElement[];
+
+  it("shows the name a lone unnamed size saves under", async () => {
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    expect(sizeNames(1)[0].placeholder).toBe("Original");
+
+    fireEvent.change(screen.getAllByPlaceholderText(ARTWORK_SIZE)[0], { target: { value: "70 × 50 cm" } });
+    expect(sizeNames(1)[0].placeholder).toBe("70 × 50 cm");
+  });
+
+  it("adds a row from a button under the rows, names the first row and puts the cursor in the new one", async () => {
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    expect(screen.queryByText("+ Add custom size")).toBeNull();
+    fireEvent.change(screen.getAllByPlaceholderText(ARTWORK_SIZE)[0], { target: { value: "70 × 50 cm" } });
+
+    const add = screen.getByRole("button", { name: "Add another size" });
+    expect(sizeNames(1)[0].compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(add);
+
+    expect(sizeNames(1)[0].value).toBe("70 × 50 cm");
+    expect(sizeNames(2)[0].value).toBe("");
+    await waitFor(() => expect(sizeNames(2)).toContain(document.activeElement));
+  });
+
+  it("names a priced first row when print sizes are added after it", async () => {
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    fireEvent.change(screen.getAllByPlaceholderText(ARTWORK_SIZE)[0], { target: { value: "70 × 50 cm" } });
+    fireEvent.click(screen.getAllByText("Selling prints too? Add print sizes")[0]);
+    fireEvent.click(screen.getAllByText(PRINT_SIZE_CHIP)[0]);
+
+    expect(sizeNames(1)[0].value).toBe("70 × 50 cm");
+    expect(sizeNames(2)[0].value).toMatch(/^\d+×\d+"/);
+  });
+
+  it("refuses to save a priced size with no name, instead of dropping it", async () => {
+    mutateMock.mockResolvedValue({ savedRow: { id: "w1" } });
+    render(<PortfolioPage />);
+    await openAddAndFill();
+    fireEvent.click(screen.getByRole("button", { name: "Add another size" }));
+    fireEvent.change(screen.getAllByPlaceholderText("Price")[1], { target: { value: "80" } });
+    fireEvent.click(screen.getAllByText("Save Work")[0]);
+
+    expect(
+      (await screen.findAllByText("Size 2 needs a name. Buyers choose a size by its name.")).length,
+    ).toBeGreaterThan(0);
+    expect(mutateMock).not.toHaveBeenCalled();
+    expect(formIsOpen()).toBe(true);
   });
 });
 
